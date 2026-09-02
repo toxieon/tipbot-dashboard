@@ -1,1 +1,162 @@
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TipBot Dashboard</title><body style="margin:0;height:100vh;display:grid;place-items:center;background:#0f1420;color:#e7ecf5;font-family:system-ui,sans-serif"><div style="text-align:center"><h1 style="margin:0 0 8px">TipBot Dashboard</h1><p style="color:#8a95ad;margin:0">Coming soon — the web control panel will live here.</p></div></body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TipBot Dashboard</title>
+<style>
+  :root{--bg:#0f1420;--card:#171d2b;--line:#26304a;--txt:#e7ecf5;--muted:#8a95ad;
+        --on:#2eaf62;--off:#43506b;--accent:#5b8cff;--danger:#ff8b8b;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  tr:last-child td{border-bottom:none}
+  .name{font-weight:600}.gid{color:var(--muted);font-size:12px}
+  .plan{display:inline-block;background:#223;border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;color:var(--muted)}
+  .pill{border:none;border-radius:999px;padding:5px 14px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;min-width:52px}
+  .pill.on{background:var(--on)}.pill.off{background:var(--off)}
+  .pill:disabled{opacity:.55;cursor:default}
+  .btn{background:var(--accent);border:none;border-radius:10px;padding:11px 18px;color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+  .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer;text-decoration:none}
+  .center{min-height:70vh;display:grid;place-items:center;text-align:center}
+  .center h1{margin:0 0 6px}.center p{color:var(--muted);margin:0 0 20px}
+  .badge{display:inline-block;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+  .err{color:var(--danger);margin:0 0 16px}
+  .muted{color:var(--muted)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- Logged-out / login -->
+  <div id="login" class="center" hidden>
+    <div>
+      <h1>TipBot Dashboard</h1>
+      <p id="loginmsg">Sign in with the Discord account you use to manage your server.</p>
+      <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" class="center">
+    <div>
+      <h1>TipBot Dashboard</h1>
+      <p id="loadingmsg">Loading…</p>
+      <p class="muted" style="font-size:13px">First load can take up to a minute while the bot wakes up.</p>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="panel" hidden>
+    <div class="topbar">
+      <div>
+        <h1>Servers</h1>
+        <p class="sub"><span id="count"></span> · changes hit the bot instantly · <span id="role" class="badge"></span></p>
+      </div>
+      <button class="ghost" id="logout">Log out</button>
+    </div>
+    <div class="card scroll">
+      <table id="tbl"><thead><tr>
+        <th>Server</th><th>Plan</th>
+        <th>Bot Enabled</th><th>Subscription</th><th>Results Graph</th><th>Custom Games</th><th>Preset Picker</th>
+      </tr></thead><tbody id="rows"></tbody></table>
+      <div id="empty" class="center" style="min-height:120px" hidden>
+        <p class="muted">No servers yet. They appear once TipBot is set up in a server.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // The bot's API (backend). Change this if the bot's URL ever changes.
+  const API = "https://afl-tipster-bot.onrender.com";
+  const COLS = [
+    ["enabled","Bot Enabled"],["subscription_active","Subscription"],
+    ["results_graph_enabled","Results Graph"],["allow_custom_games","Custom Games"],
+    ["preset_games_enabled","Preset Picker"]
+  ];
+  const $ = id => document.getElementById(id);
+  const show = (el) => { for (const s of ["login","loading","panel"]) $(s).hidden = (s !== el); };
+  const ERR = { bad_state:"Login expired — please try again.", login_failed:"Discord login failed — please try again.",
+                not_authorised:"That account isn't an owner or moderator of a TipBot server." };
+
+  function getToken(){ try { return localStorage.getItem("tipbot_token"); } catch { return null; } }
+  function setToken(t){ try { localStorage.setItem("tipbot_token", t); } catch {} }
+  function clearToken(){ try { localStorage.removeItem("tipbot_token"); } catch {} }
+
+  $("loginbtn").href = API + "/auth/login";
+  $("logout").onclick = () => { clearToken(); location.hash = ""; renderLogin(); };
+
+  function renderLogin(msg){
+    if (msg){ $("loginmsg").innerHTML = '<span class="err">'+msg+'</span><br>Try signing in again.'; }
+    show("login");
+  }
+
+  async function api(path, opts){
+    const t = getToken();
+    const r = await fetch(API + path, Object.assign({ headers: Object.assign({ Authorization: "Bearer " + t }, (opts&&opts.headers)||{}) }, opts||{}));
+    if (r.status === 401){ clearToken(); throw { unauth:true }; }
+    return r;
+  }
+
+  function drawRows(servers, role){
+    $("role").textContent = role === "owner" ? "Owner — all servers" : "Moderator";
+    $("count").textContent = servers.length + (servers.length===1?" server":" servers");
+    $("empty").hidden = servers.length>0;
+    const body = $("rows"); body.innerHTML = "";
+    for (const s of servers){
+      const tr = document.createElement("tr");
+      let html = '<td><div class="name">'+(s.display_name||"Unnamed server")+'</div><div class="gid">'+s.guild_id+'</div></td>'
+               + '<td><span class="plan">'+(s.plan_name||"starter")+'</span></td>';
+      for (const [key] of COLS){
+        const on = !!s[key];
+        html += '<td><button class="pill '+(on?"on":"off")+'" data-g="'+s.guild_id+'" data-c="'+key+'">'+(on?"ON":"OFF")+'</button></td>';
+      }
+      tr.innerHTML = html; body.appendChild(tr);
+    }
+    body.querySelectorAll("button.pill").forEach(b => b.onclick = () => toggle(b));
+    show("panel");
+  }
+
+  async function toggle(btn){
+    btn.disabled = true;
+    try{
+      const r = await api("/api/toggle", { method:"POST", headers:{ "Content-Type":"application/json" },
+                          body: JSON.stringify({ guild_id: btn.dataset.g, column: btn.dataset.c }) });
+      if (r.ok){
+        const on = btn.classList.contains("on");
+        btn.classList.toggle("on", !on); btn.classList.toggle("off", on); btn.textContent = on ? "OFF" : "ON";
+      }
+    } catch(e){ if (e.unauth) return renderLogin("Session expired."); }
+    finally { btn.disabled = false; }
+  }
+
+  async function load(){
+    // 1) handle the redirect back from Discord (#token=... or #error=...)
+    const hash = new URLSearchParams(location.hash.slice(1));
+    if (hash.get("error")){ history.replaceState(null,"",location.pathname); return renderLogin(ERR[hash.get("error")]||"Login error."); }
+    if (hash.get("token")){ setToken(hash.get("token")); history.replaceState(null,"",location.pathname); }
+    // 2) no token -> show login
+    if (!getToken()) return renderLogin();
+    // 3) have a token -> load servers
+    show("loading");
+    try{
+      const r = await api("/api/servers");
+      if (!r.ok) return renderLogin();
+      const data = await r.json();
+      drawRows(data.servers||[], data.role);
+    } catch(e){ if (e.unauth) return renderLogin(); renderLogin("Couldn't reach the bot — try again in a moment."); }
+  }
+  load();
+</script>
+</body>
+</html>
