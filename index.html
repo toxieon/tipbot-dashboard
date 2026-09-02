@@ -102,8 +102,11 @@
   }
 
   async function api(path, opts){
-    const t = getToken();
-    const r = await fetch(API + path, Object.assign({ headers: Object.assign({ Authorization: "Bearer " + t }, (opts&&opts.headers)||{}) }, opts||{}));
+    opts = opts || {};
+    // Merge the auth token INTO whatever headers the caller passed (e.g. Content-Type
+    // on POSTs) — the previous version accidentally overwrote the token on toggles.
+    opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
+    const r = await fetch(API + path, opts);
     if (r.status === 401){ clearToken(); throw { unauth:true }; }
     return r;
   }
