@@ -5,159 +5,328 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TipBot Dashboard</title>
 <style>
-  :root{--bg:#0f1420;--card:#171d2b;--line:#26304a;--txt:#e7ecf5;--muted:#8a95ad;
-        --on:#2eaf62;--off:#43506b;--accent:#5b8cff;--danger:#ff8b8b;}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);
-       font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  .wrap{max-width:960px;margin:0 auto;padding:32px 20px}
-  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px}
-  h1{font-size:22px;margin:0}
-  .sub{color:var(--muted);margin:2px 0 0;font-size:14px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .scroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
-  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-  tr:last-child td{border-bottom:none}
-  .name{font-weight:600}.gid{color:var(--muted);font-size:12px}
-  .plan{display:inline-block;background:#223;border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:12px;color:var(--muted)}
-  .pill{border:none;border-radius:999px;padding:5px 14px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;min-width:52px}
-  .pill.on{background:var(--on)}.pill.off{background:var(--off)}
-  .pill:disabled{opacity:.55;cursor:default}
-  .btn{background:var(--accent);border:none;border-radius:10px;padding:11px 18px;color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
-  .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer;text-decoration:none}
-  .center{min-height:70vh;display:grid;place-items:center;text-align:center}
-  .center h1{margin:0 0 6px}.center p{color:var(--muted);margin:0 0 20px}
-  .badge{display:inline-block;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
-  .err{color:var(--danger);margin:0 0 16px}
-  .muted{color:var(--muted)}
+  :root{
+    --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;
+    --txt:#eef2fa;--muted:#8a95ad;--faint:#5c6785;
+    --accent:#5b8cff;--accent2:#7b5bff;--win:#2eaf62;--loss:#e5595f;--push:#5c6785;--radius:16px;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(1200px 600px at 80% -10%, #182142 0%, var(--bg) 55%) fixed, var(--bg);
+       color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 90px}
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+  .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:16px}
+  .brand .sub{font-weight:500;color:var(--muted);font-size:12px;margin-left:2px}
+  .menu{position:relative}
+  .gear{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;font-size:17px;color:var(--muted)}
+  .gear:hover{color:var(--txt)}
+  .dropdown{position:absolute;right:0;top:46px;background:var(--card2);border:1px solid var(--line);border-radius:14px;min-width:220px;padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.5);z-index:30}
+  .dd-item{padding:9px 11px;border-radius:9px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+  .dd-item:hover{background:#222c44}
+  .dd-label{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 11px 4px}
+  .danger{color:var(--loss)}
+  .viewas{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,rgba(123,91,255,.18),rgba(91,140,255,.10));border:1px solid #34407a;border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:14px}
+  .viewas b{color:#c9d4ff}
+  .link{color:var(--accent);cursor:pointer;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .scard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+  .scard:hover{transform:translateY(-2px);border-color:#3a4772;background:var(--card2)}
+  .scard .row1{display:flex;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .sname{font-weight:700;font-size:16px}.sgid{color:var(--faint);font-size:12px}
+  .plan{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:2px 8px;text-transform:capitalize}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.dot.on{background:var(--win)}.dot.off{background:var(--push)}
+  .mini{display:flex;gap:18px;flex-wrap:wrap}.mini .m{display:flex;flex-direction:column}
+  .mini .mv{font-weight:700;font-size:18px}.mini .ml{color:var(--faint);font-size:11px;text-transform:uppercase}
+  .pos{color:var(--win)}.neg{color:var(--loss)}
+  .back{color:var(--muted);cursor:pointer;font-size:14px;display:inline-flex;gap:6px;margin-bottom:14px}.back:hover{color:var(--txt)}
+  .dhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+  .dhead h1{margin:0;font-size:24px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tile .tv{font-weight:800;font-size:26px;line-height:1.1}.tile .tl{color:var(--faint);font-size:12px;text-transform:uppercase;margin-top:4px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:22px}
+  .panel h3{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .wlbar{display:flex;height:14px;border-radius:8px;overflow:hidden;gap:2px;background:var(--bg2)}.wlbar>span{display:block}
+  .wl-legend{display:flex;gap:18px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .lg{display:inline-flex;align-items:center;gap:7px}.sw{width:10px;height:10px;border-radius:3px}
+  .switches{display:flex;gap:12px;flex-wrap:wrap}
+  .switch{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 14px}
+  .toggle{width:44px;height:25px;border-radius:999px;background:#43506b;position:relative;cursor:pointer;border:none;flex:none;transition:background .15s}
+  .toggle.on{background:var(--win)}.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .15s}.toggle.on::after{left:22px}
+  .tips-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:760px){.tips-cols{grid-template-columns:1fr}}
+  .tip{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.tip:last-child{border-bottom:none}
+  .tip .g{font-weight:600;font-size:14px}.tip .meta{color:var(--faint);font-size:12px}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .b-win{background:rgba(46,175,98,.16);color:#5fd48c}.b-loss{background:rgba(229,89,95,.16);color:#ff9a9e}.b-push{background:rgba(92,103,133,.2);color:#b3bdd6}.b-pending{background:rgba(91,140,255,.16);color:#9db8ff}
+  .num.pos{color:var(--win);font-weight:700}.num.neg{color:var(--loss);font-weight:700}
+  .empty{color:var(--faint);font-size:13px;padding:14px 0}
+  .btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:11px;padding:11px 18px;color:#fff;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn.sm{padding:8px 14px;font-size:13px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer}
+  .center{min-height:74vh;display:grid;place-items:center;text-align:center}.center h1{margin:0 0 6px}.center p{color:var(--muted);margin:0 0 20px}
+  .err{color:var(--loss)}
+  /* builder */
+  .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .gcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s,transform .12s}
+  .gcard:hover{border-color:#3a4772;transform:translateY(-2px)}
+  .gcard .rd{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+  .gcard .mt{font-weight:700;font-size:16px}.gcard .vn{color:var(--muted);font-size:12px;margin-top:6px}
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
+  .tab{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:14px}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .teamhdr{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
+  .prow{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;flex-wrap:wrap}
+  .pnum{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+  .pname{font-weight:600;min-width:150px;flex:1}
+  .linectl{display:flex;align-items:center;gap:12px;flex:1;min-width:240px}
+  .lineval{font-weight:800;font-size:20px;min-width:66px;text-align:center}
+  .lineval small{font-size:12px;color:var(--muted);font-weight:600}
+  input[type=range]{flex:1;accent-color:var(--accent);height:4px}
+  .ou{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .ou button{background:var(--card2);border:none;color:var(--muted);padding:7px 12px;cursor:pointer;font:inherit;font-weight:700;font-size:13px}
+  .ou button.on{background:var(--accent);color:#fff}
+  .addbtn{background:rgba(46,175,98,.16);color:#5fd48c;border:1px solid rgba(46,175,98,.4);border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:700}
+  .addbtn:hover{background:rgba(46,175,98,.26)}
+  /* multi tray */
+  .tray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:40}
+  .tray-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .legchips{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:8px}
+  .chip .x{color:var(--faint);cursor:pointer;font-weight:700}
+  .chip .x:hover{color:var(--loss)}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+  .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .field input,.field select{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px 12px;font:inherit}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--win);color:#04120a;font-weight:700;padding:12px 20px;border-radius:12px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.4)}
   [hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <!-- Logged-out / login -->
   <div id="login" class="center" hidden>
-    <div>
-      <h1>TipBot Dashboard</h1>
-      <p id="loginmsg">Sign in with the Discord account you use to manage your server.</p>
-      <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
-    </div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;font-size:22px">🎯</div>
+    <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
+    <a class="btn" id="loginbtn" href="#">Log in with Discord</a></div>
   </div>
+  <div id="loading" class="center"><div><h1>TipBot Dashboard</h1><p id="loadingmsg">Loading…</p>
+    <p style="color:var(--faint);font-size:13px">First load can take ~50s while the bot wakes.</p></div></div>
 
-  <!-- Loading -->
-  <div id="loading" class="center">
-    <div>
-      <h1>TipBot Dashboard</h1>
-      <p id="loadingmsg">Loading…</p>
-      <p class="muted" style="font-size:13px">First load can take up to a minute while the bot wakes up.</p>
+  <div id="app" hidden>
+    <div class="top">
+      <div class="brand"><span class="logo">🎯</span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="menu"><div class="gear" id="gear" title="Settings">⚙</div>
+        <div class="dropdown" id="dropdown" hidden>
+          <div class="dd-label">Settings</div>
+          <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
+          <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
+          <div class="dd-item danger" id="dd-logout">Log out</div>
+        </div></div>
     </div>
-  </div>
-
-  <!-- Dashboard -->
-  <div id="panel" hidden>
-    <div class="topbar">
-      <div>
-        <h1>Servers</h1>
-        <p class="sub"><span id="count"></span> · changes hit the bot instantly · <span id="role" class="badge"></span></p>
-      </div>
-      <button class="ghost" id="logout">Log out</button>
+    <div id="viewas-banner" class="viewas" hidden>
+      <div>Viewing as <b id="viewas-name"></b> — this is what their dashboard looks like.</div>
+      <span class="link" id="viewas-exit">Exit view</span>
     </div>
-    <div class="card scroll">
-      <table id="tbl"><thead><tr>
-        <th>Server</th><th>Plan</th>
-        <th>Bot Enabled</th><th>Subscription</th><th>Results Graph</th><th>Custom Games</th><th>Preset Picker</th>
-      </tr></thead><tbody id="rows"></tbody></table>
-      <div id="empty" class="center" style="min-height:120px" hidden>
-        <p class="muted">No servers yet. They appear once TipBot is set up in a server.</p>
-      </div>
-    </div>
+    <div id="overview" hidden></div>
+    <div id="detail" hidden></div>
+    <div id="builder" hidden></div>
   </div>
 </div>
+<div id="tray" class="tray" hidden></div>
 
 <script>
-  // The bot's API (backend). Change this if the bot's URL ever changes.
-  const API = "https://afl-tipster-bot.onrender.com";
-  const COLS = [
-    ["enabled","Bot Enabled"],["subscription_active","Subscription"],
-    ["results_graph_enabled","Results Graph"],["allow_custom_games","Custom Games"],
-    ["preset_games_enabled","Preset Picker"]
-  ];
-  const $ = id => document.getElementById(id);
-  const show = (el) => { for (const s of ["login","loading","panel"]) $(s).hidden = (s !== el); };
-  const ERR = { bad_state:"Login expired — please try again.", login_failed:"Discord login failed — please try again.",
-                not_authorised:"That account isn't an owner or moderator of a TipBot server." };
+  const API="https://afl-tipster-bot.onrender.com";
+  const TOGGLES=[["enabled","Bot Enabled"],["subscription_active","Subscription"],["results_graph_enabled","Results Graph"]];
+  const STATS={Disposals:[10,40,20],Goals:[0,6,2],"Fantasy Points":[40,140,80],Hitouts:[0,50,20],Marks:[2,15,5],Tackles:[2,15,5],Kicks:[5,30,12],Handballs:[3,25,10],Clearances:[1,12,4]};
+  const $=id=>document.getElementById(id);
+  const u=n=>(n>0?"+":"")+n+"u";
+  const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server."};
+  let STATE={role:null,servers:[],viewAs:null,players:{},bookies:[],playerMeta:{}};
+  let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[]};
 
-  function getToken(){ try { return localStorage.getItem("tipbot_token"); } catch { return null; } }
-  function setToken(t){ try { localStorage.setItem("tipbot_token", t); } catch {} }
-  function clearToken(){ try { localStorage.removeItem("tipbot_token"); } catch {} }
+  const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
+  const panel=p=>{for(const x of ["overview","detail","builder"])$(x).hidden=(x!==p);};
+  function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
+  function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
+  function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
 
-  $("loginbtn").href = API + "/auth/login";
-  $("logout").onclick = () => { clearToken(); location.hash = ""; renderLogin(); };
+  $("loginbtn").href=API+"/auth/login";
+  $("gear").onclick=e=>{e.stopPropagation();$("dropdown").hidden=!$("dropdown").hidden;$("viewas-list").hidden=true;};
+  document.body.addEventListener("click",()=>{$("dropdown").hidden=true;});
+  $("dropdown").addEventListener("click",e=>e.stopPropagation());
+  $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
+  $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
+  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;renderOverview();};
 
-  function renderLogin(msg){
-    if (msg){ $("loginmsg").innerHTML = '<span class="err">'+msg+'</span><br>Try signing in again.'; }
-    show("login");
+  function renderLogin(msg){if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
+  async function api(path,opts){opts=opts||{};opts.headers=Object.assign({Authorization:"Bearer "+getToken()},opts.headers||{});
+    const r=await fetch(API+path,opts);if(r.status===401){clearToken();throw{unauth:true};}return r;}
+
+  function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
+    const it=document.createElement("div");it.className="dd-item";it.textContent=s.display_name||"Unnamed";
+    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;renderOverview();};
+    box.appendChild(it);});}
+  const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
+
+  function renderOverview(){
+    panel("overview");const ov=$("overview");ov.innerHTML="";const list=visibleServers();
+    ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
+    const grid=document.createElement("div");grid.className="grid";
+    list.forEach(s=>{const p=s.profit_units||0;const c=document.createElement("div");c.className="scard";
+      c.innerHTML='<div class="row1"><div><div class="sname">'+(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+(s.plan_name||"starter")+'</span></div>'
+      +'<div class="mini"><div class="m"><span class="mv">'+(s.queued||0)+'</span><span class="ml">Queued</span></div>'
+      +'<div class="m"><span class="mv"><span class="pos">'+(s.won||0)+'</span>–<span class="neg">'+(s.lost||0)+'</span></span><span class="ml">W – L</span></div>'
+      +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
+      +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>'
+      +'<div style="margin-top:14px;color:var(--muted);font-size:13px"><span class="dot '+(s.enabled?"on":"off")+'"></span>'+(s.enabled?"Bot enabled":"Bot disabled")+'</div>';
+      c.onclick=()=>loadDetail(s.guild_id);grid.appendChild(c);});
+    ov.appendChild(grid);
   }
 
-  async function api(path, opts){
-    opts = opts || {};
-    // Merge the auth token INTO whatever headers the caller passed (e.g. Content-Type
-    // on POSTs) — the previous version accidentally overwrote the token on toggles.
-    opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
-    const r = await fetch(API + path, opts);
-    if (r.status === 401){ clearToken(); throw { unauth:true }; }
-    return r;
+  async function loadDetail(guildId){
+    panel("detail");show("app");$("detail").innerHTML='<p style="color:var(--muted)">Loading server…</p>';
+    try{const r=await api("/api/server?guild_id="+encodeURIComponent(guildId));
+      if(!r.ok){$("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';return;}
+      renderDetail(await r.json());}catch(e){if(e.unauth)return renderLogin("Session expired.");$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
   }
+  function tipRow(t,settled){const right=settled?(t.result==="Win"?'<span class="num pos">'+u(t.profit_units||0)+'</span>':t.result==="Loss"?'<span class="num neg">'+u(t.profit_units||0)+'</span>':'<span class="badge b-push">'+(t.result||"Push")+'</span>'):'<span class="badge b-pending">'+t.units+'u @ '+t.odds+'</span>';
+    return '<div class="tip"><div><div class="g">'+(t.game_name||t.bet_type||"Tip "+(t.display_id||""))+'</div><div class="meta">'+(t.bet_type||"")+(t.bookmaker?" · "+t.bookmaker:"")+'</div></div><div>'+right+'</div></div>';}
+  function renderDetail(d){
+    const s=d.settings,st=d.stats,tips=d.tips,total=Math.max(st.won+st.lost+st.push,1);
+    const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
+    const tiles=[["Tips Queued",st.queued,""],["Won",st.won,"pos"],["Lost",st.lost,"neg"],["Strike Rate",st.strike_rate+"%",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg"],["ROI",st.roi+"%",st.roi>=0?"pos":"neg"],["Followers",st.followers,""]].map(t=>'<div class="tile"><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+'</div></div>').join("");
+    const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("");
+    const q=tips.queued.length?tips.queued.map(t=>tipRow(t,false)).join(""):'<div class="empty">No tips queued.</div>';
+    const se=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>';
+    $("detail").innerHTML='<div class="back" id="backbtn">← All servers</div>'
+      +'<div class="dhead"><h1>'+(s.display_name||"Unnamed server")+'</h1><button class="btn sm" id="buildbtn">＋ Build a tip</button></div>'
+      +'<div class="tiles">'+tiles+'</div>'
+      +'<div class="panel"><h3>Win / Loss / Push</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
+      +'<div class="panel"><h3>Controls</h3><div class="switches">'+sw+'</div></div>'
+      +'<div class="tips-cols"><div class="panel"><h3>Queued Tips</h3>'+q+'</div><div class="panel"><h3>Recent Results</h3>'+se+'</div></div>';
+    $("backbtn").onclick=renderOverview;
+    $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
+    $("detail").querySelectorAll("button.toggle").forEach(b=>b.onclick=()=>toggle(b));
+  }
+  async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
 
-  function drawRows(servers, role){
-    $("role").textContent = role === "owner" ? "Owner — all servers" : "Moderator";
-    $("count").textContent = servers.length + (servers.length===1?" server":" servers");
-    $("empty").hidden = servers.length>0;
-    const body = $("rows"); body.innerHTML = "";
-    for (const s of servers){
-      const tr = document.createElement("tr");
-      let html = '<td><div class="name">'+(s.display_name||"Unnamed server")+'</div><div class="gid">'+s.guild_id+'</div></td>'
-               + '<td><span class="plan">'+(s.plan_name||"starter")+'</span></td>';
-      for (const [key] of COLS){
-        const on = !!s[key];
-        html += '<td><button class="pill '+(on?"on":"off")+'" data-g="'+s.guild_id+'" data-c="'+key+'">'+(on?"ON":"OFF")+'</button></td>';
-      }
-      tr.innerHTML = html; body.appendChild(tr);
-    }
-    body.querySelectorAll("button.pill").forEach(b => b.onclick = () => toggle(b));
-    show("panel");
+  /* ---------- BUILDER ---------- */
+  async function openBuilder(guildId,name){
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[]};
+    panel("builder");renderTray();
+    $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1><p style="color:var(--muted)">Loading upcoming games…</p>';
+    $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(guildId);};
+    // players now come live from the AFL API (attached to each game); players.json
+    // is only a silent fallback for a team the roster feed couldn't match.
+    if(!Object.keys(STATE.players).length){ try{STATE.players=await (await fetch("./players.json")).json();}catch{STATE.players={};} }
+    if(!STATE.bookies.length){ try{STATE.bookies=((await (await fetch("./bookies.json")).json()).bookies)||[];}catch{STATE.bookies=[];} }
+    let games=[];
+    try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+    renderGames(games);
   }
+  /* teams arrive as objects {name, abbrev, players:[{name,number,position}], aflName};
+     fall back gracefully to strings + players.json if anything is missing. */
+  function teamName(t){ return (t&&typeof t==="object")?(t.name||t.aflName||""):(t||""); }
+  function teamPlayers(t){ if(t&&typeof t==="object"&&Array.isArray(t.players)&&t.players.length)return t.players; return STATE.players[teamName(t)]||[]; }
+  function renderGames(games){
+    let html='<div class="back" id="bx">← Back to '+(BUILD.serverName||"server")+'</div><h1 style="margin:0 0 6px">Build a tip</h1><p style="color:var(--muted);margin:0 0 18px">Upcoming games (next 7 days) · pick one</p>';
+    if(!games.length){ html+='<div class="panel"><div class="empty">No games in the next 7 days (off-season or none scheduled). Games come from Squiggle.</div></div>'; }
+    else{ html+='<div class="gcards">'+games.map((g,i)=>'<div class="gcard" data-i="'+i+'"><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+'</div></div>').join("")+'</div>'; }
+    $("builder").innerHTML=html;
+    $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
+    $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(games[+c.dataset.i]));
+  }
+  function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
 
-  async function toggle(btn){
-    btn.disabled = true;
-    try{
-      const r = await api("/api/toggle", { method:"POST", headers:{ "Content-Type":"application/json" },
-                          body: JSON.stringify({ guild_id: btn.dataset.g, column: btn.dataset.c }) });
-      if (r.ok){
-        const on = btn.classList.contains("on");
-        btn.classList.toggle("on", !on); btn.classList.toggle("off", on); btn.textContent = on ? "OFF" : "ON";
-      }
-    } catch(e){ if (e.unauth) return renderLogin("Session expired."); }
-    finally { btn.disabled = false; }
+  function openGame(g){ BUILD.game=g; BUILD.tab="Disposals"; renderGame(); }
+  function renderGame(){
+    const g=BUILD.game;
+    const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
+    $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+teamName(g.hteam)+' v '+teamName(g.ateam)+'</h1><span class="plan">'+(g.roundname||"")+'</span></div>'
+      +'<div class="tabs">'+tabs+'</div><div id="players"></div>';
+    $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+    $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;renderGame();});
+    renderPlayers();
   }
+  function renderPlayers(){
+    const g=BUILD.game,[mn,mx,def]=STATS[BUILD.tab];const box=$("players");let html="";
+    const sides=[g.hteam,g.ateam];
+    const meta=STATE.playerMeta||{};
+    if(meta.enabled===false&&meta.error){ html+='<div class="empty" style="margin-bottom:14px">⚠ '+meta.error+'</div>'; }
+    sides.forEach(team=>{
+      const nm=teamName(team),list=teamPlayers(team),slug=nm.replace(/\W/g,"");
+      html+='<div class="teamhdr">'+nm+(list.length?" <small style=\"color:var(--muted);font-weight:400\">· "+list.length+" players</small>":" — no roster yet")+'</div>';
+      list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;
+        html+='<div class="prow"><div class="pnum">'+(p.number||"–")+'</div><div class="pname">'+p.name+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+'</div>'
+          +'<div class="linectl"><input type="range" min="'+mn+'" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><div class="lineval"><span id="'+rid+'_v">'+def+'</span><small>+</small></div>'
+          +'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
+          +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
+      });
+    });
+    box.innerHTML=html||'<div class="empty">No players listed for either team yet.</div>';
+    // wire each row
+    sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,"");teamPlayers(team).forEach((p,idx)=>{
+      const rid="r_"+slug+"_"+idx;const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou");let side="Over";
+      if(!sl)return;
+      sl.oninput=()=>vv.textContent=sl.value;
+      ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
+      $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:+sl.value,side});
+    });});
+  }
+  function addLeg(leg){ BUILD.legs.push(leg); renderTray(); }
+  function legText(l){ return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
+  function renderTray(){
+    const t=$("tray");
+    if(!BUILD.legs.length){ t.hidden=true; return; }
+    t.hidden=false;
+    t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>'<span class="chip">'+legText(l)+' <span class="x" data-i="'+i+'">✕</span></span>').join("")+'</div>'
+      +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button></div>';
+    t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray();});
+    $("reviewbtn").onclick=renderConfirm;
+  }
+  function renderConfirm(){
+    panel("builder");
+    const bk=STATE.bookies.map(b=>'<option value="'+b.name+'">'+b.name+'</option>').join("");
+    $("builder").innerHTML='<div class="back" id="bc">← Keep building</div><h1 style="margin:0 0 16px">Confirm & schedule</h1>'
+      +'<div class="panel"><h3>'+(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"Multi")+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3>'
+      +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+legText(l)+'</div><div class="meta">'+l.team+'</div></div>').join("")+'</div>'
+      +'<div class="panel"><h3>Details</h3>'
+      +'<div class="field"><label>Total odds</label><input id="f_odds" type="number" step="0.01" placeholder="e.g. 3.20"></div>'
+      +'<div class="field"><label>Units</label><input id="f_units" type="number" step="0.5" placeholder="e.g. 1"></div>'
+      +'<div class="field"><label>Bookmaker (placeholder)</label><select id="f_book"><option value="">—</option>'+bk+'</select></div>'
+      +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
+      +'<button class="btn" id="schedbtn">Schedule tip →</button> <span id="scherr" class="err" style="margin-left:10px"></span></div>';
+    $("bc").onclick=()=>{renderGame();};
+    $("schedbtn").onclick=scheduleTip;
+  }
+  async function scheduleTip(){
+    const odds=parseFloat($("f_odds").value),units=parseFloat($("f_units").value);
+    if(!(odds>1)){$("scherr").textContent="Odds must be greater than 1.";return;}
+    if(!(units>0)){$("scherr").textContent="Units must be greater than 0.";return;}
+    $("schedbtn").disabled=true;
+    const payload={guild_id:BUILD.guildId,legs:BUILD.legs,odds,units,bookmaker:$("f_book").value,
+      game_name:BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"",delay_minutes:parseInt($("f_delay").value||"0",10)};
+    try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const j=await r.json();
+      if(r.ok&&j.ok){ toast("Tip scheduled — the bot will post it shortly."); BUILD.legs=[]; $("tray").hidden=true; loadDetail(BUILD.guildId); }
+      else{ $("scherr").textContent=j.message||"Couldn't schedule."; $("schedbtn").disabled=false; }
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; $("schedbtn").disabled=false; }
+  }
+  function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
 
   async function load(){
-    // 1) handle the redirect back from Discord (#token=... or #error=...)
-    const hash = new URLSearchParams(location.hash.slice(1));
-    if (hash.get("error")){ history.replaceState(null,"",location.pathname); return renderLogin(ERR[hash.get("error")]||"Login error."); }
-    if (hash.get("token")){ setToken(hash.get("token")); history.replaceState(null,"",location.pathname); }
-    // 2) no token -> show login
-    if (!getToken()) return renderLogin();
-    // 3) have a token -> load servers
+    const hash=new URLSearchParams(location.hash.slice(1));
+    if(hash.get("error")){history.replaceState(null,"",location.pathname);return renderLogin(ERR[hash.get("error")]||"Login error.");}
+    if(hash.get("token")){setToken(hash.get("token"));history.replaceState(null,"",location.pathname);}
+    if(!getToken())return renderLogin();
     show("loading");
-    try{
-      const r = await api("/api/servers");
-      if (!r.ok) return renderLogin();
-      const data = await r.json();
-      drawRows(data.servers||[], data.role);
-    } catch(e){ if (e.unauth) return renderLogin(); renderLogin("Couldn't reach the bot — try again in a moment."); }
+    try{const r=await api("/api/servers");if(!r.ok)return renderLogin();const data=await r.json();
+      STATE.role=data.role;STATE.servers=data.servers||[];
+      $("rolebadge").textContent=STATE.role==="owner"?"Owner":"Moderator";
+      $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
+      buildViewAsMenu();show("app");renderOverview();
+    }catch(e){if(e.unauth)return renderLogin();renderLogin("Couldn't reach the bot — try again in a moment.");}
   }
   load();
 </script>
