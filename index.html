@@ -136,6 +136,389 @@
 <div id="tray" class="tray" hidden></div>
 
 <script>
+/* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
+/* =========================================================================
+ *  status-tint.js — tint a card by a value vs a target  (reusable asset)
+ *
+ *  The "how am I doing" colour: compare a number to a target and tint a whole
+ *  container — red under, gold over, green bang on. Same idea as SWB's circuit
+ *  overload card and the Timesheet interactive-times day cards.
+ *
+ *  No dependencies. Self-injects its CSS. Exposes a global `NDStatusTint`:
+ *
+ *    NDStatusTint.classify(value, target, opts) -> "under" | "exact" | "over"
+ *        opts.epsilon (default 0.01) — how close counts as "exact".
+ *
+ *    NDStatusTint.classNames(value, target, opts) -> "nd-tint nd-over …"
+ *        Ready-to-drop class string for template rendering.
+ *        opts.lowVis -> also colours all text in the box to match.
+ *
+ *    NDStatusTint.apply(el, value, target, opts)
+ *        Set the classes on a live element (clears any previous tint first).
+ *
+ *    NDStatusTint.clear(el)
+ *
+ *  Meaning is fixed (under=bad/red, over=good/gold, exact=green) because that's
+ *  the shared language across the suite. Add class "nd-tint" + a status class
+ *  to any element with a full border and it tints.
+ * ========================================================================= */
+(function (root) {
+  "use strict";
+  if (root.NDStatusTint) return;
+  var doc = root.document;
+
+  function ensureStyles() {
+    if (!doc || doc.getElementById("nd-tint-css")) return;
+    var s = doc.createElement("style");
+    s.id = "nd-tint-css";
+    s.textContent =
+      ".nd-tint.nd-under{border-color:#e5484d !important;background:rgba(229,72,77,0.07);box-shadow:0 0 0 1px rgba(229,72,77,0.28),0 0 18px rgba(229,72,77,0.12);}" +
+      ".nd-tint.nd-over{border-color:#e3b341 !important;background:rgba(227,179,65,0.07);box-shadow:0 0 0 1px rgba(227,179,65,0.30),0 0 18px rgba(227,179,65,0.14);}" +
+      ".nd-tint.nd-exact{border-color:#3ab87a !important;background:rgba(58,184,122,0.06);box-shadow:0 0 0 1px rgba(58,184,122,0.22);}" +
+      ".nd-tint.nd-lowvis.nd-under,.nd-tint.nd-lowvis.nd-under *{color:#e5484d !important;}" +
+      ".nd-tint.nd-lowvis.nd-over,.nd-tint.nd-lowvis.nd-over *{color:#e3b341 !important;}" +
+      ".nd-tint.nd-lowvis.nd-exact,.nd-tint.nd-lowvis.nd-exact *{color:#3ab87a !important;}";
+    (doc.head || doc.documentElement).appendChild(s);
+  }
+  if (doc) ensureStyles();
+
+  function classify(value, target, opts) {
+    opts = opts || {};
+    var eps = opts.epsilon == null ? 0.01 : opts.epsilon;
+    var v = Number(value), t = Number(target);
+    if (v > t + eps) return "over";
+    if (v < t - eps) return "under";
+    return "exact";
+  }
+  function classNames(value, target, opts) {
+    opts = opts || {};
+    ensureStyles();
+    return "nd-tint nd-" + classify(value, target, opts) + (opts.lowVis ? " nd-lowvis" : "");
+  }
+  function clear(el) {
+    if (!el) return;
+    el.classList.remove("nd-tint", "nd-under", "nd-over", "nd-exact", "nd-lowvis");
+  }
+  function apply(el, value, target, opts) {
+    if (!el) return;
+    ensureStyles();
+    clear(el);
+    el.classList.add("nd-tint", "nd-" + classify(value, target, opts));
+    if (opts && opts.lowVis) el.classList.add("nd-lowvis");
+  }
+
+  var API = { classify: classify, classNames: classNames, apply: apply, clear: clear };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.NDStatusTint = API;
+})(typeof window !== "undefined" ? window : globalThis);
+/* =========================================================================
+ *  skeleton.js — shimmer placeholders  (reusable asset)
+ *
+ *  Animated placeholder blocks while data loads, so lists/grids fade in
+ *  instead of popping from empty — planner project list, search photo grid,
+ *  timesheet history. Returns HTML you drop into a container until the real
+ *  content is ready.
+ *
+ *  No dependencies. Self-injects CSS. Global `NDSkeleton`:
+ *    NDSkeleton.lines(n, { lastWidth })   -> HTML of n shimmer lines
+ *    NDSkeleton.box(width, height, radius) -> one shimmer block
+ *    NDSkeleton.grid(n, { cols, tile })    -> a shimmer tile grid
+ *    NDSkeleton.into(el, html)             -> drop skeletons into an element
+ * ========================================================================= */
+(function (root) {
+  "use strict";
+  if (root.NDSkeleton) return;
+  var doc = root.document;
+
+  function css() {
+    if (!doc || doc.getElementById("nd-sk-css")) return;
+    var s = doc.createElement("style");
+    s.id = "nd-sk-css";
+    s.textContent =
+      ".nd-sk{position:relative;overflow:hidden;background:rgba(255,255,255,0.06);border-radius:8px;}" +
+      ".nd-sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,0.09),transparent);animation:nd-sk 1.3s infinite;}" +
+      ".nd-sk-line{height:12px;margin:9px 0;}" +
+      ".nd-sk-grid{display:grid;gap:10px;}" +
+      "@keyframes nd-sk{100%{transform:translateX(100%);}}" +
+      "@media(prefers-reduced-motion:reduce){.nd-sk::after{animation:none;}}";
+    (doc.head || doc.documentElement).appendChild(s);
+  }
+
+  function box(w, h, r) { css(); return '<div class="nd-sk" style="width:' + (w || "100%") + ";height:" + (h || "80px") + ";border-radius:" + (r || "8px") + '"></div>'; }
+  function lines(n, opts) {
+    css(); opts = opts || {}; n = n || 3;
+    var out = "";
+    for (var i = 0; i < n; i++) { var w = (i === n - 1) ? (opts.lastWidth || "60%") : "100%"; out += '<div class="nd-sk nd-sk-line" style="width:' + w + '"></div>'; }
+    return out;
+  }
+  function grid(n, opts) {
+    css(); opts = opts || {}; n = n || 6;
+    var cols = opts.cols || 3, tileH = opts.tile || "96px";
+    var cells = "";
+    for (var i = 0; i < n; i++) cells += '<div class="nd-sk" style="height:' + tileH + '"></div>';
+    return '<div class="nd-sk-grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + "</div>";
+  }
+  function into(el, html) { if (!el) return; css(); el.innerHTML = html; }
+
+  var API = { css: css, box: box, lines: lines, grid: grid, into: into };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.NDSkeleton = API;
+})(typeof window !== "undefined" ? window : globalThis);
+/* =========================================================================
+ *  countdown-confirm.js — auto-confirming prompt with a depleting bar
+ *
+ *  Origin: extracted from Timesheet's "near" clock-on prompt.
+ *  Purpose: "assume yes, but give a moment to change your mind." Shows a
+ *  bottom sheet with a bar that drains over N seconds and then fires
+ *  onConfirm automatically — unless the user taps a button first.
+ *
+ *  Self-contained: injects its own styles + DOM. No dependencies. Picks up
+ *  nd-core.css variables (--nd-surface, --nd-border, --nd-text) when present,
+ *  otherwise falls back to a dark theme so it works dropped into any page.
+ *
+ *  Global `NDCountdownConfirm`:
+ *
+ *    NDCountdownConfirm.open({
+ *      title,                 heading text
+ *      message,               body text (HTML allowed)
+ *      seconds = 4,           countdown length before auto-confirm
+ *      confirmLabel = "Confirm",
+ *      secondaryLabel,        optional middle button (e.g. "Change")
+ *      accent = "#3ab87a",    bar + primary button colour
+ *      onConfirm, onSecondary, onCancel   callbacks
+ *    }) -> { close(fireCancel) }
+ *
+ *  Confirm (button or auto) → onConfirm. Secondary → onSecondary.
+ *  Backdrop tap or Esc → onCancel. All stop the countdown.
+ * ========================================================================= */
+(function (root) {
+  "use strict";
+  if (typeof document === "undefined") { root.NDCountdownConfirm = { open: function () {} }; return; }
+
+  function injectStyles() {
+    if (document.getElementById("ndcc-styles")) return;
+    var css =
+      ".ndcc-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 180ms}" +
+      ".ndcc-backdrop.ndcc-in{opacity:1}" +
+      ".ndcc-sheet{background:var(--nd-surface,#1a1a1a);border:1px solid var(--nd-border,#2a2a2a);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:20px;color:var(--nd-text,#f0f0f0);font-family:var(--nd-sans,system-ui,-apple-system,'Segoe UI',sans-serif);transform:translateY(12px);transition:transform 200ms}" +
+      ".ndcc-backdrop.ndcc-in .ndcc-sheet{transform:translateY(0)}" +
+      ".ndcc-sheet h3{margin:0 0 10px;font-size:17px;font-weight:500}" +
+      ".ndcc-msg{color:var(--nd-muted,#9aa0a8);font-size:13px;margin:0 0 4px}" +
+      ".ndcc-wrap{height:6px;border-radius:999px;background:rgba(255,255,255,0.12);overflow:hidden;margin:14px 0 8px}" +
+      ".ndcc-bar{height:100%;width:100%;border-radius:999px;background:var(--ndcc-accent,#3ab87a)}" +
+      ".ndcc-hint{color:var(--nd-muted,#9aa0a8);font-size:12px;margin:0}" +
+      ".ndcc-acts{display:flex;gap:10px;margin-top:14px}" +
+      ".ndcc-b{flex:1;min-height:44px;padding:11px 16px;border-radius:999px;font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;border:1px solid var(--nd-border,#2a2a2a);font-family:inherit}" +
+      ".ndcc-b.ghost{background:rgba(255,255,255,0.06);color:var(--nd-text,#f0f0f0)}" +
+      ".ndcc-b.primary{color:#022014;border:0}";
+    var s = document.createElement("style");
+    s.id = "ndcc-styles"; s.textContent = css;
+    document.head.appendChild(s);
+  }
+
+  function open(opts) {
+    opts = opts || {};
+    injectStyles();
+    var seconds = opts.seconds || 4;
+    var accent = opts.accent || "#3ab87a";
+
+    var backdrop = document.createElement("div");
+    backdrop.className = "ndcc-backdrop";
+    backdrop.style.setProperty("--ndcc-accent", accent);
+    backdrop.innerHTML =
+      '<div class="ndcc-sheet" role="alertdialog" aria-modal="true">' +
+        "<h3></h3>" +
+        '<div class="ndcc-msg"></div>' +
+        '<div class="ndcc-wrap"><div class="ndcc-bar"></div></div>' +
+        '<p class="ndcc-hint"></p>' +
+        '<div class="ndcc-acts"></div>' +
+      "</div>";
+    backdrop.querySelector("h3").textContent = opts.title || "Confirm?";
+    backdrop.querySelector(".ndcc-msg").innerHTML = opts.message || "";
+    backdrop.querySelector(".ndcc-hint").textContent =
+      opts.hint || ("Continuing automatically in " + seconds + "s" + (opts.secondaryLabel ? " — or choose an option." : "."));
+
+    var acts = backdrop.querySelector(".ndcc-acts");
+    var secBtn = null;
+    if (opts.secondaryLabel) {
+      secBtn = document.createElement("button");
+      secBtn.className = "ndcc-b ghost"; secBtn.type = "button"; secBtn.textContent = opts.secondaryLabel;
+      acts.appendChild(secBtn);
+    }
+    var okBtn = document.createElement("button");
+    okBtn.className = "ndcc-b primary"; okBtn.type = "button";
+    okBtn.style.background = accent;
+    okBtn.textContent = opts.confirmLabel || "Confirm";
+    acts.appendChild(okBtn);
+
+    document.body.appendChild(backdrop);
+    var bar = backdrop.querySelector(".ndcc-bar");
+    requestAnimationFrame(function () {
+      backdrop.classList.add("ndcc-in");
+      bar.style.transition = "width " + seconds + "s linear";
+      bar.style.width = "0%";
+    });
+
+    var settled = false, timer = null;
+    function teardown() {
+      backdrop.classList.remove("ndcc-in");
+      setTimeout(function () { backdrop.remove(); }, 200);
+      document.removeEventListener("keydown", onKey);
+    }
+    function finish(which) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      teardown();
+      var cb = which === "confirm" ? opts.onConfirm : which === "secondary" ? opts.onSecondary : opts.onCancel;
+      if (typeof cb === "function") { try { cb(); } catch (e) {} }
+    }
+    function onKey(e) { if (e.key === "Escape") finish("cancel"); }
+
+    timer = setTimeout(function () { finish("confirm"); }, seconds * 1000);
+    okBtn.addEventListener("click", function () { finish("confirm"); });
+    if (secBtn) secBtn.addEventListener("click", function () { finish("secondary"); });
+    backdrop.addEventListener("click", function (e) { if (e.target === backdrop) finish("cancel"); });
+    document.addEventListener("keydown", onKey);
+
+    return { close: function (fireCancel) { finish(fireCancel ? "cancel" : "confirm"); } };
+  }
+
+  var API = { open: open };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.NDCountdownConfirm = API;
+})(typeof window !== "undefined" ? window : globalThis);
+/* =========================================================================
+ *  confetti.js — celebration confetti burst  (reusable asset)
+ *
+ *  A full-screen confetti rain for wins — quote accepted, milestone hit, a
+ *  fun "yes". Creates its own canvas, runs for a set duration, cleans up.
+ *
+ *  No dependencies. Global `NDConfetti`:
+ *    NDConfetti.burst({ duration, count, colors }) -> stop()
+ *    NDConfetti.start(opts) / NDConfetti.stop()
+ * ========================================================================= */
+(function (root) {
+  "use strict";
+  if (root.NDConfetti) return;
+  var doc = root.document;
+  var DEFAULT_COLORS = ["#e07b2a", "#f5a05a", "#3ab87a", "#ffffff", "#e3b341", "#5b9ce6"];
+
+  var canvas = null, ctx = null, parts = [], raf = null;
+
+  function ensureCanvas() {
+    if (canvas) return canvas;
+    canvas = doc.createElement("canvas");
+    canvas.style.cssText = "position:fixed;inset:0;z-index:2147482400;pointer-events:none;";
+    (doc.body || doc.documentElement).appendChild(canvas);
+    ctx = canvas.getContext("2d");
+    return canvas;
+  }
+  function size() { canvas.width = root.innerWidth; canvas.height = root.innerHeight; }
+
+  function start(opts) {
+    opts = opts || {};
+    if (!doc) return function () {};
+    ensureCanvas(); size();
+    var colors = opts.colors || DEFAULT_COLORS, n = opts.count || 180;
+    parts = [];
+    for (var i = 0; i < n; i++) parts.push({
+      x: Math.random() * canvas.width, y: Math.random() * -canvas.height,
+      s: 6 + Math.random() * 8, vy: 2 + Math.random() * 4, vx: -2 + Math.random() * 4,
+      c: colors[Math.floor(Math.random() * colors.length)], rot: Math.random() * Math.PI, vr: -0.2 + Math.random() * 0.4
+    });
+    if (!raf) loop();
+    return stop;
+  }
+  function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if (p.y > canvas.height + 20) { p.y = -20; p.x = Math.random() * canvas.width; }
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); ctx.restore();
+    }
+    raf = root.requestAnimationFrame(loop);
+  }
+  function stop() {
+    if (raf) { root.cancelAnimationFrame(raf); raf = null; }
+    if (canvas) { try { canvas.parentNode.removeChild(canvas); } catch (e) {} canvas = null; ctx = null; }
+    parts = [];
+  }
+  function burst(opts) {
+    opts = opts || {};
+    start(opts);
+    setTimeout(stop, opts.duration || 3200);
+    return stop;
+  }
+
+  var API = { start: start, stop: stop, burst: burst };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.NDConfetti = API;
+})(typeof window !== "undefined" ? window : globalThis);
+/* =========================================================================
+ *  confirm-pop.js — animated success tick  (reusable asset)
+ *
+ *  A self-drawing checkmark with a ring + halo pop, for "done!" moments —
+ *  photo uploaded, clocked on, quote saved, node placed. Auto-dismisses.
+ *
+ *  No dependencies. Self-injects CSS. Global `NDConfirmPop`:
+ *    NDConfirmPop.show({ label, color, size, duration, onDone }) -> Promise
+ *    NDConfirmPop.tick(...)  (alias)
+ * ========================================================================= */
+(function (root) {
+  "use strict";
+  if (root.NDConfirmPop) return;
+  var doc = root.document;
+
+  function css() {
+    if (!doc || doc.getElementById("nd-pop-css")) return;
+    var s = doc.createElement("style");
+    s.id = "nd-pop-css";
+    s.textContent =
+      ".nd-pop-back{position:fixed;inset:0;z-index:2147482600;display:flex;align-items:center;justify-content:center;pointer-events:none;}" +
+      ".nd-pop{display:flex;flex-direction:column;align-items:center;gap:12px;animation:nd-pop-in .28s cubic-bezier(.2,.8,.2,1);}" +
+      ".nd-pop-ring{stroke-dasharray:157;stroke-dashoffset:157;animation:nd-pop-ring .5s ease-out forwards;}" +
+      ".nd-pop-check{stroke-dasharray:48;stroke-dashoffset:48;animation:nd-pop-check .35s .34s ease-out forwards;}" +
+      ".nd-pop-halo{transform-origin:center;animation:nd-pop-halo .6s ease-out forwards;}" +
+      ".nd-pop-label{color:var(--nd-text,#f0f0f0);font-family:var(--nd-sans,system-ui,sans-serif);font-weight:700;font-size:15px;}" +
+      "@keyframes nd-pop-in{from{transform:scale(.7);opacity:0;}}" +
+      "@keyframes nd-pop-ring{to{stroke-dashoffset:0;}}" +
+      "@keyframes nd-pop-check{to{stroke-dashoffset:0;}}" +
+      "@keyframes nd-pop-halo{0%{opacity:.5;transform:scale(.6);}100%{opacity:0;transform:scale(1.5);}}" +
+      "@keyframes nd-pop-out{to{opacity:0;transform:scale(.92);}}";
+    (doc.head || doc.documentElement).appendChild(s);
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
+
+  function show(opts) {
+    opts = opts || {};
+    if (!doc) return Promise.resolve();
+    css();
+    var color = (opts.color || "").trim() || "#3ab87a";
+    var size = opts.size || 96, dur = opts.duration || 1100;
+    var back = doc.createElement("div");
+    back.className = "nd-pop-back";
+    back.innerHTML = '<div class="nd-pop"><svg width="' + size + '" height="' + size + '" viewBox="0 0 60 60" aria-hidden="true">' +
+      '<circle class="nd-pop-halo" cx="30" cy="30" r="26" fill="' + color + '" opacity=".5"/>' +
+      '<circle class="nd-pop-ring" cx="30" cy="30" r="25" fill="none" stroke="' + color + '" stroke-width="4"/>' +
+      '<path class="nd-pop-check" d="M18 31l8 8 16-18" fill="none" stroke="' + color + '" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      "</svg>" + (opts.label ? '<div class="nd-pop-label">' + esc(opts.label) + "</div>" : "") + "</div>";
+    (doc.body || doc.documentElement).appendChild(back);
+    return new Promise(function (res) {
+      setTimeout(function () {
+        var p = back.firstChild; if (p) p.style.animation = "nd-pop-out .3s ease forwards";
+        setTimeout(function () { try { doc.body.removeChild(back); } catch (e) {} if (opts.onDone) opts.onDone(); res(); }, 300);
+      }, dur);
+    });
+  }
+
+  var API = { show: show, tick: show };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.NDConfirmPop = API;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>
   const API="https://afl-tipster-bot.onrender.com";
   const TOGGLES=[["enabled","Bot Enabled"],["subscription_active","Subscription"],["results_graph_enabled","Results Graph"]];
   const STATS={Disposals:[10,40,20],Goals:[0,6,2],"Fantasy Points":[40,140,80],Hitouts:[0,50,20],Marks:[2,15,5],Tackles:[2,15,5],Kicks:[5,30,12],Handballs:[3,25,10],Clearances:[1,12,4]};
@@ -185,7 +568,8 @@
   }
 
   async function loadDetail(guildId){
-    panel("detail");show("app");$("detail").innerHTML='<p style="color:var(--muted)">Loading server…</p>';
+    panel("detail");show("app");
+    $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
     try{const r=await api("/api/server?guild_id="+encodeURIComponent(guildId));
       if(!r.ok){$("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';return;}
       renderDetail(await r.json());}catch(e){if(e.unauth)return renderLogin("Session expired.");$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
@@ -215,6 +599,11 @@
     $("backbtn").onclick=renderOverview;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     $("detail").querySelectorAll("button.toggle").forEach(b=>b.onclick=()=>toggle(b));
+    // Celebrate a server that's in the green — once per server per session.
+    if(!STATE._cel)STATE._cel=new Set();
+    if(st.profit_units>0&&st.won>0&&!STATE._cel.has(s.guild_id)&&window.NDConfetti){
+      STATE._cel.add(s.guild_id);try{NDConfetti.burst({duration:2400,count:140});}catch(e){}
+    }
     const fsv=$("femoji-save");
     if(fsv)fsv.onclick=async()=>{
       const emoji=$("femoji").value.trim();const m=$("femoji-msg");fsv.disabled=true;m.textContent="";
@@ -230,7 +619,7 @@
   async function openBuilder(guildId,name){
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[]};
     panel("builder");renderTray();
-    $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1><p style="color:var(--muted)">Loading upcoming games…</p>';
+    $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(guildId);};
     // players now come live from the AFL API (attached to each game); players.json
     // is only a silent fallback for a team the roster feed couldn't match.
@@ -244,6 +633,11 @@
      fall back gracefully to strings + players.json if anything is missing. */
   function teamName(t){ return (t&&typeof t==="object")?(t.name||t.aflName||""):(t||""); }
   function teamPlayers(t){ if(t&&typeof t==="object"&&Array.isArray(t.players)&&t.players.length)return t.players; return STATE.players[teamName(t)]||[]; }
+  // match the backend's _text_key so we can look a live player up by name
+  function tkey(s){ return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
+  const LIVE_KEYS={Disposals:"disposals",Goals:"goals","Fantasy Points":"dreamTeamPoints",Hitouts:"hitouts",Marks:"marks",Tackles:"tackles",Kicks:"kicks",Handballs:"handballs",Clearances:"totalClearances"};
+  // live value for a player on the active stat tab, or null when not live
+  function liveVal(name){ const L=BUILD.live; if(!L||!L.available)return null; const p=L.players[tkey(name)]; if(!p)return null; const v=p.summary?.[LIVE_KEYS[BUILD.tab]]; return (typeof v==="number")?v:null; }
   function renderGames(games){
     let html='<div class="back" id="bx">← Back to '+(BUILD.serverName||"server")+'</div><h1 style="margin:0 0 6px">Build a tip</h1><p style="color:var(--muted);margin:0 0 18px">Upcoming games (next 7 days) · pick one</p>';
     if(!games.length){ html+='<div class="panel"><div class="empty">No games in the next 7 days (off-season or none scheduled). Games come from Squiggle.</div></div>'; }
@@ -254,7 +648,17 @@
   }
   function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
 
-  function openGame(g){ BUILD.game=g; BUILD.tab="Disposals"; renderGame(); }
+  async function openGame(g){
+    BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
+    renderGame();
+    // If the game is in progress, pull live stats so we can tint players by pace.
+    const c=Number(g.complete)||0;
+    if(g.aflMatchId&&c>0&&c<100){
+      try{ BUILD.live=await (await api("/api/live-stats?match="+encodeURIComponent(g.aflMatchId)+"&complete="+c)).json(); }
+      catch(e){ BUILD.live=null; }
+      if(BUILD.game===g) renderPlayers();
+    }
+  }
   function renderGame(){
     const g=BUILD.game;
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
@@ -269,6 +673,8 @@
     const sides=[g.hteam,g.ateam];
     const meta=STATE.playerMeta||{};
     if(meta.enabled===false&&meta.error){ html+='<div class="empty" style="margin-bottom:14px">⚠ '+meta.error+'</div>'; }
+    const L=BUILD.live;
+    if(L&&L.available){ html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.2);display:inline-block"></span> LIVE · '+(L.phase&&L.phase.label||"in progress")+' — rows tint by projected pace vs your line</div>'; }
     sides.forEach(team=>{
       const nm=teamName(team),list=teamPlayers(team),slug=nm.replace(/\W/g,"");
       const sel=team&&typeof team==="object"&&team.playerListType==="selected";
@@ -284,8 +690,9 @@
         if(ins.length)html+='<div><span style="color:#42b06f;font-weight:800">IN</span> <span style="color:var(--muted)">'+ins.map(p=>p.name).join(", ")+'</span></div>';
         html+='</div>';
       }
-      list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;
-        html+='<div class="prow"><div class="pnum">'+(p.number||"–")+'</div><div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+'</div>'
+      list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;const lv=liveVal(p.name);
+        const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">· '+lv+' now</span>':"";
+        html+='<div class="prow"><div class="pnum">'+(p.number||"–")+'</div><div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+liveChip+'</div>'
           +'<div class="linectl"><input type="range" min="'+mn+'" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><div class="lineval"><span id="'+rid+'_v">'+def+'</span><small>+</small></div>'
           +'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
@@ -293,11 +700,19 @@
     });
     box.innerHTML=html||'<div class="empty">No players listed for either team yet.</div>';
     // wire each row
+    const frac=(L&&L.available&&L.phase&&L.phase.fraction>0)?L.phase.fraction:0;
     sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,"");teamPlayers(team).forEach((p,idx)=>{
       const rid="r_"+slug+"_"+idx;const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou");let side="Over";
       if(!sl)return;
-      sl.oninput=()=>vv.textContent=sl.value;
-      ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
+      const row=sl.closest(".prow");const lv=liveVal(p.name);
+      // tint the row by projected finish (current pace) vs the line — but from the
+      // BET's point of view: an Over pacing above the line is good (gold), an Under
+      // pacing above the line is bad (red). gold=winning, red=losing, green=on the line.
+      function tint(){ if(!window.NDStatusTint||lv===null||!frac||!row){return;} const projected=lv/frac,line=+sl.value;
+        if(side==="Under") NDStatusTint.apply(row,line,projected); else NDStatusTint.apply(row,projected,line); }
+      tint();
+      sl.oninput=()=>{vv.textContent=sl.value;tint();};
+      ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");tint();});
       $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:+sl.value,side});
     });});
   }
@@ -327,16 +742,25 @@
     $("bc").onclick=()=>{renderGame();};
     $("schedbtn").onclick=scheduleTip;
   }
-  async function scheduleTip(){
+  function scheduleTip(){
     const odds=parseFloat($("f_odds").value),units=parseFloat($("f_units").value);
     if(!(odds>1)){$("scherr").textContent="Odds must be greater than 1.";return;}
     if(!(units>0)){$("scherr").textContent="Units must be greater than 0.";return;}
+    $("scherr").textContent="";
+    NDCountdownConfirm.open({
+      title:"Schedule this tip?",
+      message:BUILD.legs.length+"-leg multi @ <b>"+odds+"</b> for <b>"+units+"u</b> — posts to Discord.",
+      seconds:5,confirmLabel:"Schedule now",secondaryLabel:"Cancel",accent:"#5b8cff",
+      onConfirm:()=>doSchedule(odds,units),
+    });
+  }
+  async function doSchedule(odds,units){
     $("schedbtn").disabled=true;
     const payload={guild_id:BUILD.guildId,legs:BUILD.legs,odds,units,bookmaker:$("f_book").value,
       game_name:BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"",delay_minutes:parseInt($("f_delay").value||"0",10)};
     try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const j=await r.json();
-      if(r.ok&&j.ok){ toast("Tip scheduled — the bot will post it shortly."); BUILD.legs=[]; $("tray").hidden=true; loadDetail(BUILD.guildId); }
+      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; $("tray").hidden=true; loadDetail(BUILD.guildId); }
       else{ $("scherr").textContent=j.message||"Couldn't schedule."; $("schedbtn").disabled=false; }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; $("schedbtn").disabled=false; }
   }
