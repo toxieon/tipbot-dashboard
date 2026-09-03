@@ -203,11 +203,26 @@
       +'<div class="dhead"><h1>'+(s.display_name||"Unnamed server")+'</h1><button class="btn sm" id="buildbtn">＋ Build a tip</button></div>'
       +'<div class="tiles">'+tiles+'</div>'
       +'<div class="panel"><h3>Win / Loss / Push</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
-      +'<div class="panel"><h3>Controls</h3><div class="switches">'+sw+'</div></div>'
+      +'<div class="panel"><h3>Controls</h3><div class="switches">'+sw+'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap">'
+        +'<label style="color:var(--muted);font-size:13px">Follow emoji</label>'
+        +'<input id="femoji" value="'+(s.follow_emoji||"")+'" maxlength="24" style="width:64px;text-align:center;font-size:18px;padding:6px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt)">'
+        +'<button class="btn sm" id="femoji-save">Save</button>'
+        +'<span style="color:var(--faint);font-size:12px">The reaction members tap on a tip to follow it.</span>'
+        +'<span id="femoji-msg" style="font-size:12px;margin-left:2px"></span>'
+        +'</div></div>'
       +'<div class="tips-cols"><div class="panel"><h3>Queued Tips</h3>'+q+'</div><div class="panel"><h3>Recent Results</h3>'+se+'</div></div>';
     $("backbtn").onclick=renderOverview;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     $("detail").querySelectorAll("button.toggle").forEach(b=>b.onclick=()=>toggle(b));
+    const fsv=$("femoji-save");
+    if(fsv)fsv.onclick=async()=>{
+      const emoji=$("femoji").value.trim();const m=$("femoji-msg");fsv.disabled=true;m.textContent="";
+      try{const r=await api("/api/follow-emoji",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id,emoji})});
+        const j=await r.json();m.textContent=j.ok?"✓ saved":(j.message||"error");m.style.color=j.ok?"var(--win)":"var(--loss)";
+      }catch(e){if(e.unauth)return renderLogin("Session expired.");m.textContent="couldn't save";m.style.color="var(--loss)";}
+      finally{fsv.disabled=false;}
+    };
   }
   async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
 
@@ -256,9 +271,21 @@
     if(meta.enabled===false&&meta.error){ html+='<div class="empty" style="margin-bottom:14px">⚠ '+meta.error+'</div>'; }
     sides.forEach(team=>{
       const nm=teamName(team),list=teamPlayers(team),slug=nm.replace(/\W/g,"");
-      html+='<div class="teamhdr">'+nm+(list.length?" <small style=\"color:var(--muted);font-weight:400\">· "+list.length+" players</small>":" — no roster yet")+'</div>';
+      const sel=team&&typeof team==="object"&&team.playerListType==="selected";
+      const status=((team&&team.selectionStatus)||"").replace(/_/g," ").toLowerCase();
+      const badge=sel
+        ? ' <span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span>'
+        : (list.length?' <span style="background:#2a3550;color:#9fb0d0;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">FULL SQUAD</span>':'');
+      html+='<div class="teamhdr">'+nm+badge+(list.length?' <small style="color:var(--muted);font-weight:400">· '+list.length+(sel?" named":"")+' players'+(status?" · "+status:"")+'</small>':" — no roster yet")+'</div>';
+      const ins=(team&&team.ins)||[],outs=(team&&team.outs)||[];
+      if(ins.length||outs.length){
+        html+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin:-2px 0 12px;font-size:12.5px;line-height:1.5">';
+        if(outs.length)html+='<div><span style="color:#e5695b;font-weight:800">OUT</span> <span style="color:var(--muted)">'+outs.map(p=>p.name).join(", ")+'</span></div>';
+        if(ins.length)html+='<div><span style="color:#42b06f;font-weight:800">IN</span> <span style="color:var(--muted)">'+ins.map(p=>p.name).join(", ")+'</span></div>';
+        html+='</div>';
+      }
       list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;
-        html+='<div class="prow"><div class="pnum">'+(p.number||"–")+'</div><div class="pname">'+p.name+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+'</div>'
+        html+='<div class="prow"><div class="pnum">'+(p.number||"–")+'</div><div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+'</div>'
           +'<div class="linectl"><input type="range" min="'+mn+'" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><div class="lineval"><span id="'+rid+'_v">'+def+'</span><small>+</small></div>'
           +'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';

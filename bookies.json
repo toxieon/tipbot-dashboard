@@ -1,0 +1,9 @@
+{
+  "_readme": "PLACEHOLDER — bookies to show in the tip builder. Add {\"name\":\"...\",\"logo\":\"https://...png\"}. Logo can be a URL or a file you commit to this repo (e.g. logos/sportsbet.png). Revisit later.",
+  "bookies": [
+    {"name":"Sportsbet","logo":""},
+    {"name":"TAB","logo":""},
+    {"name":"Bet365","logo":""},
+    {"name":"Ladbrokes","logo":""}
+  ]
+}
