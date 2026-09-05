@@ -601,6 +601,7 @@
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
     if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div>'; loadRouting(gid); return; }
+    if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
     body.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
       +'<label style="color:var(--muted);font-size:13px">Follow emoji</label>'
       +'<input id="femoji" value="'+esc(s.follow_emoji||"")+'" maxlength="24" style="width:64px;text-align:center;font-size:18px;padding:6px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt)">'
@@ -662,7 +663,7 @@
     const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
     const adminPanel=isAdmin?('<div class="panel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 style="color:#b9a5ff;display:flex;align-items:center;gap:8px">🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div class="switches">'+sw+'</div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
-      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button></div>'
+      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
       +'<div id="settings-body"></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><button class="btn sm" id="buildbtn">＋ Build a tip</button></div>'
@@ -677,8 +678,8 @@
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     $("monthsel").onchange=()=>loadDetail(s.guild_id,$("monthsel").value||null);
     $("detail").querySelectorAll("button.toggle").forEach(b=>b.onclick=()=>toggle(b));
-    function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); renderSettingsTab(s.guild_id,t,s); }
-    $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels");
+    function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
+    $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
     setTab("general");
     loadUpcoming(s.guild_id,tips.queued);
     if(!STATE._cel)STATE._cel=new Set();
@@ -688,6 +689,104 @@
   }
   async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+  /* ---------- COMMAND PERMISSIONS ---------- */
+  var PERM={};
+  async function loadPerms(gid){
+    var box=$("perms-box"); if(!box)return;
+    box.innerHTML=NDSkeleton.lines(6);
+    var data;
+    try{ var r=await api("/api/mod-settings?guild_id="+encodeURIComponent(gid));
+      if(!r.ok){ box.innerHTML='<div class="empty">Couldn\'t load permissions for this server.</div>'; return; }
+      data=await r.json();
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t reach the bot.</div>'; return; }
+    PERM={gid:gid, meta:data, cmd:{}, dash:{}};
+    (data.commands||[]).forEach(function(c){ PERM.cmd[c.name]={mode:c.mode, roles:(c.roles||[]).map(String)}; });
+    (data.dashboard_roles||[]).forEach(function(id){ PERM.dash[String(id)]=true; });
+    renderPerms();
+  }
+  function modeSelect(name){
+    var cur=PERM.cmd[name].mode;
+    var opts=(PERM.meta.modes||[]).map(function(m){ return '<option value="'+esc(m.value)+'"'+(m.value===cur?' selected':'')+'>'+esc(m.label)+'</option>'; }).join("");
+    return '<select class="pmode" data-n="'+esc(name)+'" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:6px 8px;font:inherit;cursor:pointer">'+opts+'</select>';
+  }
+  function roleChecks(name){
+    var roles=PERM.meta.roles||[];
+    if(!roles.length) return '<div style="color:var(--faint);font-size:12px;margin-top:6px">No roles found yet — the bot records them on startup.</div>';
+    var sel=PERM.cmd[name].roles.map(String);
+    return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+roles.map(function(r){
+      var on=sel.indexOf(String(r.id))>=0;
+      return '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;background:'+(on?'var(--card2)':'transparent')+'"><input type="checkbox" class="prole" data-n="'+esc(name)+'" data-r="'+esc(String(r.id))+'"'+(on?' checked':'')+' style="margin:0">'+esc(r.name)+'</label>';
+    }).join("")+'</div>';
+  }
+  function renderPerms(){
+    var box=$("perms-box"); if(!box)return;
+    var m=PERM.meta, html="";
+    html+='<div style="margin-bottom:14px"><div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Presets</div>';
+    html+='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">';
+    (m.presets||[]).forEach(function(p){
+      html+='<span style="display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 4px"><button class="btn sm papply" data-p="'+esc(p.name)+'" title="'+esc(p.description||"")+'">'+esc(p.name)+'</button>'+(p.builtin?'':'<button class="pdel" data-p="'+esc(p.name)+'" title="Delete preset" style="border:0;background:transparent;color:var(--loss);cursor:pointer;font-size:14px;padding:0 6px">✕</button>')+'</span>';
+    });
+    html+='</div>';
+    html+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="pname" placeholder="Save current as preset…" maxlength="60" style="flex:1;min-width:180px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font:inherit"><button class="btn sm" id="psave-preset">Save preset</button></div></div>';
+    (m.groups||[]).forEach(function(g){
+      var cmds=(m.commands||[]).filter(function(c){return c.group===g;});
+      if(!cmds.length)return;
+      html+='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px">'+esc(g)+'</div>';
+      cmds.forEach(function(c){
+        html+='<div style="border-bottom:1px solid var(--line);padding:8px 0">'
+          +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="min-width:150px;font-weight:600;font-size:14px">'+esc(c.label)+' <span style="color:var(--faint);font-weight:400">/'+esc(c.name)+'</span></div>'+modeSelect(c.name)+'</div>'
+          +(PERM.cmd[c.name].mode==="roles"?roleChecks(c.name):"")
+          +'</div>';
+      });
+    });
+    html+='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin:18px 0 6px">Dashboard access</div>';
+    html+='<div style="color:var(--faint);font-size:12px;margin-bottom:6px">Members with these roles can log in to this server\'s dashboard (server admins always can).</div>';
+    var droles=m.roles||[];
+    if(!droles.length){ html+='<div style="color:var(--faint);font-size:12px">No roles found yet.</div>'; }
+    else { html+='<div style="display:flex;flex-wrap:wrap;gap:6px">'+droles.map(function(r){
+      var on=!!PERM.dash[String(r.id)];
+      return '<label style="display:inline-flex;align-items:center;gap:5px;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer;background:'+(on?'var(--card2)':'transparent')+'"><input type="checkbox" class="pdash" data-r="'+esc(String(r.id))+'"'+(on?' checked':'')+' style="margin:0">'+esc(r.name)+'</label>';
+    }).join("")+'</div>'; }
+    html+='<div style="display:flex;align-items:center;gap:10px;margin-top:16px"><button class="btn" id="psave">Save permissions</button><span id="pmsg" style="font-size:12px"></span></div>';
+    box.innerHTML=html;
+    box.querySelectorAll(".pmode").forEach(function(sel){ sel.onchange=function(){ PERM.cmd[sel.dataset.n].mode=sel.value; renderPerms(); }; });
+    box.querySelectorAll(".prole").forEach(function(cb){ cb.onchange=function(){ var arr=PERM.cmd[cb.dataset.n].roles.map(String), id=String(cb.dataset.r), i=arr.indexOf(id); if(cb.checked&&i<0)arr.push(id); if(!cb.checked&&i>=0)arr.splice(i,1); PERM.cmd[cb.dataset.n].roles=arr; }; });
+    box.querySelectorAll(".pdash").forEach(function(cb){ cb.onchange=function(){ if(cb.checked)PERM.dash[String(cb.dataset.r)]=true; else delete PERM.dash[String(cb.dataset.r)]; }; });
+    box.querySelectorAll(".papply").forEach(function(b){ b.onclick=function(){ applyPreset(b.dataset.p); }; });
+    box.querySelectorAll(".pdel").forEach(function(b){ b.onclick=function(){ deletePreset(b.dataset.p); }; });
+    var ps=$("psave"); if(ps)ps.onclick=savePerms;
+    var pp=$("psave-preset"); if(pp)pp.onclick=savePreset;
+  }
+  function permConfigPayload(){ var cfg={}; Object.keys(PERM.cmd).forEach(function(n){ cfg[n]={mode:PERM.cmd[n].mode, roles:PERM.cmd[n].roles}; }); return cfg; }
+  async function savePerms(){
+    var msg=$("pmsg"), btn=$("psave"); if(btn)btn.disabled=true; if(msg)msg.textContent="";
+    try{
+      var r1=await api("/api/command-perms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,config:permConfigPayload()})});
+      var j1=await r1.json();
+      var r2=await api("/api/dashboard-roles",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,roles:Object.keys(PERM.dash)})});
+      var j2=await r2.json();
+      var ok=j1.ok&&j2.ok;
+      if(msg){ msg.textContent=ok?"✓ saved":(((j1.message||"")+" "+(j2.message||"")).trim()||"error"); msg.style.color=ok?"var(--win)":"var(--loss)"; }
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); if(msg){msg.textContent="couldn't save";msg.style.color="var(--loss)";} }
+    finally{ if(btn)btn.disabled=false; }
+  }
+  async function applyPreset(name){
+    try{ var r=await api("/api/preset-apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,name:name})});
+      var j=await r.json(); if(j.ok){ loadPerms(PERM.gid); } else { var m=$("pmsg"); if(m){m.textContent=j.message||"error";m.style.color="var(--loss)";} }
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+  }
+  async function savePreset(){
+    var name=($("pname").value||"").trim(), m=$("pmsg"); if(!name){ if(m){m.textContent="name the preset first";m.style.color="var(--loss)";} return; }
+    try{ var r=await api("/api/preset-save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,name:name,config:permConfigPayload()})});
+      var j=await r.json(); if(j.ok){ loadPerms(PERM.gid); } else if(m){ m.textContent=j.message||"error"; m.style.color="var(--loss)"; }
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+  }
+  async function deletePreset(name){
+    try{ var r=await api("/api/preset-delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,name:name})});
+      var j=await r.json(); if(j.ok) loadPerms(PERM.gid);
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+  }
 
   /* ---------- CHANNEL ROUTING ---------- */
   async function loadRouting(gid){
