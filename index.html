@@ -1,16 +1,4 @@
 <!doctype html>
-<!--
-API HANDOFF NOTES
-No AFL/Squiggle API keys live in this static dashboard.
-The dashboard first reads ./afl-games.json for fixture-only AFL games, so the
-bot does not need to be awake just to see upcoming/live games. That JSON file
-is refreshed by scripts/update-afl-games.mjs and the GitHub Actions workflow.
-The browser calls the bot backend at https://afl-tipster-bot.onrender.com.
-The backend /api/fixtures route loads games from Squiggle first, falls back to
-AFL's public fixture API, then attaches AFL.com.au selected teams and squads.
-The backend /api/live-stats route loads cumulative live player stats for a match.
-The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
--->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -532,7 +520,6 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
 </script>
 <script>
   const API="https://afl-tipster-bot.onrender.com";
-  const DASHBOARD_FIXTURE_API="./afl-games.json";
   const TOGGLES=[["enabled","Bot Enabled"],["subscription_active","Subscription"],["results_graph_enabled","Results Graph"]];
   const STATS={Disposals:[10,40,20],Goals:[0,6,2],"Fantasy Points":[40,140,80],Hitouts:[0,50,20],Marks:[2,15,5],Tackles:[2,15,5],Kicks:[5,30,12],Handballs:[3,25,10],Clearances:[1,12,4]};
   const $=id=>document.getElementById(id);
@@ -585,7 +572,6 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
 
   function fmtMonth(m){try{const[y,mo]=m.split("-");return new Date(+y,+mo-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});}catch{return m;}}
   async function loadDetail(guildId,month){
-    BUILDER_LOAD_ID++;
     clearLiveTimer();
     panel("detail");show("app");
     $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
@@ -595,60 +581,9 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
   }
   function tipRow(t,settled){const right=settled?(t.result==="Win"?'<span class="num pos">'+u(t.profit_units||0)+'</span>':t.result==="Loss"?'<span class="num neg">'+u(t.profit_units||0)+'</span>':'<span class="badge b-push">'+(t.result||"Push")+'</span>'):'<span class="badge b-pending">'+t.units+'u @ '+t.odds+'</span>';
     return '<div class="tip"><div><div class="g">'+(t.game_name||t.bet_type||"Tip "+(t.display_id||""))+'</div><div class="meta">'+(t.bet_type||"")+(t.bookmaker?" · "+t.bookmaker:"")+'</div></div><div>'+right+'</div></div>';}
-  let DETAIL_TIMER=null,LIVE_TIMER=null,BUILDER_LOAD_ID=0;
+  let DETAIL_TIMER=null,LIVE_TIMER=null;
   function clearDetailTimers(){ if(DETAIL_TIMER){clearInterval(DETAIL_TIMER);DETAIL_TIMER=null;} }
   function clearLiveTimer(){ if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;} }
-  async function readJsonResponse(r){
-    let payload=null;
-    try{ payload=await r.json(); }catch{}
-    if(!r.ok)throw new Error((payload&&(payload.detail||payload.message||payload.error))||("HTTP "+r.status));
-    return payload||{};
-  }
-  async function fetchWithTimeout(url,opts,timeoutMs){
-    const ctl=new AbortController(),tid=setTimeout(()=>ctl.abort(),timeoutMs);
-    try{return await fetch(url,Object.assign({},opts||{},{signal:ctl.signal}));}
-    finally{clearTimeout(tid);}
-  }
-  async function loadDashboardFixtures(days){
-    const r=await fetch(DASHBOARD_FIXTURE_API+"?v="+Date.now(),{cache:"no-store"});
-    const payload=await readJsonResponse(r);
-    if(!Array.isArray(payload.games))throw new Error(payload.error||"dashboard fixture feed returned no games");
-    const now=Date.now(),horizon=now+(Number(days)||7)*86400e3;
-    const games=payload.games.filter(g=>{
-      const raw=g.unixtime!=null?Number(g.unixtime)*1000:Date.parse(String(g.date||"").replace(" ","T"));
-      return g.live||(Number.isFinite(raw)&&raw>=now-4*3600e3&&raw<=horizon);
-    });
-    return Object.assign({},payload,{games});
-  }
-  async function loadBotFixtures(timeoutMs){
-    const r=await fetchWithTimeout(API+"/api/fixtures",{headers:{Authorization:"Bearer "+getToken()}},timeoutMs);
-    if(r.status===401){clearToken();throw{unauth:true};}
-    const payload=await readJsonResponse(r);
-    if(!Array.isArray(payload.games))throw new Error(payload.error||"bot fixture feed returned no games");
-    return payload;
-  }
-  function useFixturePayload(payload,extraWarning){
-    STATE.playerMeta=Object.assign({},payload.players||{});
-    if(extraWarning)STATE.playerMeta.warning=[STATE.playerMeta.warning,extraWarning].filter(Boolean).join(" · ");
-    return payload.games||[];
-  }
-  function fixtureSourceName(source){
-    if(source==="afl-dashboard")return "AFL fixture feed";
-    if(source==="afl")return "AFL fixture fallback";
-    if(source==="squiggle")return "Squiggle fixtures";
-    return source||"Fixture feed";
-  }
-  async function loadFixtureStarts(days){
-    let payload=null;
-    try{payload=await loadDashboardFixtures(days);}
-    catch(e){
-      try{payload=await loadBotFixtures(4500);}
-      catch(err){if(err&&err.unauth)throw err;}
-    }
-    const starts={};
-    ((payload&&payload.games)||[]).forEach(g=>{ if(g.game_name)starts[g.game_name]={ts:g.unixtime,live:g.live}; });
-    return starts;
-  }
   function sparkline(series){
     if(!series||series.length<2) return "";
     const w=560,h=56,pad=8,vals=series.map(p=>p.profit);
@@ -696,7 +631,7 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
     const box=$("upcoming-box"); if(!box)return;
     if(!queued||!queued.length){ box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>'; return; }
     let starts={};
-    try{ starts=await loadFixtureStarts(7); }
+    try{ const fx=await (await api("/api/fixtures")).json(); (fx.games||[]).forEach(g=>{ if(g.game_name) starts[g.game_name]={ts:g.unixtime,live:g.live}; }); }
     catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
     const groups={}; queued.forEach(t=>{ const k=t.game_name||"Other"; (groups[k]=groups[k]||[]).push(t); });
     let html="";
@@ -811,7 +746,6 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
 
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
-    const loadId=++BUILDER_LOAD_ID;
     clearDetailTimers();clearLiveTimer();
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[]};
     panel("builder");renderTray();
@@ -821,36 +755,9 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
     // is only a silent fallback for a team the roster feed couldn't match.
     if(!Object.keys(STATE.players).length){ try{STATE.players=await (await fetch("./players.json")).json();}catch{STATE.players={};} }
     if(!STATE.bookies.length){ try{STATE.bookies=((await (await fetch("./bookies.json")).json()).bookies)||[];}catch{STATE.bookies=[];} }
-    let games=[],shown=false,directErr="";
-    try{
-      const fx=await loadDashboardFixtures(7);
-      if(loadId!==BUILDER_LOAD_ID)return;
-      games=useFixturePayload(fx);
-      renderGames(games);
-      shown=true;
-    }catch(e){
-      directErr=e&&e.message?e.message:"dashboard fixture feed unavailable";
-    }
-    try{
-      const fx=await loadBotFixtures(6500);
-      if(loadId!==BUILDER_LOAD_ID)return;
-      const richer=fx.games||[];
-      if(richer.length||!shown){
-        games=useFixturePayload(fx);
-        renderGames(games);
-        shown=true;
-      }
-    }catch(e){
-      if(loadId!==BUILDER_LOAD_ID)return;
-      if(e.unauth)return renderLogin("Session expired.");
-      if(shown){
-        STATE.playerMeta.warning=[STATE.playerMeta.warning,"Bot enrichment unavailable; showing fixture-only games"].filter(Boolean).join(" · ");
-        renderGames(games);
-      }else{
-        STATE.playerMeta={enabled:false,error:(directErr?directErr+"; ":"")+"bot fixture feed unavailable",fixtureSource:"none"};
-        renderGames([]);
-      }
-    }
+    let games=[];
+    try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+    renderGames(games);
   }
   /* teams arrive as objects {name, abbrev, players:[{name,number,position}], aflName};
      fall back gracefully to strings + players.json if anything is missing. */
@@ -867,26 +774,20 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
       +'<p style="color:var(--muted);margin:0 0 18px">Upcoming games (next 7 days) · pick one · live games show here too</p>';
     if(!games.length){
       const err=(STATE.playerMeta&&STATE.playerMeta.error)||"";
-      html+='<div class="panel"><div class="empty">'+(err?("Couldn't load games — "+err+". Upload afl-games.json with the dashboard files, or wake the bot and refresh."):"No games in the next 7 days (off-season or none scheduled). Live games show here too.")+'</div></div>';
+      html+='<div class="panel"><div class="empty">'+(err?("Couldn't load games — "+err+". If the bot was just redeployed, give it a minute and refresh."):"No games in the next 7 days (off-season or none scheduled). Live games show here too.")+'</div></div>';
     }
-    else{
-      const warn=(STATE.playerMeta&&STATE.playerMeta.warning)||"";
-      const source=fixtureSourceName(STATE.playerMeta&&STATE.playerMeta.fixtureSource);
-      html+='<div style="color:var(--muted);font-size:12.5px;margin:-8px 0 14px">Source: '+source+(warn?' · '+warn:'')+'</div>';
-      html+='<div class="gcards">'+games.map((g,i)=>{
+    else{ html+='<div class="gcards">'+games.map((g,i)=>{
       const liveBadge=g.live?' <span style="color:#e5484d;font-weight:800;font-size:11px;letter-spacing:.03em">● LIVE</span>':'';
-      const dataBadge=g.aflMatchId?(STATE.playerMeta&&STATE.playerMeta.enabled?' · selected teams + stats feed':' · fixture ready; bot enriches players'):'';
-      return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g)+liveBadge+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+dataBadge+'</div></div>';
+      return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(games[+c.dataset.i]));
   }
-  function fmtDate(g){try{const d=g.unixtime?new Date(Number(g.unixtime)*1000):new Date(String(g.date||"").replace(" ","T").replace(/([+-]\d{2})(\d{2})$/,"$1:$2"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return g.date||"";}}
+  function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
 
   async function openGame(g){
-    BUILDER_LOAD_ID++;
     clearLiveTimer();
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     renderGame();
@@ -920,11 +821,7 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
     const meta=STATE.playerMeta||{};
     if(meta.enabled===false&&meta.error){ html+='<div class="empty" style="margin-bottom:14px">⚠ '+meta.error+'</div>'; }
     const L=BUILD.live;
-    if(L&&L.available){
-      const snap=L.snapshot||{},checkpoints=snap.checkpoints||[],splits=snap.derivedSplits||[];
-      const snapText=snap.saved?' · snapshot '+(snap.totalSnapshots||1)+' saved'+(checkpoints.length?' · checkpoints '+checkpoints.join(", "):'')+(splits.length?' · splits '+splits.join(", "):''):'';
-      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.2);display:inline-block"></span> LIVE · '+(L.phase&&L.phase.label||"in progress")+' · rows tint by projected pace vs your line'+snapText+'</div>';
-    }
+    if(L&&L.available){ html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.2);display:inline-block"></span> LIVE · '+(L.phase&&L.phase.label||"in progress")+' — rows tint by projected pace vs your line</div>'; }
     sides.forEach(team=>{
       const nm=teamName(team),list=teamPlayers(team),slug=nm.replace(/\W/g,"");
       const sel=team&&typeof team==="object"&&team.playerListType==="selected";
@@ -989,9 +886,34 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
       +'<div class="field"><label>Units</label><input id="f_units" type="number" step="0.5" placeholder="e.g. 1"></div>'
       +'<div class="field"><label>Bookmaker (placeholder)</label><select id="f_book"><option value="">—</option>'+bk+'</select></div>'
       +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
+      +'<div class="field"><label>Screenshot (optional)</label><input id="f_img" type="file" accept="image/*"><div id="f_img_prev" style="margin-top:8px"></div></div>'
       +'<button class="btn" id="schedbtn">Schedule tip →</button> <span id="scherr" class="err" style="margin-left:10px"></span></div>';
     $("bc").onclick=()=>{renderGame();};
     $("schedbtn").onclick=scheduleTip;
+    const fi=$("f_img");
+    if(fi)fi.onchange=async()=>{
+      const prev=$("f_img_prev");const file=fi.files&&fi.files[0];
+      if(!file){ BUILD.image=null; prev.innerHTML=""; return; }
+      prev.innerHTML='<span style="color:var(--muted);font-size:12px">Compressing…</span>';
+      try{ BUILD.image=await compressImage(file);
+        prev.innerHTML='<img src="'+BUILD.image+'" style="max-height:120px;border-radius:8px;border:1px solid var(--line)"> <span style="color:var(--faint);font-size:12px">attached — the bot posts it with the tip</span>';
+      }catch(e){ BUILD.image=null; prev.innerHTML='<span class="err" style="font-size:12px">Couldn\'t read that image.</span>'; }
+    };
+  }
+  // Downscale + JPEG-compress client-side so only a small image ever travels.
+  function compressImage(file,maxDim,quality){
+    maxDim=maxDim||1600; quality=quality||0.7;
+    return new Promise((res,rej)=>{
+      const img=new Image(),url=URL.createObjectURL(file);
+      img.onload=()=>{ URL.revokeObjectURL(url);
+        let w=img.naturalWidth,h=img.naturalHeight; const sc=Math.min(1,maxDim/Math.max(w,h));
+        w=Math.max(1,Math.round(w*sc)); h=Math.max(1,Math.round(h*sc));
+        const c=document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        try{ res(c.toDataURL("image/jpeg",quality)); }catch(e){ rej(e); } };
+      img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
+      img.src=url;
+    });
   }
   function scheduleTip(){
     const odds=parseFloat($("f_odds").value),units=parseFloat($("f_units").value);
@@ -1008,10 +930,11 @@ The backend /api/live-snapshots route exposes saved Q1/HT/3QT/FT snapshots.
   async function doSchedule(odds,units){
     $("schedbtn").disabled=true;
     const payload={guild_id:BUILD.guildId,legs:BUILD.legs,odds,units,bookmaker:$("f_book").value,
-      game_name:BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"",delay_minutes:parseInt($("f_delay").value||"0",10)};
+      game_name:BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"",delay_minutes:parseInt($("f_delay").value||"0",10),
+      image_b64:BUILD.image||""};
     try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const j=await r.json();
-      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; $("tray").hidden=true; loadDetail(BUILD.guildId); }
+      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; $("tray").hidden=true; loadDetail(BUILD.guildId); }
       else{ $("scherr").textContent=j.message||"Couldn't schedule."; $("schedbtn").disabled=false; }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; $("schedbtn").disabled=false; }
   }
