@@ -77,8 +77,11 @@
   .tab{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:14px}
   .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .teamhdr{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
+  .thdr{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .thdr:hover{color:var(--muted)}
+  .tcaret{font-size:11px;color:var(--muted);width:12px;display:inline-block}
   .prow{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;flex-wrap:wrap}
-  .pnum{width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+  .pnum{display:grid;place-items:center;flex:none}
   .pname{font-weight:600;min-width:150px;flex:1}
   .linectl{display:flex;align-items:center;gap:12px;flex:1;min-width:240px}
   .lineval{font-weight:800;font-size:20px;min-width:66px;text-align:center}
@@ -115,7 +118,7 @@
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo">🎯</span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer" title="Home">🎯</span> TipBot <span class="sub" id="rolebadge"></span></div>
       <div class="menu"><div class="gear" id="gear" title="Settings">⚙</div>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
@@ -130,6 +133,7 @@
     </div>
     <div id="overview" hidden></div>
     <div id="detail" hidden></div>
+    <div id="followers" hidden></div>
     <div id="builder" hidden></div>
   </div>
 </div>
@@ -529,7 +533,7 @@
   let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[]};
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","builder"])$(x).hidden=(x!==p);};
+  const panel=p=>{for(const x of ["overview","detail","followers","builder"])$(x).hidden=(x!==p);};
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
@@ -539,6 +543,7 @@
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;});
   $("dropdown").addEventListener("click",e=>e.stopPropagation());
   $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
+  { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
   $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
@@ -571,16 +576,115 @@
   }
 
   function fmtMonth(m){try{const[y,mo]=m.split("-");return new Date(+y,+mo-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});}catch{return m;}}
-  async function loadDetail(guildId,month){
+  async function loadDetail(guildId,month,opts){
+    opts=opts||{};
     clearLiveTimer();
     panel("detail");show("app");
-    $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
+    const key=guildId+"|"+(month||"");
+    STATE._detailCache=STATE._detailCache||{};
+    const cached=STATE._detailCache[key];
+    // Show the cached snapshot instantly for quick loads, then refresh behind it.
+    if(cached && !opts.force){ renderDetail(cached); }
+    else { $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>'; }
     try{const r=await api("/api/server?guild_id="+encodeURIComponent(guildId)+(month?"&month="+encodeURIComponent(month):""));
-      if(!r.ok){$("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';return;}
-      renderDetail(await r.json());}catch(e){if(e.unauth)return renderLogin("Session expired.");$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
+      if(!r.ok){ if(!cached)$("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>'; return; }
+      const data=await r.json(); STATE._detailCache[key]=data;
+      if(!$("detail").hidden) renderDetail(data);
+    }catch(e){if(e.unauth)return renderLogin("Session expired.");if(!cached)$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
   }
-  function tipRow(t,settled){const right=settled?(t.result==="Win"?'<span class="num pos">'+u(t.profit_units||0)+'</span>':t.result==="Loss"?'<span class="num neg">'+u(t.profit_units||0)+'</span>':'<span class="badge b-push">'+(t.result||"Push")+'</span>'):'<span class="badge b-pending">'+t.units+'u @ '+t.odds+'</span>';
-    return '<div class="tip"><div><div class="g">'+(t.game_name||t.bet_type||"Tip "+(t.display_id||""))+'</div><div class="meta">'+(t.bet_type||"")+(t.bookmaker?" · "+t.bookmaker:"")+'</div></div><div>'+right+'</div></div>';}
+  function tipRow(t,settled){
+    const right=settled?(t.result==="Win"?'<span class="num pos">'+u(t.profit_units||0)+'</span>':t.result==="Loss"?'<span class="num neg">'+u(t.profit_units||0)+'</span>':'<span class="badge b-push">'+(t.result||"Push")+'</span>'):'<span class="badge b-pending">'+t.units+'u @ '+t.odds+'</span>';
+    const tid=esc(t.tip_id||"");
+    const del=(!settled&&tid)?'<button class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" title="Delete & redact" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px">✕</button>':'';
+    return '<div class="tip betrow" data-tip="'+tid+'" style="cursor:pointer"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+' <span style="color:var(--faint);font-size:11px">▸</span></div><div class="meta">'+esc(t.bet_type||"")+(t.bookmaker?" · "+esc(t.bookmaker):"")+(t.display_id?" · "+esc(t.display_id):"")+'</div></div><div style="display:flex;align-items:center;gap:10px">'+right+del+'</div></div>'
+      +'<div class="betlegs" id="legs_'+tid+'" hidden style="padding:4px 0 10px 6px;margin:-4px 0 6px"></div>';
+  }
+  function wireTipRows(box,gid){
+    if(!box)return;
+    box.querySelectorAll(".betrow").forEach(row=>{ row.onclick=(e)=>{ if(e.target.closest(".delbet"))return; toggleLegs(gid,row.dataset.tip); }; });
+    box.querySelectorAll(".delbet").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); deleteBet(gid,b.dataset.tip,b.dataset.name,b); });
+  }
+  async function toggleLegs(gid,tipId){
+    if(!tipId)return; const el=$("legs_"+tipId); if(!el)return;
+    if(!el.hidden){ el.hidden=true; return; }
+    el.hidden=false;
+    if(el.dataset.loaded)return;
+    el.innerHTML='<span style="color:var(--faint);font-size:12px">Loading…</span>';
+    try{ const t=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
+      const legs=(t.legs||[]).map(l=>'<div style="font-size:13px;padding:2px 0">• '+esc(l.description)+(l.leg_result?' <span style="color:var(--faint)">('+esc(l.leg_result)+')</span>':'')+'</div>').join("")||'<div style="color:var(--faint);font-size:12px">No legs recorded.</div>';
+      el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div>'+legs;
+      el.dataset.loaded="1";
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); el.innerHTML='<span class="err" style="font-size:12px">Couldn\'t load legs.</span>'; }
+  }
+  async function deleteBet(gid,tipId,name,btn){
+    if(!confirm("Delete "+(name||"this bet")+"? It will be removed from Discord with a redaction note posted in its place."))return;
+    if(btn)btn.disabled=true;
+    try{ const r=await api("/api/delete-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId})});
+      const j=await r.json();
+      if(j.ok){ document.querySelectorAll('.betrow').forEach(row=>{ if(row.dataset.tip===tipId){ const lg=$("legs_"+tipId); row.remove(); if(lg)lg.remove(); } });
+        if(STATE._detailCache)STATE._detailCache={};
+        toast("Redacted — it previously contained: "+(j.message||"the bet"));
+      } else { toast(j.message||"Couldn't delete that bet."); if(btn)btn.disabled=false; }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(btn)btn.disabled=false; }
+  }
+  function toast(msg){ let t=$("nd_toast"); if(!t){ t=document.createElement("div"); t.id="nd_toast"; t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:11px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:60;font-size:14px;max-width:90vw;transition:opacity .3s"; document.body.appendChild(t);} t.textContent=msg; t.style.opacity="1"; clearTimeout(t._h); t._h=setTimeout(()=>{t.style.opacity="0";},4000); }
+
+  /* ---------- FOLLOWERS ---------- */
+  async function openFollowers(gid,name){
+    clearDetailTimers();clearLiveTimer();
+    panel("followers");show("app");
+    $("followers").innerHTML='<div class="back" id="fbx">← Back</div><h1 style="margin:0 0 14px">Followers</h1>'+NDSkeleton.lines(6);
+    $("fbx").onclick=()=>loadDetail(gid);
+    try{ const data=await (await api("/api/followers?guild_id="+encodeURIComponent(gid))).json();
+      renderFollowers(gid,name,data);
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
+      $("followers").innerHTML='<div class="back" id="fbx">← Back</div><div class="empty">Couldn\'t load followers.</div>'; $("fbx").onclick=()=>loadDetail(gid); }
+  }
+  function modButtons(uid){
+    const u2=esc(uid);
+    return '<button class="ghost mact" data-uid="'+u2+'" data-a="timeout" data-min="5" style="padding:6px 8px;font-size:12px">⏱5m</button>'
+      +'<button class="ghost mact" data-uid="'+u2+'" data-a="timeout" data-min="60" style="padding:6px 8px;font-size:12px">1h</button>'
+      +'<button class="ghost mact" data-uid="'+u2+'" data-a="timeout" data-min="1440" style="padding:6px 8px;font-size:12px">1d</button>'
+      +'<button class="mact" data-uid="'+u2+'" data-a="kick" style="padding:6px 8px;font-size:12px;border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:9px;cursor:pointer;font:inherit">Kick</button>';
+  }
+  function renderFollowers(gid,name,data){
+    const list=(data&&data.followers)||[];
+    let html='<div class="back" id="fbx">← Back</div><div class="dhead"><h1 style="margin:0">Followers</h1><span style="color:var(--faint);font-size:13px">'+list.length+' member'+(list.length===1?"":"s")+' · '+esc(name||"")+'</span></div>';
+    if(!list.length){ html+='<div class="panel"><div class="empty">No one is following bets yet.</div></div>'; }
+    list.forEach((f,i)=>{ const prof=f.profit_units||0;
+      html+='<div class="panel" style="padding:14px 16px">'
+        +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+          +'<img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">'
+          +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:16px">'+esc(f.name||f.user_id)+'</div><div style="color:var(--faint);font-size:12px">'+f.follows+' bet'+(f.follows===1?"":"s")+' followed'+(f.unit_size?(" · $"+f.unit_size+"/unit"):"")+'</div></div>'
+          +'<div style="display:flex;gap:16px;flex-wrap:wrap;text-align:center">'
+            +'<div><div class="'+(prof>=0?"pos":"neg")+'" style="font-weight:800;font-size:18px">'+u(prof)+'</div><div style="color:var(--faint);font-size:11px">PROFIT</div></div>'
+            +'<div><div style="font-weight:800;font-size:18px"><span class="pos">'+f.won+'</span>–<span class="neg">'+f.lost+'</span></div><div style="color:var(--faint);font-size:11px">W – L</div></div>'
+            +'<div><div style="font-weight:800;font-size:18px">'+f.success_rate+'%</div><div style="color:var(--faint);font-size:11px">SUCCESS</div></div>'
+            +'<div><div style="font-weight:800;font-size:18px">'+f.roi+'%</div><div style="color:var(--faint);font-size:11px">ROI</div></div>'
+          +'</div></div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px">'
+          +'<button class="ghost fexp" data-i="'+i+'" style="padding:7px 12px">Followed bets ›</button>'
+          +'<span style="flex:1"></span>'+modButtons(f.user_id)
+        +'</div>'
+        +'<div class="fbets" id="fbets_'+i+'" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px"></div>'
+      +'</div>';
+    });
+    $("followers").innerHTML=html;
+    $("fbx").onclick=()=>loadDetail(gid);
+    list.forEach((f,i)=>{ const b=$("followers").querySelector('.fexp[data-i="'+i+'"]'); if(b)b.onclick=()=>{
+      const box=$("fbets_"+i); if(!box)return; if(!box.hidden){box.hidden=true;return;} box.hidden=false;
+      box.innerHTML=(f.follows_list||[]).map(t=>'<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+' · '+(t.result?esc(t.result):"Pending")+'</div></div><div>'+(t.result?('<span class="num '+((t.profit_units||0)>=0?"pos":"neg")+'">'+u(t.profit_units||0)+'</span>'):('<span class="badge b-pending">'+(t.stake_units||0)+'u @ '+(t.odds||"")+'</span>'))+'</div></div>').join("")||'<div class="empty">No bets yet.</div>';
+    };});
+    $("followers").querySelectorAll(".mact").forEach(b=>b.onclick=async()=>{
+      const a=b.dataset.a,uid=b.dataset.uid,min=b.dataset.min;
+      const human=a==="kick"?"Kick this member?":("Time this member out for "+(min>=1440?(min/1440+" day"):min>=60?(min/60+" hour"):(min+" min"))+"?");
+      if(!confirm(human))return; b.disabled=true;
+      try{ const r=await api("/api/moderate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,user_id:uid,action:a,minutes:min?+min:null})});
+        const j=await r.json(); toast(j.ok?("Queued — "+(a==="kick"?"kick":("timeout "+min+"m"))+" will apply in a few seconds."):(j.message||"Failed")); }
+      catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); }
+      finally{ b.disabled=false; }
+    });
+  }
   let DETAIL_TIMER=null,LIVE_TIMER=null;
   function clearDetailTimers(){ if(DETAIL_TIMER){clearInterval(DETAIL_TIMER);DETAIL_TIMER=null;} }
   function clearLiveTimer(){ if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;} }
@@ -647,6 +751,7 @@
     });
     box.innerHTML=html;
     box.querySelectorAll(".ugh").forEach(hh=>hh.onclick=()=>{const el=$(hh.dataset.g); if(el)el.hidden=!el.hidden;});
+    wireTipRows(box,gid);
     tickCountdowns(); DETAIL_TIMER=setInterval(tickCountdowns,1000);
   }
   function renderDetail(d){
@@ -657,27 +762,34 @@
     const months=d.months||[],curMonth=d.month||"";
     const period=curMonth?fmtMonth(curMonth):"Lifetime";
     const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
-    const tiles=[["Tips Queued",st.queued,""],["Won",st.won,"pos"],["Lost",st.lost,"neg"],["Strike Rate",st.strike_rate+"%",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg"],["ROI",st.roi+"%",st.roi>=0?"pos":"neg"],["Followers",st.followers,""]].map(t=>'<div class="tile"><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+'</div></div>').join("");
+    const tileDefs=[["Tips Queued",st.queued,"","queued"],["Won",st.won,"pos",""],["Lost",st.lost,"neg",""],["Success Rate",st.strike_rate+"%","",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg",""],["ROI",st.roi+"%",st.roi>=0?"pos":"neg",""],["Followers",st.followers,"","followers"]];
+    const tiles=tileDefs.map(t=>'<div class="tile'+(t[3]?" clk":"")+'"'+(t[3]?' data-act="'+t[3]+'"':'')+'><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+(t[3]?' <span style="color:var(--accent)">›</span>':'')+'</div></div>').join("");
     const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("");
     const se=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>';
     const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
-    const adminPanel=isAdmin?('<div class="panel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 style="color:#b9a5ff;display:flex;align-items:center;gap:8px">🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div class="switches">'+sw+'</div></div>'):'';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div></div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
       +'<div id="settings-body"></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><button class="btn sm" id="buildbtn">＋ Build a tip</button></div>'
+      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +'<div class="tiles">'+tiles+'</div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
-      +adminPanel+settingsPanel
-      +'<div class="panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel"><h3>Recent Results</h3>'+se+'</div>';
+      +settingsPanel
+      +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
-    $("monthsel").onchange=()=>loadDetail(s.guild_id,$("monthsel").value||null);
+    { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
+    { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
+    $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
+      if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
+      else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
     $("detail").querySelectorAll("button.toggle").forEach(b=>b.onclick=()=>toggle(b));
+    wireTipRows($("recent-box"),s.guild_id,true);
     function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
     setTab("general");
@@ -846,7 +958,7 @@
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
     clearDetailTimers();clearLiveTimer();
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[]};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{}};
     panel("builder");renderTray();
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(guildId);};
@@ -908,27 +1020,65 @@
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+teamName(g.hteam)+' v '+teamName(g.ateam)+'</h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
-      +'<div class="tabs">'+tabs+'</div><div id="players"></div>';
+      +'<div class="tabs">'+tabs+'</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px">'
+      +'<input id="psearch" placeholder="Search players by name or number…" value="'+esc(BUILD.search||"")+'" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
+      +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
+      +'</div><div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     const rl=$("refreshlive"); if(rl)rl.onclick=()=>refreshLive(g);
     $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;renderGame();});
+    const ps=$("psort"); if(ps){ ps.value=BUILD.sort||"number"; ps.onchange=()=>{BUILD.sort=ps.value;renderPlayers();}; }
+    const pq=$("psearch"); if(pq){ pq.oninput=()=>{BUILD.search=pq.value;renderPlayers();}; }
     renderPlayers();
   }
+  // Only ever show the NAMED side (playerListType==="selected"); before teams are
+  // announced we show nothing rather than a full/มismatched squad.
+  function isNamed(team){ return team&&typeof team==="object"&&team.playerListType==="selected"; }
+  function sortPlayers(list){
+    const arr=list.slice();
+    if(BUILD.sort==="name"){ arr.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""))); }
+    else { arr.sort((a,b)=>{ const na=parseInt(a.number,10),nb=parseInt(b.number,10);
+      const va=isNaN(na)?9999:na, vb=isNaN(nb)?9999:nb; return va-vb||String(a.name||"").localeCompare(String(b.name||"")); }); }
+    return arr;
+  }
+  function filterPlayers(list){
+    const q=(BUILD.search||"").trim().toLowerCase();
+    if(!q)return list;
+    return list.filter(p=>String(p.name||"").toLowerCase().includes(q)||String(p.number||"").includes(q));
+  }
+  // The deterministic, displayed roster for a side — used by BOTH the render and
+  // wiring loops so row ids line up.
+  function displayList(team){
+    if(!isNamed(team))return [];
+    const list=Array.isArray(team.players)?team.players:[];
+    return filterPlayers(sortPlayers(list));
+  }
+  // Team colours for the guernsey icon (most specific keys first).
+  const TEAMCOLORS=[["adelaide","#0a2240"],["brisbanelions","#7a002e"],["brisbane","#7a002e"],["carlton","#0e1e3d"],["collingwood","#0b0b0b"],["essendon","#c8102e"],["fremantle","#33006f"],["goldcoast","#d0112b"],["greaterwesternsydney","#f47a20"],["gwsgiants","#f47a20"],["gws","#f47a20"],["giants","#f47a20"],["hawthorn","#4d2004"],["northmelbourne","#013a81"],["kangaroos","#013a81"],["portadelaide","#01b3ac"],["power","#01b3ac"],["geelong","#0a2240"],["richmond","#141414"],["stkilda","#ed1b2e"],["saints","#ed1b2e"],["sydneyswans","#e1231f"],["swans","#e1231f"],["westcoast","#062f6c"],["eagles","#062f6c"],["westernbulldogs","#0a37a0"],["bulldogs","#0a37a0"],["sydney","#e1231f"],["melbourne","#0b1a4d"],["demons","#0b1a4d"]];
+  function teamColor(name){ const k=String(name||"").toLowerCase().replace(/[^a-z]/g,""); for(var i=0;i<TEAMCOLORS.length;i++){ if(k.indexOf(TEAMCOLORS[i][0])>=0)return TEAMCOLORS[i][1]; } return "#2a3550"; }
+  function textOn(hex){ const c=hex.replace("#",""); const r=parseInt(c.substr(0,2),16),gg=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16); return (0.299*r+0.587*gg+0.114*b)>140?"#111":"#fff"; }
+  function guernsey(num,name){ const col=teamColor(name),tc=textOn(col); return '<svg width="34" height="34" viewBox="0 0 40 40" style="flex:none" aria-hidden="true"><path d="M13 4 L20 8 L27 4 L34 11 L29.5 17 L29.5 34 Q29.5 37 26.5 37 L13.5 37 Q10.5 37 10.5 34 L10.5 17 L6 11 Z" fill="'+col+'" stroke="rgba(255,255,255,.18)"/><text x="20" y="26" text-anchor="middle" font-family="inherit" font-size="13" font-weight="800" fill="'+tc+'">'+(num!=null&&num!==""?num:"")+'</text></svg>'; }
   function renderPlayers(){
     const g=BUILD.game,[mn,mx,def]=STATS[BUILD.tab];const box=$("players");let html="";
+    BUILD.collapsed=BUILD.collapsed||{};
     const sides=[g.hteam,g.ateam];
     const meta=STATE.playerMeta||{};
     if(meta.enabled===false&&meta.error){ html+='<div class="empty" style="margin-bottom:14px">⚠ '+meta.error+'</div>'; }
     const L=BUILD.live;
     if(L&&L.available){ html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.2);display:inline-block"></span> LIVE · '+(L.phase&&L.phase.label||"in progress")+' — rows tint by projected pace vs your line</div>'; }
     sides.forEach(team=>{
-      const nm=teamName(team),list=teamPlayers(team),slug=nm.replace(/\W/g,"");
-      const sel=team&&typeof team==="object"&&team.playerListType==="selected";
+      const nm=teamName(team),slug=nm.replace(/\W/g,"");
       const status=((team&&team.selectionStatus)||"").replace(/_/g," ").toLowerCase();
-      const badge=sel
-        ? ' <span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span>'
-        : (list.length?' <span style="background:#2a3550;color:#9fb0d0;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">FULL SQUAD</span>':'');
-      html+='<div class="teamhdr">'+nm+badge+(list.length?' <small style="color:var(--muted);font-weight:400">· '+list.length+(sel?" named":"")+' players'+(status?" · "+status:"")+'</small>':" — no roster yet")+'</div>';
+      if(!isNamed(team)){
+        html+='<div class="teamhdr">'+nm+' <span style="background:#5a4a1f;color:#f0d78a;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NOT NAMED</span></div>'
+          +'<div class="empty" style="margin:0 0 14px">Team not announced yet — players appear once the side is named (usually 1\u20132 days before the game)'+(status?" \u00b7 "+status:"")+'.</div>';
+        return;
+      }
+      const list=displayList(team);
+      const collapsed=!!BUILD.collapsed[slug];
+      html+='<div class="thdr" data-slug="'+slug+'"><span class="tcaret">'+(collapsed?"\u25b8":"\u25be")+'</span>'+nm+' <span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span> <small style="color:var(--muted);font-weight:400">\u00b7 '+list.length+' player'+(list.length===1?"":"s")+(status?" \u00b7 "+status:"")+'</small></div>';
+      html+='<div class="teamplayers" id="tp_'+slug+'"'+(collapsed?' hidden':'')+'>';
       const ins=(team&&team.ins)||[],outs=(team&&team.outs)||[];
       if(ins.length||outs.length){
         html+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin:-2px 0 12px;font-size:12.5px;line-height:1.5">';
@@ -936,30 +1086,33 @@
         if(ins.length)html+='<div><span style="color:#42b06f;font-weight:800">IN</span> <span style="color:var(--muted)">'+ins.map(p=>p.name).join(", ")+'</span></div>';
         html+='</div>';
       }
+      if(!list.length){ html+='<div class="empty" style="margin:0 0 12px">No players match your search.</div>'; }
       list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;const lv=liveVal(p.name);
-        const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">· '+lv+' now</span>':"";
-        html+='<div class="prow"><div class="pnum">'+(p.number||"–")+'</div><div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+liveChip+'</div>'
-          +'<div class="linectl"><input type="range" min="'+mn+'" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><div class="lineval"><span id="'+rid+'_v">'+def+'</span><small>+</small></div>'
+        const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">\u00b7 '+lv+' now</span>':"";
+        html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div><div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+liveChip+'</div>'
+          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="1" value="'+def+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center">'
           +'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
+      html+='</div>';
     });
     box.innerHTML=html||'<div class="empty">No players listed for either team yet.</div>';
+    box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"\u25b8":"\u25be";});
     // wire each row
     const frac=(L&&L.available&&L.phase&&L.phase.fraction>0)?L.phase.fraction:0;
-    sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,"");teamPlayers(team).forEach((p,idx)=>{
+    sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,"");displayList(team).forEach((p,idx)=>{
       const rid="r_"+slug+"_"+idx;const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou");let side="Over";
-      if(!sl)return;
+      if(!sl||!vv)return;
       const row=sl.closest(".prow");const lv=liveVal(p.name);
-      // tint the row by projected finish (current pace) vs the line — but from the
-      // BET's point of view: an Over pacing above the line is good (gold), an Under
-      // pacing above the line is bad (red). gold=winning, red=losing, green=on the line.
-      function tint(){ if(!window.NDStatusTint||lv===null||!frac||!row){return;} const projected=lv/frac,line=+sl.value;
+      function curLine(){ const n=parseFloat(vv.value); return isNaN(n)?0:Math.max(0,n); }
+      // tint by projected finish vs the typed line, from the BET's point of view.
+      function tint(){ if(!window.NDStatusTint||lv===null||!frac||!row){return;} const projected=lv/frac,line=curLine();
         if(side==="Under") NDStatusTint.apply(row,line,projected); else NDStatusTint.apply(row,projected,line); }
       tint();
-      sl.oninput=()=>{vv.textContent=sl.value;tint();};
+      sl.oninput=()=>{vv.value=sl.value;tint();};
+      vv.oninput=()=>{ let n=parseFloat(vv.value); if(isNaN(n)){tint();return;} if(n<0){n=0;vv.value=0;} sl.value=Math.min(n,+sl.max); tint(); };
       ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");tint();});
-      $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:+sl.value,side});
+      $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side});
     });});
   }
   function addLeg(leg){ BUILD.legs.push(leg); renderTray(); }
