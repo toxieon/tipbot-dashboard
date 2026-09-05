@@ -77,6 +77,10 @@
   .tab{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:14px}
   .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .teamhdr{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
+  .compchip{border:1px solid var(--line);background:var(--card2);color:var(--muted);border-radius:999px;padding:7px 16px;cursor:pointer;font:inherit;font-size:13px;font-weight:700}
+  .compchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .compbadge{font-size:10px;font-weight:800;letter-spacing:.04em;background:#1f3a5c;color:#9fc7ff;padding:1px 7px;border-radius:999px;vertical-align:middle}
+  .compbadge.aflw{background:#5a1f4a;color:#ff9fe0}
   .thdr{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .thdr:hover{color:var(--muted)}
   .tcaret{font-size:11px;color:var(--muted);width:12px;display:inline-block}
@@ -612,9 +616,28 @@
     el.innerHTML='<span style="color:var(--faint);font-size:12px">Loading…</span>';
     try{ const t=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
       const legs=(t.legs||[]).map(l=>'<div style="font-size:13px;padding:2px 0">• '+esc(l.description)+(l.leg_result?' <span style="color:var(--faint)">('+esc(l.leg_result)+')</span>':'')+'</div>').join("")||'<div style="color:var(--faint);font-size:12px">No legs recorded.</div>';
-      el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div>'+legs;
+      let grade='';
+      if((t.status||"")==="Pending"){
+        grade='<div class="graderow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">'
+          +'<span style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em">Grade result:</span>'
+          +'<button class="gradebtn" data-r="Win"  style="border:1px solid rgba(66,176,111,.45);background:rgba(66,176,111,.14);color:#7ee0a6;border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Win</button>'
+          +'<button class="gradebtn" data-r="Loss" style="border:1px solid rgba(229,72,77,.45);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Loss</button>'
+          +'<button class="gradebtn" data-r="Push" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Push</button>'
+          +'</div>';
+      }
+      el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div>'+legs+grade;
+      el.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); gradeBet(gid,tipId,b.dataset.r,el); });
       el.dataset.loaded="1";
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); el.innerHTML='<span class="err" style="font-size:12px">Couldn\'t load legs.</span>'; }
+  }
+  async function gradeBet(gid,tipId,result,box){
+    if(!confirm("Grade this bet as "+result+"? Followers will be notified and it will post to bet-results."))return;
+    if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=true);
+    try{ const r=await api("/api/settle-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId,result:result})});
+      const j=await r.json();
+      if(j.ok){ if(STATE._detailCache)STATE._detailCache={}; toast("Grading as "+result+" — updating Discord…"); const row=document.querySelector('.betrow[data-tip="'+tipId+'"]'); const lg=$("legs_"+tipId); if(row)row.remove(); if(lg)lg.remove(); }
+      else { toast(j.message||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
   async function deleteBet(gid,tipId,name,btn){
     if(!confirm("Delete "+(name||"this bet")+"? It will be removed from Discord with a redaction note posted in its place."))return;
@@ -767,7 +790,16 @@
     const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("");
     const se=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>';
     const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div></div></div>'):'';
+    const dbgBtn=(kind,label,hint)=>'<button class="dbgbtn" data-k="'+kind+'" title="'+hint+'" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">'+label+'</button>';
+    const debugMenu='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">🛠️ Debug menu</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Each button asks the bot to act and reports back in your tips channel — use these to see exactly where a problem is.</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +dbgBtn("ping","Ping Discord","Posts a test message to confirm the bot + tips channel are wired up")
+      +dbgBtn("diagnostics","Health check","Posts channels, follow emoji, and bot permissions")
+      +dbgBtn("debug_tip","Post debug tip","Posts a dummy tip you can react to")
+      +dbgBtn("follow_selftest","Test follow → DM","Traces the follow/DM pipeline and reports where it stops")
+      +'</div><div id="dbgstatus" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+'</div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
       +'<div id="settings-body"></div></div>';
@@ -785,6 +817,14 @@
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
+    $("detail").querySelectorAll(".dbgbtn").forEach(b=>b.onclick=async()=>{
+      const st=$("dbgstatus"); b.disabled=true; if(st)st.textContent="Asking the bot to run: "+b.textContent+"…";
+      try{ const r=await api("/api/debug",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id,kind:b.dataset.k})});
+        const j=await r.json();
+        if(st)st.textContent=j.ok?("✅ Queued — check your Discord tips channel in a few seconds ("+(j.message||"")+")"):("⚠️ "+(j.message||"couldn't queue that"));
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(st)st.textContent="⚠️ Couldn't reach the bot."; }
+      finally{ b.disabled=false; }
+    });
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
@@ -958,7 +998,7 @@
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
     clearDetailTimers();clearLiveTimer();
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{}};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All"};
     panel("builder");renderTray();
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(guildId);};
@@ -979,22 +1019,36 @@
   const LIVE_KEYS={Disposals:"disposals",Goals:"goals","Fantasy Points":"dreamTeamPoints",Hitouts:"hitouts",Marks:"marks",Tackles:"tackles",Kicks:"kicks",Handballs:"handballs",Clearances:"totalClearances"};
   // live value for a player on the active stat tab, or null when not live
   function liveVal(name){ const L=BUILD.live; if(!L||!L.available)return null; const p=L.players[tkey(name)]; if(!p)return null; const v=p.summary?.[LIVE_KEYS[BUILD.tab]]; return (typeof v==="number")?v:null; }
+  function gameComp(g){ return (g&&g.comp)||"AFL"; }
   function renderGames(games){
+    // Which competitions are present? (AFL always; AFLW when the season is on.)
+    const comps=[]; games.forEach(g=>{const c=gameComp(g); if(!comps.includes(c))comps.push(c);});
+    const hasMulti=comps.length>1;
+    if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
     let html='<div class="back" id="bx">← Back to '+(BUILD.serverName||"server")+'</div>'
       +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><button class="ghost" id="refreshgames">↻ Refresh</button></div>'
-      +'<p style="color:var(--muted);margin:0 0 18px">Upcoming games (next 7 days) · pick one · live games show here too</p>';
+      +'<p style="color:var(--muted);margin:0 0 14px">Upcoming games (next 7 days) · pick one · live games show here too</p>';
+    if(hasMulti){
+      const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
+      html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'
+        +chip("All","All")+comps.map(c=>chip(c,c)).join("")+'</div>';
+    }
+    const shown=games.filter(g=>BUILD.compFilter==="All"||gameComp(g)===BUILD.compFilter);
     if(!games.length){
       const err=(STATE.playerMeta&&STATE.playerMeta.error)||"";
       html+='<div class="panel"><div class="empty">'+(err?("Couldn't load games — "+err+". If the bot was just redeployed, give it a minute and refresh."):"No games in the next 7 days (off-season or none scheduled). Live games show here too.")+'</div></div>';
     }
-    else{ html+='<div class="gcards">'+games.map((g,i)=>{
+    else if(!shown.length){ html+='<div class="panel"><div class="empty">No '+BUILD.compFilter+' games in the next 7 days.</div></div>'; }
+    else{ html+='<div class="gcards">'+shown.map((g,i)=>{
       const liveBadge=g.live?' <span style="color:#e5484d;font-weight:800;font-size:11px;letter-spacing:.03em">● LIVE</span>':'';
-      return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+'</div></div>';
+      const compBadge=hasMulti?' <span class="compbadge'+(gameComp(g)==="AFLW"?" aflw":"")+'">'+gameComp(g)+'</span>':'';
+      return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+compBadge+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
-    $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(games[+c.dataset.i]));
+    $("builder").querySelectorAll(".compchip").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
+    $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(shown[+c.dataset.i]));
   }
   function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
 
