@@ -566,7 +566,7 @@
   // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){ const list=visibleServers(); if(list.length===1){ loadDetail(list[0].guild_id); } else { renderOverview(); } }
 
-  function renderLogin(msg){clearDetailTimers();clearLiveTimer();if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
+  function renderLogin(msg){clearDetailTimers();clearLiveTimer();clearGamesTimer();if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
   async function api(path,opts){opts=opts||{};opts.headers=Object.assign({Authorization:"Bearer "+getToken()},opts.headers||{});
     const r=await fetch(API+path,opts);if(r.status===401){clearToken();throw{unauth:true};}return r;}
 
@@ -577,7 +577,7 @@
   const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
 
   function renderOverview(){
-    clearDetailTimers();clearLiveTimer();
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("overview");const ov=$("overview");ov.innerHTML="";const list=visibleServers();
     ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
     const grid=document.createElement("div");grid.className="grid";
@@ -667,7 +667,7 @@
 
   /* ---------- FOLLOWERS ---------- */
   async function openFollowers(gid,name){
-    clearDetailTimers();clearLiveTimer();
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("followers");show("app");
     $("followers").innerHTML='<div class="back" id="fbx">← Back</div><h1 style="margin:0 0 14px">Followers</h1>'+NDSkeleton.lines(6);
     $("fbx").onclick=()=>loadDetail(gid);
@@ -721,9 +721,10 @@
       finally{ b.disabled=false; }
     });
   }
-  let DETAIL_TIMER=null,LIVE_TIMER=null;
+  let DETAIL_TIMER=null,LIVE_TIMER=null,GAMES_TIMER=null;
   function clearDetailTimers(){ if(DETAIL_TIMER){clearInterval(DETAIL_TIMER);DETAIL_TIMER=null;} }
   function clearLiveTimer(){ if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;} }
+  function clearGamesTimer(){ if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;} }
   function sparkline(series){
     if(!series||series.length<2) return "";
     const w=560,h=56,pad=8,vals=series.map(p=>p.profit);
@@ -818,7 +819,7 @@
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
       +'<div id="settings-body"></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +'<div class="tiles">'+tiles+'</div>'
@@ -829,6 +830,8 @@
       +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
+    { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
+    { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
     $("detail").querySelectorAll(".dbgbtn").forEach(b=>b.onclick=async()=>{
@@ -1021,7 +1024,7 @@
 
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
-    clearDetailTimers();clearLiveTimer();
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All"};
     panel("builder");renderTray();
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
@@ -1033,6 +1036,76 @@
     let games=[];
     try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
     renderGames(games);
+    // Auto-refresh the games list every 60s so live scores update and finished
+    // games drop off on their own. Pauses while you're inside a specific game.
+    clearGamesTimer();
+    GAMES_TIMER=setInterval(async()=>{
+      if(BUILD.game)return;
+      try{ const fx=await (await api("/api/fixtures")).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
+    },60000);
+  }
+  // ── Custom (non-AFL) tips ────────────────────────────────────────────────
+  // Skips the AFL game/player picker: type the event + your selections, add odds/
+  // units/bookmaker + an optional screenshot, and it posts through the same queue.
+  function openCustom(guildId,name){
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:""};
+    panel("builder");renderTray();
+    renderCustom();
+  }
+  function renderCustom(){
+    $("builder").innerHTML='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
+      +'<div class="dhead"><h1 style="margin:0">Custom tip</h1></div>'
+      +'<p style="color:var(--muted);margin:0 0 14px">For any non-AFL bet. Type the event and each selection, then review to add odds, units and a screenshot.</p>'
+      +'<div class="panel">'
+      +'<div class="field"><label>Event / match</label><input id="c_event" placeholder="e.g. Lakers v Celtics · Race 5 Flemington · Man City v Arsenal" value="'+esc(BUILD.customEvent||"")+'"></div>'
+      +'<div class="field"><label>Sport / league (optional)</label><input id="c_sport" placeholder="e.g. NBA · EPL · UFC · Racing · NRL" value="'+esc(BUILD.customSport||"")+'"></div>'
+      +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:12px;margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
+      +'</div>';
+    $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
+    const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;};
+    const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;};
+    const add=()=>{ const inp=$("c_leg"); const v=(inp.value||"").trim(); if(!v)return; addLeg({custom:true,desc:v}); inp.value=""; inp.focus(); };
+    const ab=$("c_add"); if(ab)ab.onclick=add;
+    const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
+  }
+  // ── Recent scores (finished AFL/AFLW games) ──────────────────────────────
+  let RESULTS={comp:"All"};
+  async function openResults(guildId,name){
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    RESULTS={comp:"All",guildId,name,games:[]};
+    panel("builder");
+    $("builder").innerHTML='<div class="back" id="rbx">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Recent scores</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
+    { const b=$("rbx"); if(b)b.onclick=()=>loadDetail(guildId); }
+    let games=[];
+    try{ const r=await (await api("/api/results")).json(); games=r.games||[]; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+    RESULTS.games=games; renderResults();
+  }
+  function renderResults(){
+    const games=RESULTS.games||[];
+    const comps=[]; games.forEach(g=>{const c=g.comp||"AFL"; if(!comps.includes(c))comps.push(c);});
+    const hasMulti=comps.length>1;
+    if(RESULTS.comp!=="All"&&!comps.includes(RESULTS.comp))RESULTS.comp="All";
+    let html='<div class="back" id="rbx">← Back to '+esc(RESULTS.name||"server")+'</div>'
+      +'<div class="dhead"><h1 style="margin:0">Recent scores</h1><button class="ghost" id="rrefresh">↻ Refresh</button></div>'
+      +'<p style="color:var(--muted);margin:0 0 14px">Final AFL'+(hasMulti?" & AFLW":"")+' scores from the last week or so.</p>';
+    if(hasMulti){
+      const chip=(v,l)=>'<button class="compchip'+(RESULTS.comp===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
+      html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'+chip("All","All")+comps.map(c=>chip(c,c)).join("")+'</div>';
+    }
+    const shown=games.filter(g=>RESULTS.comp==="All"||(g.comp||"AFL")===RESULTS.comp);
+    if(!shown.length){ html+='<div class="panel"><div class="empty">No finished games in the last week.</div></div>'; }
+    else{ html+='<div class="gcards">'+shown.map(g=>{
+      const hw=g.hscore>g.ascore,aw=g.ascore>g.hscore;
+      const compBadge=hasMulti?' <span class="compbadge'+((g.comp||"AFL")==="AFLW"?" aflw":"")+'">'+(g.comp||"AFL")+'</span>':'';
+      return '<div class="gcard"><div class="rd">'+esc(g.roundname||"")+' · '+fmtDate(g.date)+compBadge+'</div>'
+        +'<div class="mt"><span style="'+(hw?"font-weight:800":"opacity:.65")+'">'+esc(teamName(g.hteam))+' '+g.hscore+'</span><br><span style="'+(aw?"font-weight:800":"opacity:.65")+'">'+esc(teamName(g.ateam))+' '+g.ascore+'</span></div>'
+        +'<div class="vn">'+esc(g.venue||"")+(g.winner?' · '+esc(g.winner)+' won':' · draw')+'</div></div>';
+    }).join("")+'</div>'; }
+    $("builder").innerHTML=html;
+    { const b=$("rbx"); if(b)b.onclick=()=>loadDetail(RESULTS.guildId); }
+    { const rr=$("rrefresh"); if(rr)rr.onclick=()=>openResults(RESULTS.guildId,RESULTS.name); }
+    $("builder").querySelectorAll(".compchip").forEach(b=>b.onclick=()=>{RESULTS.comp=b.dataset.c;renderResults();});
   }
   /* teams arrive as objects {name, abbrev, players:[{name,number,position}], aflName};
      fall back gracefully to strings + players.json if anything is missing. */
@@ -1050,8 +1123,8 @@
     const hasMulti=comps.length>1;
     if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
     let html='<div class="back" id="bx">← Back to '+(BUILD.serverName||"server")+'</div>'
-      +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><button class="ghost" id="refreshgames">↻ Refresh</button></div>'
-      +'<p style="color:var(--muted);margin:0 0 14px">Upcoming games (next 7 days) · pick one · live games show here too</p>';
+      +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px"><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
+      +'<p style="color:var(--muted);margin:0 0 14px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     if(hasMulti){
       const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
       html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'
@@ -1071,13 +1144,14 @@
     $("builder").innerHTML=html;
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+    const cg=$("customgames"); if(cg)cg.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName);
     $("builder").querySelectorAll(".compchip").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
     $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(shown[+c.dataset.i]));
   }
   function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
 
   async function openGame(g){
-    clearLiveTimer();
+    clearLiveTimer();clearGamesTimer();
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     renderGame();
     // If the game is in progress, pull live stats now and refresh them every 30s.
@@ -1222,8 +1296,8 @@
     panel("builder");
     const bk=STATE.bookies.map(b=>'<option value="'+b.name+'">'+b.name+'</option>').join("");
     $("builder").innerHTML='<div class="back" id="bc">← Keep building</div><h1 style="margin:0 0 16px">Confirm & schedule</h1>'
-      +'<div class="panel"><h3>'+(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"Multi")+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3>'
-      +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+legText(l)+'</div><div class="meta">'+l.team+'</div></div>').join("")+'</div>'
+      +'<div class="panel"><h3>'+esc(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi"))+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3>'
+      +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+legText(l)+'</div><div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div></div>').join("")+'</div>'
       +'<div class="panel"><h3>Details</h3>'
       +'<div class="field"><label>Total odds</label><input id="f_odds" type="number" step="0.01" placeholder="e.g. 3.20"></div>'
       +'<div class="field"><label>Units</label><input id="f_units" type="number" step="0.5" placeholder="e.g. 1"></div>'
@@ -1231,7 +1305,7 @@
       +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
       +'<div class="field"><label>Screenshot (optional)</label><input id="f_img" type="file" accept="image/*"><div id="f_img_prev" style="margin-top:8px"></div></div>'
       +'<button class="btn" id="schedbtn">Schedule tip →</button> <span id="scherr" class="err" style="margin-left:10px"></span></div>';
-    $("bc").onclick=()=>{renderGame();};
+    $("bc").onclick=()=>{ if(BUILD.custom){renderCustom();} else {renderGame();} };
     $("schedbtn").onclick=scheduleTip;
     const fi=$("f_img");
     if(fi)fi.onchange=async()=>{
@@ -1265,7 +1339,7 @@
     $("scherr").textContent="";
     NDCountdownConfirm.open({
       title:"Schedule this tip?",
-      message:BUILD.legs.length+"-leg multi @ <b>"+odds+"</b> for <b>"+units+"u</b> — posts to Discord.",
+      message:BUILD.legs.length+"-leg "+(BUILD.custom?"custom tip":"multi")+" @ <b>"+odds+"</b> for <b>"+units+"u</b> — posts to Discord.",
       seconds:5,confirmLabel:"Schedule now",secondaryLabel:"Cancel",accent:"#5b8cff",
       onConfirm:()=>doSchedule(odds,units),
     });
@@ -1273,7 +1347,9 @@
   async function doSchedule(odds,units){
     $("schedbtn").disabled=true;
     const payload={guild_id:BUILD.guildId,legs:BUILD.legs,odds,units,bookmaker:$("f_book").value,
-      game_name:BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"",delay_minutes:parseInt($("f_delay").value||"0",10),
+      game_name:BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):""),
+      sport:BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL",
+      delay_minutes:parseInt($("f_delay").value||"0",10),
       image_b64:BUILD.image||""};
     try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const j=await r.json();
