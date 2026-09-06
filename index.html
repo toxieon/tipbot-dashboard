@@ -76,6 +76,8 @@
   .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
   .tab{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:14px}
   .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tab.mkt{border-color:#5a3a7a;color:#c9a5ff}
+  .tab.mkt.active{background:#7b5bff;border-color:#7b5bff;color:#fff}
   .teamhdr{color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
   .compchip{border:1px solid var(--line);background:var(--card2);color:var(--muted);border-radius:999px;padding:7px 16px;cursor:pointer;font:inherit;font-size:13px;font-weight:700}
   .compchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -530,6 +532,17 @@
   const API="https://afl-tipster-bot.onrender.com";
   const TOGGLES=[["enabled","Bot Enabled"],["subscription_active","Subscription"],["results_graph_enabled","Results Graph"]];
   const STATS={Disposals:[10,40,20],Goals:[0,6,2],"Fantasy Points":[40,140,80],Hitouts:[0,50,20],Marks:[2,15,5],Tackles:[2,15,5],Kicks:[5,30,12],Handballs:[3,25,10],Clearances:[1,12,4]};
+  // "First/last" milestone markets — no line, pick a player. `team:true` scopes it
+  // to that player's side; otherwise it's the whole match. d(player, team) builds
+  // the leg text the bot posts verbatim.
+  const MARKETS={
+    "1st Goal":{d:(p,t)=>p+" to kick the 1st goal of the match"},
+    "1st Goal (Team)":{team:true,d:(p,t)=>p+" to kick "+t+"'s 1st goal"},
+    "Last Goal":{d:(p,t)=>p+" to kick the last goal of the match"},
+    "Last Goal (Team)":{team:true,d:(p,t)=>p+" to kick "+t+"'s last goal"},
+    "1st Disposal":{d:(p,t)=>p+" to have the 1st disposal of the match"},
+    "Last Disposal":{d:(p,t)=>p+" to have the last disposal of the match"},
+  };
   const $=id=>document.getElementById(id);
   const u=n=>(n>0?"+":"")+n+"u";
   const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server."};
@@ -798,7 +811,8 @@
       +dbgBtn("diagnostics","Health check","Posts channels, follow emoji, and bot permissions")
       +dbgBtn("debug_tip","Post debug tip","Posts a dummy tip you can react to")
       +dbgBtn("follow_selftest","Test follow → DM","Traces the follow/DM pipeline and reports where it stops")
-      +'</div><div id="dbgstatus" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
+      +'<button class="dbgqbtn" title="Shows whether the bot is draining the dashboard queues" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Queue status</button>'
+      +'</div><div id="dbgstatus" style="font-size:12px;color:var(--faint);margin-top:8px;white-space:pre-wrap;font-family:ui-monospace,monospace"></div></div>';
     const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+'</div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
@@ -825,6 +839,16 @@
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(st)st.textContent="⚠️ Couldn't reach the bot."; }
       finally{ b.disabled=false; }
     });
+    { const qb=$("detail").querySelector(".dbgqbtn"); if(qb)qb.onclick=async()=>{
+      const st=$("dbgstatus"); qb.disabled=true; if(st)st.textContent="Reading the queues…";
+      try{ const d=await (await api("/api/queue-status?guild_id="+encodeURIComponent(s.guild_id))).json();
+        const fmt=(q,label)=>{ const c=Object.entries(q.counts||{}).map(([k,v])=>k+":"+v).join(", ")||"empty";
+          const rows=(q.recent||[]).slice(0,6).map(r=>"  • "+(r.action||r.game_name||"?")+" → "+(r.status||"?")+(r.result?(" ("+String(r.result).slice(0,60)+")"):"")+(r.error?(" ("+String(r.error).slice(0,60)+")"):"")).join("\n");
+          return label+" ["+c+"]\n"+(rows||"  (none)"); };
+        if(st)st.textContent="ACTION QUEUE (delete/debug/moderate/settle)\n"+fmt(d.action_queue||{},"")+"\n\nTIP QUEUE (web-built tips)\n"+fmt(d.tip_queue||{},"");
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(st)st.textContent="⚠️ Couldn't read queue status."; }
+      finally{ qb.disabled=false; }
+    }; }
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
@@ -1072,9 +1096,12 @@
   function renderGame(){
     const g=BUILD.game;
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
+    const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+teamName(g.hteam)+' v '+teamName(g.ateam)+'</h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
       +'<div class="tabs">'+tabs+'</div>'
+      +'<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px">First / last markets</div>'
+      +'<div class="tabs">'+mtabs+'</div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px">'
       +'<input id="psearch" placeholder="Search players by name or number…" value="'+esc(BUILD.search||"")+'" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
       +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
@@ -1114,7 +1141,9 @@
   function textOn(hex){ const c=hex.replace("#",""); const r=parseInt(c.substr(0,2),16),gg=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16); return (0.299*r+0.587*gg+0.114*b)>140?"#111":"#fff"; }
   function guernsey(num,name){ const col=teamColor(name),tc=textOn(col); return '<svg width="34" height="34" viewBox="0 0 40 40" style="flex:none" aria-hidden="true"><path d="M13 4 L20 8 L27 4 L34 11 L29.5 17 L29.5 34 Q29.5 37 26.5 37 L13.5 37 Q10.5 37 10.5 34 L10.5 17 L6 11 Z" fill="'+col+'" stroke="rgba(255,255,255,.18)"/><text x="20" y="26" text-anchor="middle" font-family="inherit" font-size="13" font-weight="800" fill="'+tc+'">'+(num!=null&&num!==""?num:"")+'</text></svg>'; }
   function renderPlayers(){
-    const g=BUILD.game,[mn,mx,def]=STATS[BUILD.tab];const box=$("players");let html="";
+    const g=BUILD.game;const box=$("players");let html="";
+    const mkt=MARKETS[BUILD.tab];const isMarket=!!mkt;
+    const sd=isMarket?[0,0,0]:STATS[BUILD.tab];const mx=sd[1],def=sd[2];
     BUILD.collapsed=BUILD.collapsed||{};
     const sides=[g.hteam,g.ateam];
     const meta=STATE.playerMeta||{};
@@ -1143,7 +1172,13 @@
       if(!list.length){ html+='<div class="empty" style="margin:0 0 12px">No players match your search.</div>'; }
       list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;const lv=liveVal(p.name);
         const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">\u00b7 '+lv+' now</span>':"";
-        html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div><div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+liveChip+'</div>'
+        const nameCell='<div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+liveChip+'</div>';
+        if(isMarket){
+          html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
+            +'<button class="addbtn" id="'+rid+'_a" style="margin-left:auto">Add</button></div>';
+          return;
+        }
+        html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
           +'<div class="linectl"><input type="range" min="0" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="1" value="'+def+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center">'
           +'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
@@ -1155,7 +1190,9 @@
     // wire each row
     const frac=(L&&L.available&&L.phase&&L.phase.fraction>0)?L.phase.fraction:0;
     sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,"");displayList(team).forEach((p,idx)=>{
-      const rid="r_"+slug+"_"+idx;const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou");let side="Over";
+      const rid="r_"+slug+"_"+idx;
+      if(isMarket){ const a=$(rid+"_a"); if(a)a.onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,market:BUILD.tab,desc:mkt.d(p.name,nm)}); return; }
+      const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou");let side="Over";
       if(!sl||!vv)return;
       const row=sl.closest(".prow");const lv=liveVal(p.name);
       function curLine(){ const n=parseFloat(vv.value); return isNaN(n)?0:Math.max(0,n); }
@@ -1170,7 +1207,7 @@
     });});
   }
   function addLeg(leg){ BUILD.legs.push(leg); renderTray(); }
-  function legText(l){ return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
+  function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
   function renderTray(){
     const t=$("tray");
     if(!BUILD.legs.length){ t.hidden=true; return; }
