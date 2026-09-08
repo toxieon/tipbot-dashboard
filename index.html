@@ -1,8 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/logo.svg">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%230f1420%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%279.5%27%20fill%3D%27none%27%20stroke%3D%27%237b5bff%27%20stroke-width%3D%272.6%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%274%27%20fill%3D%27%235b8cff%27/%3E%3C/svg%3E">
 <title>TipBot Dashboard</title>
 <style>
   :root{
@@ -827,7 +830,10 @@
       +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
       +settingsPanel
       +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
+      +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>'
+      +'<div class="panel" style="border-color:#7a2a2a"><h3 style="color:#ff8a8a;margin-top:0">Remove server</h3>'
+      +'<div style="color:var(--faint);font-size:13px;margin-bottom:10px">Removes TipBot from this Discord server. The bot leaves and the server disappears from the dashboard. You can re-invite it and run <code>/setup-server</code> to bring it back.</div>'
+      +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" style="border:1px solid #7a2a2a;background:#2a1717;color:#ff8a8a;border-radius:9px;padding:9px 14px;cursor:pointer;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button> <span id="leaveservermsg" style="font-size:12px;color:var(--faint)"></span></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
@@ -851,6 +857,18 @@
         if(st)st.textContent="ACTION QUEUE (delete/debug/moderate/settle)\n"+fmt(d.action_queue||{},"")+"\n\nTIP QUEUE (web-built tips)\n"+fmt(d.tip_queue||{},"");
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(st)st.textContent="⚠️ Couldn't read queue status."; }
       finally{ qb.disabled=false; }
+    }; }
+    { const lb=$("leaveserverbtn"); if(lb)lb.onclick=()=>{
+      const gid=lb.dataset.g, nm=lb.dataset.n, m=$("leaveservermsg");
+      const go=async()=>{ lb.disabled=true; if(m)m.textContent="Removing — the bot is leaving now…";
+        try{ const r=await api("/api/leave-server",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid})});
+          const j=await r.json();
+          if(r.ok&&j.ok){ if(m)m.textContent="✅ Removing "+nm+" — refreshing shortly…"; setTimeout(()=>location.reload(),6000); }
+          else{ if(m)m.textContent="⚠️ "+(j.message||"couldn't remove that server"); lb.disabled=false; }
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m)m.textContent="⚠️ Couldn't reach the bot."; lb.disabled=false; }
+      };
+      if(window.NDCountdownConfirm){ NDCountdownConfirm.open({title:"Remove "+nm+"?",message:"TipBot will <b>leave "+esc(nm)+"</b> and it'll disappear from your dashboard. You can re-invite it later.",seconds:5,confirmLabel:"Remove server",secondaryLabel:"Cancel",accent:"#ff6b6b",onConfirm:go}); }
+      else if(confirm("Remove "+nm+"? The bot will leave the server.")){ go(); }
     }; }
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
@@ -1081,31 +1099,77 @@
     try{ const r=await (await api("/api/results")).json(); games=r.games||[]; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
     RESULTS.games=games; renderResults();
   }
+  const RES_COLS=[["D","disposals"],["G","goals"],["M","marks"],["T","tackles"],["K","kicks"],["HB","handballs"]];
+  function resultStatsHTML(d,g){
+    if(!d||d.available===false||(((d.home||[]).length===0)&&((d.away||[]).length===0)))
+      return '<div class="empty" style="padding:6px 0">Player counts aren\'t available for this game yet.</div>';
+    const th='padding:4px 6px;color:var(--faint);font-weight:600;font-size:11px;text-transform:uppercase;text-align:right';
+    const th0='padding:4px 6px;color:var(--faint);font-weight:700;font-size:12px;text-align:left';
+    const td='padding:4px 6px;text-align:right;font-variant-numeric:tabular-nums';
+    const td0='padding:4px 6px;text-align:left';
+    function tbl(title,list){
+      const sorted=(list||[]).slice().sort((a,b)=>(Number(b.summary&&b.summary.disposals)||0)-(Number(a.summary&&a.summary.disposals)||0));
+      if(!sorted.length)return '';
+      const head='<tr><th style="'+th0+'">'+esc(title)+'</th>'+RES_COLS.map(c=>'<th style="'+th+'" title="'+c[1]+'">'+c[0]+'</th>').join("")+'</tr>';
+      const rows=sorted.map(p=>'<tr style="border-top:1px solid var(--line)"><td style="'+td0+'">'+(p.number?('<span style="color:var(--faint)">#'+esc(String(p.number))+'</span> '):'')+esc(p.name)+'</td>'+RES_COLS.map(c=>'<td style="'+td+'">'+Math.round(Number(p.summary&&p.summary[c[1]])||0)+'</td>').join("")+'</tr>').join("");
+      return '<div style="overflow-x:auto;margin-bottom:12px"><table style="width:100%;border-collapse:collapse;font-size:13px">'+head+rows+'</table></div>';
+    }
+    return tbl(teamName(g.hteam),d.home)+tbl(teamName(g.ateam),d.away);
+  }
+  async function toggleResult(mid,i){
+    RESULTS._open=RESULTS._open||{}; RESULTS._stats=RESULTS._stats||{};
+    const body=$("resbody_"+i); if(!body)return;
+    const hdr=body.previousElementSibling, car=hdr&&hdr.querySelector(".tcaret");
+    const nowOpen=!RESULTS._open[mid]; RESULTS._open[mid]=nowOpen;
+    if(car)car.textContent=nowOpen?"▾":"▸";
+    if(!nowOpen){ body.hidden=true; return; }
+    body.hidden=false;
+    if(RESULTS._stats[mid]){ body.innerHTML=RESULTS._stats[mid]; return; }
+    if(!mid){ body.innerHTML='<div class="empty" style="padding:6px 0">No match id for this game.</div>'; return; }
+    body.innerHTML='<div class="empty" style="padding:6px 0">Loading player counts…</div>';
+    try{ const d=await (await api("/api/match-stats?match="+encodeURIComponent(mid))).json();
+      const g=(RESULTS._shown||[])[i]||{}; const out=resultStatsHTML(d,g);
+      RESULTS._stats[mid]=out; if(RESULTS._open[mid])body.innerHTML=out;
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); body.innerHTML='<div class="empty" style="padding:6px 0">Couldn\'t load player counts.</div>'; }
+  }
   function renderResults(){
     const games=RESULTS.games||[];
     const comps=[]; games.forEach(g=>{const c=g.comp||"AFL"; if(!comps.includes(c))comps.push(c);});
     const hasMulti=comps.length>1;
     if(RESULTS.comp!=="All"&&!comps.includes(RESULTS.comp))RESULTS.comp="All";
+    RESULTS._open=RESULTS._open||{};
     let html='<div class="back" id="rbx">← Back to '+esc(RESULTS.name||"server")+'</div>'
       +'<div class="dhead"><h1 style="margin:0">Recent scores</h1><button class="ghost" id="rrefresh">↻ Refresh</button></div>'
-      +'<p style="color:var(--muted);margin:0 0 14px">Final AFL'+(hasMulti?" & AFLW":"")+' scores from the last week or so.</p>';
+      +'<p style="color:var(--muted);margin:0 0 14px">Final AFL'+(hasMulti?" & AFLW":"")+' scores — tap a game to see every player\'s goals, disposals and more.</p>';
     if(hasMulti){
       const chip=(v,l)=>'<button class="compchip'+(RESULTS.comp===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
       html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'+chip("All","All")+comps.map(c=>chip(c,c)).join("")+'</div>';
     }
     const shown=games.filter(g=>RESULTS.comp==="All"||(g.comp||"AFL")===RESULTS.comp);
+    RESULTS._shown=shown;
     if(!shown.length){ html+='<div class="panel"><div class="empty">No finished games in the last week.</div></div>'; }
-    else{ html+='<div class="gcards">'+shown.map(g=>{
+    else{ html+=shown.map((g,i)=>{
+      const mid=g.aflMatchId||""; const open=!!RESULTS._open[mid];
       const hw=g.hscore>g.ascore,aw=g.ascore>g.hscore;
       const compBadge=hasMulti?' <span class="compbadge'+((g.comp||"AFL")==="AFLW"?" aflw":"")+'">'+(g.comp||"AFL")+'</span>':'';
-      return '<div class="gcard"><div class="rd">'+esc(g.roundname||"")+' · '+fmtDate(g.date)+compBadge+'</div>'
-        +'<div class="mt"><span style="'+(hw?"font-weight:800":"opacity:.65")+'">'+esc(teamName(g.hteam))+' '+g.hscore+'</span><br><span style="'+(aw?"font-weight:800":"opacity:.65")+'">'+esc(teamName(g.ateam))+' '+g.ascore+'</span></div>'
-        +'<div class="vn">'+esc(g.venue||"")+(g.winner?' · '+esc(g.winner)+' won':' · draw')+'</div></div>';
-    }).join("")+'</div>'; }
+      return '<div class="panel" style="padding:0;overflow:hidden;margin-bottom:10px">'
+        +'<div class="reshdr" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
+          +'<div style="flex:1;min-width:0">'
+            +'<div class="rd" style="margin-bottom:4px">'+esc(g.roundname||"")+' · '+fmtDate(g.date)+compBadge+'</div>'
+            +'<div style="font-weight:700"><span style="'+(hw?"":"opacity:.6")+'">'+esc(teamName(g.hteam))+' '+g.hscore+'</span> <span style="color:var(--faint)"> – </span> <span style="'+(aw?"":"opacity:.6")+'">'+esc(teamName(g.ateam))+' '+g.ascore+'</span></div>'
+            +'<div class="vn" style="margin-top:2px">'+esc(g.venue||"")+(g.winner?' · '+esc(g.winner)+' won':' · draw')+'</div>'
+          +'</div>'
+          +'<div class="tcaret" style="color:var(--faint);font-size:15px">'+(open?"▾":"▸")+'</div>'
+        +'</div>'
+        +'<div class="resbody" id="resbody_'+i+'"'+(open?"":" hidden")+' style="padding:2px 16px 14px;border-top:1px solid var(--line)">'+(open&&RESULTS._stats&&RESULTS._stats[mid]?RESULTS._stats[mid]:'')+'</div>'
+      +'</div>';
+    }).join(""); }
     $("builder").innerHTML=html;
     { const b=$("rbx"); if(b)b.onclick=()=>loadDetail(RESULTS.guildId); }
     { const rr=$("rrefresh"); if(rr)rr.onclick=()=>openResults(RESULTS.guildId,RESULTS.name); }
     $("builder").querySelectorAll(".compchip").forEach(b=>b.onclick=()=>{RESULTS.comp=b.dataset.c;renderResults();});
+    const rows=$("builder").querySelectorAll(".reshdr");
+    rows.forEach((h,i)=>h.onclick=()=>toggleResult((RESULTS._shown[i]||{}).aflMatchId||"",i));
   }
   /* teams arrive as objects {name, abbrev, players:[{name,number,position}], aflName};
      fall back gracefully to strings + players.json if anything is missing. */
