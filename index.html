@@ -863,7 +863,12 @@
       const go=async()=>{ lb.disabled=true; if(m)m.textContent="Removing — the bot is leaving now…";
         try{ const r=await api("/api/leave-server",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid})});
           const j=await r.json();
-          if(r.ok&&j.ok){ if(m)m.textContent="✅ Removing "+nm+" — refreshing shortly…"; setTimeout(()=>location.reload(),6000); }
+          if(r.ok&&j.ok){
+            // API optimistically clears present=1; drop from local list immediately.
+            if(m)m.textContent="✅ Removed "+nm+" from the dashboard.";
+            STATE.servers=(STATE.servers||[]).filter(x=>String(x.guild_id)!==String(gid));
+            setTimeout(()=>enterHome(),700);
+          }
           else{ if(m)m.textContent="⚠️ "+(j.message||"couldn't remove that server"); lb.disabled=false; }
         }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m)m.textContent="⚠️ Couldn't reach the bot."; lb.disabled=false; }
       };
