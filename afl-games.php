@@ -1,7 +1,7 @@
 <?php
 // API HANDOFF NOTES
 // No bot token, Discord token, or paid API key is required for this endpoint.
-// The static dashboard calls this file from the same neilldata.com origin.
+// The static dashboard calls this file from the same tipdashhq.com origin.
 // This file fetches AFL's public fixture API server-side, which avoids browser
 // CORS blocks and lets the dashboard show games even when the Render bot sleeps.
 // Selected teams, live player stats, and scheduling still use the bot backend.
@@ -39,7 +39,7 @@ function fail_json(int $status, string $message, array $extra = []): void
 
 function http_json(string $url): array
 {
-    $ua = 'TipBot Dashboard fixture proxy (https://www.neilldata.com/tipbot-dashboard/)';
+    $ua = 'TipBot Dashboard fixture proxy (https://tipdashhq.com/)';
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
