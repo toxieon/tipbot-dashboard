@@ -1051,6 +1051,17 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
         +'<button class="btn sm" id="usize-save">Save</button>'
         +'<span style="color:var(--faint);font-size:12px">Lets you stake tips in dollars — the builder converts to units.</span>'
         +'<span id="usize-msg" style="font-size:12px;margin-left:2px"></span></div>';
+    // Discord data-store ledger backup (premium) — gate writes/restore; never deletes #data-store.
+    if(s.can_admin!==false){
+      const on=s.data_ledger_enabled!==0 && s.data_ledger_enabled!==false;
+      body.innerHTML+='<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'
+        +'<div style="flex:1;min-width:220px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Discord data-store backup <span style="font-size:10px;font-weight:700;letter-spacing:.03em;background:rgba(224,160,74,.18);color:#e0a04a;padding:2px 7px;border-radius:999px">PREMIUM</span></div>'
+        +'<div style="color:var(--faint);font-size:12px;line-height:1.45">Optional backup of tips/follows into hidden <code>#data-store</code>. SQL/Turso stays primary. Turning off stops new backups and startup restore — it does <b>not</b> delete the channel.</div></div>'
+        +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">'
+        +'<input id="dledger" type="checkbox" '+(on?'checked':'')+' style="width:16px;height:16px">'
+        +'<span style="font-size:13px;color:var(--txt)">Enabled</span></label>'
+        +'<span id="dledger-msg" style="font-size:12px"></span></div>';
+    }
     }
     const fsv=$("femoji-save");
     if(fsv)fsv.onclick=async()=>{
@@ -1069,6 +1080,19 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
           const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid)); if(g)g.unit_size=s.unit_size; }
       }catch(e){if(e.unauth)return renderLogin("Session expired.");m.textContent="couldn't save";m.style.color="var(--loss)";}
       finally{uSv.disabled=false;}
+    };
+    const dl=$("dledger");
+    if(dl)dl.onchange=async()=>{
+      const m=$("dledger-msg"); dl.disabled=true; if(m)m.textContent="";
+      try{
+        const r=await api("/api/data-ledger",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,enabled:dl.checked})});
+        const j=await r.json();
+        if(m){m.textContent=j.ok?"✓ saved":(j.message||"error");m.style.color=j.ok?"var(--win)":"var(--loss)";}
+        if(j.ok){ s.data_ledger_enabled=dl.checked?1:0;
+          const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid)); if(g)g.data_ledger_enabled=s.data_ledger_enabled; }
+        else { dl.checked=!dl.checked; }
+      }catch(e){if(e.unauth)return renderLogin("Session expired."); if(m){m.textContent="couldn't save";m.style.color="var(--loss)";} dl.checked=!dl.checked;}
+      finally{dl.disabled=false;}
     };
   }
   function tickCountdowns(){
