@@ -25,7 +25,7 @@ async function httpJson(url) {
   const response = await fetch(url, {
     headers: {
       accept: "application/json",
-      "user-agent": "TipBot Dashboard fixture updater (https://tipdashhq.com/)",
+      "user-agent": "TipBot Dashboard fixture updater (https://www.neilldata.com/tipbot-dashboard/)",
     },
   });
   if (!response.ok) {

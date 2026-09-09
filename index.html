@@ -7,6 +7,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%230f1420%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%279.5%27%20fill%3D%27none%27%20stroke%3D%27%237b5bff%27%20stroke-width%3D%272.6%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%274%27%20fill%3D%27%235b8cff%27/%3E%3C/svg%3E">
 <title>TipBot Dashboard</title>
+<script>
+/* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1). */
+(function(){
+  try {
+    var d=new Date(),day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
+    var valid=['navy','day','ochre'].indexOf(name)!==-1;
+    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(d.getHours()>=7&&d.getHours()<19?'day':'navy'):'navy';
+    var accent=localStorage.getItem('tipbot_theme_accent');
+    if(/^#[0-9a-f]{6}$/i.test(accent||''))document.documentElement.style.setProperty('--accent',accent);
+  }catch(e){document.documentElement.dataset.theme='navy';}
+}());
+</script>
 <style>
   :root{
     --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;
@@ -113,6 +126,131 @@
   .field input,.field select{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px 12px;font:inherit}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--win);color:#04120a;font-weight:700;padding:12px 20px;border-radius:12px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.4)}
   [hidden]{display:none!important}
+
+/* ===== Codex theme + chips + multi + bookies (items 1-6,8) ===== */
+/* TipBot items 1–2. Paste at the END of the existing <style> block. */
+:root,html[data-theme="navy"] {
+  color-scheme:dark;
+  --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;
+  --txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;
+  --accent:#5b8cff;--accent2:#7b5bff;--on-accent:#0b0f1a;
+  --win:#2eaf62;--loss:#e5595f;--push:#5c6785;--void:#6b7280;--radius:16px;
+  --win-ink:#65d38f;--loss-ink:#ff9a9e;--push-ink:#b3bdd6;--void-ink:#bfc5d0;
+}
+html[data-theme="day"] {
+  color-scheme:light;
+  --bg:#f5f7fb;--bg2:#eef2f8;--card:#ffffff;--card2:#eef2f9;--line:#dbe2ee;
+  --txt:#0f1726;--muted:#5a6577;--faint:#626d7f;
+  --accent:#245ad6;--accent2:#6844d9;--on-accent:#ffffff;
+  --win:#2eaf62;--loss:#e5595f;--push:#5c6785;--void:#6b7280;--radius:16px;
+  --win-ink:#166536;--loss-ink:#a8252d;--push-ink:#43506a;--void-ink:#4d5563;
+}
+html[data-theme="ochre"] {
+  color-scheme:dark;
+  --bg:#17110c;--bg2:#1e160e;--card:#241a10;--card2:#2c2015;--line:#4a3927;
+  --txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;
+  --accent:#e0a04a;--accent2:#c8792f;--on-accent:#17110c;
+  --win:#2eaf62;--loss:#e5595f;--push:#5c6785;--void:#6b7280;--radius:16px;
+  --win-ink:#65d38f;--loss-ink:#ff9a9e;--push-ink:#b3bdd6;--void-ink:#bfc5d0;
+}
+:root {
+  --nd-surface:var(--card2);--nd-border:var(--line);--nd-text:var(--txt);--nd-muted:var(--muted);
+  --nd-skeleton:var(--card2);
+}
+body {background:var(--bg);font-variant-numeric:tabular-nums;}
+.logo,.btn {background:var(--accent);color:var(--on-accent);}
+.btn {border:1px solid var(--accent);border-radius:13px;}
+.btn:hover:not(:disabled) {background:var(--accent);background:color-mix(in srgb,var(--accent) 92%,white);color:var(--on-accent-hover,var(--on-accent));}
+.ghost {border-radius:13px;}
+.viewas {background:var(--card2);border-color:var(--line);}
+.viewas b {color:var(--txt);}
+.dd-item:hover {background:var(--bg2);}
+.scard:hover,.gcard:hover {border-color:var(--accent);}
+.toggle {background:var(--push);}
+.tab.active,.compchip.on,.ou button.on {color:var(--on-accent);}
+.tab.mkt {border-color:var(--line);color:var(--txt);}
+.tab.mkt.active {background:var(--card2);border-color:var(--accent2);color:var(--txt);}
+.compbadge,.compbadge.aflw {background:var(--card2);color:var(--txt);border:1px solid var(--line);}
+.addbtn,.b-win {background:var(--card2);color:var(--win-ink);border:1px solid var(--win);}
+.addbtn:hover {background:var(--card);}
+.b-loss {background:var(--card2);color:var(--loss-ink);}
+.b-push {background:var(--card2);color:var(--push-ink);}
+.b-pending {background:transparent;color:var(--muted);border:1px solid var(--faint);}
+.num.pos,.pos {color:var(--win-ink);}.num.neg,.neg {color:var(--loss-ink);}
+.tip {flex-wrap:wrap;}.tb-result {display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+.tb-result .num {white-space:nowrap;}.tb-quote {font-size:12px;color:var(--muted);white-space:nowrap;}
+.dropdown {width:324px;max-width:calc(100vw - 40px);max-height:calc(100dvh - 100px);overflow:auto;box-shadow:0 8px 20px rgb(0 0 0 / 12%);}
+.nd-sk::after {background:none!important;animation:none!important;}
+.nd-sk {background:var(--card2)!important;}
+#adminpanel {border-color:var(--line)!important;box-shadow:none!important;}
+#admintoggle,#adminbody .dbgqbtn {color:var(--txt)!important;}
+#admintoggle>span:last-child,#adminbody .dbgqbtn {background:var(--card2)!important;border-color:var(--line)!important;}
+.delbet,.gradebtn[data-r="Loss"],#leaveserverbtn {background:var(--card2)!important;color:var(--loss-ink)!important;border-color:var(--loss)!important;}
+.gradebtn[data-r="Win"] {background:var(--card2)!important;color:var(--win-ink)!important;border-color:var(--win)!important;}
+button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(--txt);outline-offset:3px;}
+.tb-appearance {border-top:1px solid var(--line);padding:14px 10px 8px;margin-top:6px;}
+.tb-appearance h3 {font-size:13px;margin:0 0 10px;color:var(--txt);}
+.tb-swatches {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.tb-swatch {border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:12px;padding:6px;font:inherit;font-size:12px;cursor:pointer;text-align:left;}
+.tb-swatch[aria-pressed="true"] {border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
+.tb-swatch-label {display:flex;justify-content:space-between;padding-top:5px;}
+.tb-swatch-label::after {content:'✓';visibility:hidden;}.tb-swatch[aria-pressed="true"] .tb-swatch-label::after {visibility:visible;}
+.tb-mini {display:flex;align-items:flex-end;gap:4px;height:42px;padding:8px;border-radius:7px;background:var(--preview-bg);}
+.tb-mini::before {content:'';height:20px;width:26px;border-radius:4px;background:var(--preview-accent);margin-right:auto;}
+.tb-mini i {width:7px;height:7px;border-radius:50%;background:var(--win);}.tb-mini i+i {background:var(--loss);}
+.tb-swatch[data-tb-theme="navy"] {--preview-bg:#0b0f1a;--preview-accent:#5b8cff;}
+.tb-swatch[data-tb-theme="day"] {--preview-bg:#f5f7fb;--preview-accent:#245ad6;}
+.tb-swatch[data-tb-theme="ochre"] {--preview-bg:#17110c;--preview-accent:#e0a04a;}
+.tb-setting {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:13px;}
+.tb-setting input[type="checkbox"] {width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
+.tb-setting input[type="color"] {height:30px;width:44px;padding:2px;background:var(--card);border:1px solid var(--line);border-radius:6px;cursor:pointer;}
+.tb-text-button {background:none;border:0;color:var(--txt);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0;}
+.tb-text-button:disabled {color:var(--muted);cursor:default;text-decoration:none;}
+.tb-theme-note {font-size:12px;color:var(--muted);line-height:1.5;min-height:3em;margin:8px 0 0;}
+.tbchip {--state:var(--faint);--state-ink:var(--muted);position:relative;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:74px;min-height:26px;padding:3px 9px;border:1px solid var(--state);border-radius:999px;color:var(--state-ink);font-size:11px;font-weight:700;line-height:18px;white-space:nowrap;vertical-align:middle;font-variant-numeric:tabular-nums;isolation:isolate;}
+.tbchip::before {content:'';position:absolute;inset:0;border-radius:inherit;background:var(--state);opacity:.15;z-index:-1;}
+.tbchip--win {--state:var(--win);--state-ink:var(--win-ink);}
+.tbchip--loss {--state:var(--loss);--state-ink:var(--loss-ink);}
+.tbchip--push {--state:var(--push);--state-ink:var(--push-ink);}
+.tbchip--void {--state:var(--void);--state-ink:var(--void-ink);border-style:dashed;}
+.tbchip--pending::before {display:none;}
+.tbchip-symbol {display:inline-block;width:10px;text-align:center;font-size:12px;}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+  .scard:hover,.gcard:hover {transform:none;}
+}
+
+/* Paste after theme-chips.css in the existing <style>. */
+:root {--warn:#e0a04a;--warn-ink:#f0bf79;--api:#5b8cff;--api-ink:#9ebdff;}
+html[data-theme="day"] {--warn-ink:#775018;--api-ink:#2455b5;}
+html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
+.tb-tip-tags {display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;}
+.tb-tip-tags:empty {display:none;}
+.tb-kind,.tb-settle {display:inline-flex;align-items:center;gap:4px;max-width:100%;white-space:nowrap;font-size:10px;line-height:17px;font-weight:650;vertical-align:middle;font-variant-numeric:tabular-nums;}
+.tb-kind {border:1px solid var(--accent);border-radius:5px;padding:0 6px;color:var(--txt);background:var(--card2);letter-spacing:.03em;}
+.tb-kind--cross {border-color:var(--accent2);}
+.tb-settle {color:var(--muted);}
+.tb-settle--api {color:var(--api-ink);}.tb-settle--god {color:var(--warn-ink);}
+.tb-settle--api>span {color:var(--api);}.tb-settle--god>span {color:var(--warn);}
+.tb-multi-summary {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tb-multi-summary:empty {display:none;}
+.tbwarn {position:relative;isolation:isolate;border-left:2px solid var(--warn);border-radius:4px;margin:0;padding:7px 10px;color:var(--warn-ink);font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums;}
+.tbwarn::before {content:'';position:absolute;inset:0;background:var(--warn);opacity:.09;z-index:-1;border-radius:inherit;}
+.tray .tb-multi-summary {flex-basis:100%;}
+.tb-review-kind {margin:0 0 14px;}
+.tray .x {background:none;border:0;font:inherit;padding:0 2px;cursor:pointer;}
+@media(max-width:600px){.tray .legchips{flex-basis:100%;}.tray .btn{width:100%;}.tray{max-height:48vh;overflow:auto;}}
+/* Paste after the existing TB CSS. Brand colours are isolated from outcome tokens. */
+.tb-bookie{position:relative;display:inline-grid;place-items:center;flex:none;vertical-align:middle;width:var(--bookie-size,24px);height:var(--bookie-size,24px);border-radius:6px;overflow:hidden;background:var(--card2);color:var(--txt);border-bottom:2px solid var(--bookie-color,var(--line));font-variant-numeric:tabular-nums;}
+.tb-bookie-fallback{font-size:calc(var(--bookie-size,24px) * .38);font-weight:800;line-height:1;}
+.tb-bookie img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--card2);}
+.tb-bookie-label{display:inline-flex;align-items:center;gap:7px;max-width:100%;vertical-align:middle;}
+.tb-bookie-label>span:last-child{overflow-wrap:anywhere;}
+.tip .meta .tb-bookie{margin:2px 0;}
+.tb-bookmaker-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.tb-bookmaker-picker select{flex:1;min-width:160px;}
+.tb-bookmaker-selected{font-size:13px;min-height:30px;}
+
 </style>
 </head>
 <body>
@@ -128,11 +266,12 @@
   <div id="app" hidden>
     <div class="top">
       <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer" title="Home">🎯</span> TipBot <span class="sub" id="rolebadge"></span></div>
-      <div class="menu"><div class="gear" id="gear" title="Settings">⚙</div>
+      <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
+          <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
         </div></div>
     </div>
@@ -552,6 +691,17 @@
   let STATE={role:null,servers:[],viewAs:null,players:{},bookies:[],playerMeta:{}};
   let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[]};
 
+  // Per-guild unit size ($). 0 = not configured -> dollar-mode staking stays off.
+  function guildUnitSize(guildId){
+    const g=(STATE.servers||[]).find(s=>String(s.guild_id)===String(guildId));
+    const v=g?parseFloat(g.unit_size):0; return (v>0)?v:0;
+  }
+  // Half-up rounding to match the bot's stored-stake rule (0.5 rounds away from 0).
+  function roundHalfUp(v,p){ p=p||0; const f=Math.pow(10,p);
+    const n=v*f; const r=(n>=0?Math.floor(n+0.5):Math.ceil(n-0.5)); return r/f; }
+  function dollarsToUnits(dollars,unitSize){
+    if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
+
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
   const panel=p=>{for(const x of ["overview","detail","followers","builder"])$(x).hidden=(x!==p);};
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
@@ -559,8 +709,9 @@
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
 
   $("loginbtn").href=API+"/auth/login";
-  $("gear").onclick=e=>{e.stopPropagation();$("dropdown").hidden=!$("dropdown").hidden;$("viewas-list").hidden=true;};
-  document.body.addEventListener("click",()=>{$("dropdown").hidden=true;});
+  $("gear").onclick=e=>{e.stopPropagation();$("dropdown").hidden=!$("dropdown").hidden;$("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));$("viewas-list").hidden=true;};
+  document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
   $("dropdown").addEventListener("click",e=>e.stopPropagation());
   $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
@@ -613,10 +764,11 @@
     }catch(e){if(e.unauth)return renderLogin("Session expired.");if(!cached)$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
   }
   function tipRow(t,settled){
-    const right=settled?(t.result==="Win"?'<span class="num pos">'+u(t.profit_units||0)+'</span>':t.result==="Loss"?'<span class="num neg">'+u(t.profit_units||0)+'</span>':'<span class="badge b-push">'+(t.result||"Push")+'</span>'):'<span class="badge b-pending">'+t.units+'u @ '+t.odds+'</span>';
+    const result=settled?(t.result||"Push"):"Pending";
+    const right=TB.chips.render(result)+(settled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
     const tid=esc(t.tip_id||"");
     const del=(!settled&&tid)?'<button class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" title="Delete & redact" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px">✕</button>':'';
-    return '<div class="tip betrow" data-tip="'+tid+'" style="cursor:pointer"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+' <span style="color:var(--faint);font-size:11px">▸</span></div><div class="meta">'+esc(t.bet_type||"")+(t.bookmaker?" · "+esc(t.bookmaker):"")+(t.display_id?" · "+esc(t.display_id):"")+'</div></div><div style="display:flex;align-items:center;gap:10px">'+right+del+'</div></div>'
+    return '<div class="tip betrow" data-tip="'+tid+'" style="cursor:pointer"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+' <span style="color:var(--faint);font-size:11px">▸</span></div><div class="meta">'+esc(t.bet_type||"")+(t.bookmaker?" · "+TB.bookie.label(t.bookmaker,20):"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+right+del+'</div></div>'
       +'<div class="betlegs" id="legs_'+tid+'" hidden style="padding:4px 0 10px 6px;margin:-4px 0 6px"></div>';
   }
   function wireTipRows(box,gid){
@@ -631,7 +783,7 @@
     if(el.dataset.loaded)return;
     el.innerHTML='<span style="color:var(--faint);font-size:12px">Loading…</span>';
     try{ const t=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
-      const legs=(t.legs||[]).map(l=>'<div style="font-size:13px;padding:2px 0">• '+esc(l.description)+(l.leg_result?' <span style="color:var(--faint)">('+esc(l.leg_result)+')</span>':'')+'</div>').join("")||'<div style="color:var(--faint);font-size:12px">No legs recorded.</div>';
+      const legs=(t.legs||[]).map(l=>'<div style="font-size:13px;padding:2px 0">• '+esc(l.description)+(l.leg_result?' '+TB.chips.render(l.leg_result):'')+'</div>').join("")||'<div style="color:var(--faint);font-size:12px">No legs recorded.</div>';
       let grade='';
       if((t.status||"")==="Pending"){
         grade='<div class="graderow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">'
@@ -641,7 +793,7 @@
           +'<button class="gradebtn" data-r="Push" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Push</button>'
           +'</div>';
       }
-      el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div>'+legs+grade;
+      el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+((t.status==='Settled')?TB.settleBadge.render(t.settle_source):'')+'</div>'+legs+grade;
       el.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); gradeBet(gid,tipId,b.dataset.r,el); });
       el.dataset.loaded="1";
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); el.innerHTML='<span class="err" style="font-size:12px">Couldn\'t load legs.</span>'; }
@@ -712,7 +864,11 @@
     $("fbx").onclick=()=>loadDetail(gid);
     list.forEach((f,i)=>{ const b=$("followers").querySelector('.fexp[data-i="'+i+'"]'); if(b)b.onclick=()=>{
       const box=$("fbets_"+i); if(!box)return; if(!box.hidden){box.hidden=true;return;} box.hidden=false;
-      box.innerHTML=(f.follows_list||[]).map(t=>'<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+' · '+(t.result?esc(t.result):"Pending")+'</div></div><div>'+(t.result?('<span class="num '+((t.profit_units||0)>=0?"pos":"neg")+'">'+u(t.profit_units||0)+'</span>'):('<span class="badge b-pending">'+(t.stake_units||0)+'u @ '+(t.odds||"")+'</span>'))+'</div></div>').join("")||'<div class="empty">No bets yet.</div>';
+      box.innerHTML=(f.follows_list||[]).map(t=>{
+        const result=String(t.result||"Pending"),settled=/^(win|loss|push|void)$/i.test(result);
+        const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
+        return '<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
+      }).join("")||'<div class="empty">No bets yet.</div>';
     };});
     $("followers").querySelectorAll(".mact").forEach(b=>b.onclick=async()=>{
       const a=b.dataset.a,uid=b.dataset.uid,min=b.dataset.min;
@@ -742,6 +898,64 @@
       +series.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.profit)+'" r="2.6" fill="'+(p.profit>=0?"var(--win)":"var(--loss)")+'"><title>'+esc(fmtMonth(p.month))+": "+u(p.profit)+'</title></circle>').join("")
       +'</svg><div style="color:var(--muted);font-size:12px">'+series.length+' months · net <b class="'+(tot>=0?"pos":"neg")+'">'+u(tot)+'</b></div></div></div>';
   }
+  // ── Units calendar (month heatmap) ───────────────────────────────────────
+  // Win/loss/push are sacred + constant across themes, so tint straight from
+  // their fixed rgb (no color-mix needed). Reusable by the follower surface (#31).
+  function calMonthShift(month,delta){
+    const p=(month||"").split("-"); let y=+p[0], m=+p[1]-1+delta;
+    y+=Math.floor(m/12); m=((m%12)+12)%12;
+    return y+"-"+String(m+1).padStart(2,"0");
+  }
+  function calCellTint(net,maxAbs){
+    if(!(net>0)&&!(net<0)) return {bg:"transparent",fg:"var(--push)"};
+    const a=0.16+0.62*Math.min(1,Math.abs(net)/(maxAbs||1));
+    const rgb=net>0?"46,175,98":"229,89,95";
+    return {bg:"rgba("+rgb+","+a.toFixed(3)+")", fg:net>0?"#8ff0b6":"#ffb3b3"};
+  }
+  function renderCalendar(month,daily){
+    daily=daily||{};
+    const parts=(month||"").split("-"), y=+parts[0], mo=+parts[1];
+    if(!y||!mo) return "";
+    const dim=new Date(y,mo,0).getDate();                 // days in month
+    const lead=(new Date(y,mo-1,1).getDay()+6)%7;         // Mon-based offset
+    let maxAbs=0, net=0, tips=0, days=0;
+    for(let d=1;d<=dim;d++){ const e=daily[y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0")];
+      if(e){ maxAbs=Math.max(maxAbs,Math.abs(e.net)); net+=e.net; tips+=e.n; days++; } }
+    const dows=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const head='<div class="calgrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">'
+      +dows.map(dn=>'<div style="text-align:center;color:var(--faint);font-size:11px;font-weight:600;letter-spacing:.03em">'+dn+'</div>').join("");
+    let cells="";
+    for(let i=0;i<lead;i++) cells+='<div></div>';
+    for(let d=1;d<=dim;d++){
+      const key=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+      const e=daily[key];
+      if(!e){
+        cells+='<div style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--card2);display:flex;align-items:flex-start;padding:6px"><span style="color:var(--faint);font-size:11px">'+d+'</span></div>';
+        continue;
+      }
+      const t=calCellTint(e.net,maxAbs);
+      const parts2=[]; if(e.won)parts2.push(e.won+"W"); if(e.lost)parts2.push(e.lost+"L"); if(e.push)parts2.push(e.push+"P");
+      const wd=new Date(y,mo-1,d).toLocaleDateString(undefined,{weekday:"short"});
+      const tip=wd+" "+d+" "+fmtMonth(month).split(" ")[0]+" — "+u(e.net)+" · "+e.n+" tip"+(e.n>1?"s":"")+(parts2.length?" ("+parts2.join(" ")+")":"");
+      cells+='<div title="'+esc(tip)+'" style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:'+t.bg+';display:flex;flex-direction:column;justify-content:space-between;padding:6px;overflow:hidden">'
+        +'<span style="color:var(--muted);font-size:11px">'+d+'</span>'
+        +'<span style="color:'+t.fg+';font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+(e.net>0?"+":"")+(Math.round(e.net*100)/100)+'</span></div>';
+    }
+    const netCls=net>=0?"pos":"neg";
+    const legend='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;color:var(--faint);font-size:12px">'
+      +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(46,175,98,.55)"></span>Up day</span>'
+      +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(229,89,95,.55)"></span>Down day</span>'
+      +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--card2);border:1px solid var(--line)"></span>No tips</span>'
+      +'<span style="margin-left:auto">'+days+' active day'+(days===1?"":"s")+' · '+tips+' tips</span></div>';
+    return '<div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">'
+      +'<h3 style="margin:0">Units calendar</h3>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px">‹</button>'
+      +'<span style="min-width:132px;text-align:center;font-size:13px;font-weight:600">'+esc(fmtMonth(month))+'</span>'
+      +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px">›</button>'
+      +'<span style="margin-left:6px;color:var(--faint);font-size:12px">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span>'
+      +'</div></div>'+head+cells+'</div>'+legend+'</div>';
+  }
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
     if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div>'; loadRouting(gid); return; }
@@ -752,6 +966,17 @@
       +'<button class="btn sm" id="femoji-save">Save</button>'
       +'<span style="color:var(--faint);font-size:12px">The reaction members tap on a tip to follow it.</span>'
       +'<span id="femoji-msg" style="font-size:12px;margin-left:2px"></span></div>';
+    // Unit size ($) — admin-only. Powers the Dollars staking mode in the builder.
+    if(s.can_admin!==false){
+      const usv=(s.unit_size>0)?(s.unit_size%1?s.unit_size.toFixed(2):s.unit_size):"";
+      body.innerHTML+='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px">'
+        +'<label style="color:var(--muted);font-size:13px">Unit size ($)</label>'
+        +'<div style="display:flex;align-items:center;gap:6px"><span style="color:var(--muted)">$</span>'
+        +'<input id="usize" type="number" step="1" min="0" value="'+usv+'" placeholder="e.g. 150" style="width:90px;padding:6px 8px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt)"></div>'
+        +'<button class="btn sm" id="usize-save">Save</button>'
+        +'<span style="color:var(--faint);font-size:12px">Lets you stake tips in dollars — the builder converts to units.</span>'
+        +'<span id="usize-msg" style="font-size:12px;margin-left:2px"></span></div>';
+    }
     const fsv=$("femoji-save");
     if(fsv)fsv.onclick=async()=>{
       const emoji=$("femoji").value.trim();const m=$("femoji-msg");fsv.disabled=true;m.textContent="";
@@ -759,6 +984,16 @@
         const j=await r.json();m.textContent=j.ok?"✓ saved":(j.message||"error");m.style.color=j.ok?"var(--win)":"var(--loss)";
       }catch(e){if(e.unauth)return renderLogin("Session expired.");m.textContent="couldn't save";m.style.color="var(--loss)";}
       finally{fsv.disabled=false;}
+    };
+    const uSv=$("usize-save");
+    if(uSv)uSv.onclick=async()=>{
+      const dollars=$("usize").value.trim();const m=$("usize-msg");uSv.disabled=true;m.textContent="";
+      try{const r=await api("/api/unit-size",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,dollars:dollars===""?0:parseFloat(dollars)})});
+        const j=await r.json();m.textContent=j.ok?"✓ saved":(j.message||"error");m.style.color=j.ok?"var(--win)":"var(--loss)";
+        if(j.ok){ s.unit_size=(dollars===""?0:parseFloat(dollars));
+          const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid)); if(g)g.unit_size=s.unit_size; }
+      }catch(e){if(e.unauth)return renderLogin("Session expired.");m.textContent="couldn't save";m.style.color="var(--loss)";}
+      finally{uSv.disabled=false;}
     };
   }
   function tickCountdowns(){
@@ -817,7 +1052,17 @@
       +dbgBtn("follow_selftest","Test follow → DM","Traces the follow/DM pipeline and reports where it stops")
       +'<button class="dbgqbtn" title="Shows whether the bot is draining the dashboard queues" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Queue status</button>'
       +'</div><div id="dbgstatus" style="font-size:12px;color:var(--faint);margin-top:8px;white-space:pre-wrap;font-family:ui-monospace,monospace"></div></div>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+'</div></div>'):'';
+    // Danger zone lives INSIDE Admin controls (platform-owner-only, #34). Type the
+    // server name (or LEAVE if unnamed) to arm the remove button.
+    const leaveToken=(s.display_name||"").trim()||"LEAVE";
+    const dangerZone='<div style="margin-top:16px;border-top:1px solid #7a2a2a;padding-top:14px">'
+      +'<div style="color:#ff8a8a;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Danger zone</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Removes TipBot from this Discord server — the bot leaves and it disappears from the dashboard. Re-invite it and run <code>/setup-server</code> to bring it back. Type <b style="color:#ffb3b3">'+esc(leaveToken)+'</b> to confirm.</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +'<input id="leaveconfirm" placeholder="'+esc(leaveToken)+'" autocomplete="off" style="flex:1;min-width:160px;padding:8px 10px;border-radius:9px;border:1px solid #7a2a2a;background:#1c1414;color:var(--txt);font:inherit">'
+      +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" data-token="'+esc(leaveToken)+'" disabled style="border:1px solid #7a2a2a;background:#2a1717;color:#7a5252;border-radius:9px;padding:9px 14px;cursor:not-allowed;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button>'
+      +'</div><div id="leaveservermsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+dangerZone+'</div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
       +'<div id="settings-body"></div></div>';
@@ -828,17 +1073,22 @@
       +'<div class="tiles">'+tiles+'</div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
+      +renderCalendar(d.cal_month,d.daily_series)
       +settingsPanel
       +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>'
-      +'<div class="panel" style="border-color:#7a2a2a"><h3 style="color:#ff8a8a;margin-top:0">Remove server</h3>'
-      +'<div style="color:var(--faint);font-size:13px;margin-bottom:10px">Removes TipBot from this Discord server. The bot leaves and the server disappears from the dashboard. You can re-invite it and run <code>/setup-server</code> to bring it back.</div>'
-      +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" style="border:1px solid #7a2a2a;background:#2a1717;color:#ff8a8a;border-radius:9px;padding:9px 14px;cursor:pointer;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button> <span id="leaveservermsg" style="font-size:12px;color:var(--faint)"></span></div>';
+      +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
     { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
+    { const ms=$("monthsel"); if(ms)ms.onchange=()=>loadDetail(s.guild_id,ms.value||null); }
+    // Calendar arrows step months; they drive the whole period (stats follow),
+    // matching the dropdown. Uses the resolved cal_month, not the raw selection.
+    $("detail").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
+      const target=calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1);
+      loadDetail(s.guild_id,target);
+    });
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
     $("detail").querySelectorAll(".dbgbtn").forEach(b=>b.onclick=async()=>{
       const st=$("dbgstatus"); b.disabled=true; if(st)st.textContent="Asking the bot to run: "+b.textContent+"…";
@@ -858,9 +1108,14 @@
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(st)st.textContent="⚠️ Couldn't read queue status."; }
       finally{ qb.disabled=false; }
     }; }
-    { const lb=$("leaveserverbtn"); if(lb)lb.onclick=()=>{
-      const gid=lb.dataset.g, nm=lb.dataset.n, m=$("leaveservermsg");
-      const go=async()=>{ lb.disabled=true; if(m)m.textContent="Removing — the bot is leaving now…";
+    { const lb=$("leaveserverbtn"), ci=$("leaveconfirm"); if(lb&&ci){
+      const gid=lb.dataset.g, nm=lb.dataset.n, token=lb.dataset.token, m=$("leaveservermsg");
+      const armed=()=>ci.value.trim()===token;
+      const paint=()=>{ const on=armed();
+        lb.disabled=!on; lb.style.cursor=on?"pointer":"not-allowed";
+        lb.style.color=on?"#ff8a8a":"#7a5252"; lb.style.background=on?"#3a1a1a":"#2a1717"; };
+      ci.oninput=paint; paint();
+      const go=async()=>{ lb.disabled=true; ci.disabled=true; if(m)m.textContent="Removing — the bot is leaving now…";
         try{ const r=await api("/api/leave-server",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid})});
           const j=await r.json();
           if(r.ok&&j.ok){
@@ -869,12 +1124,15 @@
             STATE.servers=(STATE.servers||[]).filter(x=>String(x.guild_id)!==String(gid));
             setTimeout(()=>enterHome(),700);
           }
-          else{ if(m)m.textContent="⚠️ "+(j.message||"couldn't remove that server"); lb.disabled=false; }
-        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m)m.textContent="⚠️ Couldn't reach the bot."; lb.disabled=false; }
+          else{ if(m)m.textContent="⚠️ "+(j.message||"couldn't remove that server"); ci.disabled=false; paint(); }
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m)m.textContent="⚠️ Couldn't reach the bot."; ci.disabled=false; paint(); }
       };
-      if(window.NDCountdownConfirm){ NDCountdownConfirm.open({title:"Remove "+nm+"?",message:"TipBot will <b>leave "+esc(nm)+"</b> and it'll disappear from your dashboard. You can re-invite it later.",seconds:5,confirmLabel:"Remove server",secondaryLabel:"Cancel",accent:"#ff6b6b",onConfirm:go}); }
-      else if(confirm("Remove "+nm+"? The bot will leave the server.")){ go(); }
-    }; }
+      lb.onclick=()=>{ if(!armed())return;
+        if(window.NDConfirmPop)NDConfirmPop.show({label:"Removing "+nm,color:"#ff6b6b"});
+        go();
+      };
+      ci.onkeydown=(e)=>{ if(e.key==="Enter"&&armed())lb.click(); };
+    }}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
@@ -891,6 +1149,193 @@
   }
   async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ===== Codex TB modules: theme, chips, multi/settle, bookies ===== */
+/* Paste after esc() in the dashboard script (inside its IIFE if it has one).
+   Call TB.theme.init() and TB.theme.mount(container) before load(). */
+(function () {
+  'use strict';
+  var TB = window.TB = window.TB || {};
+  var root = document.documentElement;
+  var names = ['navy', 'day', 'ochre'];
+  var defaults = {navy:'#5b8cff', day:'#245ad6', ochre:'#e0a04a'};
+  var memory = Object.create(null), hosts = [], listening = false, timer;
+  function read(key) { try {var value=localStorage.getItem(key);if(value!==null)return value;} catch(e) {} return memory[key] || null; }
+  function write(key,value) {memory[key]=value;try {if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);} catch(e) {}}
+  function today(d) {return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function valid(name) {return names.indexOf(name)!==-1;}
+  function auto() {return read('tipbot_theme_auto')==='true';}
+  function resolve(d) {
+    var saved=read('tipbot_theme');
+    if(valid(saved)&&(!auto()||read('tipbot_theme_manual_date')===today(d)))return saved;
+    return auto()?(d.getHours()>=7&&d.getHours()<19?'day':'navy'):(valid(saved)?saved:'navy');
+  }
+  function luminance(rgb) {return rgb.map(function(v){v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);}).reduce(function(s,v,i){return s+v*[.2126,.7152,.0722][i];},0);}
+  function ink(rgb) {return luminance(rgb)>.179?'#000000':'#ffffff';}
+  function accent() {
+    var value=read('tipbot_theme_accent');
+    ['--accent','--on-accent','--on-accent-hover'].forEach(function(k){root.style.removeProperty(k);});
+    if(!/^#[0-9a-f]{6}$/i.test(value||''))return;
+    var rgb=[1,3,5].map(function(i){return parseInt(value.slice(i,i+2),16);});
+    root.style.setProperty('--accent',value);
+    root.style.setProperty('--on-accent',ink(rgb));
+    root.style.setProperty('--on-accent-hover',ink(rgb.map(function(v){return v*.92+255*.08;})));
+  }
+  function sync() {
+    hosts=hosts.filter(function(host){return host.isConnected;});
+    hosts.forEach(function(host){
+      host.querySelectorAll('[data-tb-theme]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.tbTheme===root.dataset.theme));});
+      host.querySelector('[data-tb-auto]').checked=auto();
+      host.querySelector('[data-tb-accent]').value=read('tipbot_theme_accent')||defaults[root.dataset.theme];
+      host.querySelector('[data-tb-reset]').disabled=!read('tipbot_theme_accent');
+      var manual=read('tipbot_theme_manual_date')===today(new Date())&&valid(read('tipbot_theme'));
+      host.querySelector('[data-tb-note]').textContent=auto()?(manual?'Your choice stays until midnight. Auto resumes tomorrow.':'Day from 7 am to 7 pm. Navy overnight, using your local time.'):'Your selected theme stays on until you change it.';
+    });
+  }
+  function refresh() {root.dataset.theme=resolve(new Date());accent();sync();}
+  function schedule() {
+    clearTimeout(timer);
+    if(!auto())return;
+    var now=new Date(),next=new Date(now);
+    var h=now.getHours();
+    if(h<7)next.setHours(7,0,0,0);else if(h<19)next.setHours(19,0,0,0);else next.setHours(24,0,0,0);
+    if(read('tipbot_theme_manual_date')===today(now)){next=new Date(now);next.setHours(24,0,0,0);}
+    timer=setTimeout(function(){refresh();schedule();},Math.max(1000,next-now+50));
+  }
+  TB.theme = {
+    set:function(name) {
+      if(!valid(name))return false;
+      write('tipbot_theme',name);write('tipbot_theme_manual_date',today(new Date()));refresh();schedule();return true;
+    },
+    init:function() {
+      refresh();schedule();
+      if(listening)return;listening=true;
+      document.addEventListener('visibilitychange',function(){if(!document.hidden){refresh();schedule();}});
+      window.addEventListener('storage',function(e){if(e.key===null||e.key.indexOf('tipbot_theme')===0){memory=Object.create(null);refresh();schedule();}});
+    },
+    setAuto:function(enabled) {
+      // Disabling auto freezes the currently visible theme without creating a manual override.
+      if(!enabled)write('tipbot_theme',root.dataset.theme||'navy');
+      write('tipbot_theme_auto',enabled?'true':'false');refresh();schedule();
+    },
+    setAccent:function(hex) {
+      if(hex!==null&&(typeof hex!=='string'||!/^#[0-9a-f]{6}$/i.test(hex)))return false;
+      write('tipbot_theme_accent',hex===null?null:hex.toLowerCase());accent();sync();return true;
+    },
+    html:function() {
+      return '<section class="tb-appearance" aria-label="Appearance"><h3>Appearance</h3><div class="tb-swatches" role="group" aria-label="Theme">'+names.map(function(name){return '<button type="button" class="tb-swatch" data-tb-theme="'+name+'" aria-pressed="false"><span class="tb-mini" aria-hidden="true"><i></i><i></i></span><span class="tb-swatch-label">'+esc(name[0].toUpperCase()+name.slice(1))+'</span></button>';}).join('')+'</div><label class="tb-setting"><span>Auto (time of day)</span><input type="checkbox" data-tb-auto></label><p class="tb-theme-note" data-tb-note aria-live="polite"></p><label class="tb-setting"><span>Accent</span><input type="color" data-tb-accent value="#5b8cff"></label><button type="button" class="tb-text-button" data-tb-reset>Reset accent</button></section>';
+    },
+    mount:function(host) {
+      if(!host)return;
+      host.innerHTML=TB.theme.html();
+      host.querySelectorAll('[data-tb-theme]').forEach(function(b){b.addEventListener('click',function(){TB.theme.set(b.dataset.tbTheme);});});
+      host.querySelector('[data-tb-auto]').addEventListener('change',function(e){TB.theme.setAuto(e.target.checked);});
+      host.querySelector('[data-tb-accent]').addEventListener('input',function(e){TB.theme.setAccent(e.target.value);});
+      host.querySelector('[data-tb-reset]').addEventListener('click',function(){TB.theme.setAccent(null);});
+      if(hosts.indexOf(host)<0)hosts.push(host);sync();
+    }
+  };
+  var states={win:['Win','✓'],loss:['Loss','×'],push:['Push','='],void:['Void','∅'],pending:['Pending','○']};
+  TB.chips = {
+    render:function(result) {
+      var key=typeof result==='string'?result.trim().toLowerCase():'pending';
+      if(!Object.prototype.hasOwnProperty.call(states,key))key='pending';
+      return '<span class="tbchip tbchip--'+key+'"><span class="tbchip-symbol" aria-hidden="true">'+states[key][1]+'</span>'+states[key][0]+'</span>';
+    },
+    calendarClass:function(net_units,hasSettled) {
+      if(hasSettled!==true||net_units===null||typeof net_units==='boolean'||(typeof net_units!=='number'&&typeof net_units!=='string')||String(net_units).trim()==='')return 'neutral';
+      var n=Number(net_units);
+      return !Number.isFinite(n)||n===0?'neutral':n>0?'win':'loss';
+    }
+  };
+}());
+
+/* Paste after theme-chips.js, in the same scope as esc(). No init required. */
+(function () {
+  'use strict';
+  var TB=window.TB=window.TB||{};
+  function id(value) {
+    if(typeof value==='number')return Number.isSafeInteger(value)&&value>0?String(value):null;
+    if(typeof value!=='string')return null;
+    value=value.trim();
+    return value&&value!=='0'?value:null;
+  }
+  // IDs must use the same provider namespace. Never identify a match from team names alone.
+  TB.gameId=function(leg) {
+    if(!leg||typeof leg!=='object')return null;
+    var direct=id(leg.game_id);if(direct)return direct;
+    var game=leg.game;
+    if(game&&typeof game==='object')return id(game.aflMatchId)||id(game.game_id)||id(game.id);
+    return id(game);
+  };
+  function inspect(legs) {
+    if(!Array.isArray(legs)||legs.length<2)return {kind:'single',groups:[]};
+    var counts=new Map(),missing=false;
+    legs.forEach(function(leg){var key=TB.gameId(leg);if(key===null)missing=true;else counts.set(key,(counts.get(key)||0)+1);});
+    var groups=Array.from(counts.values()).filter(function(n){return n>=2;});
+    return {kind:counts.size>=2?'cross':counts.size===1&&!missing?'sgm':'unknown',groups:groups};
+  }
+  // Legacy three-value contract: "single" means no multi badge when identity is unknown.
+  TB.multiKind=function(legs){var kind=inspect(legs).kind;return kind==='unknown'?'single':kind;};
+  // For filters, keep unresolved multis separate from real singles.
+  TB.multiFilterKey=function(legs){return inspect(legs).kind;};
+  TB.multiBadge=function(legs) {
+    var kind=inspect(legs).kind;
+    if(kind!=='sgm'&&kind!=='cross')return '';
+    var label=kind==='sgm'?'SGM':'CROSS',title=kind==='sgm'?'Same-game multi':'Cross-game multi';
+    return '<span class="tb-kind tb-kind--'+kind+'" title="'+title+'" aria-label="'+title+'">'+label+'</span>';
+  };
+  TB.corrWarn=function(legs) {
+    var groups=inspect(legs).groups;
+    if(!groups.length)return '';
+    if(groups.length===1)return groups[0]+" legs are in the same game — correlated. That's fine, just so you know.";
+    return groups.reduce(function(a,b){return a+b;},0)+' legs are in '+groups.length+" same-game groups — correlated. That's fine, just so you know.";
+  };
+  TB.multiSummary=function(legs) {
+    var warning=TB.corrWarn(legs);
+    return '<div class="tb-multi-summary">'+TB.multiBadge(legs)+(warning?'<p class="tbwarn" role="status"><span aria-hidden="true">△</span> '+esc(warning)+'</p>':'')+'</div>';
+  };
+  var sources={api:['AFL API','◆'],manual:['Manual','✎'],god:['God','★']};
+  TB.settleBadge={render:function(source) {
+    var key=typeof source==='string'?source.trim().toLowerCase():'';
+    if(!Object.prototype.hasOwnProperty.call(sources,key))return '';
+    return '<span class="tb-settle tb-settle--'+key+'" aria-label="Settled by '+sources[key][0]+'"><span aria-hidden="true">'+sources[key][1]+'</span> '+sources[key][0]+'</span>';
+  }};
+}());
+/* Paste after existing TB modules; uses esc(). Registry is inserted by the pack build. */
+(function(){
+  'use strict';
+  var TB=window.TB=window.TB||{};
+  var defaults=[{"name":"Sportsbet","slug":"sportsbet","color":"#1474B8","initials":"SB","logo":"./assets/bookies/sportsbet.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.sportsbet.com.au","verified_on":"2026-09-09","status":"current"},{"name":"TAB","slug":"tab","color":"#087843","initials":"TAB","logo":"./assets/bookies/tab.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.tab.com.au","verified_on":"2026-09-09","status":"current"},{"name":"bet365","slug":"bet365","color":"#087B5B","initials":"365","logo":"./assets/bookies/bet365.svg","active":true,"aliases":["Bet 365"],"logo_kind":"original-monogram","website":"https://www.bet365.com.au","verified_on":"2026-09-09","status":"current"},{"name":"PointsBet","slug":"pointsbet","color":"#E43341","initials":"PB","logo":"./assets/bookies/pointsbet.svg","active":true,"aliases":["Points Bet"],"logo_kind":"original-monogram","website":"https://pointsbet.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Dabble","slug":"dabble","color":"#7253B7","initials":"D","logo":"./assets/bookies/dabble.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.dabble.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Picklebet","slug":"picklebet","color":"#BDD63C","initials":"PK","logo":"./assets/bookies/picklebet.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://picklebet.com","verified_on":"2026-09-09","status":"current"},{"name":"Ladbrokes","slug":"ladbrokes","color":"#D5282F","initials":"L","logo":"./assets/bookies/ladbrokes.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.ladbrokes.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Neds","slug":"neds","color":"#E96B22","initials":"N","logo":"./assets/bookies/neds.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.neds.com.au","verified_on":"2026-09-09","status":"current"},{"name":"betr","slug":"betr","color":"#EC492B","initials":"B","logo":"./assets/bookies/betr.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.betr.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Unibet","slug":"unibet","color":"#158947","initials":"U","logo":"./assets/bookies/unibet.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.unibet.com.au","verified_on":"2026-09-09","status":"current"},{"name":"BetRight","slug":"betright","color":"#26AE8F","initials":"BR","logo":"./assets/bookies/betright.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://betright.com.au","verified_on":"2026-09-09","status":"current"},{"name":"PlayUp","slug":"playup","color":"#CC255D","initials":"PU","logo":"./assets/bookies/playup.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.playup.com.au/betting","verified_on":"2026-09-09","status":"current"},{"name":"Betfair","slug":"betfair","color":"#E8AA25","initials":"BF","logo":"./assets/bookies/betfair.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.betfair.com.au","verified_on":"2026-09-09","status":"current"},{"name":"BlueBet","slug":"bluebet","color":"#2686C9","initials":"BB","logo":"./assets/bookies/bluebet.svg","active":false,"aliases":["Blue Bet"],"logo_kind":"original-monogram","website":null,"verified_on":"2026-09-09","status":"legacy","successor":"betr"}];
+  var records=defaults.slice(),listening=false;
+  function key(s){return typeof s==='string'?s.trim().toLowerCase().replace(/[^a-z0-9]/g,''):'';}
+  function initials(s){var words=String(s||'?').trim().split(/\s+/);return (words.length>1?words[0][0]+words[words.length-1][0]:words[0].slice(0,2)).toUpperCase();}
+  function find(value){var k=key(value);return k?records.find(function(b){return key(b.name)===k||key(b.slug)===k||(b.aliases||[]).some(function(a){return key(a)===k;});}):undefined;}
+  function localLogo(s){return typeof s==='string'&&/^\.\/assets\/bookies\/[a-z0-9-]+\.svg$/.test(s)?s:null;}
+  function normalize(data){
+    var items=Array.isArray(data)?data:data&&Array.isArray(data.bookies)?data.bookies:[];
+    var seen=new Set();
+    return items.filter(function(b){if(!b||typeof b.name!=='string'||!b.name.trim()||typeof b.slug!=='string'||!/^[a-z0-9-]+$/.test(b.slug)||seen.has(key(b.name)))return false;seen.add(key(b.name));return true;}).map(function(b){return {name:b.name.trim(),slug:b.slug,color:/^#[0-9a-f]{6}$/i.test(b.color||'')?b.color:null,logo:localLogo(b.logo),active:b.active!==false,initials:typeof b.initials==='string'?b.initials.slice(0,3):initials(b.name),aliases:Array.isArray(b.aliases)?b.aliases.filter(function(a){return typeof a==='string';}):[]};});
+  }
+  TB.bookie={
+    setCatalog:function(data){var next=normalize(data);if(!next.length)return false;records=next;return true;},
+    list:function(){return records.filter(function(b){return b.active!==false;}).map(function(b){return Object.assign({},b,{aliases:(b.aliases||[]).slice()});});},
+    load:async function(){try{var r=await fetch('./bookies.json');if(r.ok)TB.bookie.setCatalog(await r.json());}catch(e){}return TB.bookie.list();},
+    render:function(value,size){
+      var b=find(value),name=b?b.name:(typeof value==='string'&&value.trim()?value.trim():'Unknown bookmaker');
+      var n=typeof size==='number'&&Number.isFinite(size)?Math.round(Math.min(64,Math.max(16,size))):24;
+      var color=b&&/^#[0-9a-f]{6}$/i.test(b.color||'')?b.color:'var(--line)';
+      var logo=b&&localLogo(b.logo),letters=b?b.initials||initials(name):initials(name);
+      return '<span class="tb-bookie" role="img" aria-label="'+esc(name)+'" title="'+esc(name)+'" style="--bookie-size:'+n+'px;--bookie-color:'+color+'"><span class="tb-bookie-fallback" aria-hidden="true">'+esc(letters)+'</span>'+(logo?'<img src="'+esc(logo)+'" alt="" aria-hidden="true" width="'+n+'" height="'+n+'" decoding="async">':'')+'</span>';
+    },
+    label:function(value,size){if(typeof value!=='string'||!value.trim())return '';return '<span class="tb-bookie-label">'+TB.bookie.render(value,size)+'<span>'+esc(value.trim())+'</span></span>';},
+    options:function(){return '<option value="">—</option>'+TB.bookie.list().map(function(b){return '<option value="'+esc(b.name)+'">'+esc(b.name)+'</option>';}).join('');},
+    wireSelect:function(select,preview){if(!select||!preview)return;var draw=function(){preview.innerHTML=TB.bookie.label(select.value,28);};select.addEventListener('change',draw);draw();},
+    init:function(){if(listening)return;listening=true;document.addEventListener('error',function(e){var el=e.target;if(el&&el.tagName==='IMG'&&el.parentElement&&el.parentElement.classList.contains('tb-bookie'))el.hidden=true;},true);}
+  };
+}());
+
+
 
   /* ---------- COMMAND PERMISSIONS ---------- */
   var PERM={};
@@ -1048,14 +1493,14 @@
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All"};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId)};
     panel("builder");renderTray();
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(guildId);};
     // players now come live from the AFL API (attached to each game); players.json
     // is only a silent fallback for a team the roster feed couldn't match.
     if(!Object.keys(STATE.players).length){ try{STATE.players=await (await fetch("./players.json")).json();}catch{STATE.players={};} }
-    if(!STATE.bookies.length){ try{STATE.bookies=((await (await fetch("./bookies.json")).json()).bookies)||[];}catch{STATE.bookies=[];} }
+    if(!STATE.bookies.length)STATE.bookies=await TB.bookie.load();
     let games=[];
     try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
     renderGames(games);
@@ -1072,7 +1517,7 @@
   // units/bookmaker + an optional screenshot, and it posts through the same queue.
   function openCustom(guildId,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:""};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:"",unitSize:guildUnitSize(guildId)};
     panel("builder");renderTray();
     renderCustom();
   }
@@ -1349,32 +1794,98 @@
       $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side});
     });});
   }
-  function addLeg(leg){ BUILD.legs.push(leg); renderTray(); }
+  function addLeg(leg){
+    const next=Object.assign({},leg);
+    if(!BUILD.custom&&!TB.gameId(next)){
+      const gameId=TB.gameId({game:BUILD.game});
+      if(gameId)next.game_id=gameId;
+    }
+    BUILD.legs.push(next);renderTray();
+  }
   function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
   function renderTray(){
     const t=$("tray");
     if(!BUILD.legs.length){ t.hidden=true; return; }
     t.hidden=false;
-    t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>'<span class="chip">'+legText(l)+' <span class="x" data-i="'+i+'">✕</span></span>').join("")+'</div>'
-      +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button></div>';
+    t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>'<span class="chip">'+esc(legText(l))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>').join("")+'</div>'
+      +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button>'+TB.multiSummary(BUILD.legs)+'</div>';
     t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray();});
     $("reviewbtn").onclick=renderConfirm;
+  }
+  // Stake entry: units always available; dollars mode appears when the guild has
+  // a unit size configured, and shows a live half-up "= X.XXu" preview.
+  function stakeFieldHTML(){
+    const us=BUILD.unitSize||0;
+    if(!(us>0)){
+      return '<div class="field"><label>Units</label><input id="f_units" type="number" step="0.5" placeholder="e.g. 1">'
+        +'<div style="color:var(--faint);font-size:12px;margin-top:6px">Set a unit size in Settings → General to stake in dollars.</div></div>';
+    }
+    const mode=BUILD.stakeMode||"units";
+    const seg='<div id="stakeseg" style="display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:8px">'
+      +'<button type="button" class="stakemode" data-mode="units">Units</button>'
+      +'<button type="button" class="stakemode" data-mode="dollars">Dollars</button></div>';
+    return '<div class="field"><label>Stake</label>'+seg
+      +'<div id="stake_units_wrap"><input id="f_units" type="number" step="0.5" placeholder="e.g. 1"></div>'
+      +'<div id="stake_dollars_wrap"><div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="color:var(--muted)">$</span><input id="f_dollars" type="number" step="1" placeholder="e.g. 100" style="flex:1"></div>'
+      +'<div id="f_units_prev" style="color:var(--muted);font-size:13px;margin-top:6px">= —</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Unit size $'+(us%1?us.toFixed(2):us)+' · rounded to 2 dp</div></div></div>';
+  }
+  function wireStakeField(){
+    const us=BUILD.unitSize||0; if(!(us>0))return;
+    const seg=$("stakeseg"); if(!seg)return;
+    const btns=seg.querySelectorAll(".stakemode");
+    const uw=$("stake_units_wrap"),dw=$("stake_dollars_wrap"),prev=$("f_units_prev");
+    function paint(){
+      const mode=BUILD.stakeMode||"units";
+      btns.forEach(b=>{const on=b.dataset.mode===mode;
+        b.style.background=on?"var(--accent)":"transparent";
+        b.style.color=on?"#fff":"var(--muted)";
+        b.style.padding="7px 14px";b.style.border="none";b.style.cursor="pointer";b.style.fontWeight="600";b.style.fontSize="13px";});
+      uw.hidden=(mode!=="units"); dw.hidden=(mode!=="dollars");
+      updateStakePrev();
+    }
+    function updateStakePrev(){
+      const d=parseFloat(($("f_dollars")||{}).value);
+      const u=dollarsToUnits(d,us);
+      prev.innerHTML=(d>0)?("= <b style=\"color:var(--txt)\">"+u.toFixed(2)+"u</b>"):"= —";
+    }
+    btns.forEach(b=>b.onclick=()=>{BUILD.stakeMode=b.dataset.mode;paint();});
+    const df=$("f_dollars"); if(df)df.oninput=updateStakePrev;
+    paint();
+  }
+  // Resolve the final stake in units from whichever mode is active. Returns
+  // {units, error}. Dollars mode divides by the guild unit size (half-up 2dp).
+  function resolveStakeUnits(){
+    const us=BUILD.unitSize||0;
+    if(us>0 && (BUILD.stakeMode||"units")==="dollars"){
+      const d=parseFloat(($("f_dollars")||{}).value);
+      if(!(d>0))return {units:0,error:"Enter a dollar amount greater than 0."};
+      const u=dollarsToUnits(d,us);
+      if(!(u>0))return {units:0,error:"That dollar amount rounds to 0 units."};
+      return {units:u,error:null};
+    }
+    const u=parseFloat(($("f_units")||{}).value);
+    if(!(u>0))return {units:0,error:"Units must be greater than 0."};
+    return {units:u,error:null};
   }
   function renderConfirm(){
     clearLiveTimer();
     panel("builder");
-    const bk=STATE.bookies.map(b=>'<option value="'+b.name+'">'+b.name+'</option>').join("");
+    const bk=TB.bookie.options();
     $("builder").innerHTML='<div class="back" id="bc">← Keep building</div><h1 style="margin:0 0 16px">Confirm & schedule</h1>'
-      +'<div class="panel"><h3>'+esc(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi"))+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3>'
-      +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+legText(l)+'</div><div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div></div>').join("")+'</div>'
+      +'<div class="panel"><h3>'+esc(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi"))+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3><div class="tb-review-kind">'+TB.multiSummary(BUILD.legs)+'</div>'
+      +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+esc(legText(l))+'</div><div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div></div>').join("")+'</div>'
       +'<div class="panel"><h3>Details</h3>'
       +'<div class="field"><label>Total odds</label><input id="f_odds" type="number" step="0.01" placeholder="e.g. 3.20"></div>'
-      +'<div class="field"><label>Units</label><input id="f_units" type="number" step="0.5" placeholder="e.g. 1"></div>'
-      +'<div class="field"><label>Bookmaker (placeholder)</label><select id="f_book"><option value="">—</option>'+bk+'</select></div>'
+      +stakeFieldHTML()
+      +'<div class="field"><label for="f_book">Bookmaker</label><div class="tb-bookmaker-picker"><select id="f_book">'+bk+'</select><div id="f_book_preview" class="tb-bookmaker-selected" aria-live="polite"></div></div></div>'
       +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
       +'<div class="field"><label>Screenshot (optional)</label><input id="f_img" type="file" accept="image/*"><div id="f_img_prev" style="margin-top:8px"></div></div>'
       +'<button class="btn" id="schedbtn">Schedule tip →</button> <span id="scherr" class="err" style="margin-left:10px"></span></div>';
     $("bc").onclick=()=>{ if(BUILD.custom){renderCustom();} else {renderGame();} };
+    wireStakeField();
+    TB.bookie.wireSelect($("f_book"),$("f_book_preview"));
     $("schedbtn").onclick=scheduleTip;
     const fi=$("f_img");
     if(fi)fi.onchange=async()=>{
@@ -1402,13 +1913,17 @@
     });
   }
   function scheduleTip(){
-    const odds=parseFloat($("f_odds").value),units=parseFloat($("f_units").value);
+    const odds=parseFloat($("f_odds").value);
     if(!(odds>1)){$("scherr").textContent="Odds must be greater than 1.";return;}
-    if(!(units>0)){$("scherr").textContent="Units must be greater than 0.";return;}
+    const st=resolveStakeUnits();
+    if(st.error){$("scherr").textContent=st.error;return;}
+    const units=st.units;
     $("scherr").textContent="";
+    const dollarNote=(BUILD.unitSize>0 && (BUILD.stakeMode||"units")==="dollars")
+      ? " ($"+parseFloat($("f_dollars").value)+")" : "";
     NDCountdownConfirm.open({
       title:"Schedule this tip?",
-      message:BUILD.legs.length+"-leg "+(BUILD.custom?"custom tip":"multi")+" @ <b>"+odds+"</b> for <b>"+units+"u</b> — posts to Discord.",
+      message:BUILD.legs.length+"-leg "+(BUILD.custom?"custom tip":"multi")+" @ <b>"+odds+"</b> for <b>"+units+"u</b>"+dollarNote+" — posts to Discord.",
       seconds:5,confirmLabel:"Schedule now",secondaryLabel:"Cancel",accent:"#5b8cff",
       onConfirm:()=>doSchedule(odds,units),
     });
@@ -1441,6 +1956,7 @@
       buildViewAsMenu();show("app");enterHome();
     }catch(e){if(e.unauth)return renderLogin();renderLogin("Couldn't reach the bot — try again in a moment.");}
   }
+  TB.theme.init(); TB.theme.mount($("tb-appearance")); TB.bookie.init();
   load();
 </script>
 </body>

@@ -1,9 +1,191 @@
-{
-  "_readme": "PLACEHOLDER — bookies to show in the tip builder. Add {\"name\":\"...\",\"logo\":\"https://...png\"}. Logo can be a URL or a file you commit to this repo (e.g. logos/sportsbet.png). Revisit later.",
-  "bookies": [
-    {"name":"Sportsbet","logo":""},
-    {"name":"TAB","logo":""},
-    {"name":"Bet365","logo":""},
-    {"name":"Ladbrokes","logo":""}
-  ]
-}
+[
+  {
+    "name": "Sportsbet",
+    "slug": "sportsbet",
+    "color": "#1474B8",
+    "initials": "SB",
+    "logo": "./assets/bookies/sportsbet.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.sportsbet.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "TAB",
+    "slug": "tab",
+    "color": "#087843",
+    "initials": "TAB",
+    "logo": "./assets/bookies/tab.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.tab.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "bet365",
+    "slug": "bet365",
+    "color": "#087B5B",
+    "initials": "365",
+    "logo": "./assets/bookies/bet365.svg",
+    "active": true,
+    "aliases": [
+      "Bet 365"
+    ],
+    "logo_kind": "original-monogram",
+    "website": "https://www.bet365.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "PointsBet",
+    "slug": "pointsbet",
+    "color": "#E43341",
+    "initials": "PB",
+    "logo": "./assets/bookies/pointsbet.svg",
+    "active": true,
+    "aliases": [
+      "Points Bet"
+    ],
+    "logo_kind": "original-monogram",
+    "website": "https://pointsbet.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "Dabble",
+    "slug": "dabble",
+    "color": "#7253B7",
+    "initials": "D",
+    "logo": "./assets/bookies/dabble.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.dabble.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "Picklebet",
+    "slug": "picklebet",
+    "color": "#BDD63C",
+    "initials": "PK",
+    "logo": "./assets/bookies/picklebet.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://picklebet.com",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "Ladbrokes",
+    "slug": "ladbrokes",
+    "color": "#D5282F",
+    "initials": "L",
+    "logo": "./assets/bookies/ladbrokes.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.ladbrokes.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "Neds",
+    "slug": "neds",
+    "color": "#E96B22",
+    "initials": "N",
+    "logo": "./assets/bookies/neds.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.neds.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "betr",
+    "slug": "betr",
+    "color": "#EC492B",
+    "initials": "B",
+    "logo": "./assets/bookies/betr.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.betr.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "Unibet",
+    "slug": "unibet",
+    "color": "#158947",
+    "initials": "U",
+    "logo": "./assets/bookies/unibet.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.unibet.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "BetRight",
+    "slug": "betright",
+    "color": "#26AE8F",
+    "initials": "BR",
+    "logo": "./assets/bookies/betright.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://betright.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "PlayUp",
+    "slug": "playup",
+    "color": "#CC255D",
+    "initials": "PU",
+    "logo": "./assets/bookies/playup.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.playup.com.au/betting",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "Betfair",
+    "slug": "betfair",
+    "color": "#E8AA25",
+    "initials": "BF",
+    "logo": "./assets/bookies/betfair.svg",
+    "active": true,
+    "aliases": [],
+    "logo_kind": "original-monogram",
+    "website": "https://www.betfair.com.au",
+    "verified_on": "2026-09-09",
+    "status": "current"
+  },
+  {
+    "name": "BlueBet",
+    "slug": "bluebet",
+    "color": "#2686C9",
+    "initials": "BB",
+    "logo": "./assets/bookies/bluebet.svg",
+    "active": false,
+    "aliases": [
+      "Blue Bet"
+    ],
+    "logo_kind": "original-monogram",
+    "website": null,
+    "verified_on": "2026-09-09",
+    "status": "legacy",
+    "successor": "betr"
+  }
+]
