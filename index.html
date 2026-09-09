@@ -282,6 +282,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     <div id="overview" hidden></div>
     <div id="detail" hidden></div>
     <div id="followers" hidden></div>
+    <div id="follower" hidden></div>
     <div id="builder" hidden></div>
   </div>
 </div>
@@ -688,7 +689,8 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   const $=id=>document.getElementById(id);
   const u=n=>(n>0?"+":"")+n+"u";
   const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server."};
-  let STATE={role:null,servers:[],viewAs:null,players:{},bookies:[],playerMeta:{}};
+  let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false};
+  const godOn=()=>STATE.god&&STATE.role==="owner"&&!STATE.viewAs;   // #32: owner only, not in preview
   let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[]};
 
   // Per-guild unit size ($). 0 = not configured -> dollar-mode staking stays off.
@@ -703,7 +705,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","builder"])$(x).hidden=(x!==p);};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","builder"])$(x).hidden=(x!==p);};
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
@@ -718,7 +720,13 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
   $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
-  function enterHome(){ const list=visibleServers(); if(list.length===1){ loadDetail(list[0].guild_id); } else { renderOverview(); } }
+  function enterHome(){
+    const admin=visibleServers();
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    if(admin.length===1 && !follows.length){ return loadDetail(admin[0].guild_id); }
+    if(!admin.length && follows.length===1){ return openFollowerView(follows[0].guild_id, follows[0].display_name); }
+    renderOverview();
+  }
 
   function renderLogin(msg){clearDetailTimers();clearLiveTimer();clearGamesTimer();if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
   async function api(path,opts){opts=opts||{};opts.headers=Object.assign({Authorization:"Bearer "+getToken()},opts.headers||{});
@@ -733,17 +741,36 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   function renderOverview(){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("overview");const ov=$("overview");ov.innerHTML="";const list=visibleServers();
-    ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
-    const grid=document.createElement("div");grid.className="grid";
-    list.forEach(s=>{const p=s.profit_units||0;const c=document.createElement("div");c.className="scard";
-      c.innerHTML='<div class="row1"><div><div class="sname">'+(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+(s.plan_name||"starter")+'</span></div>'
-      +'<div class="mini"><div class="m"><span class="mv">'+(s.queued||0)+'</span><span class="ml">Queued</span></div>'
-      +'<div class="m"><span class="mv"><span class="pos">'+(s.won||0)+'</span>–<span class="neg">'+(s.lost||0)+'</span></span><span class="ml">W – L</span></div>'
-      +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
-      +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>'
-      +'<div style="margin-top:14px;color:var(--muted);font-size:13px"><span class="dot '+(s.enabled?"on":"off")+'"></span>'+(s.enabled?"Bot enabled":"Bot disabled")+'</div>';
-      c.onclick=()=>loadDetail(s.guild_id);grid.appendChild(c);});
-    ov.appendChild(grid);
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    if(list.length){
+      ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
+      const grid=document.createElement("div");grid.className="grid";
+      list.forEach(s=>{const p=s.profit_units||0;const c=document.createElement("div");c.className="scard";
+        c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+esc(s.plan_name||"starter")+'</span></div>'
+        +'<div class="mini"><div class="m"><span class="mv">'+(s.queued||0)+'</span><span class="ml">Queued</span></div>'
+        +'<div class="m"><span class="mv"><span class="pos">'+(s.won||0)+'</span>–<span class="neg">'+(s.lost||0)+'</span></span><span class="ml">W – L</span></div>'
+        +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
+        +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>'
+        +'<div style="margin-top:14px;color:var(--muted);font-size:13px"><span class="dot '+(s.enabled?"on":"off")+'"></span>'+(s.enabled?"Bot enabled":"Bot disabled")+'</div>';
+        c.onclick=()=>loadDetail(s.guild_id);grid.appendChild(c);});
+      ov.appendChild(grid);
+    }
+    // Communities the user follows (read-only follower surface).
+    if(follows.length){
+      const h=document.createElement("div");
+      h.style.cssText="margin:"+(list.length?"26px":"0")+" 0 12px";
+      h.innerHTML='<h2 style="margin:0 0 4px;font-size:17px">Following</h2><p style="color:var(--muted);margin:0;font-size:13px">'+follows.length+' communit'+(follows.length===1?"y":"ies")+' you follow · your own tracked bets</p>';
+      ov.appendChild(h);
+      const fg=document.createElement("div");fg.className="grid";
+      follows.forEach(s=>{const c=document.createElement("div");c.className="scard";
+        c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Community")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">follower</span></div>'
+          +'<div style="margin-top:12px;color:var(--muted);font-size:13px">Tap to see your units, calendar and tip history →</div>';
+        c.onclick=()=>openFollowerView(s.guild_id,s.display_name);fg.appendChild(c);});
+      ov.appendChild(fg);
+    }
+    if(!list.length && !follows.length){
+      ov.innerHTML='<div class="empty">Nothing here yet. Follow a tipster in Discord and your tracked bets show up here.</div>';
+    }
   }
 
   function fmtMonth(m){try{const[y,mo]=m.split("-");return new Date(+y,+mo-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});}catch{return m;}}
@@ -785,25 +812,29 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     try{ const t=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
       const legs=(t.legs||[]).map(l=>'<div style="font-size:13px;padding:2px 0">• '+esc(l.description)+(l.leg_result?' '+TB.chips.render(l.leg_result):'')+'</div>').join("")||'<div style="color:var(--faint);font-size:12px">No legs recorded.</div>';
       let grade='';
-      if((t.status||"")==="Pending"){
-        grade='<div class="graderow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">'
-          +'<span style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em">Grade result:</span>'
+      const isGodRegrade=(t.status||"")==="Settled"&&godOn();
+      if((t.status||"")==="Pending"||isGodRegrade){
+        grade='<div class="graderow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center'+(isGodRegrade?';border-top:1px dashed var(--warn,#e0a04a);padding-top:10px':'')+'">'
+          +'<span style="color:'+(isGodRegrade?'var(--warn,#e0a04a)':'var(--faint)')+';font-size:11px;text-transform:uppercase;letter-spacing:.05em">'+(isGodRegrade?'🔱 God re-grade:':'Grade result:')+'</span>'
           +'<button class="gradebtn" data-r="Win"  style="border:1px solid rgba(66,176,111,.45);background:rgba(66,176,111,.14);color:#7ee0a6;border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Win</button>'
           +'<button class="gradebtn" data-r="Loss" style="border:1px solid rgba(229,72,77,.45);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Loss</button>'
           +'<button class="gradebtn" data-r="Push" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Push</button>'
           +'</div>';
       }
       el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+((t.status==='Settled')?TB.settleBadge.render(t.settle_source):'')+'</div>'+legs+grade;
-      el.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); gradeBet(gid,tipId,b.dataset.r,el); });
+      el.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); gradeBet(gid,tipId,b.dataset.r,el,(t.status||"")==="Settled"||godOn()); });
       el.dataset.loaded="1";
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); el.innerHTML='<span class="err" style="font-size:12px">Couldn\'t load legs.</span>'; }
   }
-  async function gradeBet(gid,tipId,result,box){
-    if(!confirm("Grade this bet as "+result+"? Followers will be notified and it will post to bet-results."))return;
+  async function gradeBet(gid,tipId,result,box,god){
+    const useGod=!!god&&godOn();
+    if(!confirm((useGod?"🔱 God-mode grade as ":"Grade this bet as ")+result+"? Followers will be notified and it will post to bet-results."))return;
     if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=true);
-    try{ const r=await api("/api/settle-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId,result:result})});
+    try{ const r=await api(useGod?"/api/god-settle":"/api/settle-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId,result:result})});
       const j=await r.json();
-      if(j.ok){ if(STATE._detailCache)STATE._detailCache={}; toast("Grading as "+result+" — updating Discord…"); const row=document.querySelector('.betrow[data-tip="'+tipId+'"]'); const lg=$("legs_"+tipId); if(row)row.remove(); if(lg)lg.remove(); }
+      if(j.ok){ if(STATE._detailCache)STATE._detailCache={}; toast((useGod?"🔱 Overriding as ":"Grading as ")+result+" — updating Discord…");
+        if(useGod){ setTimeout(()=>loadDetail(gid,null,{force:true}),400); }
+        else { const row=document.querySelector('.betrow[data-tip="'+tipId+'"]'); const lg=$("legs_"+tipId); if(row)row.remove(); if(lg)lg.remove(); } }
       else { toast(j.message||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
@@ -821,6 +852,54 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   function toast(msg){ let t=$("nd_toast"); if(!t){ t=document.createElement("div"); t.id="nd_toast"; t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:11px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:60;font-size:14px;max-width:90vw;transition:opacity .3s"; document.body.appendChild(t);} t.textContent=msg; t.style.opacity="1"; clearTimeout(t._h); t._h=setTimeout(()=>{t.style.opacity="0";},4000); }
 
   /* ---------- FOLLOWERS ---------- */
+  // One row in a follower's tip history: chips + $ figure + SGM/settle badges.
+  function followerFeedRow(t){
+    const result=String(t.result||"Pending"),settled=/^(win|loss|push|void)$/i.test(result);
+    const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
+    return '<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
+  }
+  /* ---------- FOLLOWER SURFACE (read-only, #31 / #45) ---------- */
+  async function openFollowerView(gid,name,month){
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    panel("follower");show("app");
+    $("follower").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("220px","28px")+'</div>'+NDSkeleton.grid(4,{cols:2,tile:"70px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
+    try{
+      const r=await api("/api/follower?guild_id="+encodeURIComponent(gid)+(month?"&month="+encodeURIComponent(month):""));
+      if(!r.ok){ $("follower").innerHTML='<div class="back" id="flbx">← Back</div><div class="empty">You don\'t have a follower view here yet.</div>'; $("flbx").onclick=enterHome; return; }
+      renderFollowerView(gid,name,await r.json());
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
+      $("follower").innerHTML='<div class="back" id="flbx">← Back</div><div class="empty">Couldn\'t reach the bot.</div>'; $("flbx").onclick=enterHome; }
+  }
+  function renderFollowerView(gid,name,d){
+    const st=d.stats||{},nm=d.display_name||name||"Community";
+    const total=Math.max(st.won+st.lost+st.push,1);
+    const preview=!!d.preview;
+    const homeCount=(STATE.servers||[]).length+(STATE.followerServers||[]).length;
+    const showBack=preview||homeCount>1;
+    const backTo=()=>preview?loadDetail(gid):enterHome();
+    const months=d.months||[],curMonth=d.month||"";
+    const period=curMonth?fmtMonth(curMonth):"All time";
+    const monthSel='<select id="fmonthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">All time</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
+    const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
+    const tiles=[["Profit",u(st.profit_units||0),(st.profit_units||0)>=0?"pos":"neg"],["ROI",(st.roi||0)+"%",(st.roi||0)>=0?"pos":"neg"],["Success",(st.strike_rate||0)+"%",""],["Pending",st.pending||0,""]]
+      .map(t=>'<div class="tile"><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+'</div></div>').join("");
+    const feed=(d.feed&&d.feed.length)?d.feed.map(followerFeedRow).join(""):
+      '<div class="empty">No tracked bets yet. In Discord, react to a tip with the follow emoji and it\'ll appear here.</div>';
+    $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
+      +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
+      +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
+      +'<div class="tiles">'+tiles+'</div>'
+      +'<div class="panel"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.staked_units+'u staked</span></div></div>'
+      +renderCalendar(d.cal_month,d.daily_series)
+      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>';
+    if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
+    { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
+    { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
+    $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
+      openFollowerView(gid,nm,calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
+    });
+  }
   async function openFollowers(gid,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("followers");show("app");
@@ -864,11 +943,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     $("fbx").onclick=()=>loadDetail(gid);
     list.forEach((f,i)=>{ const b=$("followers").querySelector('.fexp[data-i="'+i+'"]'); if(b)b.onclick=()=>{
       const box=$("fbets_"+i); if(!box)return; if(!box.hidden){box.hidden=true;return;} box.hidden=false;
-      box.innerHTML=(f.follows_list||[]).map(t=>{
-        const result=String(t.result||"Pending"),settled=/^(win|loss|push|void)$/i.test(result);
-        const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
-        return '<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
-      }).join("")||'<div class="empty">No bets yet.</div>';
+      box.innerHTML=(f.follows_list||[]).map(followerFeedRow).join("")||'<div class="empty">No bets yet.</div>';
     };});
     $("followers").querySelectorAll(".mact").forEach(b=>b.onclick=async()=>{
       const a=b.dataset.a,uid=b.dataset.uid,min=b.dataset.min;
@@ -947,13 +1022,13 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(229,89,95,.55)"></span>Down day</span>'
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--card2);border:1px solid var(--line)"></span>No tips</span>'
       +'<span style="margin-left:auto">'+days+' active day'+(days===1?"":"s")+' · '+tips+' tips</span></div>';
-    return '<div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">'
+    return '<div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:12px;flex-wrap:wrap">'
       +'<h3 style="margin:0">Units calendar</h3>'
-      +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px">‹</button>'
-      +'<span style="min-width:132px;text-align:center;font-size:13px;font-weight:600">'+esc(fmtMonth(month))+'</span>'
-      +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px">›</button>'
-      +'<span style="margin-left:6px;color:var(--faint);font-size:12px">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-left:auto">'
+      +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px;flex:none">‹</button>'
+      +'<span style="min-width:112px;text-align:center;font-size:13px;font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
+      +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px;flex:none">›</button>'
+      +'<span style="margin-left:6px;color:var(--faint);font-size:12px;white-space:nowrap;flex:none">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span>'
       +'</div></div>'+head+cells+'</div>'+legend+'</div>';
   }
   function renderSettingsTab(gid,tab,s){
@@ -1052,6 +1127,14 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +dbgBtn("follow_selftest","Test follow → DM","Traces the follow/DM pipeline and reports where it stops")
       +'<button class="dbgqbtn" title="Shows whether the bot is draining the dashboard queues" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Queue status</button>'
       +'</div><div id="dbgstatus" style="font-size:12px;color:var(--faint);margin-top:8px;white-space:pre-wrap;font-family:ui-monospace,monospace"></div></div>';
+    // God mode (#32): owner-only override. When on, ANY tip — even a settled one —
+    // can be (re-)graded from its expanded view, stamped with 'god' provenance.
+    const godZone='<div style="margin-top:16px;border-top:1px solid var(--warn,#e0a04a);padding-top:14px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
+      +'<div><div style="color:var(--warn,#e0a04a);font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700">🔱 God mode</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Override or re-grade any tip, including settled ones. Grades post as <b>God</b>.</div></div>'
+      +'<button id="godtoggle" class="toggle '+(STATE.god?"on":"")+'" style="flex:none"></button></div>'
+      +'<div id="godhint" style="font-size:12px;margin-top:8px;color:'+(godOn()?'var(--warn,#e0a04a)':'var(--faint)')+'">'+(godOn()?"● ON — expand any tip in Recent Results to re-grade it.":"Off — tips grade normally.")+'</div></div>';
     // Danger zone lives INSIDE Admin controls (platform-owner-only, #34). Type the
     // server name (or LEAVE if unnamed) to arm the remove button.
     const leaveToken=(s.display_name||"").trim()||"LEAVE";
@@ -1062,12 +1145,12 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<input id="leaveconfirm" placeholder="'+esc(leaveToken)+'" autocomplete="off" style="flex:1;min-width:160px;padding:8px 10px;border-radius:9px;border:1px solid #7a2a2a;background:#1c1414;color:var(--txt);font:inherit">'
       +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" data-token="'+esc(leaveToken)+'" disabled style="border:1px solid #7a2a2a;background:#2a1717;color:#7a5252;border-radius:9px;padding:9px 14px;cursor:not-allowed;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button>'
       +'</div><div id="leaveservermsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+dangerZone+'</div></div>'):'';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+dangerZone+'</div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
       +'<div id="settings-body"></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +'<div class="tiles">'+tiles+'</div>'
@@ -1081,6 +1164,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
     { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
+    { const af=$("asfollowerbtn"); if(af)af.onclick=()=>openFollowerView(s.guild_id,s.display_name); }
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
     { const ms=$("monthsel"); if(ms)ms.onchange=()=>loadDetail(s.guild_id,ms.value||null); }
     // Calendar arrows step months; they drive the whole period (stats follow),
@@ -1090,6 +1174,11 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       loadDetail(s.guild_id,target);
     });
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
+    { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
+      const gh=$("godhint"); if(gh){ gh.textContent=godOn()?"● ON — expand any tip in Recent Results to re-grade it.":"Off — tips grade normally."; gh.style.color=godOn()?"var(--warn,#e0a04a)":"var(--faint)"; }
+      // Collapse any open legs so they re-render with (or without) the re-grade UI.
+      document.querySelectorAll(".betlegs").forEach(el=>{el.hidden=true;el.dataset.loaded="";el.innerHTML="";});
+    }; }
     $("detail").querySelectorAll(".dbgbtn").forEach(b=>b.onclick=async()=>{
       const st=$("dbgstatus"); b.disabled=true; if(st)st.textContent="Asking the bot to run: "+b.textContent+"…";
       try{ const r=await api("/api/debug",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id,kind:b.dataset.k})});
@@ -1515,9 +1604,12 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   // ── Custom (non-AFL) tips ────────────────────────────────────────────────
   // Skips the AFL game/player picker: type the event + your selections, add odds/
   // units/bookmaker + an optional screenshot, and it posts through the same queue.
-  function openCustom(guildId,name){
+  // Non-AFL sports (from the multi-sport API research). No live feed yet, so they
+  // route through the custom-tip flow pre-tagged with the sport (#37 stubs).
+  const SPORT_STUBS=[{k:"Soccer",hint:"EPL · A-League"},{k:"NBA",hint:"NBA"},{k:"NRL",hint:"NRL"}];
+  function openCustom(guildId,name,presetSport){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:"",unitSize:guildUnitSize(guildId)};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",unitSize:guildUnitSize(guildId)};
     panel("builder");renderTray();
     renderCustom();
   }
@@ -1638,7 +1730,12 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
     let html='<div class="back" id="bx">← Back to '+(BUILD.serverName||"server")+'</div>'
       +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px"><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
-      +'<p style="color:var(--muted);margin:0 0 14px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
+      +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
+    // Sport switcher (#37): AFL is live; other sports route to custom tips for now.
+    html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
+      +'<span class="compchip on" title="Live AFL/AFLW data">🏉 AFL <span style="opacity:.7;font-size:11px">live</span></span>'
+      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — added as a custom tip (live '+esc(s.k)+' data coming soon)">'+esc(s.k)+'</button>').join("")
+      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">＋ Other</button></div>';
     if(hasMulti){
       const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
       html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'
@@ -1659,7 +1756,8 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     const cg=$("customgames"); if(cg)cg.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName);
-    $("builder").querySelectorAll(".compchip").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
+    $("builder").querySelectorAll(".compchip[data-c]").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
+    $("builder").querySelectorAll(".sportstub").forEach(b=>b.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName,b.dataset.s));
     $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(shown[+c.dataset.i]));
   }
   function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
@@ -1687,6 +1785,9 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+teamName(g.hteam)+' v '+teamName(g.ateam)+'</h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
+      +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:12px;background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
+        +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:13px">△ Assumption mode</div><div style="color:var(--muted);font-size:12px;margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
+        +'<button id="assumetoggle" class="toggle '+(BUILD.assume?"on":"")+'" style="flex:none"></button></div>'):"")
       +'<div class="tabs">'+tabs+'</div>'
       +'<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px">First / last markets</div>'
       +'<div class="tabs">'+mtabs+'</div>'
@@ -1695,6 +1796,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
       +'</div><div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+    { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
     const rl=$("refreshlive"); if(rl)rl.onclick=()=>refreshLive(g);
     $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;renderGame();});
     const ps=$("psort"); if(ps){ ps.value=BUILD.sort||"number"; ps.onchange=()=>{BUILD.sort=ps.value;renderPlayers();}; }
@@ -1704,6 +1806,12 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   // Only ever show the NAMED side (playerListType==="selected"); before teams are
   // announced we show nothing rather than a full/มismatched squad.
   function isNamed(team){ return team&&typeof team==="object"&&team.playerListType==="selected"; }
+  // Assumption mode (#40): before a side is named, optionally build off the FULL
+  // squad (the static players.json list). Legs on unnamed players auto-void once
+  // the real side drops.
+  function fullSquad(team){ const live=(team&&Array.isArray(team.players))?team.players:[]; const stat=STATE.players[teamName(team)]||[]; return (stat.length>=live.length?stat:live); }
+  function isAssumed(team){ return !isNamed(team)&&!!BUILD.assume&&fullSquad(team).length>0; }
+  function gameNeedsAssume(g){ return g&&(!isNamed(g.hteam)||!isNamed(g.ateam)); }
   function sortPlayers(list){
     const arr=list.slice();
     if(BUILD.sort==="name"){ arr.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""))); }
@@ -1719,9 +1827,9 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   // The deterministic, displayed roster for a side — used by BOTH the render and
   // wiring loops so row ids line up.
   function displayList(team){
-    if(!isNamed(team))return [];
-    const list=Array.isArray(team.players)?team.players:[];
-    return filterPlayers(sortPlayers(list));
+    if(isNamed(team)){ return filterPlayers(sortPlayers(Array.isArray(team.players)?team.players:[])); }
+    if(isAssumed(team)){ return filterPlayers(sortPlayers(fullSquad(team))); }
+    return [];
   }
   // Team colours for the guernsey icon (most specific keys first).
   const TEAMCOLORS=[["adelaide","#0a2240"],["brisbanelions","#7a002e"],["brisbane","#7a002e"],["carlton","#0e1e3d"],["collingwood","#0b0b0b"],["essendon","#c8102e"],["fremantle","#33006f"],["goldcoast","#d0112b"],["greaterwesternsydney","#f47a20"],["gwsgiants","#f47a20"],["gws","#f47a20"],["giants","#f47a20"],["hawthorn","#4d2004"],["northmelbourne","#013a81"],["kangaroos","#013a81"],["portadelaide","#01b3ac"],["power","#01b3ac"],["geelong","#0a2240"],["richmond","#141414"],["stkilda","#ed1b2e"],["saints","#ed1b2e"],["sydneyswans","#e1231f"],["swans","#e1231f"],["westcoast","#062f6c"],["eagles","#062f6c"],["westernbulldogs","#0a37a0"],["bulldogs","#0a37a0"],["sydney","#e1231f"],["melbourne","#0b1a4d"],["demons","#0b1a4d"]];
@@ -1741,14 +1849,18 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     sides.forEach(team=>{
       const nm=teamName(team),slug=nm.replace(/\W/g,"");
       const status=((team&&team.selectionStatus)||"").replace(/_/g," ").toLowerCase();
-      if(!isNamed(team)){
+      if(!isNamed(team)&&!isAssumed(team)){
         html+='<div class="teamhdr">'+nm+' <span style="background:#5a4a1f;color:#f0d78a;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NOT NAMED</span></div>'
           +'<div class="empty" style="margin:0 0 14px">Team not announced yet — players appear once the side is named (usually 1\u20132 days before the game)'+(status?" \u00b7 "+status:"")+'.</div>';
         return;
       }
+      const assumed=isAssumed(team);
       const list=displayList(team);
       const collapsed=!!BUILD.collapsed[slug];
-      html+='<div class="thdr" data-slug="'+slug+'"><span class="tcaret">'+(collapsed?"\u25b8":"\u25be")+'</span>'+nm+' <span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span> <small style="color:var(--muted);font-weight:400">\u00b7 '+list.length+' player'+(list.length===1?"":"s")+(status?" \u00b7 "+status:"")+'</small></div>';
+      const sideBadge=assumed
+        ? '<span style="background:#5a4a1f;color:#f0d78a;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">\u25b3 ASSUMED \u00b7 FULL SQUAD</span>'
+        : '<span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span>';
+      html+='<div class="thdr" data-slug="'+slug+'"><span class="tcaret">'+(collapsed?"\u25b8":"\u25be")+'</span>'+nm+' '+sideBadge+' <small style="color:var(--muted);font-weight:400">\u00b7 '+list.length+' player'+(list.length===1?"":"s")+(status?" \u00b7 "+status:"")+'</small></div>';
       html+='<div class="teamplayers" id="tp_'+slug+'"'+(collapsed?' hidden':'')+'>';
       const ins=(team&&team.ins)||[],outs=(team&&team.outs)||[];
       if(ins.length||outs.length){
@@ -1777,9 +1889,9 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"\u25b8":"\u25be";});
     // wire each row
     const frac=(L&&L.available&&L.phase&&L.phase.fraction>0)?L.phase.fraction:0;
-    sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,"");displayList(team).forEach((p,idx)=>{
+    sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,""),teamAssumed=isAssumed(team);displayList(team).forEach((p,idx)=>{
       const rid="r_"+slug+"_"+idx;
-      if(isMarket){ const a=$(rid+"_a"); if(a)a.onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,market:BUILD.tab,desc:mkt.d(p.name,nm)}); return; }
+      if(isMarket){ const a=$(rid+"_a"); if(a)a.onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,market:BUILD.tab,desc:mkt.d(p.name,nm),assumed:teamAssumed}); return; }
       const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou");let side="Over";
       if(!sl||!vv)return;
       const row=sl.closest(".prow");const lv=liveVal(p.name);
@@ -1791,7 +1903,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       sl.oninput=()=>{vv.value=sl.value;tint();};
       vv.oninput=()=>{ let n=parseFloat(vv.value); if(isNaN(n)){tint();return;} if(n<0){n=0;vv.value=0;} sl.value=Math.min(n,+sl.max); tint(); };
       ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");tint();});
-      $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side});
+      $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side,assumed:teamAssumed});
     });});
   }
   function addLeg(leg){
@@ -1950,11 +2062,39 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     if(!getToken())return renderLogin();
     show("loading");
     try{const r=await api("/api/servers");if(!r.ok)return renderLogin();const data=await r.json();
-      STATE.role=data.role;STATE.servers=data.servers||[];
-      $("rolebadge").textContent=STATE.role==="owner"?"Owner":"Moderator";
+      STATE.role=data.role;STATE.servers=data.servers||[];STATE.followerServers=data.follower_servers||[];
+      hydrateTheme(data.theme_prefs);
+      $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
       $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
       buildViewAsMenu();show("app");enterHome();
     }catch(e){if(e.unauth)return renderLogin();renderLogin("Couldn't reach the bot — try again in a moment.");}
+  }
+  // ── Theme sync per account (#44) ──────────────────────────────────────────
+  // localStorage is the per-device cache + pre-paint source; the server copy is
+  // the account's source of truth, applied on login so the theme follows you
+  // across devices. Saves fire on any appearance change (once sync is armed).
+  let THEME_SYNC_READY=false;
+  function saveThemePrefs(){
+    if(!THEME_SYNC_READY||!getToken())return;
+    let body={};try{body={theme:localStorage.getItem("tipbot_theme"),auto:localStorage.getItem("tipbot_theme_auto")==="true",accent:localStorage.getItem("tipbot_theme_accent")};}catch(e){}
+    try{ api("/api/theme",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).catch(()=>{}); }catch(e){}
+  }
+  ["set","setAuto","setAccent"].forEach(function(fn){
+    const orig=TB.theme&&TB.theme[fn];
+    if(typeof orig==="function")TB.theme[fn]=function(){const r=orig.apply(this,arguments);saveThemePrefs();return r;};
+  });
+  function hydrateTheme(tp){
+    // Server prefs win over the local cache, then get cached locally.
+    if(tp){
+      try{
+        if(tp.theme){localStorage.setItem("tipbot_theme",tp.theme);}
+        localStorage.setItem("tipbot_theme_auto",tp.auto?"true":"false");
+        if(tp.accent){localStorage.setItem("tipbot_theme_accent",tp.accent);}else{localStorage.removeItem("tipbot_theme_accent");}
+        localStorage.removeItem("tipbot_theme_manual_date");
+      }catch(e){}
+      try{TB.theme.init();TB.theme.mount($("tb-appearance"));}catch(e){}
+    }
+    THEME_SYNC_READY=true;   // arm saves only after the login hydrate settles
   }
   TB.theme.init(); TB.theme.mount($("tb-appearance")); TB.bookie.init();
   load();
