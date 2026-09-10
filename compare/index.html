@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player compare — Tipdash</title>
+  <link rel="icon" href="../assets/favicon.svg">
+  <style>
+    :root{--bg:#0b1020;--card:#141a2e;--line:#243052;--txt:#e8eefc;--muted:#9aa8c7;--accent:#5b8cff;--faint:#6b7a9b}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+    .wrap{max-width:720px;margin:0 auto;padding:28px 18px 60px;min-width:0}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px;margin-top:18px}
+    h1{margin:0 0 8px;font-size:22px}
+    .muted{color:var(--muted)}
+    .faint{color:var(--faint);font-size:13px}
+    .pill{display:inline-block;background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);color:#9db8ff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;margin:4px 6px 0 0}
+    .back{display:inline-block;margin-bottom:14px;color:var(--muted);font-size:14px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="../">← Tipdash</a>
+    <h1>Player compare</h1>
+    <p class="muted" id="sub">Coming soon</p>
+    <div class="card">
+      <div id="who" style="font-weight:800;font-size:18px">—</div>
+      <div id="meta" class="faint" style="margin-top:8px"></div>
+      <p class="muted" style="margin:16px 0 0">Full head-to-head stats (form, season averages, vs opponent) will land here. This page is a placeholder so Compare links from the tip builder work today.</p>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var q=new URLSearchParams(location.search);
+      var player=q.get("player")||"";
+      var stat=q.get("stat")||"";
+      var game=q.get("game")||"";
+      document.getElementById("who").textContent=player||"No player selected";
+      document.title=(player?player+" — ":"")+"Player compare — Tipdash";
+      var meta=[];
+      if(stat) meta.push('<span class="pill">'+esc(stat)+'</span>');
+      if(game) meta.push('<span class="pill">'+esc(game)+'</span>');
+      document.getElementById("meta").innerHTML=meta.join("")||'<span class="faint">No query params</span>';
+      document.getElementById("sub").textContent=player?("Compare · "+player):"Player compare — coming soon";
+      function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+    })();
+  </script>
+</body>
+</html>
