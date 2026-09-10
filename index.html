@@ -21,6 +21,43 @@
 }());
 </script>
 <style>
+
+  /* Global top loading bar */
+  #tb-loadbar{
+    position:fixed;top:0;left:0;right:0;height:3px;z-index:9999;
+    pointer-events:none;opacity:0;transition:opacity .2s;
+    background:transparent;
+  }
+  #tb-loadbar.on{opacity:1}
+  #tb-loadbar > i{
+    display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,var(--accent,#5b8cff),var(--accent2,#7b5bff),var(--accent,#5b8cff));
+    background-size:200% 100%;
+    box-shadow:0 0 10px rgba(91,140,255,.55);
+    transition:width .25s ease;
+  }
+  #tb-loadbar.indeterminate > i{
+    width:35% !important;
+    animation:tb-load-slide 1.1s ease-in-out infinite, tb-load-shimmer 1.4s linear infinite;
+  }
+  @keyframes tb-load-slide{
+    0%{transform:translateX(-120%)}
+    100%{transform:translateX(320%)}
+  }
+  @keyframes tb-load-shimmer{
+    0%{background-position:200% 0}
+    100%{background-position:-200% 0}
+  }
+  .tb-loadpanel-bar{
+    width:min(280px,70vw);height:6px;border-radius:99px;background:rgba(255,255,255,.08);
+    overflow:hidden;margin:18px auto 0;
+  }
+  .tb-loadpanel-bar > i{
+    display:block;height:100%;width:40%;border-radius:99px;
+    background:linear-gradient(90deg,var(--accent,#5b8cff),var(--accent2,#7b5bff));
+    animation:tb-load-slide 1.15s ease-in-out infinite;
+  }
+
   :root{
     --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;
     --txt:#eef2fa;--muted:#8a95ad;--faint:#5c6785;
@@ -403,7 +440,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a></div>
   </div>
   <div id="loading" class="center"><div><h1>TipBot Dashboard</h1><p id="loadingmsg">Loading…</p>
-    <p style="color:var(--faint);font-size:13px">First load can take ~50s while the bot wakes.</p></div></div>
+    <div class="tb-loadpanel-bar" aria-hidden="true"><i></i></div>
+    <p style="color:var(--faint);font-size:13px;margin-top:14px">First load can take a bit while the bot wakes — this bar means it’s still going.</p></div></div>
 
   <div id="app" hidden>
     <div class="top">
@@ -860,6 +898,51 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }
     }catch(e){}
   })();
+  
+  // Top loading bar — visible progress while TipBot/Render wakes
+  const TopBar = (function(){
+    let el=null, fill=null, pending=0, hardTimer=null;
+    function ensure(){
+      if(el) return;
+      el=document.createElement("div");
+      el.id="tb-loadbar";
+      el.innerHTML="<i></i>";
+      document.body.appendChild(el);
+      fill=el.firstElementChild;
+    }
+    function start(indeterminate){
+      ensure();
+      pending++;
+      el.classList.add("on");
+      if(indeterminate!==false) el.classList.add("indeterminate");
+      else el.classList.remove("indeterminate");
+      if(fill && indeterminate===false) fill.style.width="12%";
+      clearTimeout(hardTimer);
+      // Never leave the bar stuck forever
+      hardTimer=setTimeout(()=>{ pending=0; done(true); }, 120000);
+    }
+    function set(pct){
+      ensure();
+      el.classList.add("on");
+      el.classList.remove("indeterminate");
+      if(fill) fill.style.width=Math.max(5, Math.min(98, pct))+"%";
+    }
+    function done(force){
+      if(!force){ pending=Math.max(0, pending-1); if(pending>0) return; }
+      pending=0;
+      ensure();
+      el.classList.remove("indeterminate");
+      if(fill) fill.style.width="100%";
+      setTimeout(()=>{
+        if(pending) return;
+        el.classList.remove("on");
+        if(fill) fill.style.width="0%";
+      }, 280);
+      clearTimeout(hardTimer);
+    }
+    return { start, set, done };
+  })();
+
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
@@ -2814,13 +2897,25 @@ async function loadPerms(gid){
     if(hash.get("token")){setToken(hash.get("token"));history.replaceState(null,"",location.pathname);}
     if(!getToken())return renderLogin();
     show("loading");
-    try{const r=await api("/api/servers");if(!r.ok)return renderLogin();const data=await r.json();
+    TopBar.start();
+    let fake=18; TopBar.set(fake);
+    const tick=setInterval(()=>{ fake=Math.min(90, fake+3); TopBar.set(fake); }, 1500);
+    try{
+      const r=await api("/api/servers");
+      TopBar.set(92);
+      if(!r.ok){ TopBar.done(true); return renderLogin(); }
+      const data=await r.json();
       STATE.role=data.role;STATE.servers=data.servers||[];STATE.followerServers=data.follower_servers||[];
       hydrateTheme(data.theme_prefs);
       $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
       $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
       buildViewAsMenu();show("app");enterHome();
-    }catch(e){if(e.unauth)return renderLogin();renderLogin("Couldn't reach the bot — try again in a moment.");}
+      TopBar.done(true);
+    }catch(e){
+      TopBar.done(true);
+      if(e.unauth)return renderLogin();
+      renderLogin("Couldn't reach the bot — try again in a moment.");
+    }finally{ clearInterval(tick); }
   }
   // ── Theme sync per account (#44) ──────────────────────────────────────────
   // localStorage is the per-device cache + pre-paint source; the server copy is
@@ -2850,6 +2945,7 @@ async function loadPerms(gid){
     THEME_SYNC_READY=true;   // arm saves only after the login hydrate settles
   }
   TB.theme.init(); TB.theme.mount($("tb-appearance")); TB.bookie.init();
+  try{ if(getToken()) TopBar.start(); }catch(e){}
   load();
 </script>
 </body>
