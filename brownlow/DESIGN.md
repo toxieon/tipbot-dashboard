@@ -37,16 +37,21 @@ Auth: Bearer tipdash Discord session.
 ## Ship
 Copy `brownlow/` into `toxieon/tipbot-dashboard`. Wire auth + APIs without restyling unless Brandon asks.
 
-## Auth (Husker — restored 2026-09-10)
+## Auth + data (Husker — live wire 2026-09-10)
 - Shared Tipdash session: `localStorage.tipbot_token`
-- Login: `https://afl-tipster-bot.onrender.com/auth/login`
+- Login: `https://afl-tipster-bot.onrender.com/auth/login?return_to=/brownlow`
 - Absorb `#token=` hash on return
-- Probe `GET /api/me` then `GET /api/brownlow/week` (404 = wait copy)
+- Probe `GET /api/me`, then live Cinna-contract routes:
+  - `GET /api/brownlow/rounds`
+  - `GET /api/brownlow/rounds/{id}/matches`
+  - `GET /api/brownlow/matches/{id}/squads`
+  - `POST /api/brownlow/matches/{id}/votes` `{first,second,third}`
+  - `GET /api/brownlow/me/votes`
+  - `GET /api/brownlow/leaderboard`
 
 ## Owner-only Board
-- **Board** tab is platform-owner only (hides community tally from voters).
+- Board tab + leaderboard API results are for platform owner only (don’t sway votes).
 
 ## Season snapshots
-- `2026.json` — Squiggle 2026 games/teams for preview.
-- `2027.json` — stub for later.
+- `2026.json` / `2027.json` stub — UI may fall back to 2026 snapshot if live API empty.
 
