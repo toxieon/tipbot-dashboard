@@ -21,6 +21,8 @@ const state = {
   year: null,
   rounds: [],
   round: null,
+  teamsByName: {},
+  teamsById: {},
   matches: [],
   matchesLoading: false,
   matchId: null,
@@ -53,6 +55,52 @@ async function api(path, opts){
   const r = await fetch(API + path, opts);
   if(r.status === 401){ clearToken(); throw { unauth: true }; }
   return r;
+}
+
+
+function teamInfo(name){
+  if(!name) return { name: "—", abbrev: "", logo: null };
+  const key = String(name).toLowerCase();
+  const t = state.teamsByName[key];
+  if(t) return t;
+  // fuzzy: "Brisbane" vs "Brisbane Lions"
+  for(const [k,v] of Object.entries(state.teamsByName||{})){
+    if(k.includes(key) || key.includes(k)) return v;
+  }
+  return { name: String(name), abbrev: "", logo: null };
+}
+function squiggleLogo(path){
+  if(!path) return null;
+  if(/^https?:/i.test(path)) return path;
+  return "https://squiggle.com.au" + (path.startsWith("/") ? path : "/"+path);
+}
+function bindRoundsDrag(el){
+  if(!el || el.dataset.dragBound) return;
+  el.dataset.dragBound = "1";
+  let down=false, startX=0, startScroll=0, moved=false;
+  const onDown = (x) => { down=true; moved=false; startX=x; startScroll=el.scrollLeft; el.classList.add("dragging"); };
+  const onMove = (x) => {
+    if(!down) return;
+    const dx = x - startX;
+    if(Math.abs(dx) > 4) moved = true;
+    el.scrollLeft = startScroll - dx;
+  };
+  const onUp = () => { down=false; el.classList.remove("dragging"); };
+  el.addEventListener("mousedown", e => { if(e.button!==0) return; onDown(e.pageX); e.preventDefault(); });
+  window.addEventListener("mousemove", e => onMove(e.pageX));
+  window.addEventListener("mouseup", onUp);
+  el.addEventListener("click", e => { if(moved){ e.preventDefault(); e.stopPropagation(); moved=false; } }, true);
+  // Keep native touch pan; also support pointer
+  el.addEventListener("pointerdown", e => {
+    if(e.pointerType==="mouse") return;
+    // touch: let native scroll work; mark for click suppression if scrolled
+  });
+}
+
+function teamSideHtml(name, side){
+  const info = teamInfo(name);
+  const logo = info.logo ? `<img class="tlogo" src="${escAttr(info.logo)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="tlogo" aria-hidden="true"></span>`;
+  return `<div class="side ${side}">${logo}<div class="tname">${esc(info.name)}${info.abbrev?`<span class="tabbrev">${esc(info.abbrev)}</span>`:""}</div></div>`;
 }
 
 function isPlatformOwner(){
@@ -150,11 +198,37 @@ async function loadLeaderboard(){
 }
 
 
+function ingestTeams(teams){
+  state.teamsByName = state.teamsByName || {};
+  state.teamsById = state.teamsById || {};
+  for(const raw of teams||[]){
+    const name = raw.name || raw.team || "";
+    if(!name) continue;
+    const info = {
+      name: String(name),
+      abbrev: String(raw.abbrev || raw.ab || ""),
+      logo: squiggleLogo(raw.logo || raw.logo_url || ""),
+      id: raw.id,
+    };
+    state.teamsByName[name.toLowerCase()] = info;
+    if(raw.id != null) state.teamsById[String(raw.id)] = info;
+  }
+}
+async function ensureTeamsSnapshot(){
+  if(Object.keys(state.teamsByName||{}).length) return;
+  try{
+    const r = await fetch("./2026.json", {cache:"no-store"});
+    if(!r.ok) return;
+    const data = await r.json();
+    ingestTeams(data.teams||[]);
+  }catch(e){}
+}
 async function loadSeasonSnapshotFallback(){
   try{
     const r = await fetch(SEASON_SNAP_URL, {cache:"no-store"});
     if(!r.ok) return false;
     const SEASON = await r.json();
+    ingestTeams(SEASON.teams||[]);
     state.rounds = (SEASON.rounds||[]).map(r => ({ id: String(r.id), label: r.label||("R"+r.id), done: !!r.done }));
     state.matchesByRound = state.matchesByRound || {};
     for(const r of (SEASON.rounds||[])){
@@ -174,6 +248,7 @@ async function loadSeasonSnapshotFallback(){
 
 async function boot(){
   state.booting = true; render();
+  await ensureTeamsSnapshot();
   if(!getToken()){ state.booting = false; state.user = null; render(); return; }
   try{
     const r = await api("/api/me");
@@ -209,15 +284,20 @@ function shell(body, { showNav = true } = {}) {
   app().innerHTML = `
     <header class="top">
       <div class="brand"><div class="medal">3</div><div>Brownlow<small>Tipdash predictor</small></div></div>
-      ${showNav ? `<nav class="nav">
-        <button type="button" data-tab="vote" class="${state.tab==="vote"?"on":""}">Vote</button>
-        <button type="button" data-tab="mine" class="${state.tab==="mine"?"on":""}">My votes</button>
-        ${isPlatformOwner() ? `<button type="button" data-tab="board" class="${state.tab==="board"?"on":""}">Board</button>` : ""}
-      </nav>` : ""}
+      <div style="display:flex;align-items:center;gap:8px">
+        ${showNav ? `<nav class="nav">
+          <button type="button" data-tab="vote" class="${state.tab==="vote"?"on":""}">Vote</button>
+          <button type="button" data-tab="mine" class="${state.tab==="mine"?"on":""}">My votes</button>
+          ${isPlatformOwner() ? `<button type="button" data-tab="board" class="${state.tab==="board"?"on":""}">Board</button>` : ""}
+        </nav>` : ""}
+        ${state.user ? `<button type="button" class="out" id="out" title="Log out">Log out</button>` : ""}
+      </div>
     </header>
     ${body}
     ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
   `;
+  const outBtn = $("#out");
+  if(outBtn) outBtn.onclick = () => { clearToken(); state.user = null; state.tab = "vote"; render(); };
   app().querySelectorAll("[data-tab]").forEach(b => b.onclick = async () => {
     state.tab = b.dataset.tab; state.matchId = null;
     if(state.tab==="mine"){
@@ -246,15 +326,7 @@ function renderGate(msg) {
 function renderHome() {
   const list = state.matches || [];
   const body = `
-    <p class="hint">${esc(state.apiNote || "")}</p>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
-      <span class="hint" style="margin:0">Signed in${state.user.role ? " · "+esc(state.user.role) : ""}</span>
-      <span>
-        <button type="button" class="btn ghost" id="out" style="padding:7px 12px;font-size:12px">Log out</button>
-        <a class="btn ghost" href="/" style="padding:7px 12px;font-size:12px">Tipdash</a>
-      </span>
-    </div>
-    <p class="hint">Vote on completed matches only. Three different players — 3, 2, then 1.</p>
+    <p class="hint">Drag the rounds strip to see the full season · vote 3–2–1 on finished games</p>
     <div class="rounds" id="rounds">
       ${(state.rounds||[]).map(r => `<button type="button" class="chip ${String(state.round)===String(r.id)?"on":""}" data-r="${escAttr(r.id)}">${esc(r.label||r.round_name||("R"+r.id))}</button>`).join("")}
     </div>
@@ -264,7 +336,11 @@ function renderHome() {
         list.length ? list.map(m => `
         <article class="mcard" data-m="${escAttr(m.id)}">
           <div class="meta">${esc(m.when||"")} · ${esc(m.venue||"")}</div>
-          <div class="teams"><span>${esc(m.home)}</span><span class="score">${esc(m.score||"—")}</span><span style="text-align:right">${esc(m.away)}</span></div>
+          <div class="teams">
+            ${teamSideHtml(m.home, "home")}
+            <span class="score">${esc(m.score||"—")}</span>
+            ${teamSideHtml(m.away, "away")}
+          </div>
           <div class="status ${m.voted ? "voted":""}">
             <span class="dot"></span>
             ${m.voted ? "Votes submitted" : "Ready to vote"}
@@ -272,7 +348,13 @@ function renderHome() {
         </article>`).join("") : `<div class="empty"><strong>No completed matches yet</strong>Check back after this round’s games finish.</div>`}
     </section>`;
   shell(body);
-  $("#out").onclick = () => { clearToken(); state.user = null; render(); };
+  const roundsEl = $("#rounds");
+  bindRoundsDrag(roundsEl);
+  // Center active chip
+  try{
+    const on = roundsEl && roundsEl.querySelector(".chip.on");
+    if(on) on.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" in window ? "instant" : "auto" });
+  }catch(e){}
   $("#rounds").onclick = async e => {
     const b = e.target.closest("[data-r]"); if (!b) return;
     state.round = b.dataset.r; state.matchId = null;

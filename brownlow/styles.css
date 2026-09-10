@@ -63,8 +63,27 @@ button, a { font: inherit; }
 .btn:disabled { opacity: .45; cursor: default; }
 
 /* Round picker */
-.rounds { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px; scrollbar-width: none; }
+.rounds {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px;
+  scrollbar-width: none; cursor: grab; -webkit-overflow-scrolling: touch;
+  touch-action: pan-x; user-select: none;
+}
+.rounds.dragging { cursor: grabbing; }
+.rounds.dragging .chip { pointer-events: none; }
 .rounds::-webkit-scrollbar { display: none; }
+.top .out {
+  border: none; background: transparent; color: var(--faint);
+  font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 4px;
+}
+.top .out:hover { color: var(--muted); }
+.mcard .side { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.mcard .side.away { flex-direction: row-reverse; text-align: right; }
+.mcard .tlogo {
+  width: 28px; height: 28px; border-radius: 8px; object-fit: contain;
+  background: var(--bg2); flex: none;
+}
+.mcard .tname { font-weight: 800; font-size: 14px; line-height: 1.2; }
+.mcard .tabbrev { display: block; color: var(--faint); font-size: 11px; font-weight: 600; }
 .chip {
   flex: none; border: 1px solid var(--line); background: var(--card); color: var(--muted);
   border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer;
