@@ -190,7 +190,7 @@ function renderGate(msg) {
       <h1>Brownlow Predictor</h1>
       <p>Cast umpire-style <strong>3–2–1</strong> votes on players from games that have finished. Same Discord login as Tipdash.</p>
       ${msg ? `<p class="hint" style="color:var(--loss)">${esc(msg)}</p>` : ""}
-      <a class="btn" href="${API}/auth/login">Log in with Discord</a>
+      <a class="btn" href="${API}/auth/login?return_to=/brownlow">Log in with Discord</a>
       <p class="hint" style="margin-top:16px">Already on Tipdash? Session is shared via <code>tipbot_token</code> — refresh after logging in there.</p>
       <p style="margin-top:12px"><a class="btn ghost" href="/">← Tipdash</a></p>
     </div></div>`;
