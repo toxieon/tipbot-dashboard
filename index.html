@@ -1464,12 +1464,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function renderFollowers(gid,name,data){
     const list=(data&&data.followers)||[];
+    const isOwnerMap=STATE.role==="owner"&&!STATE.viewAs; // platform owner — TipBot-mutual map via avatar
     let html='<div class="back" id="fbx">← Back</div><div class="dhead"><h1 style="margin:0">Followers</h1><span style="color:var(--faint);font-size:13px">'+list.length+' member'+(list.length===1?"":"s")+' · '+esc(name||"")+'</span></div>';
     if(!list.length){ html+='<div class="panel"><div class="empty">No one is following bets yet.</div></div>'; }
     list.forEach((f,i)=>{ const prof=f.profit_units||0;
       html+='<div class="panel" style="padding:14px 16px">'
         +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-          +'<img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">'
+          +(isOwnerMap?'<button type="button" class="fmap" data-i="'+i+'" title="TipBot server map" style="padding:0;border:0;background:transparent;cursor:pointer;border-radius:50%;line-height:0"><img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover;pointer-events:none" onerror="this.style.visibility=\'hidden\'"></button>':'<img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">')
           +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:16px">'+esc(f.name||f.user_id)+'</div><div style="color:var(--faint);font-size:12px">'+f.follows+' bet'+(f.follows===1?"":"s")+' followed'+(f.unit_size?(" · $"+f.unit_size+"/unit"):"")+'</div></div>'
           +'<div style="display:flex;gap:16px;flex-wrap:wrap;text-align:center">'
             +'<div><div class="'+(prof>=0?"pos":"neg")+'" style="font-weight:800;font-size:18px">'+u(prof)+'</div><div style="color:var(--faint);font-size:11px">PROFIT</div></div>'
@@ -1499,6 +1500,64 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); }
       finally{ b.disabled=false; }
     });
+    $("followers").querySelectorAll(".fmap").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); const f=list[+b.dataset.i]; if(f) openFollowerMap(f); });
+  }
+  function closeFollowerMap(){ const el=$("fmap-backdrop"); if(el)el.remove(); }
+  async function openFollowerMap(follower){
+    if(!(STATE.role==="owner"&&!STATE.viewAs)) return;
+    closeFollowerMap();
+    const uid=String(follower.user_id||"");
+    const name=follower.name||follower.username||uid;
+    const av=follower.avatar||"";
+    const backdrop=document.createElement("div");
+    backdrop.id="fmap-backdrop";
+    backdrop.style.cssText="position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:0;";
+    backdrop.innerHTML='<div role="dialog" aria-modal="true" aria-label="Follower server map" style="background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:85vh;overflow:auto;padding:18px 18px 28px;box-shadow:0 -12px 40px rgba(0,0,0,.45)">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
+      +'<img src="'+esc(av)+'" alt="" style="width:48px;height:48px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:17px">'+esc(name)+'</div>'
+      +'<div style="color:var(--faint);font-size:12px">TipBot-mutual servers · platform owner</div></div>'
+      +'<button type="button" id="fmap-x" class="ghost" style="padding:8px 12px">Close</button></div>'
+      +'<div id="fmap-body" style="color:var(--faint);font-size:13px">Loading map…</div>'
+      +'<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);color:var(--faint);font-size:11px">OAuth is identify-only — Discord servers TipBot is not in are not listed. Invite only when the bot is present.</div>'
+      +'</div>';
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener("click",e=>{ if(e.target===backdrop) closeFollowerMap(); });
+    const xb=$("fmap-x"); if(xb) xb.onclick=closeFollowerMap;
+    const body=$("fmap-body");
+    try{
+      const r=await api("/api/owner/follower-map?user_id="+encodeURIComponent(uid));
+      if(r.status===403){ body.innerHTML='<div class="empty">Platform owner only.</div>'; return; }
+      const data=await r.json();
+      if(data&&data.error){ body.innerHTML='<div class="empty">'+esc(data.error)+'</div>'; return; }
+      const guilds=(data&&data.tipbot_guilds)||[];
+      if(!guilds.length){ body.innerHTML='<div class="empty">No TipBot-mutual guilds for this user yet.</div>'; return; }
+      body.innerHTML=guilds.map(g=>{
+        const present=!!g.bot_present;
+        const inv=present
+          ?('<button type="button" class="fmap-inv" data-g="'+esc(g.guild_id)+'" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:7px 11px;cursor:pointer;font:inherit;font-size:12px;font-weight:600">Invite</button>')
+          :('<span style="color:var(--faint);font-size:12px">Bot not present</span>');
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">'
+          +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(g.display_name||g.guild_id)+'</div>'
+          +'<div style="color:var(--faint);font-size:12px">'+esc(String(g.follow_count||0))+' follow'+(g.follow_count===1?"":"s")
+          +(present?" · bot present":" · bot absent")+'</div></div>'+inv+'</div>';
+      }).join("")+'<div id="fmap-msg" style="font-size:12px;color:var(--faint);margin-top:10px"></div>';
+      body.querySelectorAll(".fmap-inv").forEach(btn=>btn.onclick=async()=>{
+        const gid=btn.dataset.g; const msg=$("fmap-msg");
+        btn.disabled=true; if(msg){msg.textContent="Creating invite…";msg.style.color="var(--faint)";}
+        try{
+          const rr=await api("/api/owner-invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid})});
+          const j=await rr.json();
+          if(j.ok&&j.invite_url){
+            if(msg){ msg.innerHTML='Invite ready — <a href="'+esc(j.invite_url)+'" target="_blank" rel="noopener" style="color:var(--accent)">'+esc(j.invite_url)+'</a>'; msg.style.color="var(--win)"; }
+            try{ window.open(j.invite_url,"_blank","noopener"); }catch(_){}
+          }else{
+            if(msg){ msg.textContent=j.message||"Couldn't create invite"; msg.style.color="var(--loss)"; }
+          }
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(msg){msg.textContent="Couldn't reach the bot.";msg.style.color="var(--loss)";} }
+        finally{ btn.disabled=false; }
+      });
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); body.innerHTML='<div class="empty">Couldn\'t load follower map.</div>'; }
   }
   let DETAIL_TIMER=null,LIVE_TIMER=null,GAMES_TIMER=null;
   function clearDetailTimers(){ if(DETAIL_TIMER){clearInterval(DETAIL_TIMER);DETAIL_TIMER=null;} }
