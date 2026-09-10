@@ -1249,7 +1249,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
-    $("detail").querySelectorAll("button.toggle").forEach(b=>b.onclick=()=>toggle(b));
+    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle")return; b.onclick=()=>toggle(b); });
     wireTipRows($("recent-box"),s.guild_id,true);
     function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
