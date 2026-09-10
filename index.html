@@ -48,21 +48,21 @@
     0%{background-position:200% 0}
     100%{background-position:-200% 0}
   }
+  .tb-loadpanel{text-align:center;max-width:320px;margin:0 auto}
+  .tb-loadpanel-label{color:var(--muted);margin:0 0 4px;font-size:14px;min-height:1.3em}
   .tb-loadpanel-bar{
-    width:min(280px,70vw);height:6px;border-radius:99px;background:rgba(255,255,255,.08);
-    overflow:hidden;margin:14px auto 0;
+    width:min(280px,70vw);height:8px;border-radius:99px;background:rgba(255,255,255,.08);
+    overflow:hidden;margin:16px auto 8px;
   }
   .tb-loadpanel-bar > i{
     display:block;height:100%;width:0%;border-radius:99px;
-    background:linear-gradient(90deg,var(--accent,#5b8cff),var(--accent2,#7b5bff));
-    transition:width .28s ease;
+    background:var(--accent,#5b8cff);
+    transition:width .2s ease;
   }
-  .tb-loadpanel-meta{
-    display:flex;justify-content:space-between;align-items:baseline;
-    width:min(280px,70vw);margin:10px auto 0;gap:12px;
-    font-size:12px;color:var(--muted);
+  .tb-loadpanel-pct{
+    margin:0;font-size:12px;font-weight:700;color:var(--faint);
+    font-variant-numeric:tabular-nums;
   }
-  .tb-loadpanel-meta #loadingpct{font-variant-numeric:tabular-nums;font-weight:700;color:var(--txt)}
 
   :root{
     --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;
@@ -445,9 +445,12 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a></div>
   </div>
-  <div id="loading" class="center"><div><h1>TipBot Dashboard</h1>
-    <div class="tb-loadpanel-bar" aria-hidden="true"><i id="loadingfill"></i></div>
-    <div class="tb-loadpanel-meta"><span id="loadingmsg">Starting…</span><span id="loadingpct">0%</span></div>
+  <div id="loading" class="center"><div class="tb-loadpanel">
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;font-size:22px">🎯</div>
+    <h1>TipBot Dashboard</h1>
+    <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
+    <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
+    <p class="tb-loadpanel-pct" id="tb-loadpanel-pct">0%</p>
   </div></div>
 
   <div id="app" hidden>
@@ -906,6 +909,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }catch(e){}
   })();
   
+  // Full-page load panel — Cinna determinate label + % (driven by TopBar stages)
+  function setLoadPanel(label, pct){
+    const msg=$("loadingmsg"), fill=$("tb-loadpanel-fill"),
+          pctEl=$("tb-loadpanel-pct"), bar=$("tb-loadpanel-bar");
+    if(msg) msg.textContent=label||"Loading…";
+    const p=Math.max(0, Math.min(100, pct|0));
+    if(fill) fill.style.width=p+"%";
+    if(pctEl) pctEl.textContent=p+"%";
+    if(bar) bar.setAttribute("aria-valuenow", String(p));
+  }
+
   // Top bar + loading panel — real staged % (no fake ticks / wake copy)
   const TopBar = (function(){
     let el=null, fill=null, pending=0, hardTimer=null;
@@ -918,10 +932,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       fill=el.firstElementChild;
     }
     function syncPanel(pct, label){
-      const pf=$("loadingfill"), msg=$("loadingmsg"), pctEl=$("loadingpct");
-      if(pf) pf.style.width=Math.max(0, Math.min(100, pct))+"%";
-      if(pctEl) pctEl.textContent=Math.round(Math.max(0, Math.min(100, pct)))+"%";
-      if(msg && label) msg.textContent=label;
+      setLoadPanel(label||($("loadingmsg")&&$("loadingmsg").textContent)||"Loading…", Math.round(pct));
     }
     function start(indeterminate){
       ensure();
