@@ -12,86 +12,28 @@
 <div class="app" id="app"></div>
 <script>
 const API = "https://afl-tipster-bot.onrender.com";
-/* Placeholder match data until Ned's brownlow APIs land — UI stays fully usable */
-const ROUNDS = [
-  { id: "r22", label: "R22" },
-  { id: "r23", label: "R23" },
-  { id: "r24", label: "R24" },
-];
-const MATCHES = {
-  r23: [
-    { id: "m1", home: "Collingwood", away: "Carlton", score: "88–76", venue: "MCG", when: "Sat 2:10pm", voted: false },
-    { id: "m2", home: "Geelong", away: "Brisbane", score: "102–91", venue: "GMHBA", when: "Sat 7:30pm", voted: true },
-    { id: "m3", home: "Sydney", away: "Fremantle", score: "79–79", venue: "SCG", when: "Sun 3:20pm", voted: false },
-  ],
-  r22: [
-    { id: "m4", home: "Richmond", away: "Essendon", score: "71–95", venue: "MCG", when: "Fri 7:40pm", voted: true },
-  ],
-  r24: [],
-};
-const SQUADS = {
-  m1: {
-    home: { name: "Collingwood", players: [
-      { id:"p1", n:22, name:"Steele Sidebottom" }, { id:"p2", n:25, name:"Jack Crisp" },
-      { id:"p3", n:4, name:"Nick Daicos" }, { id:"p4", n:7, name:"Josh Daicos" },
-      { id:"p5", n:30, name:"Darcy Cameron" }, { id:"p6", n:9, name:"John Noble" },
-    ]},
-    away: { name: "Carlton", players: [
-      { id:"p7", n:9, name:"Patrick Cripps" }, { id:"p8", n:18, name:"Sam Walsh" },
-      { id:"p9", n:3, name:"Jesse Motlop" }, { id:"p10", n:23, name:"Jacob Weitering" },
-      { id:"p11", n:42, name:"Adam Cerra" }, { id:"p12", n:13, name:"Blake Acres" },
-    ]},
-  },
-  m2: {
-    home: { name: "Geelong", players: [
-      { id:"p13", n:22, name:"Mitch Duncan" }, { id:"p14", n:35, name:"Patrick Dangerfield" },
-      { id:"p15", n:7, name:"Isaac Smith" }, { id:"p16", n:44, name:"Tom Stewart" },
-    ]},
-    away: { name: "Brisbane", players: [
-      { id:"p17", n:9, name:"Lachie Neale" }, { id:"p18", n:15, name:"Dayne Zorko" },
-      { id:"p19", n:33, name:"Zac Bailey" }, { id:"p20", n:23, name:"Charlie Cameron" },
-    ]},
-  },
-  m3: {
-    home: { name: "Sydney", players: [
-      { id:"p21", n:1, name:"Chad Warner" }, { id:"p22", n:44, name:"Jake Lloyd" },
-      { id:"p23", n:22, name:"Nick Blakey" }, { id:"p24", n:5, name:"Isaac Heeney" },
-    ]},
-    away: { name: "Fremantle", players: [
-      { id:"p25", n:8, name:"Andrew Brayshaw" }, { id:"p26", n:3, name:"Caleb Serong" },
-      { id:"p27", n:13, name:"Luke Jackson" }, { id:"p28", n:39, name:"Sam Switkowski" },
-    ]},
-  },
-  m4: {
-    home: { name: "Richmond", players: [
-      { id:"p29", n:15, name:"Jayden Short" }, { id:"p30", n:3, name:"Dion Prestia" },
-    ]},
-    away: { name: "Essendon", players: [
-      { id:"p31", n:7, name:"Zach Merrett" }, { id:"p32", n:6, name:"Jordan Ridley" },
-    ]},
-  },
-};
-const LEADERBOARD = [
-  { name: "Nick Daicos", pts: 18 },
-  { name: "Lachie Neale", pts: 16 },
-  { name: "Patrick Cripps", pts: 14 },
-  { name: "Chad Warner", pts: 11 },
-  { name: "Caleb Serong", pts: 10 },
-];
 
 const state = {
   user: null,
   apiNote: "",
   tab: "vote",
-  round: "r23",
+  year: null,
+  rounds: [],
+  round: null,
+  matches: [],
+  matchesLoading: false,
   matchId: null,
+  matchMeta: null,
+  squads: null,
+  squadsLoading: false,
   votes: { 3: null, 2: null, 1: null },
-  myVotes: {
-    m2: [{ pts:3, name:"Lachie Neale" }, { pts:2, name:"Patrick Dangerfield" }, { pts:1, name:"Tom Stewart" }],
-    m4: [{ pts:3, name:"Zach Merrett" }, { pts:2, name:"Jordan Ridley" }, { pts:1, name:"Jayden Short" }],
-  },
+  myVotes: [],
+  playerNames: {},
+  leaderboard: [],
+  leaderboardStub: false,
   toast: null,
   booting: true,
+  submitting: false,
 };
 
 function getToken(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
@@ -115,18 +57,89 @@ async function api(path, opts){
 const $ = (s, el=document) => el.querySelector(s);
 const app = () => $("#app");
 function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 }
+function escAttr(s){ return esc(s); }
 function toast(msg) {
   state.toast = msg; render();
   setTimeout(() => { state.toast = null; render(); }, 2200);
 }
-function findMatch(id) {
-  for (const r of Object.keys(MATCHES)) {
-    const m = MATCHES[r].find(x => x.id === id);
-    if (m) return m;
+function rememberPlayers(squads){
+  if(!squads) return;
+  for(const side of ["home","away"]){
+    const t = squads[side];
+    if(!t || !Array.isArray(t.players)) continue;
+    for(const p of t.players){
+      if(p && p.id) state.playerNames[String(p.id)] = p.name || String(p.id);
+    }
   }
-  return null;
+}
+function playerLabel(id){
+  if(id==null) return "—";
+  const s = String(id);
+  return state.playerNames[s] || s;
+}
+function findMatch(id){
+  return (state.matches||[]).find(m => String(m.id)===String(id)) || state.matchMeta || null;
+}
+
+async function loadRounds(){
+  const r = await api("/api/brownlow/rounds");
+  if(!r.ok) throw new Error("rounds "+r.status);
+  const data = await r.json();
+  state.year = data.year;
+  state.rounds = Array.isArray(data.rounds) ? data.rounds : [];
+  if(!state.round && state.rounds.length){
+    const preferred = [...state.rounds].reverse().find(x => x.done) || state.rounds[state.rounds.length-1];
+    state.round = preferred ? String(preferred.id) : String(state.rounds[0].id);
+  }
+}
+
+async function loadMatches(roundId){
+  const rid = String(roundId||"");
+  if(!rid){ state.matches = []; return; }
+  state.matchesLoading = true; render();
+  try{
+    const r = await api("/api/brownlow/rounds/"+encodeURIComponent(rid)+"/matches");
+    if(!r.ok) throw new Error("matches "+r.status);
+    const data = await r.json();
+    state.matches = Array.isArray(data.matches) ? data.matches : [];
+  } finally {
+    state.matchesLoading = false;
+  }
+}
+
+async function loadSquads(matchId){
+  state.squadsLoading = true; state.squads = null; render();
+  try{
+    const r = await api("/api/brownlow/matches/"+encodeURIComponent(matchId)+"/squads");
+    if(!r.ok) throw new Error("squads "+r.status);
+    const data = await r.json();
+    state.squads = data;
+    rememberPlayers(data);
+  } finally {
+    state.squadsLoading = false;
+  }
+}
+
+async function loadMeVotes(){
+  const r = await api("/api/brownlow/me/votes");
+  if(!r.ok) throw new Error("me/votes "+r.status);
+  const data = await r.json();
+  state.myVotes = Array.isArray(data.votes) ? data.votes : [];
+  const voted = new Set(state.myVotes.map(v => String(v.match_id)));
+  for(const m of state.matches){
+    if(voted.has(String(m.id))) m.voted = true;
+  }
+}
+
+async function loadLeaderboard(){
+  const q = state.year ? ("?year="+encodeURIComponent(state.year)) : "";
+  const r = await api("/api/brownlow/leaderboard"+q);
+  if(!r.ok) throw new Error("leaderboard "+r.status);
+  const data = await r.json();
+  state.leaderboard = Array.isArray(data.leaders) ? data.leaders : [];
+  state.leaderboardStub = !!data.stub;
 }
 
 async function boot(){
@@ -135,20 +148,17 @@ async function boot(){
   try{
     const r = await api("/api/me");
     if(!r.ok){ clearToken(); state.user = null; state.booting = false; render(); return; }
-    const me = await r.json();
-    state.user = me;
-    state.apiNote = "Placeholder fixtures — waiting on Ned's /api/brownlow/*";
-    try{
-      const wr = await api("/api/brownlow/week");
-      if(wr.ok){
-        state.apiNote = "Live week payload detected (still showing UI placeholders until match/squad endpoints wire).";
-      } else if(wr.status === 404){
-        state.apiNote = "Signed in · /api/brownlow/week not on Render yet";
-      }
-    }catch(e){}
+    state.user = await r.json();
+    await loadRounds();
+    if(state.round) await loadMatches(state.round);
+    try{ await loadMeVotes(); }catch(e){}
+    state.apiNote = state.year ? ("Season "+state.year+" · live TipBot Brownlow API") : "Live TipBot Brownlow API";
   }catch(e){
     if(e && e.unauth){ state.user = null; }
-    else { state.user = null; state.apiNote = "Couldn't reach TipBot"; }
+    else {
+      state.user = null;
+      state.apiNote = "Couldn't reach TipBot Brownlow API (is Render on #19 yet?)";
+    }
   }
   state.booting = false; render();
 }
@@ -158,7 +168,7 @@ function render() {
     app().innerHTML = `<div class="gate"><div><div class="medal">3</div><h1>Brownlow</h1><p>Checking Tipdash session…</p></div></div>`;
     return;
   }
-  if (!state.user) return renderGate();
+  if (!state.user) return renderGate(state.apiNote && state.apiNote.indexOf("Couldn't")===0 ? state.apiNote : null);
   if (state.matchId) return renderMatch();
   if (state.tab === "board") return renderBoard();
   if (state.tab === "mine") return renderMine();
@@ -178,8 +188,15 @@ function shell(body, { showNav = true } = {}) {
     ${body}
     ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
   `;
-  app().querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
-    state.tab = b.dataset.tab; state.matchId = null; render();
+  app().querySelectorAll("[data-tab]").forEach(b => b.onclick = async () => {
+    state.tab = b.dataset.tab; state.matchId = null;
+    if(state.tab==="mine"){
+      try{ await loadMeVotes(); }catch(e){ if(e&&e.unauth) return renderGate("Session expired."); }
+    }
+    if(state.tab==="board"){
+      try{ await loadLeaderboard(); }catch(e){ if(e&&e.unauth) return renderGate("Session expired."); }
+    }
+    render();
   });
 }
 
@@ -197,7 +214,7 @@ function renderGate(msg) {
 }
 
 function renderHome() {
-  const list = MATCHES[state.round] || [];
+  const list = state.matches || [];
   const body = `
     <p class="hint">${esc(state.apiNote || "")}</p>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
@@ -209,49 +226,77 @@ function renderHome() {
     </div>
     <p class="hint">Vote on completed matches only. Three different players — 3, 2, then 1.</p>
     <div class="rounds" id="rounds">
-      ${ROUNDS.map(r => `<button type="button" class="chip ${state.round===r.id?"on":""}" data-r="${r.id}">${r.label}</button>`).join("")}
+      ${(state.rounds||[]).map(r => `<button type="button" class="chip ${String(state.round)===String(r.id)?"on":""}" data-r="${escAttr(r.id)}">${esc(r.label||r.round_name||("R"+r.id))}</button>`).join("")}
     </div>
     <section class="section">
       <h2>Matches played</h2>
-      ${list.length ? list.map(m => `
-        <article class="mcard" data-m="${m.id}">
-          <div class="meta">${esc(m.when)} · ${esc(m.venue)}</div>
-          <div class="teams"><span>${esc(m.home)}</span><span class="score">${esc(m.score)}</span><span style="text-align:right">${esc(m.away)}</span></div>
-          <div class="status ${m.voted || state.myVotes[m.id] ? "voted":""}">
+      ${state.matchesLoading ? `<div class="empty"><strong>Loading matches…</strong></div>` :
+        list.length ? list.map(m => `
+        <article class="mcard" data-m="${escAttr(m.id)}">
+          <div class="meta">${esc(m.when||"")} · ${esc(m.venue||"")}</div>
+          <div class="teams"><span>${esc(m.home)}</span><span class="score">${esc(m.score||"—")}</span><span style="text-align:right">${esc(m.away)}</span></div>
+          <div class="status ${m.voted ? "voted":""}">
             <span class="dot"></span>
-            ${m.voted || state.myVotes[m.id] ? "Votes submitted" : "Ready to vote"}
+            ${m.voted ? "Votes submitted" : "Ready to vote"}
           </div>
         </article>`).join("") : `<div class="empty"><strong>No completed matches yet</strong>Check back after this round’s games finish.</div>`}
     </section>`;
   shell(body);
   $("#out").onclick = () => { clearToken(); state.user = null; render(); };
-  $("#rounds").onclick = e => {
+  $("#rounds").onclick = async e => {
     const b = e.target.closest("[data-r]"); if (!b) return;
-    state.round = b.dataset.r; render();
+    state.round = b.dataset.r; state.matchId = null;
+    try{ await loadMatches(state.round); await loadMeVotes(); }
+    catch(err){ if(err&&err.unauth) return renderGate("Session expired."); toast("Couldn't load matches."); }
+    render();
   };
-  app().querySelectorAll("[data-m]").forEach(el => el.onclick = () => { state.matchId = el.dataset.m; state.votes = {3:null,2:null,1:null}; render(); });
+  app().querySelectorAll("[data-m]").forEach(el => el.onclick = async () => {
+    state.matchId = el.dataset.m;
+    state.matchMeta = findMatch(state.matchId);
+    state.votes = {3:null,2:null,1:null};
+    try{ await loadSquads(state.matchId); }
+    catch(err){
+      if(err&&err.unauth) return renderGate("Session expired.");
+      state.matchId = null; toast("Couldn't load squads.");
+    }
+    render();
+  });
 }
 
 function renderMatch() {
-  const m = findMatch(state.matchId);
-  const sq = SQUADS[state.matchId];
-  if (!m || !sq) { state.matchId = null; return renderHome(); }
+  const m = findMatch(state.matchId) || { id: state.matchId, home: "Home", away: "Away", score: "", venue: "", when: "" };
+  if (state.squadsLoading || !state.squads) {
+    const body = `
+      <button type="button" class="back" id="back">← Matches</button>
+      <div class="match-head">
+        <h1>${esc(m.home)} <span style="color:var(--faint);font-weight:600">vs</span> ${esc(m.away)}</h1>
+        <p>${esc(m.score||"")} · ${esc(m.venue||"")} · ${esc(m.when||"")}</p>
+      </div>
+      <div class="empty"><strong>Loading named sides…</strong></div>`;
+    shell(body, { showNav: false });
+    $("#back").onclick = () => { state.matchId = null; state.squads = null; render(); };
+    return;
+  }
+  const sq = state.squads;
   const v = state.votes;
   const taken = new Set([v[3]?.id, v[2]?.id, v[1]?.id].filter(Boolean));
   const ready = v[3] && v[2] && v[1];
 
   function teamHtml(side) {
-    const t = sq[side];
-    return `<div class="team-block"><h3>${esc(t.name)} <span>${t.players.length} named</span></h3>
-      ${t.players.map(p => {
-        const on = v[3]?.id===p.id ? 3 : v[2]?.id===p.id ? 2 : v[1]?.id===p.id ? 1 : 0;
-        return `<div class="prow ${taken.has(p.id)&&!on?"taken":""}">
-          <div class="num">${p.n}</div>
-          <div class="name">${esc(p.name)}</div>
+    const t = sq[side] || { name: side, players: [] };
+    const players = Array.isArray(t.players) ? t.players : [];
+    return `<div class="team-block"><h3>${esc(t.name||side)} <span>${players.length} named</span></h3>
+      ${players.map(p => {
+        const id = String(p.id||"");
+        const n = p.number!=null ? p.number : (p.n!=null ? p.n : "");
+        const on = v[3]?.id===id ? 3 : v[2]?.id===id ? 2 : v[1]?.id===id ? 1 : 0;
+        return `<div class="prow ${taken.has(id)&&!on?"taken":""}">
+          <div class="num">${esc(n)}</div>
+          <div class="name">${esc(p.name||id)}</div>
           <div class="votes">
-            <button type="button" class="${on===3?"on-3":""}" data-pts="3" data-id="${p.id}" data-name="${escAttr(p.name)}" data-n="${p.n}" data-team="${escAttr(t.name)}">3</button>
-            <button type="button" class="${on===2?"on-2":""}" data-pts="2" data-id="${p.id}" data-name="${escAttr(p.name)}" data-n="${p.n}" data-team="${escAttr(t.name)}">2</button>
-            <button type="button" class="${on===1?"on-1":""}" data-pts="1" data-id="${p.id}" data-name="${escAttr(p.name)}" data-n="${p.n}" data-team="${escAttr(t.name)}">1</button>
+            <button type="button" class="${on===3?"on-3":""}" data-pts="3" data-id="${escAttr(id)}" data-name="${escAttr(p.name||id)}" data-n="${escAttr(n)}" data-team="${escAttr(t.name||"")}">3</button>
+            <button type="button" class="${on===2?"on-2":""}" data-pts="2" data-id="${escAttr(id)}" data-name="${escAttr(p.name||id)}" data-n="${escAttr(n)}" data-team="${escAttr(t.name||"")}">2</button>
+            <button type="button" class="${on===1?"on-1":""}" data-pts="1" data-id="${escAttr(id)}" data-name="${escAttr(p.name||id)}" data-n="${escAttr(n)}" data-team="${escAttr(t.name||"")}">1</button>
           </div>
         </div>`;
       }).join("")}</div>`;
@@ -268,48 +313,72 @@ function renderMatch() {
     <button type="button" class="back" id="back">← Matches</button>
     <div class="match-head">
       <h1>${esc(m.home)} <span style="color:var(--faint);font-weight:600">vs</span> ${esc(m.away)}</h1>
-      <p>${esc(m.score)} · ${esc(m.venue)} · ${esc(m.when)}</p>
+      <p>${esc(m.score||"")} · ${esc(m.venue||"")} · ${esc(m.when||"")}</p>
     </div>
     <div class="vote-bar">${slot(3)}${slot(2)}${slot(1)}</div>
-    <p class="hint">Tap 3, 2, or 1 beside a player. Same player can’t take two slots. Submit stays local until Ned’s ballot API.</p>
+    <p class="hint">Tap 3, 2, or 1 beside a player. Same player can’t take two slots.</p>
     ${teamHtml("home")}
     ${teamHtml("away")}
     <div class="submit-dock"><div class="inner">
-      <button class="btn block" type="button" id="submit" ${ready?"":"disabled"}>Submit 3–2–1 ballot</button>
+      <button class="btn block" type="button" id="submit" ${ready && !state.submitting?"":"disabled"}>${state.submitting?"Submitting…":"Submit 3–2–1 ballot"}</button>
     </div></div>`;
   shell(body, { showNav: false });
-  $("#back").onclick = () => { state.matchId = null; render(); };
+  $("#back").onclick = () => { state.matchId = null; state.squads = null; render(); };
   app().querySelectorAll("[data-clr]").forEach(b => b.onclick = e => {
     e.stopPropagation(); state.votes[b.dataset.clr] = null; render();
   });
   app().querySelectorAll(".votes button").forEach(b => b.onclick = () => {
     const pts = +b.dataset.pts;
-    const player = { id: b.dataset.id, name: b.dataset.name, n: +b.dataset.n, team: b.dataset.team };
+    const player = { id: b.dataset.id, name: b.dataset.name, n: b.dataset.n, team: b.dataset.team };
     for (const k of [3,2,1]) if (state.votes[k]?.id === player.id) state.votes[k] = null;
     state.votes[pts] = player;
     render();
   });
-  $("#submit").onclick = () => {
-    if (!ready) return;
-    state.myVotes[state.matchId] = [
-      { pts:3, name: v[3].name }, { pts:2, name: v[2].name }, { pts:1, name: v[1].name },
-    ];
-    const mm = findMatch(state.matchId); if (mm) mm.voted = true;
-    state.matchId = null; state.tab = "mine";
-    toast("Ballot locked in — nice pick.");
+  $("#submit").onclick = async () => {
+    if (!ready || state.submitting) return;
+    state.submitting = true; render();
+    try{
+      const body = { first: v[3].id, second: v[2].id, third: v[1].id };
+      const rr = await api("/api/brownlow/matches/"+encodeURIComponent(state.matchId)+"/votes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await rr.json().catch(()=>({}));
+      if(!rr.ok || j.ok===false){
+        toast(j.message || j.error || ("Couldn't submit ("+rr.status+")"));
+        return;
+      }
+      rememberPlayers(state.squads);
+      try{ await loadMeVotes(); }catch(_){}
+      const mm = findMatch(state.matchId); if (mm) mm.voted = true;
+      state.matchId = null; state.squads = null; state.tab = "mine";
+      toast("Ballot locked in — nice pick.");
+    }catch(e){
+      if(e&&e.unauth) return renderGate("Session expired.");
+      toast("Couldn't reach TipBot.");
+    }finally{
+      state.submitting = false;
+      render();
+    }
   };
 }
-function escAttr(s){ return esc(s); }
 
 function renderMine() {
-  const ids = Object.keys(state.myVotes);
+  const rows = state.myVotes || [];
   const body = `
     <section class="section">
       <h2>Your ballots</h2>
-      ${ids.length ? ids.map(id => {
-        const m = findMatch(id); const votes = state.myVotes[id];
+      ${rows.length ? rows.map(v => {
+        const m = findMatch(v.match_id);
+        const title = m ? (esc(m.home)+" vs "+esc(m.away)) : esc(String(v.match_id));
+        const votes = [
+          { pts:3, name: playerLabel(v.first) },
+          { pts:2, name: playerLabel(v.second) },
+          { pts:1, name: playerLabel(v.third) },
+        ];
         return `<article class="vcard">
-          <div class="mh">${m ? esc(m.home)+" vs "+esc(m.away) : id}</div>
+          <div class="mh">${title}${v.round ? ` <span class="hint">· R${esc(v.round)}</span>` : ""}</div>
           <div class="votes-list">${votes.map(x => `<div><span class="p">${x.pts}</span><span>${esc(x.name)}</span></div>`).join("")}</div>
         </article>`;
       }).join("") : `<div class="empty"><strong>No votes yet</strong>Open a finished match and cast your 3–2–1.</div>`}
@@ -318,16 +387,17 @@ function renderMine() {
 }
 
 function renderBoard() {
+  const leaders = state.leaderboard || [];
   const body = `
-    <p class="hint">Community leaderboard (placeholder totals until Ned aggregates ballots).</p>
+    <p class="hint">${state.leaderboardStub ? "Community leaderboard stub — totals land once ballots aggregate." : "Community leaderboard (season 3–2–1 points)."}</p>
     <section class="section">
       <h2>Season leaders</h2>
-      ${LEADERBOARD.map((r,i) => `
+      ${leaders.length ? leaders.map((r,i) => `
         <div class="lrow">
           <div class="rank ${i<3?"top":""}">${i+1}</div>
-          <div class="who">${esc(r.name)}</div>
-          <div class="pts">${r.pts} pts</div>
-        </div>`).join("")}
+          <div class="who">${esc(r.name||r.player_id||"—")}</div>
+          <div class="pts">${esc(r.pts)} pts</div>
+        </div>`).join("") : `<div class="empty"><strong>No leaders yet</strong>Cast some ballots and check back.</div>`}
     </section>`;
   shell(body);
 }

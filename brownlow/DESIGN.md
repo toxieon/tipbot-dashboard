@@ -37,8 +37,14 @@ Auth: Bearer tipdash Discord session.
 ## Ship
 Copy `brownlow/` into `toxieon/tipbot-dashboard`. Wire auth + APIs without restyling unless Brandon asks.
 
-## Auth (Husker — restored 2026-09-10)
+## Auth + data (Husker — live wire 2026-09-10)
 - Shared Tipdash session: `localStorage.tipbot_token`
-- Login: `https://afl-tipster-bot.onrender.com/auth/login`
+- Login: `https://afl-tipster-bot.onrender.com/auth/login?return_to=/brownlow`
 - Absorb `#token=` hash on return
-- Probe `GET /api/me` then `GET /api/brownlow/week` (404 = wait copy)
+- Probe `GET /api/me`, then live Cinna-contract routes:
+  - `GET /api/brownlow/rounds`
+  - `GET /api/brownlow/rounds/{id}/matches`
+  - `GET /api/brownlow/matches/{id}/squads`
+  - `POST /api/brownlow/matches/{id}/votes` `{first,second,third}`
+  - `GET /api/brownlow/me/votes`
+  - `GET /api/brownlow/leaderboard`
