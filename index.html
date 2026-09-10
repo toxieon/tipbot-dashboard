@@ -162,16 +162,26 @@
   .tcaret{font-size:11px;color:var(--muted);width:12px;display:inline-block}
   .prow{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;flex-wrap:wrap}
   .pnum{display:grid;place-items:center;flex:none}
-  .pname{font-weight:600;min-width:150px;flex:1}
-  .linectl{display:flex;align-items:center;gap:12px;flex:1;min-width:240px}
+  .pname{font-weight:600;min-width:0;flex:1 1 120px}
+  .linectl{display:flex;align-items:center;gap:12px;flex:1 1 160px;min-width:0;max-width:100%}
   .lineval{font-weight:800;font-size:20px;min-width:66px;text-align:center}
   .lineval small{font-size:12px;color:var(--muted);font-weight:600}
-  input[type=range]{flex:1;accent-color:var(--accent);height:4px}
-  .ou{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
-  .ou button{background:var(--card2);border:none;color:var(--muted);padding:7px 12px;cursor:pointer;font:inherit;font-weight:700;font-size:13px}
+  input[type=range]{flex:1;min-width:0;accent-color:var(--accent);height:4px}
+  .prow-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;max-width:100%}
+  .ou{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:none}
+  .ou button{background:var(--card2);border:none;color:var(--muted);padding:7px 12px;cursor:pointer;font:inherit;font-weight:700;font-size:13px;white-space:nowrap}
   .ou button.on{background:var(--accent);color:#fff}
-  .addbtn{background:rgba(46,175,98,.16);color:#5fd48c;border:1px solid rgba(46,175,98,.4);border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:700}
+  .addbtn{background:rgba(46,175,98,.16);color:#5fd48c;border:1px solid rgba(46,175,98,.4);border-radius:9px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:700;flex:none;white-space:nowrap}
   .addbtn:hover{background:rgba(46,175,98,.26)}
+  @media(max-width:640px){
+    .prow{gap:10px;padding:12px}
+    .pname{min-width:0;flex:1 1 100%}
+    .linectl{flex:1 1 100%;gap:10px}
+    .prow-actions{flex:1 1 100%;justify-content:space-between}
+    .ou{flex:1}
+    .ou button{flex:1;padding:9px 10px}
+    .addbtn{min-height:38px;padding:9px 16px}
+  }
   /* multi tray */
   .tray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:40}
   .tray-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -2835,8 +2845,8 @@ async function loadPerms(gid){
           return;
         }
         html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
-          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="1" value="'+def+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center">'
-          +'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
+          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="1" value="'+def+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center"></div>'
+          +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
       html+='</div>';
