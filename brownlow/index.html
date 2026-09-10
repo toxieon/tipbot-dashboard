@@ -80,6 +80,7 @@ const LEADERBOARD = [
 
 const state = {
   user: null,
+  authError: null,
   tab: "vote", // vote | mine | board
   round: "r23",
   matchId: null,
@@ -134,18 +135,53 @@ function shell(body, { showNav = true } = {}) {
   });
 }
 
+const API = "https://afl-tipster-bot.onrender.com";
+function getToken(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
+function setToken(tok){ try{ localStorage.setItem("tipbot_token", tok); }catch(e){} }
+function clearToken(){ try{ localStorage.removeItem("tipbot_token"); }catch(e){} }
+(function absorbHash(){
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const tok = hash.get("token");
+  const err = hash.get("error");
+  if (tok) { setToken(tok); history.replaceState(null, "", location.pathname + location.search); }
+  if (err) { history.replaceState(null, "", location.pathname + location.search); state.authError = err; }
+})();
+
+async function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
+  const r = await fetch(API + path, opts);
+  if (r.status === 401) { clearToken(); throw { unauth: true }; }
+  return r;
+}
+
 function renderGate() {
+  const err = state.authError ? `<p class="hint" style="color:var(--loss,#e5595f);margin-top:12px">Login failed (${esc(state.authError)}). Try again.</p>` : "";
   app().innerHTML = `
     <div class="gate">
       <div>
         <div class="medal">3</div>
         <h1>Brownlow Predictor</h1>
         <p>Cast umpire-style <strong>3–2–1</strong> votes on players from games that have finished. One ballot per match.</p>
-        <button class="btn" type="button" id="login">Log in with Discord</button>
-        <p class="hint" style="margin-top:16px">Placeholder auth — Husker wires Discord OAuth.</p>
+        <a class="btn" id="login" href="${API}/auth/login?return_to=${encodeURIComponent("/brownlow")}">Log in with Discord</a>
+        <p class="hint" style="margin-top:16px">Same Discord session as Tipdash. After TipBot return_to ships, login lands back here.</p>
+        ${err}
       </div>
     </div>`;
-  $("#login").onclick = () => { state.user = { name: "Brandon" }; render(); };
+}
+
+async function bootAuth(){
+  if (!getToken()) { render(); return; }
+  try {
+    const r = await api("/api/me");
+    if (!r.ok) { clearToken(); render(); return; }
+    const me = await r.json();
+    state.user = { name: me.username || me.role || "Tipdash user", role: me.role || null };
+    state.authError = null;
+  } catch (e) {
+    clearToken();
+  }
+  render();
 }
 
 function renderHome() {
