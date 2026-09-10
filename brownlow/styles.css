@@ -69,6 +69,7 @@ button, a { font: inherit; }
   touch-action: pan-x; user-select: none;
 }
 .rounds.dragging { cursor: grabbing; }
+.rounds.dragging { scroll-behavior: auto; }
 .rounds.dragging .chip { pointer-events: none; }
 .rounds::-webkit-scrollbar { display: none; }
 .top .out {
