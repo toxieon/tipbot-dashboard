@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brownlow Predictor · Tipdash</title>
+  <style>
+    :root{--bg:#0f1420;--card:#171c2a;--line:rgba(255,255,255,.1);--txt:#eef1f7;--muted:#9aa3b5;--accent:#5b8cff;--win:#2EAF62}
+    *{box-sizing:border-box} body{margin:0;font:15px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+    .wrap{max-width:720px;margin:0 auto;padding:28px 18px 64px}
+    h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
+    .muted{color:var(--muted);font-size:13px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:16px}
+    .btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
+    .ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+    .err{color:#ff9a9e}
+    .ok{color:var(--win)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Brownlow predictor</h1>
+    <p class="muted">3-2-1 votes on the week’s played AFL games. Same Discord login as Tipdash.</p>
+    <div class="card" id="panel"><p class="muted">Checking session…</p></div>
+  </div>
+  <script>
+  const API = "https://afl-tipster-bot.onrender.com";
+  const $ = (id) => document.getElementById(id);
+  function getToken(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
+  function setToken(t){ try{ localStorage.setItem("tipbot_token", t); }catch(e){} }
+  function clearToken(){ try{ localStorage.removeItem("tipbot_token"); }catch(e){} }
+
+  // Capture OAuth return if TipBot redirects here with #token=
+  (function absorbHash(){
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const t = hash.get("token");
+    if(t){ setToken(t); history.replaceState(null, "", location.pathname + location.search); }
+  })();
+
+  async function api(path, opts){
+    opts = opts || {};
+    opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
+    const r = await fetch(API + path, opts);
+    if(r.status === 401){ clearToken(); throw { unauth: true }; }
+    return r;
+  }
+
+  function renderLogin(msg){
+    $("panel").innerHTML =
+      (msg ? '<p class="err">' + msg + '</p>' : '') +
+      '<p class="muted">Sign in with Discord to cast your Brownlow votes.</p>' +
+      '<p style="margin-top:14px"><a class="btn" href="' + API + '/auth/login">Log in with Discord</a></p>' +
+      '<p class="muted" style="margin-top:12px">Already on Tipdash? Your session is shared — refresh after logging in there.</p>';
+  }
+
+  async function boot(){
+    if(!getToken()){ renderLogin(); return; }
+    try{
+      const r = await api("/api/me");
+      if(!r.ok){ renderLogin("Session expired."); return; }
+      const me = await r.json();
+      // Prefer brownlow week endpoint when Ned lands it; fall back gracefully.
+      let weekHtml = '<p class="muted">Week fixtures API landing soon (Ned). You\'re signed in.</p>';
+      try{
+        const wr = await api("/api/brownlow/week");
+        if(wr.ok){
+          const w = await wr.json();
+          weekHtml = '<pre style="white-space:pre-wrap;font-size:12px;color:var(--muted)">' +
+            JSON.stringify(w, null, 2).slice(0, 4000) + '</pre>';
+        } else if(wr.status === 404){
+          weekHtml = '<p class="muted">Signed in. <code>/api/brownlow/week</code> not on Render yet — waiting on Ned\'s TipBot PR.</p>';
+        }
+      }catch(e){ /* ignore */ }
+      $("panel").innerHTML =
+        '<p class="ok">Signed in' + (me.role ? ' · ' + me.role : '') + '</p>' +
+        weekHtml +
+        '<p style="margin-top:14px"><button type="button" class="btn ghost" id="out">Log out</button> ' +
+        '<a class="btn ghost" href="/">← Tipdash</a></p>';
+      $("out").onclick = () => { clearToken(); renderLogin(); };
+    }catch(e){
+      if(e && e.unauth) return renderLogin("Session expired.");
+      renderLogin("Couldn\'t reach TipBot.");
+    }
+  }
+  boot();
+  </script>
+</body>
+</html>
