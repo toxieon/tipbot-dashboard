@@ -258,6 +258,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   display:flex;flex-direction:column;gap:10px;align-items:stretch;
   width:min(268px,calc(100vw - 32px));
 }
+.tb-promo-slot{position:relative;width:100%;will-change:transform,opacity,max-height}
 .tb-promo-chip{
   position:relative; /* critical: was fixed → both chips overlapped */
   display:flex;align-items:center;gap:10px;
@@ -267,9 +268,28 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   background:linear-gradient(90deg,#ffe566 0%,#7bc96f 55%,#1f8a4c 100%);
   box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35);
   font:inherit;color:#111;text-align:left;
+  animation:tb-promo-pulse 2.6s ease-in-out infinite;
+  transition:transform .28s ease,opacity .28s ease,filter .12s ease;
+}
+@keyframes tb-promo-pulse{
+  0%,100%{box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 0 rgba(255,255,255,0)}
+  50%{box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 10px rgba(255,255,255,.10)}
 }
 .tb-promo-chip:hover{filter:brightness(1.05);transform:translateY(-1px)}
 .tb-promo-chip:active{transform:translateY(0)}
+.tb-promo-slot{
+  transition:max-height .32s ease,margin .32s ease,opacity .3s ease,transform .3s ease;
+  max-height:96px;overflow:visible;
+}
+.tb-promo-slot.tb-promo-out{
+  transform:translateX(120%);opacity:0;pointer-events:none;
+  max-height:0;margin:0!important;overflow:hidden;
+}
+@media (prefers-reduced-motion:reduce){
+  .tb-promo-chip{animation:none!important}
+  .tb-promo-slot{transition:opacity .2s ease,max-height .2s ease}
+  .tb-promo-slot.tb-promo-out{transform:none}
+}
 .tb-promo-chip .tb-promo-chev{
   flex:none;width:22px;height:22px;border-radius:999px;background:#fff;
   display:grid;place-items:center;font-weight:800;font-size:13px;color:#111;
@@ -326,7 +346,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   display:flex;gap:16px;align-items:center;flex-wrap:wrap;
 }
 .dc-spotlight .dc-av{
-  width:56px;height:56px;border-radius:16px;flex:none;
+  width:56px;height:56px;border-radius:999px;flex:none;
   display:grid;place-items:center;font-weight:800;font-size:22px;
   background:linear-gradient(145deg,#5b8cff,#2eaf62);color:#fff;
 }
@@ -338,7 +358,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 }
 .dc-card .dc-top{display:flex;gap:12px;align-items:center}
 .dc-card .dc-av{
-  width:40px;height:40px;border-radius:12px;flex:none;
+  width:40px;height:40px;border-radius:999px;flex:none;
   display:grid;place-items:center;font-weight:800;font-size:15px;
   background:var(--card2);border:1px solid var(--line);color:var(--accent);
 }
@@ -358,6 +378,21 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 }
 .dc-empty h3{margin:0 0 8px;font-size:18px}
 .dc-empty p{margin:0 auto;max-width:28em;color:var(--muted);font-size:13px;line-height:1.5}
+.dc-card:hover{background:var(--card2);transform:translateY(-2px)}
+.dc-card{transition:background .12s,transform .12s}
+.dc-card .dc-av, .dc-spotlight .dc-av{overflow:hidden}
+img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
+.dc-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.dc-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.dc-pill--w{background:rgba(46,175,98,.16);color:#5fd48c}
+.dc-pill--l{background:rgba(229,89,95,.16);color:#ff9a9e}
+.dc-mini{display:block;margin-top:8px;width:100%;height:32px;overflow:visible}
+.dc-mini--wide{height:36px}
+.tb-comm-chip{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.03em;color:var(--muted);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:2px 8px;line-height:1.3}
+.tb-comm-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+.dc-spotlight{border-left:4px solid var(--win)}
+.dc-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 </style>
 </head>
 <body>
@@ -871,6 +906,12 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       h.innerHTML='<h2 style="margin:0 0 4px;font-size:17px">Following</h2><p style="color:var(--muted);margin:0;font-size:13px">'+follows.length+' communit'+(follows.length===1?"y":"ies")+' you follow · your own tracked bets</p>';
       ov.appendChild(h);
       const fg=document.createElement("div");fg.className="grid";
+      if(follows.length>1){
+        const all=document.createElement("div");all.className="scard";
+        all.innerHTML='<div class="row1"><div><div class="sname">All communities</div><div class="sgid">Combined rollup · '+follows.length+' follows</div></div><span class="plan">follower</span></div>'
+          +'<div style="margin-top:12px;color:var(--muted);font-size:13px">Units, calendar and tip history across every community you follow →</div>';
+        all.onclick=()=>openFollowerAllView(null);fg.appendChild(all);
+      }
       follows.forEach(s=>{const c=document.createElement("div");c.className="scard";
         c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Community")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">follower</span></div>'
           +'<div style="margin-top:12px;color:var(--muted);font-size:13px">Tap to see your units, calendar and tip history →</div>';
@@ -903,7 +944,8 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     const result=settled?(t.result||"Push"):"Pending";
     const right=TB.chips.render(result)+(settled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
     const tid=esc(t.tip_id||"");
-    const del=(!settled&&tid)?'<button class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" title="Delete & redact" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px">✕</button>':'';
+    const canDel=!!tid&&(!settled||godOn());
+    const del=canDel?'<button class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(settled?"1":"0")+'" title="'+(settled?"God-delete & redact":"Delete & redact")+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px">✕</button>':'';
     return '<div class="tip betrow" data-tip="'+tid+'" style="cursor:pointer"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+' <span style="color:var(--faint);font-size:11px">▸</span></div><div class="meta">'+esc(t.bet_type||"")+(t.bookmaker?" · "+TB.bookie.label(t.bookmaker,20):"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+right+del+'</div></div>'
       +'<div class="betlegs" id="legs_'+tid+'" hidden style="padding:4px 0 10px 6px;margin:-4px 0 6px"></div>';
   }
@@ -948,7 +990,11 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
   async function deleteBet(gid,tipId,name,btn){
-    if(!confirm("Delete "+(name||"this bet")+"? It will be removed from Discord with a redaction note posted in its place."))return;
+    const settled=!!(btn&&btn.dataset&&btn.dataset.settled==="1");
+    const msg=settled
+      ?("🔱 God-delete "+(name||"this settled tip")+"? History and stats will change, and the Discord tip will be redacted. This cannot be undone.")
+      :("Delete "+(name||"this bet")+"? It will be removed from Discord with a redaction note posted in its place.");
+    if(!confirm(msg))return;
     if(btn)btn.disabled=true;
     try{ const r=await api("/api/delete-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId})});
       const j=await r.json();
@@ -965,7 +1011,9 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   function followerFeedRow(t){
     const result=String(t.result||"Pending"),settled=/^(win|loss|push|void)$/i.test(result);
     const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
-    return '<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
+    const cname=t.community_name||t._community||"";
+    const clabel=cname?'<div style="margin-top:5px"><span class="tb-comm-chip">'+esc(cname)+'</span></div>':'';
+    return '<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- FOLLOWER SURFACE (read-only, #31 / #45) ---------- */
   async function openFollowerView(gid,name,month){
@@ -1011,34 +1059,163 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     mountFollowerPromoChip(gid,nm);
   }
 
-  function promoChipDismissed(){ try{ return localStorage.getItem("tb_promo_mytips_hide")==="1"; }catch(e){ return false; } }
-  function dismissPromoChip(){ try{ localStorage.setItem("tb_promo_mytips_hide","1"); }catch(e){} const w=$("tb-promo-wrap"); if(w)w.remove(); }
+  /* ---------- ALL COMMUNITIES ROLLUP (client-side merge of /api/follower) ---------- */
+  function tipTimeMs(t){
+    const v=t&& (t.settled_at||t.created_at||t.timestamp||t.created||t.ts||null);
+    if(v==null||v==="") return null;
+    if(typeof v==="number" && Number.isFinite(v)) return v<1e12?v*1000:v;
+    const n=Date.parse(v); return Number.isFinite(n)?n:null;
+  }
+  async function openFollowerAllView(month){
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    if(follows.length<=1){
+      if(follows.length===1) return openFollowerView(follows[0].guild_id,follows[0].display_name,month);
+      return enterHome();
+    }
+    panel("follower");show("app");
+    $("follower").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","28px")+'</div>'+NDSkeleton.grid(4,{cols:2,tile:"70px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
+    let unauth=false;
+    const q=month?"&month="+encodeURIComponent(month):"";
+    const results=await Promise.all(follows.map(async s=>{
+      try{
+        const r=await api("/api/follower?guild_id="+encodeURIComponent(s.guild_id)+q);
+        if(!r.ok) return {ok:false,s};
+        return {ok:true,s,d:await r.json()};
+      }catch(e){ if(e&&e.unauth){unauth=true;} return {ok:false,s}; }
+    }));
+    if(unauth) return renderLogin("Session expired.");
+    const ok=results.filter(r=>r.ok);
+    const failed=results.filter(r=>!r.ok).map(r=>r.s.display_name||String(r.s.guild_id));
+    if(!ok.length){
+      $("follower").innerHTML='<div class="back" id="flbx">← Back</div><div class="empty">Couldn\'t load any follower communities.</div>';
+      $("flbx").onclick=enterHome; return;
+    }
+    const stats={won:0,lost:0,push:0,pending:0,profit_units:0,staked_units:0};
+    const monthsSet=new Set();
+    const daily={};
+    const feed=[];
+    let calPick=null;
+    ok.forEach(({s,d})=>{
+      const st=d.stats||{};
+      stats.won+=Number(st.won||0); stats.lost+=Number(st.lost||0); stats.push+=Number(st.push||0);
+      stats.pending+=Number(st.pending||0); stats.profit_units+=Number(st.profit_units||0); stats.staked_units+=Number(st.staked_units||0);
+      (d.months||[]).forEach(m=>monthsSet.add(m));
+      if(!calPick && d.cal_month) calPick=d.cal_month;
+      const ds=d.daily_series||{};
+      Object.keys(ds).forEach(k=>{
+        const e=ds[k]||{};
+        if(!daily[k]) daily[k]={net:0,n:0,won:0,lost:0,push:0};
+        daily[k].net+=Number(e.net||0); daily[k].n+=Number(e.n||0);
+        daily[k].won+=Number(e.won||0); daily[k].lost+=Number(e.lost||0); daily[k].push+=Number(e.push||0);
+      });
+      const cname=s.display_name||d.display_name||"Community";
+      (d.feed||[]).forEach(t=>{
+        feed.push(Object.assign({},t,{community_name:cname,_community:cname,guild_id:t.guild_id||s.guild_id}));
+      });
+    });
+    const denom=stats.won+stats.lost;
+    stats.roi=stats.staked_units?Math.round((stats.profit_units/stats.staked_units)*1000)/10:0;
+    stats.strike_rate=denom?Math.round((stats.won/denom)*1000)/10:0;
+    const months=[...monthsSet].sort().reverse();
+    const anyTs=feed.some(t=>tipTimeMs(t)!=null);
+    if(anyTs) feed.sort((a,b)=>(tipTimeMs(b)||0)-(tipTimeMs(a)||0));
+    const now=new Date();
+    const curCal=(month && /^\d{4}-\d{2}$/.test(month))?month:(calPick||months[0]||(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")));
+    renderFollowerAllView({
+      stats, months, month:month||"", cal_month:curCal, daily_series:daily, feed,
+      failed, communityCount:follows.length, follows
+    });
+  }
+  function renderFollowerAllView(d){
+    const st=d.stats||{}, nm="All communities";
+    const total=Math.max(st.won+st.lost+st.push,1);
+    const months=d.months||[], curMonth=d.month||"";
+    const period=curMonth?fmtMonth(curMonth):"All time";
+    const monthSel='<select id="fmonthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">All time</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
+    const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
+    const tiles=[["Profit",u(st.profit_units||0),(st.profit_units||0)>=0?"pos":"neg"],["ROI",(st.roi||0)+"%",(st.roi||0)>=0?"pos":"neg"],["Success",(st.strike_rate||0)+"%",""],["Pending",st.pending||0,""]]
+      .map(t=>'<div class="tile"><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+'</div></div>').join("");
+    const feed=(d.feed&&d.feed.length)?d.feed.map(followerFeedRow).join(""):
+      '<div class="empty">No tracked bets yet across your communities.</div>';
+    const failNote=(d.failed&&d.failed.length)?'<div style="margin:0 0 14px;padding:10px 12px;border-radius:10px;border:1px dashed var(--line);color:var(--faint);font-size:12px">Couldn\'t load: '+esc(d.failed.join(", "))+' — showing the rest.</div>':'';
+    $("follower").innerHTML='<div class="back" id="flbx">← Home</div>'
+      +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
+      +'<div style="color:var(--muted);font-size:13px;margin:4px 0 12px">Combined · '+(d.communityCount||0)+' communities</div>'
+      +failNote
+      +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
+      +'<div class="tiles">'+tiles+'</div>'
+      +'<div class="panel"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+(st.staked_units||0)+'u staked</span></div></div>'
+      +renderCalendar(d.cal_month,d.daily_series,(d.follows&&d.follows.length)?'<div class="tb-comm-chips" style="margin-top:8px">'+d.follows.map(s=>'<span class="tb-comm-chip">'+esc(s.display_name||"Community")+'</span>').join("")+'</div>':'')
+      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>';
+    { const b=$("flbx"); if(b)b.onclick=enterHome; }
+    { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerAllView(ms.value||null); }
+    $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
+      openFollowerAllView(calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
+    });
+    const first=(d.follows&&d.follows[0])||null;
+    mountFollowerPromoChip(first?first.guild_id:null, first?(first.display_name||"All communities"):"All communities");
+  }
+
+  function promoChipHidden(key){ try{ return localStorage.getItem(key)==="1"; }catch(e){ return false; } }
+  function dismissPromoSlot(slot, key){
+    try{ localStorage.setItem(key,"1"); }catch(e){}
+    if(!slot) return;
+    slot.classList.add("tb-promo-out");
+    const done=()=>{
+      slot.remove();
+      const w=$("tb-promo-wrap");
+      if(w && !w.querySelector(".tb-promo-slot:not(.tb-promo-out)")) w.remove();
+    };
+    slot.addEventListener("transitionend", function te(ev){
+      if(ev.target!==slot) return;
+      slot.removeEventListener("transitionend", te);
+      done();
+    });
+    setTimeout(done, 380); // fallback if transitionend skipped
+  }
   function mountFollowerPromoChip(gid,nm){
     const old=$("tb-promo-wrap"); if(old)old.remove();
-    if(promoChipDismissed()) return;
+    const hideDisc=promoChipHidden("tb_promo_discover_hide");
+    const hideTips=promoChipHidden("tb_promo_mytips_hide");
+    if(hideDisc && hideTips) return;
     const wrap=document.createElement("div");
     wrap.id="tb-promo-wrap"; wrap.className="tb-promo-wrap";
-    wrap.innerHTML='<button type="button" class="tb-promo-x" id="tb-promo-x" title="Hide promos" aria-label="Hide promos">×</button>'
-      +'<button type="button" class="tb-promo-chip tb-promo-chip--discover" id="tb-discover-chip" aria-label="Discover tipsters">'
-      +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
-      +'<span class="tb-promo-bag" aria-hidden="true">🔎</span>'
-      +'<span class="tb-promo-copy">'
-      +'<span class="tb-promo-kicker">Free</span>'
-      +'<span class="tb-promo-title">Discover</span>'
-      +'<span class="tb-promo-sub">Find tipsters</span>'
-      +'</span></button>'
-      +'<button type="button" class="tb-promo-chip" id="tb-promo-chip" aria-label="Log your own tips">'
-      +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
-      +'<span class="tb-promo-bag" aria-hidden="true">📝</span>'
-      +'<span class="tb-promo-copy">'
-      +'<span class="tb-promo-kicker">Free</span>'
-      +'<span class="tb-promo-title">My Tips</span>'
-      +'<span class="tb-promo-sub">Log your own tips</span>'
-      +'</span></button>';
+    let html="";
+    if(!hideDisc){
+      html+='<div class="tb-promo-slot" id="tb-discover-slot">'
+        +'<button type="button" class="tb-promo-x" data-chip="discover" title="Hide Discover" aria-label="Hide Discover">×</button>'
+        +'<button type="button" class="tb-promo-chip tb-promo-chip--discover" id="tb-discover-chip" aria-label="Discover tipsters">'
+        +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
+        +'<span class="tb-promo-bag" aria-hidden="true">🔎</span>'
+        +'<span class="tb-promo-copy">'
+        +'<span class="tb-promo-kicker">Free</span>'
+        +'<span class="tb-promo-title">Discover</span>'
+        +'<span class="tb-promo-sub">Find tipsters</span>'
+        +'</span></button></div>';
+    }
+    if(!hideTips){
+      html+='<div class="tb-promo-slot" id="tb-mytips-slot">'
+        +'<button type="button" class="tb-promo-x" data-chip="mytips" title="Hide My Tips" aria-label="Hide My Tips">×</button>'
+        +'<button type="button" class="tb-promo-chip" id="tb-promo-chip" aria-label="Log your own tips">'
+        +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
+        +'<span class="tb-promo-bag" aria-hidden="true">📝</span>'
+        +'<span class="tb-promo-copy">'
+        +'<span class="tb-promo-kicker">Free</span>'
+        +'<span class="tb-promo-title">My Tips</span>'
+        +'<span class="tb-promo-sub">Log your own tips</span>'
+        +'</span></button></div>';
+    }
+    wrap.innerHTML=html;
     document.body.appendChild(wrap);
-    $("tb-promo-chip").onclick=()=>openMyTips(gid,nm);
-    $("tb-discover-chip").onclick=()=>openDiscover(gid,nm);
-    $("tb-promo-x").onclick=(e)=>{ e.stopPropagation(); dismissPromoChip(); };
+    const disc=$("tb-discover-chip"); if(disc) disc.onclick=()=>openDiscover(gid,nm);
+    const tips=$("tb-promo-chip"); if(tips) tips.onclick=()=>openMyTips(gid,nm);
+    wrap.querySelectorAll(".tb-promo-x").forEach(btn=>btn.onclick=(e)=>{
+      e.stopPropagation();
+      const kind=btn.dataset.chip;
+      const slot=btn.closest(".tb-promo-slot");
+      dismissPromoSlot(slot, kind==="discover"?"tb_promo_discover_hide":"tb_promo_mytips_hide");
+    });
   }
   function unmountFollowerPromoChip(){ const w=$("tb-promo-wrap"); if(w)w.remove(); }
 
@@ -1128,22 +1305,61 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     await paint();
   }
 
+  function dcGuildAvatar(t, name, size){
+    const url=t&&(t.icon_url||t.guild_icon||"");
+    const init=(function(n){ const s=String(n||"?").trim(); const p=s.split(/\s+/).filter(Boolean); if(p.length>=2) return (p[0][0]+p[1][0]).toUpperCase(); return (s.slice(0,2).toUpperCase()||"?"); })(name);
+    if(url) return '<img class="dc-av" src="'+esc(url)+'" alt="" width="'+size+'" height="'+size+'" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'dc-av\',textContent:\''+esc(init)+'\'}))">';
+    return '<div class="dc-av" aria-hidden="true">'+esc(init)+'</div>';
+  }
+  function dcRecentVals(t){
+    let vals=null;
+    if(Array.isArray(t.recent_nets)&&t.recent_nets.length) vals=t.recent_nets;
+    else if(Array.isArray(t.recent_series)&&t.recent_series.length) vals=t.recent_series;
+    else if(t.daily_series&&typeof t.daily_series==="object"){
+      const keys=Object.keys(t.daily_series).sort();
+      vals=keys.slice(-30).map(k=>{ const e=t.daily_series[k]; return e&&typeof e==="object"?(e.net||0):Number(e||0); });
+    }
+    if(!vals||vals.length<2) return null;
+    return vals.map(v=>{
+      if(v==null) return 0;
+      if(typeof v==="number") return v;
+      if(typeof v==="object") return Number(v.net!=null?v.net:(v.profit!=null?v.profit:(v.units!=null?v.units:0)));
+      return Number(v)||0;
+    });
+  }
+  // Flat desk spark — no axes/grid. Stroke win if end≥start else loss.
+  function dcMiniSpark(t, wide){
+    const vals=dcRecentVals(t); if(!vals) return "";
+    const w=wide?220:120, h=wide?36:32, pad=2;
+    const min=Math.min(...vals), max=Math.max(...vals), range=(max-min)||1;
+    const x=i=>pad+i*(w-2*pad)/Math.max(vals.length-1,1);
+    const y=v=>h-pad-((v-min)/range)*(h-2*pad);
+    const pts=vals.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+    const up=vals[vals.length-1]>=vals[0];
+    const col=up?"var(--win)":"var(--loss)";
+    return '<svg class="dc-mini'+(wide?" dc-mini--wide":"")+'" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" aria-hidden="true">'
+      +'<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  }
+  function pickFeaturedTipster(list){
+    if(!list||!list.length) return null;
+    const settled=list.filter(t=>Number(t.settled||0)>=20);
+    const pool=settled.length?settled:list;
+    return pool.slice().sort((a,b)=>Number(b.units_net||0)-Number(a.units_net||0))[0]||null;
+  }
   async function openDiscover(fromGid,fromName){
     unmountFollowerPromoChip();
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("discover");show("app");
     const back=()=>{ if(fromGid) openFollowerView(fromGid,fromName); else enterHome(); };
-    const initial=(name)=>{
-      const s=String(name||"?").trim();
-      const parts=s.split(/\s+/).filter(Boolean);
-      if(parts.length>=2) return (parts[0][0]+parts[1][0]).toUpperCase();
-      return s.slice(0,2).toUpperCase()||"?";
-    };
     $("discover").innerHTML='<div class="back" id="dc-back">← Back</div>'
       +'<div class="dc-hero"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">'
       +'<h1>Discover tipsters</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:rgba(91,140,255,.18);color:var(--accent);padding:2px 8px;border-radius:999px">FREE</span></div>'
       +'<p>Browse tipsters who opted in — ranked by <b>settled</b> units only. Pending tips never count. Join their Discord to follow.</p></div>'
-      +'<div id="dc-spot"></div><div id="dc-list"><div class="empty">Loading…</div></div>';
+      +'<div id="dc-spot"></div><div id="dc-tools" hidden style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px;align-items:center">'
+      +'<input id="dc-q" placeholder="Search tipsters" style="flex:1;min-width:160px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font:inherit">'
+      +'<select id="dc-sort" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit">'
+      +'<option value="net">Settled net</option><option value="strike">Strike</option><option value="volume">Volume</option></select></div>'
+      +'<div id="dc-list"><div class="empty">Loading…</div></div>';
     $("dc-back").onclick=back;
     const wireOpen=(root)=>{
       root.querySelectorAll(".dc-open").forEach(b=>b.onclick=()=>{
@@ -1153,45 +1369,80 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
         else toast("Join their Discord to follow — invite deep-link coming soon.");
       });
     };
-    const card=(t,compact)=>{
+    const card=(t)=>{
       const net=Number(t.units_net||0);
       const col=net>=0?"var(--win)":"var(--loss)";
       const name=t.display_name||t.guild_id;
+      const formArr=Array.isArray(t.form)?t.form:(Array.isArray(t.recent)?t.recent:null);
+      const form=formArr&&formArr.length?'<div class="dc-pills" style="gap:4px">'+formArr.slice(0,8).map(x=>{
+        const s=String(x.result||x||"").toLowerCase();
+        const win=/^w|win/.test(s); const loss=/^l|loss/.test(s);
+        return '<span style="width:8px;height:8px;border-radius:50%;display:inline-block;background:'+(win?"var(--win)":loss?"var(--loss)":"var(--push)")+'"></span>';
+      }).join("")+'</div>':'';
       return '<div class="dc-card">'
-        +'<div class="dc-top"><div class="dc-av" aria-hidden="true">'+esc(initial(name))+'</div>'
-        +'<div style="min-width:0"><div class="dc-name">'+esc(name)+'</div>'
-        +'<div class="dc-meta">'+t.wins+'W–'+t.losses+'L · '+t.settled+' settled · '+t.strike+'% strike</div></div></div>'
+        +'<div class="dc-top">'+dcGuildAvatar(t,name,40)
+        +'<div style="min-width:0;flex:1"><div class="dc-name">'+esc(name)+'</div>'
+        +'<div class="dc-pills"><span class="dc-pill dc-pill--w">'+(t.wins||0)+'W</span><span class="dc-pill dc-pill--l">'+(t.losses||0)+'L</span>'
+        +'<span style="font-size:11px;color:var(--faint);align-self:center">'+(t.strike!=null?t.strike+"% strike":"")+'</span></div>'
+        +form+'</div></div>'
+        +dcMiniSpark(t,false)
         +'<div class="dc-stats"><span class="dc-net" style="color:'+col+'">'+(net>0?"+":"")+net+'u</span>'
         +'<button type="button" class="btn sm dc-open" data-g="'+esc(t.guild_id)+'" data-n="'+esc(name)+'">View</button></div></div>';
     };
-    try{
-      const r=await api("/api/discover");
-      const j=await r.json();
-      const list=(j&&j.tipsters)||[];
-      const spot=$("dc-spot"), box=$("dc-list");
+    const paint=(list)=>{
+      const spot=$("dc-spot"), box=$("dc-list"), tools=$("dc-tools");
       if(!list.length){
+        if(tools) tools.hidden=true;
         spot.innerHTML="";
         box.innerHTML='<div class="dc-empty"><div class="dc-empty-mark" aria-hidden="true">🏆</div>'
-          +'<h3>The desk is clearing room</h3>'
-          +'<p>No tipsters are listed yet. When a tipster turns on <b>List on Discover</b> in Settings and has enough settled tips, they land here with verified units.</p></div>';
+          +'<h3>No tipsters to show yet</h3>'
+          +'<p>Opt-in tipsters with settled form will land here.</p>'
+          +'<button type="button" class="btn sm" id="dc-empty-back" style="margin-top:14px">Back to my tips</button></div>';
+        const eb=$("dc-empty-back"); if(eb) eb.onclick=()=>openMyTips(fromGid,fromName);
         return;
       }
-      const top=list[0];
-      const topNet=Number(top.units_net||0);
-      const topCol=topNet>=0?"var(--win)":"var(--loss)";
-      const topName=top.display_name||top.guild_id;
-      spot.innerHTML='<div class="dc-spotlight">'
-        +'<div class="dc-av" aria-hidden="true">'+esc(initial(topName))+'</div>'
-        +'<div style="min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Spotlight</div>'
-        +'<div style="font-size:18px;font-weight:800">'+esc(topName)+'</div>'
-        +'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+top.wins+'W–'+top.losses+'L · '+top.settled+' settled tips</div></div>'
-        +'<div class="dc-net" style="color:'+topCol+'">'+(topNet>0?"+":"")+topNet+'u</div>'
-        +'<button type="button" class="btn sm dc-open" data-g="'+esc(top.guild_id)+'" data-n="'+esc(topName)+'">View</button></div>';
-      const rest=list.slice(1);
-      box.innerHTML=(rest.length?'<div style="color:var(--faint);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px">More tipsters</div>':'')
+      if(tools) tools.hidden=false;
+      const featured=pickFeaturedTipster(list);
+      if(featured){
+        const topNet=Number(featured.units_net||0);
+        const topCol=topNet>=0?"var(--win)":"var(--loss)";
+        const topName=featured.display_name||featured.guild_id;
+        spot.innerHTML='<div class="dc-spotlight" style="flex-direction:column;align-items:stretch">'
+          +'<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'
+          +dcGuildAvatar(featured,topName,56)
+          +'<div style="min-width:0;flex:1"><div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Featured</div>'
+          +'<div style="font-size:18px;font-weight:800">'+esc(topName)+'</div>'
+          +'<div class="dc-pills" style="margin-top:6px"><span class="dc-pill dc-pill--w">'+(featured.wins||0)+'W</span><span class="dc-pill dc-pill--l">'+(featured.losses||0)+'L</span>'
+          +'<span style="font-size:12px;color:var(--muted);align-self:center">'+(featured.settled||0)+' settled</span></div></div>'
+          +'<div class="dc-net" style="color:'+topCol+'">'+(topNet>0?"+":"")+topNet+'u</div>'
+          +'<button type="button" class="btn sm dc-open" data-g="'+esc(featured.guild_id)+'" data-n="'+esc(topName)+'">View</button></div>'
+          +dcMiniSpark(featured,true)+'</div>';
+      } else spot.innerHTML="";
+      box.innerHTML='<div style="color:var(--faint);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px">All tipsters</div>'
         +'<div class="dc-grid">'+list.map(card).join("")+'</div>';
       wireOpen($("discover"));
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); $("dc-list").innerHTML='<div class="empty">Couldn\'t load Discover.</div>'; }
+    };
+    try{
+      const r=await api("/api/discover");
+      if(!r.ok){ $("dc-list").innerHTML='<div class="empty">Couldn\'t load Discover. <button type="button" class="btn sm" id="dc-retry">Retry</button></div>'; const rb=$("dc-retry"); if(rb)rb.onclick=()=>openDiscover(fromGid,fromName); return; }
+      const j=await r.json();
+      let list=(j&&j.tipsters)||[];
+      const apply=()=>{
+        const q=(($("dc-q")||{}).value||"").trim().toLowerCase();
+        const sort=(($("dc-sort")||{}).value)||"net";
+        let out=list.slice();
+        if(q) out=out.filter(t=>String(t.display_name||t.guild_id||"").toLowerCase().includes(q));
+        out.sort((a,b)=>{
+          if(sort==="strike") return Number(b.strike||0)-Number(a.strike||0);
+          if(sort==="volume") return Number(b.settled||0)-Number(a.settled||0);
+          return Number(b.units_net||0)-Number(a.units_net||0);
+        });
+        paint(out);
+      };
+      { const qi=$("dc-q"); if(qi) qi.oninput=apply; }
+      { const si=$("dc-sort"); if(si) si.onchange=apply; }
+      apply();
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); $("dc-list").innerHTML='<div class="empty">Couldn\'t load Discover. <button type="button" class="btn sm" id="dc-retry">Retry</button></div>'; const rb=$("dc-retry"); if(rb)rb.onclick=()=>openDiscover(fromGid,fromName); }
   }
 
   async function openFollowers(gid,name){
@@ -1281,7 +1532,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     const rgb=net>0?"46,175,98":"229,89,95";
     return {bg:"rgba("+rgb+","+a.toFixed(3)+")", fg:net>0?"#8ff0b6":"#ffb3b3"};
   }
-  function renderCalendar(month,daily){
+  function renderCalendar(month,daily,extraHtml){
     daily=daily||{};
     const parts=(month||"").split("-"), y=+parts[0], mo=+parts[1];
     if(!y||!mo) return "";
@@ -1317,7 +1568,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--card2);border:1px solid var(--line)"></span>No tips</span>'
       +'<span style="margin-left:auto">'+days+' active day'+(days===1?"":"s")+' · '+tips+' tips</span></div>';
     return '<div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:12px;flex-wrap:wrap">'
-      +'<h3 style="margin:0">Units calendar</h3>'
+      +'<div style="min-width:0"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')+'</div>'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-left:auto">'
       +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px;flex:none">‹</button>'
       +'<span style="min-width:112px;text-align:center;font-size:13px;font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
@@ -1478,7 +1729,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<div><div style="color:var(--warn,#e0a04a);font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700">🔱 God mode</div>'
       +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Override or re-grade any tip, including settled ones. Grades post as <b>God</b>.</div></div>'
       +'<button id="godtoggle" class="toggle '+(STATE.god?"on":"")+'" style="flex:none"></button></div>'
-      +'<div id="godhint" style="font-size:12px;margin-top:8px;color:'+(godOn()?'var(--warn,#e0a04a)':'var(--faint)')+'">'+(godOn()?"● ON — expand any tip in Recent Results to re-grade it.":"Off — tips grade normally.")+'</div></div>';
+      +'<div id="godhint" style="font-size:12px;margin-top:8px;color:'+(godOn()?'var(--warn,#e0a04a)':'var(--faint)')+'">'+(godOn()?"● ON — expand any tip in Recent Results to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally.")+'</div></div>';
     const inviteZone='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
       +'<div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Invite me</div>'
       +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Create a Discord invite for <b>this server</b> so you can join and inspect it. Platform owner only. Needs bot Create Instant Invite (or Administrator).</div>'
@@ -1527,9 +1778,12 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     });
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
     { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
-      const gh=$("godhint"); if(gh){ gh.textContent=godOn()?"● ON — expand any tip in Recent Results to re-grade it.":"Off — tips grade normally."; gh.style.color=godOn()?"var(--warn,#e0a04a)":"var(--faint)"; }
+      const on=godOn();
+      const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — expand any tip in Recent Results to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
       // Collapse any open legs so they re-render with (or without) the re-grade UI.
       document.querySelectorAll(".betlegs").forEach(el=>{el.hidden=true;el.dataset.loaded="";el.innerHTML="";});
+      // Re-paint settled rows so god ✕ shows/hides without a full reload.
+      const rb=$("recent-box"); if(rb){ rb.innerHTML=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>'; wireTipRows(rb,s.guild_id); }
     }; }
     { const ib=$("inviteMeBtn"); if(ib)ib.onclick=async()=>{
       const m=$("inviteMeMsg"), link=$("inviteMeLink");
