@@ -181,7 +181,28 @@
     .ou{flex:1}
     .ou button{flex:1;padding:9px 10px}
     .addbtn{min-height:38px;padding:9px 16px}
+    .builder-tools #psearch,.builder-tools #psort{min-width:0!important;width:100%}
+    .builder-tools{flex-direction:column}
+    .cal-nav-row{flex-wrap:wrap!important;max-width:100%}
+    .admin-row{min-width:0!important}
   }
+  .panel{min-width:0;max-width:100%;box-sizing:border-box}
+  .builder-tools{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px;min-width:0;max-width:100%}
+  .builder-tools #psearch{flex:1 1 160px;min-width:0}
+  .pname-block{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 120px}
+  .pname-block .pname{flex:none;width:100%}
+  .pform{display:flex;flex-direction:column;gap:3px;min-width:0;max-width:100%}
+  .pform-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+  .pform-lab{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-right:2px;flex:none}
+  .pform-chip{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 5px;border-radius:5px;background:var(--card2);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+  .pform-chip.recent{background:rgba(91,140,255,.24);border-color:rgba(91,140,255,.5);color:var(--txt);font-weight:800}
+  .pform-chip.ph{opacity:.4;font-weight:600}
+  .pform-meta{font-size:10px;color:var(--faint);margin-top:1px}
+  .compare-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;flex:none;white-space:nowrap}
+  .compare-btn:hover{border-color:#3a4772;color:var(--txt)}
+  .draft-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(91,140,255,.4);border-radius:12px;background:rgba(91,140,255,.1)}
+  .draft-banner .db-msg{font-size:13px;color:var(--txt);min-width:0;flex:1}
+  .draft-banner .db-acts{display:flex;gap:8px;flex-wrap:wrap}
   /* multi tray */
   .tray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:40}
   .tray-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -1871,7 +1892,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<span style="margin-left:auto">'+days+' active day'+(days===1?"":"s")+' · '+tips+' tips</span></div>';
     return '<div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:12px;flex-wrap:wrap">'
       +'<div style="min-width:0"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')+'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;margin-left:auto">'
+      +'<div class="cal-nav-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;min-width:0;max-width:100%">'
       +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px;flex:none">‹</button>'
       +'<span style="min-width:112px;text-align:center;font-size:13px;font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
       +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px;flex:none">›</button>'
@@ -1903,7 +1924,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(s.can_admin!==false){
       const on=s.data_ledger_enabled!==0 && s.data_ledger_enabled!==false;
       body.innerHTML+='<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'
-        +'<div style="flex:1;min-width:220px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Discord data-store backup <span style="font-size:10px;font-weight:700;letter-spacing:.03em;background:rgba(224,160,74,.18);color:#e0a04a;padding:2px 7px;border-radius:999px">PREMIUM</span></div>'
+        +'<div class="admin-row" style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Discord data-store backup <span style="font-size:10px;font-weight:700;letter-spacing:.03em;background:rgba(224,160,74,.18);color:#e0a04a;padding:2px 7px;border-radius:999px">PREMIUM</span></div>'
         +'<div style="color:var(--faint);font-size:12px;line-height:1.45">Optional backup of tips/follows into hidden <code>#data-store</code>. SQL/Turso stays primary. Turning off stops new backups and startup restore — it does <b>not</b> delete the channel.</div></div>'
         +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">'
         +'<input id="dledger" type="checkbox" '+(on?'checked':'')+' style="width:16px;height:16px">'
@@ -1915,7 +1936,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(s.can_admin!==false){
       const pon=s.portal_opt_in===1||s.portal_opt_in===true;
       body.innerHTML+='<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'
-        +'<div style="flex:1;min-width:220px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">List on Discover</div>'
+        +'<div class="admin-row" style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;margin-bottom:4px">List on Discover</div>'
         +'<div style="color:var(--faint);font-size:12px;line-height:1.45">Opt in to the free Discover directory (settled units W/L). Off by default.</div></div>'
         +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">'
         +'<input id="portalopt" type="checkbox" '+(pon?'checked':'')+' style="width:16px;height:16px">'
@@ -2543,6 +2564,163 @@ async function loadPerms(gid){
     };
   }
 
+  /* ---------- MULTI DRAFT (localStorage, guild-scoped) ---------- */
+  const MULTI_DRAFT_KEY="tipdash_multi_draft_v1";
+  function readDraftStore(){
+    try{ const raw=localStorage.getItem(MULTI_DRAFT_KEY); if(!raw)return {}; const o=JSON.parse(raw); return (o&&typeof o==="object")?o:{}; }
+    catch(e){ return {}; }
+  }
+  function writeDraftStore(store){
+    try{ localStorage.setItem(MULTI_DRAFT_KEY, JSON.stringify(store||{})); }catch(e){}
+  }
+  function clearMultiDraft(guildId){
+    if(guildId==null)return;
+    const store=readDraftStore();
+    const k=String(guildId);
+    if(store[k]){ delete store[k]; writeDraftStore(store); }
+  }
+  function gameSnap(g){
+    if(!g)return null;
+    return {
+      aflMatchId:g.aflMatchId||null,
+      id:g.id||g.game_id||null,
+      hteam:teamName(g.hteam),
+      ateam:teamName(g.ateam),
+      roundname:g.roundname||"",
+      unixtime:g.unixtime||null,
+      complete:g.complete,
+      comp:g.comp||null
+    };
+  }
+  function saveMultiDraft(){
+    const gid=BUILD&&BUILD.guildId;
+    if(!gid)return;
+    const legs=(BUILD.legs||[]).slice();
+    const meaningful=legs.length>0 || !!(BUILD.custom&&((BUILD.customEvent||"").trim()||(BUILD.customSport||"").trim()));
+    if(!meaningful){
+      // Don't wipe an existing draft just because we're on the games list with 0 legs.
+      return;
+    }
+    const store=readDraftStore();
+    store[String(gid)]={
+      guild_id:String(gid),
+      serverName:BUILD.serverName||"",
+      legs:legs,
+      game:gameSnap(BUILD.game),
+      custom:!!BUILD.custom,
+      customEvent:BUILD.customEvent||"",
+      customSport:BUILD.customSport||"",
+      tab:BUILD.tab||"Disposals",
+      search:BUILD.search||"",
+      sort:BUILD.sort||"number",
+      assume:!!BUILD.assume,
+      stakeMode:BUILD.stakeMode||"units",
+      ts:Date.now()
+    };
+    writeDraftStore(store);
+  }
+  function getMultiDraft(guildId){
+    if(guildId==null)return null;
+    const d=readDraftStore()[String(guildId)];
+    if(!d||typeof d!=="object")return null;
+    const legs=Array.isArray(d.legs)?d.legs:[];
+    const meaningful=legs.length>0 || !!(d.custom&&((d.customEvent||"").trim()||(d.customSport||"").trim()));
+    if(!meaningful)return null;
+    return d;
+  }
+  function matchDraftGame(snap, games){
+    if(!snap||!games||!games.length)return null;
+    const mid=snap.aflMatchId||snap.id;
+    if(mid){
+      const hit=games.find(g=>String(g.aflMatchId||g.id||g.game_id||"")===String(mid));
+      if(hit)return hit;
+    }
+    const ht=String(snap.hteam||"").toLowerCase(), at=String(snap.ateam||"").toLowerCase();
+    if(ht&&at){
+      return games.find(g=>teamName(g.hteam).toLowerCase()===ht&&teamName(g.ateam).toLowerCase()===at)||null;
+    }
+    return null;
+  }
+  function draftBannerHTML(d){
+    const n=(d.legs||[]).length;
+    const when=d.ts?new Date(d.ts).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+    const label=n? (n+" leg"+(n===1?"":"s")) : "custom draft";
+    return '<div class="draft-banner" id="draftbanner" role="status">'
+      +'<div class="db-msg">You have an unfinished multi (<b>'+esc(label)+'</b>)'+(when?(" · saved "+esc(when)):"")+'. Continue?</div>'
+      +'<div class="db-acts"><button type="button" class="btn sm" id="draft-continue">Continue</button>'
+      +'<button type="button" class="ghost" id="draft-discard">Discard</button></div></div>';
+  }
+  async function resumeMultiDraft(d, games){
+    if(!d)return;
+    BUILD.legs=(d.legs||[]).slice();
+    BUILD.tab=d.tab||"Disposals";
+    BUILD.search=d.search||"";
+    BUILD.sort=d.sort||"number";
+    BUILD.assume=!!d.assume;
+    BUILD.stakeMode=d.stakeMode||"units";
+    BUILD.custom=!!d.custom;
+    BUILD.customEvent=d.customEvent||"";
+    BUILD.customSport=d.customSport||"";
+    BUILD.serverName=d.serverName||BUILD.serverName;
+    if(d.custom){
+      BUILD.game=null;
+      renderCustom();
+      renderTray();
+      return;
+    }
+    let list=games||[];
+    if(!list.length){
+      try{
+        const fx=await (await api("/api/fixtures")).json();
+        list=fx.games||[];
+        STATE.playerMeta=fx.players||{};
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    }
+    const g=matchDraftGame(d.game, list);
+    if(g){
+      await openGame(g);
+      // openGame resets tab to Disposals — restore draft tab/legs after.
+      BUILD.tab=d.tab||BUILD.tab;
+      BUILD.legs=(d.legs||[]).slice();
+      BUILD.search=d.search||"";
+      BUILD.sort=d.sort||"number";
+      BUILD.assume=!!d.assume;
+      renderGame();
+      renderTray();
+      return;
+    }
+    // Game no longer in fixtures — keep legs, show games list + note.
+    BUILD.game=null; BUILD.custom=false;
+    renderGames(list);
+    renderTray();
+    const box=$("builder");
+    if(box){
+      const note=document.createElement("div");
+      note.className="draft-banner";
+      note.innerHTML='<div class="db-msg">Draft restored ('+esc(String((d.legs||[]).length))+' legs), but that fixture is no longer listed — pick a game or review the tray.</div>';
+      const h1=box.querySelector("h1");
+      if(h1) h1.insertAdjacentElement("afterend", note);
+      else box.insertBefore(note, box.firstChild);
+    }
+  }
+  function offerDraftResume(guildId, games){
+    const d=getMultiDraft(guildId);
+    if(!d)return;
+    const box=$("builder"); if(!box)return;
+    if($("draftbanner"))return;
+    const wrap=document.createElement("div");
+    wrap.innerHTML=draftBannerHTML(d);
+    const banner=wrap.firstChild;
+    // Insert after back/h1 if present
+    const h1=box.querySelector("h1");
+    if(h1&&h1.nextSibling) box.insertBefore(banner, h1.nextSibling);
+    else if(h1) h1.insertAdjacentElement("afterend", banner);
+    else box.insertBefore(banner, box.firstChild);
+    const cont=$("draft-continue"), disc=$("draft-discard");
+    if(cont)cont.onclick=async()=>{ banner.remove(); await resumeMultiDraft(d, games); };
+    if(disc)disc.onclick=()=>{ clearMultiDraft(guildId); banner.remove(); toast("Draft discarded"); };
+  }
+
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
@@ -2558,6 +2736,7 @@ async function loadPerms(gid){
     let games=[];
     try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
     renderGames(games);
+    offerDraftResume(guildId, games);
     // Auto-refresh the games list every 60s so live scores update and finished
     // games drop off on their own. Pauses while you're inside a specific game.
     clearGamesTimer();
@@ -2578,6 +2757,7 @@ async function loadPerms(gid){
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",unitSize:guildUnitSize(guildId)};
     panel("builder");renderTray();renderBatchTray();
     renderCustom();
+    offerDraftResume(guildId, null);
   }
   function renderCustom(){
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
@@ -2589,8 +2769,8 @@ async function loadPerms(gid){
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:12px;margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
       +'</div>';
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
-    const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;};
-    const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;};
+    const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;saveMultiDraft();};
+    const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;saveMultiDraft();};
     const add=()=>{ const inp=$("c_leg"); const v=(inp.value||"").trim(); if(!v)return; addLeg({custom:true,desc:v}); inp.value=""; inp.focus(); };
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
@@ -2731,6 +2911,7 @@ async function loadPerms(gid){
   async function openGame(g){
     clearLiveTimer();clearGamesTimer();
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
+    saveMultiDraft();
     renderGame();
     // If the game is in progress, pull live stats now and refresh them every 30s.
     const c=Number(g.complete)||0;
@@ -2757,14 +2938,14 @@ async function loadPerms(gid){
       +'<div class="tabs">'+tabs+'</div>'
       +'<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px">First / last markets</div>'
       +'<div class="tabs">'+mtabs+'</div>'
-      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px">'
-      +'<input id="psearch" placeholder="Search players by name or number…" value="'+esc(BUILD.search||"")+'" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
-      +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
+      +'<div class="builder-tools">'
+      +'<input id="psearch" placeholder="Search players by name or number…" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
+      +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer;min-width:0"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
       +'</div><div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
     const rl=$("refreshlive"); if(rl)rl.onclick=()=>refreshLive(g);
-    $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;renderGame();});
+    $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;saveMultiDraft();renderGame();});
     const ps=$("psort"); if(ps){ ps.value=BUILD.sort||"number"; ps.onchange=()=>{BUILD.sort=ps.value;renderPlayers();}; }
     const pq=$("psearch"); if(pq){ pq.oninput=()=>{BUILD.search=pq.value;renderPlayers();}; }
     renderPlayers();
@@ -2802,6 +2983,102 @@ async function loadPerms(gid){
   function teamColor(name){ const k=String(name||"").toLowerCase().replace(/[^a-z]/g,""); for(var i=0;i<TEAMCOLORS.length;i++){ if(k.indexOf(TEAMCOLORS[i][0])>=0)return TEAMCOLORS[i][1]; } return "#2a3550"; }
   function textOn(hex){ const c=hex.replace("#",""); const r=parseInt(c.substr(0,2),16),gg=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16); return (0.299*r+0.587*gg+0.114*b)>140?"#111":"#fff"; }
   function guernsey(num,name){ const col=teamColor(name),tc=textOn(col); return '<svg width="34" height="34" viewBox="0 0 40 40" style="flex:none" aria-hidden="true"><path d="M13 4 L20 8 L27 4 L34 11 L29.5 17 L29.5 34 Q29.5 37 26.5 37 L13.5 37 Q10.5 37 10.5 34 L10.5 17 L6 11 Z" fill="'+col+'" stroke="rgba(255,255,255,.18)"/><text x="20" y="26" text-anchor="middle" font-family="inherit" font-size="13" font-weight="800" fill="'+tc+'">'+(num!=null&&num!==""?num:"")+'</text></svg>'; }
+  // Player form chips (Sportsbet-like last5 / vs opp). Reads in-page caches if TipBot
+  // or fixtures ever attach history; otherwise muted "—" placeholders keep layout.
+  // Needed TipBot API (document in PR): GET /api/player-form?player=&stat=&vs=
+  // returning { last5:[n…], vsOpp:[n…], seasonAvg, last10:[n…] } newest-last.
+  function playerForm(player, stat, vsTeam){
+    const name=typeof player==="string"?player:(player&&player.name)||"";
+    const key=String(name||"").toLowerCase().trim();
+    const statKey=String(stat||BUILD.tab||"Disposals");
+    const store=STATE.playerForm||STATE.form||null;
+    let hit=null;
+    if(store&&typeof store==="object"){
+      const bucket=store[key]||store[name]||null;
+      if(bucket){
+        hit=bucket[statKey]||bucket[statKey.toLowerCase()]||bucket.stats||bucket;
+      }
+    }
+    // Optional per-player fields on roster objects from fixtures/live.
+    if(!hit&&player&&typeof player==="object"){
+      const pf=player.form||player.history||player.stats;
+      if(pf){
+        hit=(pf[statKey]||pf[statKey.toLowerCase()]||pf);
+      }
+    }
+    function nums(arr){
+      if(!Array.isArray(arr))return null;
+      const out=arr.map(function(v){ const n=Number(v); return isNaN(n)?null:n; }).filter(function(v){return v!==null;});
+      return out.length?out:null;
+    }
+    if(!hit||typeof hit!=="object"){
+      return { last5:null, vsOpp:null, seasonAvg:null, last10:null, placeholder:true };
+    }
+    const last5=nums(hit.last5||hit.last_5||hit.recent||hit.form)||null;
+    let vsOpp=null;
+    const vsMap=hit.vs||hit.vsOpp||hit.vs_opp||hit.against||null;
+    if(Array.isArray(vsMap)) vsOpp=nums(vsMap);
+    else if(vsMap&&typeof vsMap==="object"&&vsTeam){
+      const vk=String(vsTeam).toLowerCase().replace(/[^a-z]/g,"");
+      for(const k of Object.keys(vsMap)){
+        if(String(k).toLowerCase().replace(/[^a-z]/g,"")===vk||String(k).toLowerCase().includes(vk)||vk.includes(String(k).toLowerCase().replace(/[^a-z]/g,""))){
+          vsOpp=nums(vsMap[k]); break;
+        }
+      }
+    }
+    const seasonAvg=(hit.seasonAvg!=null?Number(hit.seasonAvg):hit.season_avg!=null?Number(hit.season_avg):hit.avg!=null?Number(hit.avg):null);
+    const last10=nums(hit.last10||hit.last_10)||null;
+    return {
+      last5: last5, vsOpp: vsOpp,
+      seasonAvg: (seasonAvg!=null&&!isNaN(seasonAvg))?seasonAvg:null,
+      last10: last10,
+      placeholder: !(last5||vsOpp||(seasonAvg!=null&&!isNaN(seasonAvg))||last10)
+    };
+  }
+  function formChipCells(arr, maxN){
+    maxN=maxN||5;
+    if(!arr||!arr.length){
+      return Array(Math.min(5,maxN)).fill(0).map(function(){ return '<span class="pform-chip ph" title="Form data not loaded yet">—</span>'; }).join("");
+    }
+    const slice=arr.slice(-maxN);
+    return slice.map(function(n,i){
+      const recent=i===slice.length-1;
+      return '<span class="pform-chip'+(recent?" recent":"")+'" title="'+(recent?"Most recent":"Recent form")+'">'+esc(String(n))+'</span>';
+    }).join("");
+  }
+  function hitRateUnderLine(last10, line){
+    if(!last10||!last10.length||!(line>=0))return null;
+    const n=last10.length;
+    let hits=0;
+    last10.forEach(function(v){ if(v>line)hits++; }); // over-line hit rate
+    return { hits:hits, n:n, pct:Math.round(hits/n*100) };
+  }
+  function formChipsHTML(player, teamNm, oppNm, lineHint){
+    const form=playerForm(player, BUILD.tab, oppNm);
+    let meta="";
+    if(form.seasonAvg!=null){
+      meta+='<div class="pform-meta">Season avg <b style="color:var(--muted)">'+esc(String(Math.round(form.seasonAvg*10)/10))+'</b></div>';
+    }
+    const hr=hitRateUnderLine(form.last10||form.last5, lineHint);
+    if(hr){
+      meta+='<div class="pform-meta">Hit over line (L'+hr.n+') <b style="color:var(--muted)">'+hr.hits+'/'+hr.n+' · '+hr.pct+'%</b></div>';
+    }
+    return '<div class="pform" aria-label="Recent form">'
+      +'<div class="pform-row"><span class="pform-lab">L5</span>'+formChipCells(form.last5,5)+'</div>'
+      +'<div class="pform-row"><span class="pform-lab">vs</span>'+formChipCells(form.vsOpp,5)+'</div>'
+      +meta+'</div>';
+  }
+  function compareHref(playerName, stat, game){
+    const q=new URLSearchParams();
+    q.set("player", playerName||"");
+    q.set("stat", stat||BUILD.tab||"");
+    if(game){
+      const gid=TB.gameId({game:game})||"";
+      if(gid)q.set("game", String(gid));
+      else q.set("game", teamName(game.hteam)+" v "+teamName(game.ateam));
+    }
+    return "./compare/?"+q.toString();
+  }
   function renderPlayers(){
     const g=BUILD.game;const box=$("players");let html="";
     const mkt=MARKETS[BUILD.tab];const isMarket=!!mkt;
@@ -2836,17 +3113,20 @@ async function loadPerms(gid){
         html+='</div>';
       }
       if(!list.length){ html+='<div class="empty" style="margin:0 0 12px">No players match your search.</div>'; }
+      const oppNm=teamName(sides[0]===team?sides[1]:sides[0]);
       list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;const lv=liveVal(p.name);
-        const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">\u00b7 '+lv+' now</span>':"";
-        const nameCell='<div class="pname">'+p.name+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+p.position+'</small>':"")+liveChip+'</div>';
+        const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">· '+lv+' now</span>':"";
+        const formHtml=isMarket?"":formChipsHTML(p, nm, oppNm, def);
+        const nameCell='<div class="pname-block"><div class="pname">'+esc(p.name)+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+esc(p.position)+'</small>':"")+liveChip+'</div>'+formHtml+'</div>';
+        const cmp='<a class="compare-btn" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>';
         if(isMarket){
           html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
-            +'<button class="addbtn" id="'+rid+'_a" style="margin-left:auto">Add</button></div>';
+            +'<div class="prow-actions" style="margin-left:auto">'+cmp+'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
           return;
         }
         html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
           +'<div class="linectl"><input type="range" min="0" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="1" value="'+def+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center"></div>'
-          +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
+          +'<div class="prow-actions">'+cmp+'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
       html+='</div>';
@@ -2878,7 +3158,7 @@ async function loadPerms(gid){
       const gameId=TB.gameId({game:BUILD.game});
       if(gameId)next.game_id=gameId;
     }
-    BUILD.legs.push(next);renderTray();
+    BUILD.legs.push(next);renderTray();saveMultiDraft();
   }
   function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
   function renderTray(){
@@ -2887,7 +3167,7 @@ async function loadPerms(gid){
     t.hidden=false;
     t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>'<span class="chip">'+esc(legText(l))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>').join("")+'</div>'
       +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button>'+TB.multiSummary(BUILD.legs)+'</div>';
-    t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray();});
+    t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray(); if(BUILD.legs.length)saveMultiDraft(); else clearMultiDraft(BUILD.guildId);});
     $("reviewbtn").onclick=renderConfirm;
     syncTrayStack();
   }
@@ -3028,6 +3308,7 @@ async function loadPerms(gid){
       game_name:tip.game_name, sport:tip.sport, image_b64:tip.image_b64||""
     });
     BUILD.legs=[]; BUILD.image=null;
+    clearMultiDraft(BUILD.guildId);
     renderTray();
     renderBatchTray();
     toast("Added to batch ("+BATCH.tips.length+")");
@@ -3079,34 +3360,100 @@ async function loadPerms(gid){
   }
   async function doBatchSchedule(delay,trickle){
     const btn=$("batchgo"); if(btn)btn.disabled=true;
+    const errEl=$("scherr");
+    function setErr(msg){ if(errEl)errEl.textContent=msg||""; }
+    const guildId=BATCH.guildId||BUILD.guildId;
+    const tips=BATCH.tips.map(t=>({
+      legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
+      game_name:t.game_name, sport:t.sport, image_b64:t.image_b64||""
+    }));
     const payload={
-      guild_id:BATCH.guildId||BUILD.guildId,
+      guild_id:guildId,
       delay_minutes:delay,
       trickle:!!trickle,
       trickle_seconds:30,
-      tips:BATCH.tips.map(t=>({
-        legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
-        game_name:t.game_name, sport:t.sport, image_b64:t.image_b64||""
-      }))
+      tips:tips
     };
+    async function readBody(r){
+      const raw=await r.text();
+      let j=null;
+      try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
+      return { j:j, raw:raw };
+    }
+    function failMsg(r, j, raw){
+      if(r && r.status===404){
+        return "Bot is updating — Trickle API not live yet. Try again in a minute.";
+      }
+      const bodyMsg=(j&&(j.message||j.error||j.detail))||"";
+      if(bodyMsg) return (r&&r.status?("HTTP "+r.status+": "):"")+bodyMsg;
+      if(r&&!r.ok) return "Couldn't schedule batch (HTTP "+r.status+")."+(raw&&raw.length<180?" "+raw:"");
+      return "Couldn't schedule batch.";
+    }
+    async function sequentialFallback(){
+      // Trickle OFF + 404: post each tip via legacy /api/queue-tip with same delay.
+      let ok=0, lastErr="";
+      for(let i=0;i<tips.length;i++){
+        const t=tips[i];
+        const one={
+          guild_id:guildId, legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
+          game_name:t.game_name, sport:t.sport, delay_minutes:delay, image_b64:t.image_b64||""
+        };
+        try{
+          const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(one)});
+          const {j,raw}=await readBody(r);
+          if(r.ok&&j&&j.ok){ ok++; }
+          else{ lastErr=failMsg(r,j,raw); break; }
+        }catch(e){
+          if(e&&e.unauth)throw e;
+          lastErr="Couldn't reach the bot.";
+          break;
+        }
+      }
+      return {ok:ok, lastErr:lastErr};
+    }
     try{
       const r=await api("/api/queue-tips",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-      const j=await r.json();
-      if(r.ok&&j.ok){
+      const {j,raw}=await readBody(r);
+      if(r.ok&&j&&j.ok){
         const n=BATCH.tips.length;
         clearBatch();
         BUILD.legs=[]; BUILD.image=null;
+        clearMultiDraft(guildId);
         if($("tray"))$("tray").hidden=true;
         if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
         toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""));
-        loadDetail(payload.guild_id);
-      }else{
-        $("scherr").textContent=j.message||"Couldn't schedule batch.";
-        if(btn)btn.disabled=false;
+        loadDetail(guildId);
+        return;
       }
+      if(r.status===404){
+        if(trickle){
+          setErr("Bot is updating — Trickle API not live yet. Try again in a minute.");
+          if(btn)btn.disabled=false;
+          return;
+        }
+        // Fallback: sequential queue-tip (same delay_minutes, no fake stagger).
+        setErr("Trickle API not live — falling back to sequential schedule…");
+        const fb=await sequentialFallback();
+        if(fb.ok===tips.length){
+          const n=tips.length;
+          clearBatch();
+          BUILD.legs=[]; BUILD.image=null;
+          clearMultiDraft(guildId);
+          if($("tray"))$("tray").hidden=true;
+          if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
+          toast(n+" tip"+(n===1?"":"s")+" scheduled (legacy fallback)");
+          loadDetail(guildId);
+          return;
+        }
+        setErr(fb.lastErr||("Bot is updating — Trickle API not live yet. Try again in a minute."+(fb.ok?" ("+fb.ok+"/"+tips.length+" queued)":"")));
+        if(btn)btn.disabled=false;
+        return;
+      }
+      setErr(failMsg(r,j,raw));
+      if(btn)btn.disabled=false;
     }catch(e){
-      if(e.unauth)return renderLogin("Session expired.");
-      $("scherr").textContent="Couldn't reach the bot.";
+      if(e&&e.unauth)return renderLogin("Session expired.");
+      setErr("Couldn't reach the bot.");
       if(btn)btn.disabled=false;
     }
   }
@@ -3150,7 +3497,7 @@ async function loadPerms(gid){
       image_b64:BUILD.image||""};
     try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const j=await r.json();
-      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
+      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
       else{ $("scherr").textContent=j.message||"Couldn't schedule."; $("schedbtn").disabled=false; }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; $("schedbtn").disabled=false; }
   }
