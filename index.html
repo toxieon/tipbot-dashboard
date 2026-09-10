@@ -252,12 +252,17 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .tb-bookmaker-selected{font-size:13px;min-height:30px;}
 
 
-/* Follower promo chip — Expansion Pass–inspired (rough MVP) */
+/* Follower promo chips — Expansion Pass stack (wrap is fixed; chips are NOT) */
+.tb-promo-wrap{
+  position:fixed;right:16px;bottom:16px;z-index:80;
+  display:flex;flex-direction:column;gap:10px;align-items:stretch;
+  width:min(268px,calc(100vw - 32px));
+}
 .tb-promo-chip{
-  position:fixed;right:18px;bottom:18px;z-index:80;
+  position:relative; /* critical: was fixed → both chips overlapped */
   display:flex;align-items:center;gap:10px;
-  min-width:200px;max-width:min(280px,calc(100vw - 36px));
-  padding:10px 14px 10px 8px;
+  width:100%;box-sizing:border-box;
+  padding:11px 40px 11px 10px;
   border:none;border-radius:999px;cursor:pointer;
   background:linear-gradient(90deg,#ffe566 0%,#7bc96f 55%,#1f8a4c 100%);
   box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35);
@@ -273,27 +278,86 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .tb-promo-chip .tb-promo-bag{
   flex:none;width:28px;height:28px;border-radius:8px;
   background:rgba(255,255,255,.92);border:2px solid #f0a020;
-  display:grid;place-items:center;font-size:14px;
+  display:grid;place-items:center;font-size:14px;line-height:1;
 }
-.tb-promo-chip .tb-promo-copy{flex:1;min-width:0;line-height:1.15}
+.tb-promo-chip--discover .tb-promo-bag{border-color:#3a6fd0}
+.tb-promo-chip .tb-promo-copy{
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+}
 .tb-promo-chip .tb-promo-kicker{
-  font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-  color:rgba(0,0,0,.55);margin-bottom:2px;
+  display:block;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(0,0,0,.55);line-height:1.2;
 }
-.tb-promo-chip .tb-promo-title{font-size:14px;font-weight:800;color:#111}
-.tb-promo-chip .tb-promo-sub{font-size:11px;font-weight:600;color:rgba(0,0,0,.62);margin-top:1px}
+.tb-promo-chip .tb-promo-title{
+  display:block;font-size:15px;font-weight:800;color:#111;line-height:1.2;
+}
+.tb-promo-chip .tb-promo-sub{
+  display:block;font-size:11px;font-weight:600;color:rgba(0,0,0,.62);line-height:1.25;
+}
+.tb-promo-chip--discover{
+  background:linear-gradient(90deg,#9ad4ff 0%,#5b8cff 55%,#3558c4 100%);
+}
+.tb-promo-chip--discover .tb-promo-kicker,
+.tb-promo-chip--discover .tb-promo-title,
+.tb-promo-chip--discover .tb-promo-sub{color:#0b1220}
 .tb-promo-x{
-  position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:999px;
-  border:none;background:#1a1f2b;color:#fff;font-size:12px;cursor:pointer;
-  display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.35);
+  position:absolute;top:-8px;right:-8px;z-index:2;
+  width:24px;height:24px;border-radius:999px;
+  border:none;background:var(--card2,#1a1f2b);color:var(--txt,#fff);font-size:13px;cursor:pointer;
+  display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.4);
+  border:1px solid var(--line,rgba(255,255,255,.12));
 }
-.tb-promo-wrap{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;flex-direction:column;gap:10px;align-items:flex-end}
-.tb-promo-chip--discover{background:linear-gradient(90deg,#7ec8ff 0%,#5b8cff 55%,#3a5fd0 100%)}
-.tb-promo-chip--discover .tb-promo-title,.tb-promo-chip--discover .tb-promo-sub,.tb-promo-chip--discover .tb-promo-kicker{color:#0b1220}
 .tb-promo-chip .mt-settlebtn{font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--txt);cursor:pointer;font:inherit}
 
 #mytips .mt-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 #mytips .mt-row:last-child{border-bottom:none}
+
+/* Discover page polish */
+.dc-hero{
+  margin:0 0 18px;padding:18px 20px;border-radius:16px;
+  border:1px solid var(--line);background:var(--card);
+  background-image:linear-gradient(135deg,rgba(91,140,255,.14),transparent 55%),linear-gradient(225deg,rgba(46,175,98,.08),transparent 40%);
+}
+.dc-hero h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
+.dc-hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.45;max-width:42em}
+.dc-spotlight{
+  margin:0 0 18px;padding:18px 20px;border-radius:16px;
+  border:1px solid var(--line);background:var(--card2);
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+}
+.dc-spotlight .dc-av{
+  width:56px;height:56px;border-radius:16px;flex:none;
+  display:grid;place-items:center;font-weight:800;font-size:22px;
+  background:linear-gradient(145deg,#5b8cff,#2eaf62);color:#fff;
+}
+.dc-spotlight .dc-net{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;margin-left:auto}
+.dc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.dc-card{
+  border:1px solid var(--line);border-radius:14px;background:var(--card);
+  padding:14px 14px 12px;display:flex;flex-direction:column;gap:10px;
+}
+.dc-card .dc-top{display:flex;gap:12px;align-items:center}
+.dc-card .dc-av{
+  width:40px;height:40px;border-radius:12px;flex:none;
+  display:grid;place-items:center;font-weight:800;font-size:15px;
+  background:var(--card2);border:1px solid var(--line);color:var(--accent);
+}
+.dc-card .dc-name{font-weight:750;font-size:15px;line-height:1.2}
+.dc-card .dc-meta{font-size:12px;color:var(--faint);margin-top:2px}
+.dc-card .dc-stats{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dc-card .dc-net{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.dc-empty{
+  text-align:center;padding:36px 20px;border-radius:16px;border:1px dashed var(--line);
+  background:var(--card);
+}
+.dc-empty .dc-empty-mark{
+  width:64px;height:64px;margin:0 auto 14px;border-radius:18px;
+  display:grid;place-items:center;font-size:28px;
+  background:linear-gradient(145deg,rgba(91,140,255,.25),rgba(46,175,98,.18));
+  border:1px solid var(--line);
+}
+.dc-empty h3{margin:0 0 8px;font-size:18px}
+.dc-empty p{margin:0 auto;max-width:28em;color:var(--muted);font-size:13px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -954,19 +1018,23 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     if(promoChipDismissed()) return;
     const wrap=document.createElement("div");
     wrap.id="tb-promo-wrap"; wrap.className="tb-promo-wrap";
-    wrap.innerHTML='<button type="button" class="tb-promo-x" id="tb-promo-x" title="Hide">×</button>'
-      +'<button type="button" class="tb-promo-chip" id="tb-promo-chip" aria-label="Log your own tips">'
-      +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
-      +'<span class="tb-promo-bag" aria-hidden="true">📝</span>'
-      +'<span class="tb-promo-copy"><span class="tb-promo-kicker">Free</span>'
-      +'<span class="tb-promo-title">My Tips</span>'
-      +'<span class="tb-promo-sub">Log your own tips</span></span></button>'
+    wrap.innerHTML='<button type="button" class="tb-promo-x" id="tb-promo-x" title="Hide promos" aria-label="Hide promos">×</button>'
       +'<button type="button" class="tb-promo-chip tb-promo-chip--discover" id="tb-discover-chip" aria-label="Discover tipsters">'
       +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
       +'<span class="tb-promo-bag" aria-hidden="true">🔎</span>'
-      +'<span class="tb-promo-copy"><span class="tb-promo-kicker">Free</span>'
+      +'<span class="tb-promo-copy">'
+      +'<span class="tb-promo-kicker">Free</span>'
       +'<span class="tb-promo-title">Discover</span>'
-      +'<span class="tb-promo-sub">Find tipsters</span></span></button>';
+      +'<span class="tb-promo-sub">Find tipsters</span>'
+      +'</span></button>'
+      +'<button type="button" class="tb-promo-chip" id="tb-promo-chip" aria-label="Log your own tips">'
+      +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
+      +'<span class="tb-promo-bag" aria-hidden="true">📝</span>'
+      +'<span class="tb-promo-copy">'
+      +'<span class="tb-promo-kicker">Free</span>'
+      +'<span class="tb-promo-title">My Tips</span>'
+      +'<span class="tb-promo-sub">Log your own tips</span>'
+      +'</span></button>';
     document.body.appendChild(wrap);
     $("tb-promo-chip").onclick=()=>openMyTips(gid,nm);
     $("tb-discover-chip").onclick=()=>openDiscover(gid,nm);
@@ -1065,33 +1133,64 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("discover");show("app");
     const back=()=>{ if(fromGid) openFollowerView(fromGid,fromName); else enterHome(); };
+    const initial=(name)=>{
+      const s=String(name||"?").trim();
+      const parts=s.split(/\s+/).filter(Boolean);
+      if(parts.length>=2) return (parts[0][0]+parts[1][0]).toUpperCase();
+      return s.slice(0,2).toUpperCase()||"?";
+    };
     $("discover").innerHTML='<div class="back" id="dc-back">← Back</div>'
-      +'<div class="dhead"><h1 style="margin:0">Discover tipsters</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:rgba(91,140,255,.18);color:#8eb6ff;padding:2px 8px;border-radius:999px">FREE</span></div>'
-      +'<p style="color:var(--muted);font-size:13px;margin:8px 0 16px;line-height:1.45">Opt-in tipsters showing settled units W/L. Rough stub — Cinna polish later.</p>'
-      +'<div id="dc-list"><div class="empty">Loading…</div></div>';
+      +'<div class="dc-hero"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">'
+      +'<h1>Discover tipsters</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:rgba(91,140,255,.18);color:var(--accent);padding:2px 8px;border-radius:999px">FREE</span></div>'
+      +'<p>Browse tipsters who opted in — ranked by <b>settled</b> units only. Pending tips never count. Join their Discord to follow.</p></div>'
+      +'<div id="dc-spot"></div><div id="dc-list"><div class="empty">Loading…</div></div>';
     $("dc-back").onclick=back;
+    const wireOpen=(root)=>{
+      root.querySelectorAll(".dc-open").forEach(b=>b.onclick=()=>{
+        const gid=b.dataset.g, nm=b.dataset.n;
+        const follows=(STATE.followerServers||[]).some(s=>String(s.guild_id)===String(gid));
+        if(follows) openFollowerView(gid,nm);
+        else toast("Join their Discord to follow — invite deep-link coming soon.");
+      });
+    };
+    const card=(t,compact)=>{
+      const net=Number(t.units_net||0);
+      const col=net>=0?"var(--win)":"var(--loss)";
+      const name=t.display_name||t.guild_id;
+      return '<div class="dc-card">'
+        +'<div class="dc-top"><div class="dc-av" aria-hidden="true">'+esc(initial(name))+'</div>'
+        +'<div style="min-width:0"><div class="dc-name">'+esc(name)+'</div>'
+        +'<div class="dc-meta">'+t.wins+'W–'+t.losses+'L · '+t.settled+' settled · '+t.strike+'% strike</div></div></div>'
+        +'<div class="dc-stats"><span class="dc-net" style="color:'+col+'">'+(net>0?"+":"")+net+'u</span>'
+        +'<button type="button" class="btn sm dc-open" data-g="'+esc(t.guild_id)+'" data-n="'+esc(name)+'">View</button></div></div>';
+    };
     try{
       const r=await api("/api/discover");
       const j=await r.json();
       const list=(j&&j.tipsters)||[];
-      const box=$("dc-list");
+      const spot=$("dc-spot"), box=$("dc-list");
       if(!list.length){
-        box.innerHTML='<div class="empty">No tipsters listed yet. Tipsters can opt in under Settings → General → <b>List on Discover</b>.</div>';
+        spot.innerHTML="";
+        box.innerHTML='<div class="dc-empty"><div class="dc-empty-mark" aria-hidden="true">🏆</div>'
+          +'<h3>The desk is clearing room</h3>'
+          +'<p>No tipsters are listed yet. When a tipster turns on <b>List on Discover</b> in Settings and has enough settled tips, they land here with verified units.</p></div>';
         return;
       }
-      box.innerHTML='<div class="panel">'+list.map(t=>{
-        return '<div class="mt-row"><div><div style="font-weight:700">'+esc(t.display_name||t.guild_id)+'</div>'
-          +'<div style="font-size:12px;color:var(--faint)">'+t.wins+'W–'+t.losses+'L · '+t.settled+' settled · strike '+t.strike+'%</div></div>'
-          +'<div style="text-align:right"><div style="font-weight:800;color:'+(t.units_net>=0?"var(--win)":"var(--loss)")+'">'+(t.units_net>0?"+":"")+t.units_net+'u</div>'
-          +'<button type="button" class="ghost dc-open" data-g="'+esc(t.guild_id)+'" data-n="'+esc(t.display_name||"")+'" style="margin-top:4px;font-size:12px">Open</button></div></div>';
-      }).join("")+'</div>';
-      box.querySelectorAll(".dc-open").forEach(b=>b.onclick=()=>{
-        // Prefer follower view if they follow; else just toast
-        const gid=b.dataset.g, nm=b.dataset.n;
-        const follows=(STATE.followerServers||[]).some(s=>String(s.guild_id)===String(gid));
-        if(follows) openFollowerView(gid,nm);
-        else toast("Join their Discord to follow — Discover deep-link later.");
-      });
+      const top=list[0];
+      const topNet=Number(top.units_net||0);
+      const topCol=topNet>=0?"var(--win)":"var(--loss)";
+      const topName=top.display_name||top.guild_id;
+      spot.innerHTML='<div class="dc-spotlight">'
+        +'<div class="dc-av" aria-hidden="true">'+esc(initial(topName))+'</div>'
+        +'<div style="min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Spotlight</div>'
+        +'<div style="font-size:18px;font-weight:800">'+esc(topName)+'</div>'
+        +'<div style="font-size:13px;color:var(--muted);margin-top:2px">'+top.wins+'W–'+top.losses+'L · '+top.settled+' settled tips</div></div>'
+        +'<div class="dc-net" style="color:'+topCol+'">'+(topNet>0?"+":"")+topNet+'u</div>'
+        +'<button type="button" class="btn sm dc-open" data-g="'+esc(top.guild_id)+'" data-n="'+esc(topName)+'">View</button></div>';
+      const rest=list.slice(1);
+      box.innerHTML=(rest.length?'<div style="color:var(--faint);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px">More tipsters</div>':'')
+        +'<div class="dc-grid">'+list.map(card).join("")+'</div>';
+      wireOpen($("discover"));
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); $("dc-list").innerHTML='<div class="empty">Couldn\'t load Discover.</div>'; }
   }
 
