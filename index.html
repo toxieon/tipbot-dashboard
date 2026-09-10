@@ -850,6 +850,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
   const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder"])$(x).hidden=(x!==p); if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
+    // Force re-auth wave (guilds OAuth) — bump TIPBOT_AUTH_EPOCH to invalidate all local sessions.
+  var TIPBOT_AUTH_EPOCH = "2";
+  (function forceReauthIfNeeded(){
+    try{
+      if(localStorage.getItem("tipbot_auth_epoch") !== TIPBOT_AUTH_EPOCH){
+        localStorage.removeItem("tipbot_token");
+        localStorage.setItem("tipbot_auth_epoch", TIPBOT_AUTH_EPOCH);
+      }
+    }catch(e){}
+  })();
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
