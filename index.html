@@ -72,7 +72,7 @@
   *{box-sizing:border-box} html,body{margin:0}
   body{background:radial-gradient(1200px 600px at 80% -10%, #182142 0%, var(--bg) 55%) fixed, var(--bg);
        color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
-  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 90px}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 90px;min-width:0;box-sizing:border-box}
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
   .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:16px}
@@ -99,8 +99,23 @@
   .mini .mv{font-weight:700;font-size:18px}.mini .ml{color:var(--faint);font-size:11px;text-transform:uppercase}
   .pos{color:var(--win)}.neg{color:var(--loss)}
   .back{color:var(--muted);cursor:pointer;font-size:14px;display:inline-flex;gap:6px;margin-bottom:14px}.back:hover{color:var(--txt)}
-  .dhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px}
-  .dhead h1{margin:0;font-size:24px}
+  .dhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;min-width:0;max-width:100%}
+  .dhead h1{margin:0;font-size:24px;min-width:0;overflow-wrap:anywhere}
+  .dhead-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0;max-width:100%}
+  .dhead-actions .ghost,.dhead-actions .btn{
+    box-sizing:border-box;min-height:38px;display:inline-flex;align-items:center;justify-content:center;
+    padding:8px 12px;font-size:13px;line-height:1.2;white-space:nowrap;
+  }
+  .dhead-actions .btn.sm{padding:8px 12px;font-size:13px}
+  @media(max-width:640px){
+    .wrap{padding:16px 14px 90px}
+    .dhead{flex-direction:column;align-items:stretch}
+    .dhead h1{font-size:20px}
+    .dhead-actions{width:100%}
+    .top{gap:10px;min-width:0}
+    .brand{min-width:0;overflow:hidden}
+  }
+  html,body{overflow-x:hidden;max-width:100%}
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
   .tile .tv{font-weight:800;font-size:26px;line-height:1.1}.tile .tl{color:var(--faint);font-size:12px;text-transform:uppercase;margin-top:4px}
@@ -2003,7 +2018,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-features">Features</button><button class="tab" id="stab-perms">Command access</button></div>'
       +'<div id="settings-body"></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div class="dhead-actions"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +'<div class="tiles">'+tiles+'</div>'
