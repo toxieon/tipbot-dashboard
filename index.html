@@ -1030,6 +1030,22 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   function renderLogin(msg){clearDetailTimers();clearLiveTimer();clearGamesTimer();if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
   async function api(path,opts){opts=opts||{};opts.headers=Object.assign({Authorization:"Bearer "+getToken()},opts.headers||{});
+    // Hard ceiling so a cold/hung Render never leaves the load panel at 0% forever.
+    if(!opts.signal && typeof AbortController!=="undefined"){
+      const ac=new AbortController();
+      const ms=opts.timeoutMs!=null?opts.timeoutMs:45000;
+      const timer=setTimeout(function(){ try{ac.abort();}catch(e){} }, ms);
+      opts.signal=ac.signal;
+      try{
+        const r=await fetch(API+path,opts);
+        clearTimeout(timer);
+        if(r.status===401){clearToken();throw{unauth:true};}
+        return r;
+      }catch(e){
+        clearTimeout(timer);
+        throw e;
+      }
+    }
     const r=await fetch(API+path,opts);if(r.status===401){clearToken();throw{unauth:true};}return r;}
 
   function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
@@ -1732,9 +1748,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         bindInvites();
       };
       renderList("");
-        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(msg){msg.textContent="Couldn't reach the bot.";msg.style.color="var(--loss)";} }
-        finally{ btn.disabled=false; }
-      });
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); body.innerHTML='<div class="empty">Couldn\'t load follower map.</div>'; }
   }
   let DETAIL_TIMER=null,LIVE_TIMER=null,GAMES_TIMER=null;
@@ -2959,6 +2972,7 @@ async function loadPerms(gid){
     if(hash.get("error")){history.replaceState(null,"",location.pathname);return renderLogin(ERR[hash.get("error")]||"Login error.");}
     if(hash.get("token")){setToken(hash.get("token"));history.replaceState(null,"",location.pathname);}
     if(!getToken())return renderLogin();
+    try{ setLoadPanel("Starting…", 2); }catch(e){}
     warmTipBot();
     const cached=readBootCache();
     let paintedFromCache=false;
