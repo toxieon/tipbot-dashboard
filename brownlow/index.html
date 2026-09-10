@@ -11,11 +11,12 @@
 <body>
 <div class="app" id="app"></div>
 <script>
-/* Placeholder data — Ned wires real API later */
+const API = "https://afl-tipster-bot.onrender.com";
+/* Placeholder match data until Ned's brownlow APIs land — UI stays fully usable */
 const ROUNDS = [
-  { id: "r22", label: "R22", done: true },
-  { id: "r23", label: "R23", done: true },
-  { id: "r24", label: "R24", done: false },
+  { id: "r22", label: "R22" },
+  { id: "r23", label: "R23" },
+  { id: "r24", label: "R24" },
 ];
 const MATCHES = {
   r23: [
@@ -80,26 +81,46 @@ const LEADERBOARD = [
 
 const state = {
   user: null,
-  tab: "vote", // vote | mine | board
+  apiNote: "",
+  tab: "vote",
   round: "r23",
   matchId: null,
-  votes: { 3: null, 2: null, 1: null }, // {id,name,n,team}
+  votes: { 3: null, 2: null, 1: null },
   myVotes: {
     m2: [{ pts:3, name:"Lachie Neale" }, { pts:2, name:"Patrick Dangerfield" }, { pts:1, name:"Tom Stewart" }],
     m4: [{ pts:3, name:"Zach Merrett" }, { pts:2, name:"Jordan Ridley" }, { pts:1, name:"Jayden Short" }],
   },
   toast: null,
+  booting: true,
 };
+
+function getToken(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
+function setToken(t){ try{ localStorage.setItem("tipbot_token", t); }catch(e){} }
+function clearToken(){ try{ localStorage.removeItem("tipbot_token"); }catch(e){} }
+
+(function absorbHash(){
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const t = hash.get("token");
+  if(t){ setToken(t); history.replaceState(null, "", location.pathname + location.search); }
+})();
+
+async function api(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
+  const r = await fetch(API + path, opts);
+  if(r.status === 401){ clearToken(); throw { unauth: true }; }
+  return r;
+}
 
 const $ = (s, el=document) => el.querySelector(s);
 const app = () => $("#app");
-
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
 function toast(msg) {
-  state.toast = msg;
-  render();
+  state.toast = msg; render();
   setTimeout(() => { state.toast = null; render(); }, 2200);
 }
-
 function findMatch(id) {
   for (const r of Object.keys(MATCHES)) {
     const m = MATCHES[r].find(x => x.id === id);
@@ -108,7 +129,35 @@ function findMatch(id) {
   return null;
 }
 
+async function boot(){
+  state.booting = true; render();
+  if(!getToken()){ state.booting = false; state.user = null; render(); return; }
+  try{
+    const r = await api("/api/me");
+    if(!r.ok){ clearToken(); state.user = null; state.booting = false; render(); return; }
+    const me = await r.json();
+    state.user = me;
+    state.apiNote = "Placeholder fixtures — waiting on Ned's /api/brownlow/*";
+    try{
+      const wr = await api("/api/brownlow/week");
+      if(wr.ok){
+        state.apiNote = "Live week payload detected (still showing UI placeholders until match/squad endpoints wire).";
+      } else if(wr.status === 404){
+        state.apiNote = "Signed in · /api/brownlow/week not on Render yet";
+      }
+    }catch(e){}
+  }catch(e){
+    if(e && e.unauth){ state.user = null; }
+    else { state.user = null; state.apiNote = "Couldn't reach TipBot"; }
+  }
+  state.booting = false; render();
+}
+
 function render() {
+  if (state.booting) {
+    app().innerHTML = `<div class="gate"><div><div class="medal">3</div><h1>Brownlow</h1><p>Checking Tipdash session…</p></div></div>`;
+    return;
+  }
   if (!state.user) return renderGate();
   if (state.matchId) return renderMatch();
   if (state.tab === "board") return renderBoard();
@@ -134,23 +183,30 @@ function shell(body, { showNav = true } = {}) {
   });
 }
 
-function renderGate() {
+function renderGate(msg) {
   app().innerHTML = `
-    <div class="gate">
-      <div>
-        <div class="medal">3</div>
-        <h1>Brownlow Predictor</h1>
-        <p>Cast umpire-style <strong>3–2–1</strong> votes on players from games that have finished. One ballot per match.</p>
-        <button class="btn" type="button" id="login">Log in with Discord</button>
-        <p class="hint" style="margin-top:16px">Placeholder auth — Husker wires Discord OAuth.</p>
-      </div>
-    </div>`;
-  $("#login").onclick = () => { state.user = { name: "Brandon" }; render(); };
+    <div class="gate"><div>
+      <div class="medal">3</div>
+      <h1>Brownlow Predictor</h1>
+      <p>Cast umpire-style <strong>3–2–1</strong> votes on players from games that have finished. Same Discord login as Tipdash.</p>
+      ${msg ? `<p class="hint" style="color:var(--loss)">${esc(msg)}</p>` : ""}
+      <a class="btn" href="${API}/auth/login">Log in with Discord</a>
+      <p class="hint" style="margin-top:16px">Already on Tipdash? Session is shared via <code>tipbot_token</code> — refresh after logging in there.</p>
+      <p style="margin-top:12px"><a class="btn ghost" href="/">← Tipdash</a></p>
+    </div></div>`;
 }
 
 function renderHome() {
   const list = MATCHES[state.round] || [];
   const body = `
+    <p class="hint">${esc(state.apiNote || "")}</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="hint" style="margin:0">Signed in${state.user.role ? " · "+esc(state.user.role) : ""}</span>
+      <span>
+        <button type="button" class="btn ghost" id="out" style="padding:7px 12px;font-size:12px">Log out</button>
+        <a class="btn ghost" href="/" style="padding:7px 12px;font-size:12px">Tipdash</a>
+      </span>
+    </div>
     <p class="hint">Vote on completed matches only. Three different players — 3, 2, then 1.</p>
     <div class="rounds" id="rounds">
       ${ROUNDS.map(r => `<button type="button" class="chip ${state.round===r.id?"on":""}" data-r="${r.id}">${r.label}</button>`).join("")}
@@ -168,21 +224,12 @@ function renderHome() {
         </article>`).join("") : `<div class="empty"><strong>No completed matches yet</strong>Check back after this round’s games finish.</div>`}
     </section>`;
   shell(body);
+  $("#out").onclick = () => { clearToken(); state.user = null; render(); };
   $("#rounds").onclick = e => {
     const b = e.target.closest("[data-r]"); if (!b) return;
     state.round = b.dataset.r; render();
   };
-  app().querySelectorAll("[data-m]").forEach(el => el.onclick = () => openMatch(el.dataset.m));
-}
-
-function openMatch(id) {
-  state.matchId = id;
-  const existing = state.myVotes[id];
-  state.votes = { 3: null, 2: null, 1: null };
-  if (existing) {
-    // show locked view via my votes data — still allow open for edit placeholder
-  }
-  render();
+  app().querySelectorAll("[data-m]").forEach(el => el.onclick = () => { state.matchId = el.dataset.m; state.votes = {3:null,2:null,1:null}; render(); });
 }
 
 function renderMatch() {
@@ -202,14 +249,13 @@ function renderMatch() {
           <div class="num">${p.n}</div>
           <div class="name">${esc(p.name)}</div>
           <div class="votes">
-            <button type="button" class="${on===3?"on-3":""}" data-pts="3" data-id="${p.id}" data-name="${esc(p.name)}" data-n="${p.n}" data-team="${esc(t.name)}">3</button>
-            <button type="button" class="${on===2?"on-2":""}" data-pts="2" data-id="${p.id}" data-name="${esc(p.name)}" data-n="${p.n}" data-team="${esc(t.name)}">2</button>
-            <button type="button" class="${on===1?"on-1":""}" data-pts="1" data-id="${p.id}" data-name="${esc(p.name)}" data-n="${p.n}" data-team="${esc(t.name)}">1</button>
+            <button type="button" class="${on===3?"on-3":""}" data-pts="3" data-id="${p.id}" data-name="${escAttr(p.name)}" data-n="${p.n}" data-team="${escAttr(t.name)}">3</button>
+            <button type="button" class="${on===2?"on-2":""}" data-pts="2" data-id="${p.id}" data-name="${escAttr(p.name)}" data-n="${p.n}" data-team="${escAttr(t.name)}">2</button>
+            <button type="button" class="${on===1?"on-1":""}" data-pts="1" data-id="${p.id}" data-name="${escAttr(p.name)}" data-n="${p.n}" data-team="${escAttr(t.name)}">1</button>
           </div>
         </div>`;
       }).join("")}</div>`;
   }
-
   const slot = (pts) => {
     const p = v[pts];
     return `<div class="slot ${p?"filled":""}">
@@ -218,7 +264,6 @@ function renderMatch() {
       ${p ? `<button type="button" class="clr" data-clr="${pts}">Clear</button>` : ""}
     </div>`;
   };
-
   const body = `
     <button type="button" class="back" id="back">← Matches</button>
     <div class="match-head">
@@ -226,7 +271,7 @@ function renderMatch() {
       <p>${esc(m.score)} · ${esc(m.venue)} · ${esc(m.when)}</p>
     </div>
     <div class="vote-bar">${slot(3)}${slot(2)}${slot(1)}</div>
-    <p class="hint">Tap 3, 2, or 1 beside a player. Same player can’t take two slots.</p>
+    <p class="hint">Tap 3, 2, or 1 beside a player. Same player can’t take two slots. Submit stays local until Ned’s ballot API.</p>
     ${teamHtml("home")}
     ${teamHtml("away")}
     <div class="submit-dock"><div class="inner">
@@ -240,9 +285,7 @@ function renderMatch() {
   app().querySelectorAll(".votes button").forEach(b => b.onclick = () => {
     const pts = +b.dataset.pts;
     const player = { id: b.dataset.id, name: b.dataset.name, n: +b.dataset.n, team: b.dataset.team };
-    // clear if this player already elsewhere
     for (const k of [3,2,1]) if (state.votes[k]?.id === player.id) state.votes[k] = null;
-    // if slot taken by other, replace
     state.votes[pts] = player;
     render();
   });
@@ -256,6 +299,7 @@ function renderMatch() {
     toast("Ballot locked in — nice pick.");
   };
 }
+function escAttr(s){ return esc(s); }
 
 function renderMine() {
   const ids = Object.keys(state.myVotes);
@@ -275,7 +319,7 @@ function renderMine() {
 
 function renderBoard() {
   const body = `
-    <p class="hint">Community leaderboard from submitted ballots (placeholder totals).</p>
+    <p class="hint">Community leaderboard (placeholder totals until Ned aggregates ballots).</p>
     <section class="section">
       <h2>Season leaders</h2>
       ${LEADERBOARD.map((r,i) => `
@@ -288,11 +332,7 @@ function renderBoard() {
   shell(body);
 }
 
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-}
-
-render();
+boot();
 </script>
 </body>
 </html>
