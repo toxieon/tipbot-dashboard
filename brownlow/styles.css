@@ -1,0 +1,185 @@
+/* Tipdash Brownlow — medal desk
+   Mobile-first. Tipdash-adjacent navy + bronze accents (not kitschy). */
+:root {
+  --bg: #0a0c12;
+  --bg2: #10141c;
+  --card: #161b26;
+  --card2: #1c2230;
+  --line: #2a3142;
+  --txt: #eef1f7;
+  --muted: #8b93a7;
+  --faint: #5c6478;
+  --accent: #4f7fff;
+  --bronze: #c9a227;
+  --bronze2: #a67c1a;
+  --bronze-dim: rgba(201, 162, 39, 0.14);
+  --win: #2eaf62;
+  --loss: #e5595f;
+  --radius: 14px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--txt); min-height: 100%; }
+body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, a { font: inherit; }
+[hidden] { display: none !important; }
+
+.app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 0 16px calc(88px + var(--safe-b)); }
+.top {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 14px 0 12px;
+  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.02em; }
+.medal {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e8d48b, var(--bronze) 45%, var(--bronze2));
+  box-shadow: 0 0 0 2px var(--bronze-dim), inset 0 1px 0 rgba(255,255,255,.35);
+  display: grid; place-items: center; font-size: 14px; color: #2a1f05; font-weight: 900;
+}
+.brand small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; margin-top: 1px; }
+.nav { display: flex; gap: 6px; }
+.nav button {
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: 999px; padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.nav button.on { color: var(--txt); border-color: var(--bronze); background: var(--bronze-dim); }
+
+/* Login */
+.gate { min-height: 78vh; display: grid; place-items: center; text-align: center; padding: 24px 8px; }
+.gate .medal { width: 64px; height: 64px; font-size: 26px; margin: 0 auto 16px; }
+.gate h1 { margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em; }
+.gate p { margin: 0 0 22px; color: var(--muted); max-width: 320px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--bronze); color: #1a1406; border: none; border-radius: 12px;
+  padding: 12px 18px; font-weight: 800; cursor: pointer; text-decoration: none;
+}
+.btn:active { transform: scale(0.98); }
+.btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* Round picker */
+.rounds { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px; scrollbar-width: none; }
+.rounds::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.chip.on { background: var(--bronze); color: #1a1406; border-color: var(--bronze); }
+.chip.done::after { content: ""; }
+
+.section { margin-bottom: 22px; }
+.section h2 {
+  margin: 0 0 10px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+
+/* Match cards */
+.mcard {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.mcard:hover { border-color: #3a4560; background: var(--card2); }
+.mcard .meta { color: var(--faint); font-size: 12px; margin-bottom: 8px; }
+.mcard .teams { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 800; font-size: 16px; }
+.mcard .score { color: var(--bronze); font-variant-numeric: tabular-nums; font-size: 15px; }
+.mcard .status {
+  margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.mcard .status.voted { color: var(--win); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Match detail / vote */
+.back {
+  border: none; background: none; color: var(--muted); cursor: pointer;
+  padding: 0; margin: 0 0 12px; font-weight: 600; font-size: 14px;
+}
+.back:hover { color: var(--txt); }
+.match-head h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.02em; }
+.match-head p { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+
+.vote-bar {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;
+}
+.slot {
+  background: var(--bg2); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 8px; text-align: center;
+  min-height: 72px;
+}
+.slot.filled { border-style: solid; border-color: var(--bronze); background: var(--bronze-dim); }
+.slot .pts { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--bronze); text-transform: uppercase; }
+.slot .who { font-weight: 700; font-size: 13px; margin-top: 4px; line-height: 1.2; }
+.slot .clr { margin-top: 4px; font-size: 11px; color: var(--faint); cursor: pointer; border: none; background: none; }
+
+.team-block { margin-bottom: 18px; }
+.team-block h3 {
+  margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.team-block h3 span { color: var(--faint); font-weight: 500; }
+
+.prow {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.prow .num {
+  width: 28px; height: 28px; border-radius: 8px; background: var(--bg2);
+  display: grid; place-items: center; font-size: 12px; font-weight: 800; color: var(--muted); flex: none;
+}
+.prow .name { flex: 1; font-weight: 650; min-width: 0; }
+.prow .votes { display: flex; gap: 4px; flex: none; }
+.prow .votes button {
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--card2); color: var(--muted); font-weight: 800; font-size: 13px; cursor: pointer;
+}
+.prow .votes button.on-3 { background: var(--bronze); border-color: var(--bronze); color: #1a1406; }
+.prow .votes button.on-2 { background: #8a7350; border-color: #8a7350; color: #fff; }
+.prow .votes button.on-1 { background: #5c5346; border-color: #5c5346; color: #fff; }
+.prow.taken { opacity: .55; }
+
+.submit-dock {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  padding: 12px 16px calc(12px + var(--safe-b));
+  background: linear-gradient(180deg, transparent, var(--bg) 28%);
+}
+.submit-dock .inner { max-width: 480px; margin: 0 auto; }
+
+/* Toast / confirm */
+.toast {
+  position: fixed; left: 50%; bottom: calc(90px + var(--safe-b)); transform: translateX(-50%);
+  background: var(--win); color: #04120a; font-weight: 800; padding: 12px 18px;
+  border-radius: 12px; z-index: 40; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+
+/* Leaderboard / my votes */
+.lrow {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 8px;
+}
+.lrow .rank {
+  width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+  font-weight: 800; font-size: 13px; background: var(--bg2); color: var(--muted); flex: none;
+}
+.lrow .rank.top { background: var(--bronze-dim); color: var(--bronze); }
+.lrow .who { flex: 1; font-weight: 700; }
+.lrow .pts { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--bronze); }
+
+.vcard {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; margin-bottom: 10px;
+}
+.vcard .mh { font-weight: 800; margin-bottom: 8px; }
+.votes-list { display: flex; flex-direction: column; gap: 6px; }
+.votes-list div { display: flex; justify-content: space-between; font-size: 14px; }
+.votes-list .p { color: var(--bronze); font-weight: 800; width: 28px; }
+
+.empty { text-align: center; padding: 36px 16px; color: var(--muted); }
+.empty strong { display: block; color: var(--txt); margin-bottom: 6px; }
+
+.hint { font-size: 12px; color: var(--faint); margin: 0 0 12px; }

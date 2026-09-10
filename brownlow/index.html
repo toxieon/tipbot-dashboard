@@ -1,88 +1,298 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Brownlow Predictor · Tipdash</title>
-  <style>
-    :root{--bg:#0f1420;--card:#171c2a;--line:rgba(255,255,255,.1);--txt:#eef1f7;--muted:#9aa3b5;--accent:#5b8cff;--win:#2EAF62}
-    *{box-sizing:border-box} body{margin:0;font:15px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-    .wrap{max-width:720px;margin:0 auto;padding:28px 18px 64px}
-    h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
-    .muted{color:var(--muted);font-size:13px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:16px}
-    .btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
-    .ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
-    .err{color:#ff9a9e}
-    .ok{color:var(--win)}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Brownlow Predictor · Tipdash</title>
+<meta name="description" content="Umpire-style 3-2-1 Brownlow votes for AFL matches.">
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='%23c9a227'/><text x='32' y='40' text-anchor='middle' font-size='28' font-family='system-ui' font-weight='900' fill='%231a1406'>3</text></svg>">
 </head>
 <body>
-  <div class="wrap">
-    <h1>Brownlow predictor</h1>
-    <p class="muted">3-2-1 votes on the week’s played AFL games. Same Discord login as Tipdash.</p>
-    <div class="card" id="panel"><p class="muted">Checking session…</p></div>
-  </div>
-  <script>
-  const API = "https://afl-tipster-bot.onrender.com";
-  const $ = (id) => document.getElementById(id);
-  function getToken(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
-  function setToken(t){ try{ localStorage.setItem("tipbot_token", t); }catch(e){} }
-  function clearToken(){ try{ localStorage.removeItem("tipbot_token"); }catch(e){} }
+<div class="app" id="app"></div>
+<script>
+/* Placeholder data — Ned wires real API later */
+const ROUNDS = [
+  { id: "r22", label: "R22", done: true },
+  { id: "r23", label: "R23", done: true },
+  { id: "r24", label: "R24", done: false },
+];
+const MATCHES = {
+  r23: [
+    { id: "m1", home: "Collingwood", away: "Carlton", score: "88–76", venue: "MCG", when: "Sat 2:10pm", voted: false },
+    { id: "m2", home: "Geelong", away: "Brisbane", score: "102–91", venue: "GMHBA", when: "Sat 7:30pm", voted: true },
+    { id: "m3", home: "Sydney", away: "Fremantle", score: "79–79", venue: "SCG", when: "Sun 3:20pm", voted: false },
+  ],
+  r22: [
+    { id: "m4", home: "Richmond", away: "Essendon", score: "71–95", venue: "MCG", when: "Fri 7:40pm", voted: true },
+  ],
+  r24: [],
+};
+const SQUADS = {
+  m1: {
+    home: { name: "Collingwood", players: [
+      { id:"p1", n:22, name:"Steele Sidebottom" }, { id:"p2", n:25, name:"Jack Crisp" },
+      { id:"p3", n:4, name:"Nick Daicos" }, { id:"p4", n:7, name:"Josh Daicos" },
+      { id:"p5", n:30, name:"Darcy Cameron" }, { id:"p6", n:9, name:"John Noble" },
+    ]},
+    away: { name: "Carlton", players: [
+      { id:"p7", n:9, name:"Patrick Cripps" }, { id:"p8", n:18, name:"Sam Walsh" },
+      { id:"p9", n:3, name:"Jesse Motlop" }, { id:"p10", n:23, name:"Jacob Weitering" },
+      { id:"p11", n:42, name:"Adam Cerra" }, { id:"p12", n:13, name:"Blake Acres" },
+    ]},
+  },
+  m2: {
+    home: { name: "Geelong", players: [
+      { id:"p13", n:22, name:"Mitch Duncan" }, { id:"p14", n:35, name:"Patrick Dangerfield" },
+      { id:"p15", n:7, name:"Isaac Smith" }, { id:"p16", n:44, name:"Tom Stewart" },
+    ]},
+    away: { name: "Brisbane", players: [
+      { id:"p17", n:9, name:"Lachie Neale" }, { id:"p18", n:15, name:"Dayne Zorko" },
+      { id:"p19", n:33, name:"Zac Bailey" }, { id:"p20", n:23, name:"Charlie Cameron" },
+    ]},
+  },
+  m3: {
+    home: { name: "Sydney", players: [
+      { id:"p21", n:1, name:"Chad Warner" }, { id:"p22", n:44, name:"Jake Lloyd" },
+      { id:"p23", n:22, name:"Nick Blakey" }, { id:"p24", n:5, name:"Isaac Heeney" },
+    ]},
+    away: { name: "Fremantle", players: [
+      { id:"p25", n:8, name:"Andrew Brayshaw" }, { id:"p26", n:3, name:"Caleb Serong" },
+      { id:"p27", n:13, name:"Luke Jackson" }, { id:"p28", n:39, name:"Sam Switkowski" },
+    ]},
+  },
+  m4: {
+    home: { name: "Richmond", players: [
+      { id:"p29", n:15, name:"Jayden Short" }, { id:"p30", n:3, name:"Dion Prestia" },
+    ]},
+    away: { name: "Essendon", players: [
+      { id:"p31", n:7, name:"Zach Merrett" }, { id:"p32", n:6, name:"Jordan Ridley" },
+    ]},
+  },
+};
+const LEADERBOARD = [
+  { name: "Nick Daicos", pts: 18 },
+  { name: "Lachie Neale", pts: 16 },
+  { name: "Patrick Cripps", pts: 14 },
+  { name: "Chad Warner", pts: 11 },
+  { name: "Caleb Serong", pts: 10 },
+];
 
-  // Capture OAuth return if TipBot redirects here with #token=
-  (function absorbHash(){
-    const hash = new URLSearchParams(location.hash.slice(1));
-    const t = hash.get("token");
-    if(t){ setToken(t); history.replaceState(null, "", location.pathname + location.search); }
-  })();
+const state = {
+  user: null,
+  tab: "vote", // vote | mine | board
+  round: "r23",
+  matchId: null,
+  votes: { 3: null, 2: null, 1: null }, // {id,name,n,team}
+  myVotes: {
+    m2: [{ pts:3, name:"Lachie Neale" }, { pts:2, name:"Patrick Dangerfield" }, { pts:1, name:"Tom Stewart" }],
+    m4: [{ pts:3, name:"Zach Merrett" }, { pts:2, name:"Jordan Ridley" }, { pts:1, name:"Jayden Short" }],
+  },
+  toast: null,
+};
 
-  async function api(path, opts){
-    opts = opts || {};
-    opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
-    const r = await fetch(API + path, opts);
-    if(r.status === 401){ clearToken(); throw { unauth: true }; }
-    return r;
+const $ = (s, el=document) => el.querySelector(s);
+const app = () => $("#app");
+
+function toast(msg) {
+  state.toast = msg;
+  render();
+  setTimeout(() => { state.toast = null; render(); }, 2200);
+}
+
+function findMatch(id) {
+  for (const r of Object.keys(MATCHES)) {
+    const m = MATCHES[r].find(x => x.id === id);
+    if (m) return m;
+  }
+  return null;
+}
+
+function render() {
+  if (!state.user) return renderGate();
+  if (state.matchId) return renderMatch();
+  if (state.tab === "board") return renderBoard();
+  if (state.tab === "mine") return renderMine();
+  return renderHome();
+}
+
+function shell(body, { showNav = true } = {}) {
+  app().innerHTML = `
+    <header class="top">
+      <div class="brand"><div class="medal">3</div><div>Brownlow<small>Tipdash predictor</small></div></div>
+      ${showNav ? `<nav class="nav">
+        <button type="button" data-tab="vote" class="${state.tab==="vote"?"on":""}">Vote</button>
+        <button type="button" data-tab="mine" class="${state.tab==="mine"?"on":""}">My votes</button>
+        <button type="button" data-tab="board" class="${state.tab==="board"?"on":""}">Board</button>
+      </nav>` : ""}
+    </header>
+    ${body}
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+  app().querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
+    state.tab = b.dataset.tab; state.matchId = null; render();
+  });
+}
+
+function renderGate() {
+  app().innerHTML = `
+    <div class="gate">
+      <div>
+        <div class="medal">3</div>
+        <h1>Brownlow Predictor</h1>
+        <p>Cast umpire-style <strong>3–2–1</strong> votes on players from games that have finished. One ballot per match.</p>
+        <button class="btn" type="button" id="login">Log in with Discord</button>
+        <p class="hint" style="margin-top:16px">Placeholder auth — Husker wires Discord OAuth.</p>
+      </div>
+    </div>`;
+  $("#login").onclick = () => { state.user = { name: "Brandon" }; render(); };
+}
+
+function renderHome() {
+  const list = MATCHES[state.round] || [];
+  const body = `
+    <p class="hint">Vote on completed matches only. Three different players — 3, 2, then 1.</p>
+    <div class="rounds" id="rounds">
+      ${ROUNDS.map(r => `<button type="button" class="chip ${state.round===r.id?"on":""}" data-r="${r.id}">${r.label}</button>`).join("")}
+    </div>
+    <section class="section">
+      <h2>Matches played</h2>
+      ${list.length ? list.map(m => `
+        <article class="mcard" data-m="${m.id}">
+          <div class="meta">${esc(m.when)} · ${esc(m.venue)}</div>
+          <div class="teams"><span>${esc(m.home)}</span><span class="score">${esc(m.score)}</span><span style="text-align:right">${esc(m.away)}</span></div>
+          <div class="status ${m.voted || state.myVotes[m.id] ? "voted":""}">
+            <span class="dot"></span>
+            ${m.voted || state.myVotes[m.id] ? "Votes submitted" : "Ready to vote"}
+          </div>
+        </article>`).join("") : `<div class="empty"><strong>No completed matches yet</strong>Check back after this round’s games finish.</div>`}
+    </section>`;
+  shell(body);
+  $("#rounds").onclick = e => {
+    const b = e.target.closest("[data-r]"); if (!b) return;
+    state.round = b.dataset.r; render();
+  };
+  app().querySelectorAll("[data-m]").forEach(el => el.onclick = () => openMatch(el.dataset.m));
+}
+
+function openMatch(id) {
+  state.matchId = id;
+  const existing = state.myVotes[id];
+  state.votes = { 3: null, 2: null, 1: null };
+  if (existing) {
+    // show locked view via my votes data — still allow open for edit placeholder
+  }
+  render();
+}
+
+function renderMatch() {
+  const m = findMatch(state.matchId);
+  const sq = SQUADS[state.matchId];
+  if (!m || !sq) { state.matchId = null; return renderHome(); }
+  const v = state.votes;
+  const taken = new Set([v[3]?.id, v[2]?.id, v[1]?.id].filter(Boolean));
+  const ready = v[3] && v[2] && v[1];
+
+  function teamHtml(side) {
+    const t = sq[side];
+    return `<div class="team-block"><h3>${esc(t.name)} <span>${t.players.length} named</span></h3>
+      ${t.players.map(p => {
+        const on = v[3]?.id===p.id ? 3 : v[2]?.id===p.id ? 2 : v[1]?.id===p.id ? 1 : 0;
+        return `<div class="prow ${taken.has(p.id)&&!on?"taken":""}">
+          <div class="num">${p.n}</div>
+          <div class="name">${esc(p.name)}</div>
+          <div class="votes">
+            <button type="button" class="${on===3?"on-3":""}" data-pts="3" data-id="${p.id}" data-name="${esc(p.name)}" data-n="${p.n}" data-team="${esc(t.name)}">3</button>
+            <button type="button" class="${on===2?"on-2":""}" data-pts="2" data-id="${p.id}" data-name="${esc(p.name)}" data-n="${p.n}" data-team="${esc(t.name)}">2</button>
+            <button type="button" class="${on===1?"on-1":""}" data-pts="1" data-id="${p.id}" data-name="${esc(p.name)}" data-n="${p.n}" data-team="${esc(t.name)}">1</button>
+          </div>
+        </div>`;
+      }).join("")}</div>`;
   }
 
-  function renderLogin(msg){
-    $("panel").innerHTML =
-      (msg ? '<p class="err">' + msg + '</p>' : '') +
-      '<p class="muted">Sign in with Discord to cast your Brownlow votes.</p>' +
-      '<p style="margin-top:14px"><a class="btn" href="' + API + '/auth/login">Log in with Discord</a></p>' +
-      '<p class="muted" style="margin-top:12px">Already on Tipdash? Your session is shared — refresh after logging in there.</p>';
-  }
+  const slot = (pts) => {
+    const p = v[pts];
+    return `<div class="slot ${p?"filled":""}">
+      <div class="pts">${pts} votes</div>
+      <div class="who">${p ? esc(p.name) : "—"}</div>
+      ${p ? `<button type="button" class="clr" data-clr="${pts}">Clear</button>` : ""}
+    </div>`;
+  };
 
-  async function boot(){
-    if(!getToken()){ renderLogin(); return; }
-    try{
-      const r = await api("/api/me");
-      if(!r.ok){ renderLogin("Session expired."); return; }
-      const me = await r.json();
-      // Prefer brownlow week endpoint when Ned lands it; fall back gracefully.
-      let weekHtml = '<p class="muted">Week fixtures API landing soon (Ned). You\'re signed in.</p>';
-      try{
-        const wr = await api("/api/brownlow/week");
-        if(wr.ok){
-          const w = await wr.json();
-          weekHtml = '<pre style="white-space:pre-wrap;font-size:12px;color:var(--muted)">' +
-            JSON.stringify(w, null, 2).slice(0, 4000) + '</pre>';
-        } else if(wr.status === 404){
-          weekHtml = '<p class="muted">Signed in. <code>/api/brownlow/week</code> not on Render yet — waiting on Ned\'s TipBot PR.</p>';
-        }
-      }catch(e){ /* ignore */ }
-      $("panel").innerHTML =
-        '<p class="ok">Signed in' + (me.role ? ' · ' + me.role : '') + '</p>' +
-        weekHtml +
-        '<p style="margin-top:14px"><button type="button" class="btn ghost" id="out">Log out</button> ' +
-        '<a class="btn ghost" href="/">← Tipdash</a></p>';
-      $("out").onclick = () => { clearToken(); renderLogin(); };
-    }catch(e){
-      if(e && e.unauth) return renderLogin("Session expired.");
-      renderLogin("Couldn\'t reach TipBot.");
-    }
-  }
-  boot();
-  </script>
+  const body = `
+    <button type="button" class="back" id="back">← Matches</button>
+    <div class="match-head">
+      <h1>${esc(m.home)} <span style="color:var(--faint);font-weight:600">vs</span> ${esc(m.away)}</h1>
+      <p>${esc(m.score)} · ${esc(m.venue)} · ${esc(m.when)}</p>
+    </div>
+    <div class="vote-bar">${slot(3)}${slot(2)}${slot(1)}</div>
+    <p class="hint">Tap 3, 2, or 1 beside a player. Same player can’t take two slots.</p>
+    ${teamHtml("home")}
+    ${teamHtml("away")}
+    <div class="submit-dock"><div class="inner">
+      <button class="btn block" type="button" id="submit" ${ready?"":"disabled"}>Submit 3–2–1 ballot</button>
+    </div></div>`;
+  shell(body, { showNav: false });
+  $("#back").onclick = () => { state.matchId = null; render(); };
+  app().querySelectorAll("[data-clr]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); state.votes[b.dataset.clr] = null; render();
+  });
+  app().querySelectorAll(".votes button").forEach(b => b.onclick = () => {
+    const pts = +b.dataset.pts;
+    const player = { id: b.dataset.id, name: b.dataset.name, n: +b.dataset.n, team: b.dataset.team };
+    // clear if this player already elsewhere
+    for (const k of [3,2,1]) if (state.votes[k]?.id === player.id) state.votes[k] = null;
+    // if slot taken by other, replace
+    state.votes[pts] = player;
+    render();
+  });
+  $("#submit").onclick = () => {
+    if (!ready) return;
+    state.myVotes[state.matchId] = [
+      { pts:3, name: v[3].name }, { pts:2, name: v[2].name }, { pts:1, name: v[1].name },
+    ];
+    const mm = findMatch(state.matchId); if (mm) mm.voted = true;
+    state.matchId = null; state.tab = "mine";
+    toast("Ballot locked in — nice pick.");
+  };
+}
+
+function renderMine() {
+  const ids = Object.keys(state.myVotes);
+  const body = `
+    <section class="section">
+      <h2>Your ballots</h2>
+      ${ids.length ? ids.map(id => {
+        const m = findMatch(id); const votes = state.myVotes[id];
+        return `<article class="vcard">
+          <div class="mh">${m ? esc(m.home)+" vs "+esc(m.away) : id}</div>
+          <div class="votes-list">${votes.map(x => `<div><span class="p">${x.pts}</span><span>${esc(x.name)}</span></div>`).join("")}</div>
+        </article>`;
+      }).join("") : `<div class="empty"><strong>No votes yet</strong>Open a finished match and cast your 3–2–1.</div>`}
+    </section>`;
+  shell(body);
+}
+
+function renderBoard() {
+  const body = `
+    <p class="hint">Community leaderboard from submitted ballots (placeholder totals).</p>
+    <section class="section">
+      <h2>Season leaders</h2>
+      ${LEADERBOARD.map((r,i) => `
+        <div class="lrow">
+          <div class="rank ${i<3?"top":""}">${i+1}</div>
+          <div class="who">${esc(r.name)}</div>
+          <div class="pts">${r.pts} pts</div>
+        </div>`).join("")}
+    </section>`;
+  shell(body);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+render();
+</script>
 </body>
 </html>
