@@ -63,31 +63,26 @@ button, a { font: inherit; }
 .btn:disabled { opacity: .45; cursor: default; }
 
 /* Round picker */
+.rounds-wrap {
+  display: flex; align-items: center; gap: 6px; margin: 0 0 10px;
+}
+.rounds-nav {
+  flex: none; width: 32px; height: 32px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card); color: var(--txt);
+  font-size: 20px; line-height: 1; cursor: pointer; padding: 0;
+}
+.rounds-nav:active { transform: scale(0.96); }
 .rounds {
-  display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px;
-  scrollbar-width: none; cursor: grab; -webkit-overflow-scrolling: touch;
-  touch-action: pan-x; user-select: none;
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;
+  scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity; flex: 1; min-width: 0;
 }
-.rounds.dragging { cursor: grabbing; }
-.rounds.dragging { scroll-behavior: auto; }
-.rounds.dragging .chip { pointer-events: none; }
-.rounds::-webkit-scrollbar { display: none; }
-.top .out {
-  border: none; background: transparent; color: var(--faint);
-  font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 4px;
-}
-.top .out:hover { color: var(--muted); }
-.mcard .side { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-.mcard .side.away { flex-direction: row-reverse; text-align: right; }
-.mcard .tlogo {
-  width: 28px; height: 28px; border-radius: 8px; object-fit: contain;
-  background: var(--bg2); flex: none;
-}
-.mcard .tname { font-weight: 800; font-size: 14px; line-height: 1.2; }
-.mcard .tabbrev { display: block; color: var(--faint); font-size: 11px; font-weight: 600; }
+.rounds::-webkit-scrollbar { height: 4px; }
+.rounds::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
 .chip {
   flex: none; border: 1px solid var(--line); background: var(--card); color: var(--muted);
   border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer;
+  scroll-snap-align: center; -webkit-tap-highlight-color: transparent;
 }
 .chip.on { background: var(--bronze); color: #1a1406; border-color: var(--bronze); }
 .chip.done::after { content: ""; }

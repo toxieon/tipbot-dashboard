@@ -74,44 +74,6 @@ function squiggleLogo(path){
   if(/^https?:/i.test(path)) return path;
   return "https://squiggle.com.au" + (path.startsWith("/") ? path : "/"+path);
 }
-function bindRoundsDrag(el){
-  if(!el || el.dataset.dragBound) return;
-  el.dataset.dragBound = "1";
-  let pid = null, startX = 0, startScroll = 0, dragging = false;
-  el.addEventListener("pointerdown", e => {
-    if(e.pointerType === "mouse" && e.button !== 0) return;
-    pid = e.pointerId;
-    startX = e.clientX;
-    startScroll = el.scrollLeft;
-    dragging = false;
-    try{ el.setPointerCapture(pid); }catch(_){}
-  });
-  el.addEventListener("pointermove", e => {
-    if(pid == null || e.pointerId !== pid) return;
-    const dx = e.clientX - startX;
-    if(!dragging && Math.abs(dx) > 8){
-      dragging = true;
-      el.classList.add("dragging");
-    }
-    if(dragging){
-      el.scrollLeft = startScroll - dx;
-    }
-  });
-  const end = e => {
-    if(pid == null || (e.pointerId != null && e.pointerId !== pid)) return;
-    const wasDrag = dragging;
-    pid = null;
-    dragging = false;
-    el.classList.remove("dragging");
-    if(wasDrag){
-      // swallow only the click that follows a real drag
-      const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
-      el.addEventListener("click", swallow, { capture: true, once: true });
-    }
-  };
-  el.addEventListener("pointerup", end);
-  el.addEventListener("pointercancel", end);
-}
 
 function teamSideHtml(name, side){
   const info = teamInfo(name);
@@ -342,9 +304,13 @@ function renderGate(msg) {
 function renderHome() {
   const list = state.matches || [];
   const body = `
-    <p class="hint">Drag the rounds strip to see the full season · vote 3–2–1 on finished games</p>
-    <div class="rounds" id="rounds">
-      ${(state.rounds||[]).map(r => `<button type="button" class="chip ${String(state.round)===String(r.id)?"on":""}" data-r="${escAttr(r.id)}">${esc(r.label||r.round_name||("R"+r.id))}</button>`).join("")}
+    <p class="hint">Scroll or use the arrows for more rounds · vote 3–2–1 on finished games</p>
+    <div class="rounds-wrap">
+      <button type="button" class="rounds-nav" id="rounds-prev" aria-label="Earlier rounds">‹</button>
+      <div class="rounds" id="rounds">
+        ${(state.rounds||[]).map(r => `<button type="button" class="chip ${String(state.round)===String(r.id)?"on":""}" data-r="${escAttr(r.id)}">${esc(r.label||r.round_name||("R"+r.id))}</button>`).join("")}
+      </div>
+      <button type="button" class="rounds-nav" id="rounds-next" aria-label="Later rounds">›</button>
     </div>
     <section class="section">
       <h2>Matches played</h2>
@@ -365,19 +331,30 @@ function renderHome() {
     </section>`;
   shell(body);
   const roundsEl = $("#rounds");
-  bindRoundsDrag(roundsEl);
-  // Center active chip
-  try{
-    const on = roundsEl && roundsEl.querySelector(".chip.on");
-    if(on) on.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" in window ? "instant" : "auto" });
-  }catch(e){}
-  $("#rounds").onclick = async e => {
-    const b = e.target.closest("[data-r]"); if (!b) return;
-    state.round = b.dataset.r; state.matchId = null;
+  const selectRound = async (rid) => {
+    if(rid == null || rid === "") return;
+    state.round = String(rid);
+    state.matchId = null;
     try{ await loadMatches(state.round); await loadMeVotes(); }
     catch(err){ if(err&&err.unauth) return renderGate("Session expired."); toast("Couldn't load matches."); }
     render();
   };
+  // Direct handlers on chips — no drag layer stealing clicks
+  roundsEl && roundsEl.querySelectorAll(".chip[data-r]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      selectRound(btn.getAttribute("data-r"));
+    });
+  });
+  const prev = $("#rounds-prev");
+  const next = $("#rounds-next");
+  if(prev) prev.onclick = e => { e.preventDefault(); roundsEl.scrollBy({ left: -180, behavior: "smooth" }); };
+  if(next) next.onclick = e => { e.preventDefault(); roundsEl.scrollBy({ left: 180, behavior: "smooth" }); };
+  try{
+    const on = roundsEl && roundsEl.querySelector(".chip.on");
+    if(on) on.scrollIntoView({ inline: "center", block: "nearest" });
+  }catch(e){}
   app().querySelectorAll("[data-m]").forEach(el => el.onclick = async () => {
     state.matchId = el.dataset.m;
     state.matchMeta = findMatch(state.matchId);
