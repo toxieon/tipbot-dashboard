@@ -179,6 +179,25 @@
   .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:8px}
   .chip .x{color:var(--faint);cursor:pointer;font-weight:700}
   .chip .x:hover{color:var(--loss)}
+  /* batch tray (multi-tip schedule) */
+  .batchtray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:39}
+  .batchtray.above-legs{bottom:76px}
+  .batchtray-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .batch-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);border-radius:999px;padding:4px 10px}
+  .btn.secondary{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none}
+  .btn.secondary:hover:not(:disabled){background:rgba(91,140,255,.12);color:var(--accent)}
+  .sched-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px}
+  .trickle-row{display:flex;align-items:flex-start;gap:12px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;user-select:none}
+  .trickle-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;margin-top:2px;flex:none}
+  .trickle-row .title{font-weight:700;color:var(--txt)}
+  .trickle-row .thint{color:var(--faint);font-size:12px;margin-top:4px;line-height:1.4}
+  @media(max-width:600px){
+    .batchtray .legchips{flex-basis:100%}
+    .batchtray .btn{width:100%}
+    .batchtray{max-height:42vh;overflow:auto}
+    .batchtray.above-legs{bottom:0}
+    .sched-actions .btn{width:100%}
+  }
   .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
   .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
   .field input,.field select{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px 12px;font:inherit}
@@ -219,6 +238,8 @@ body {background:var(--bg);font-variant-numeric:tabular-nums;}
 .logo,.btn {background:var(--accent);color:var(--on-accent);}
 .btn {border:1px solid var(--accent);border-radius:13px;}
 .btn:hover:not(:disabled) {background:var(--accent);background:color-mix(in srgb,var(--accent) 92%,white);color:var(--on-accent-hover,var(--on-accent));}
+.btn.secondary{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.btn.secondary:hover:not(:disabled){background:rgba(91,140,255,.14);color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);}
 .ghost {border-radius:13px;}
 .viewas {background:var(--card2);border-color:var(--line);}
 .viewas b {color:var(--txt);}
@@ -494,6 +515,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   </div>
 </div>
 <div id="tray" class="tray" hidden></div>
+<div id="batchtray" class="batchtray" hidden></div>
 
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
@@ -899,6 +921,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false};
   const godOn=()=>STATE.god&&STATE.role==="owner"&&!STATE.viewAs;   // #32: owner only, not in preview
   let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[]};
+  // Multi-tip batch: tipsters accumulate finished tips, then schedule once (optional Trickle).
+  let BATCH={guildId:null,tips:[]};
 
   // Per-guild unit size ($). 0 = not configured -> dollar-mode staking stays off.
   function guildUnitSize(guildId){
@@ -1115,6 +1139,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     opts=opts||{};
     clearLiveTimer();
     panel("detail");show("app");
+    // Keep batch tray visible on server detail when tips are queued for this guild.
+    if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ /* different server — leave batch alone until builder opens */ }
+    renderBatchTray();
     const key=guildId+"|"+(month||"");
     STATE._detailCache=STATE._detailCache||{};
     const cached=STATE._detailCache[key];
@@ -2509,10 +2536,11 @@ async function loadPerms(gid){
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId)};
-    panel("builder");renderTray();
+    panel("builder");renderTray();renderBatchTray();
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
-    $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(guildId);};
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(guildId);};
     // players now come live from the AFL API (attached to each game); players.json
     // is only a silent fallback for a team the roster feed couldn't match.
     if(!Object.keys(STATE.players).length){ try{STATE.players=await (await fetch("./players.json")).json();}catch{STATE.players={};} }
@@ -2536,8 +2564,9 @@ async function loadPerms(gid){
   const SPORT_STUBS=[{k:"Soccer",hint:"EPL · A-League"},{k:"NBA",hint:"NBA"},{k:"NRL",hint:"NRL"}];
   function openCustom(guildId,name,presetSport){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",unitSize:guildUnitSize(guildId)};
-    panel("builder");renderTray();
+    panel("builder");renderTray();renderBatchTray();
     renderCustom();
   }
   function renderCustom(){
@@ -2549,7 +2578,7 @@ async function loadPerms(gid){
       +'<div class="field"><label>Sport / league (optional)</label><input id="c_sport" placeholder="e.g. NBA · EPL · UFC · Racing · NRL" value="'+esc(BUILD.customSport||"")+'"></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:12px;margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
       +'</div>';
-    $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
     const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;};
     const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;};
     const add=()=>{ const inp=$("c_leg"); const v=(inp.value||"").trim(); if(!v)return; addLeg({custom:true,desc:v}); inp.value=""; inp.focus(); };
@@ -2680,7 +2709,7 @@ async function loadPerms(gid){
       return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+compBadge+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
-    $("bx").onclick=()=>{$("tray").hidden=true;loadDetail(BUILD.guildId);};
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     const cg=$("customgames"); if(cg)cg.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName);
     $("builder").querySelectorAll(".compchip[data-c]").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
@@ -2844,12 +2873,37 @@ async function loadPerms(gid){
   function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
   function renderTray(){
     const t=$("tray");
-    if(!BUILD.legs.length){ t.hidden=true; return; }
+    if(!BUILD.legs.length){ t.hidden=true; syncTrayStack(); return; }
     t.hidden=false;
     t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>'<span class="chip">'+esc(legText(l))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>').join("")+'</div>'
       +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button>'+TB.multiSummary(BUILD.legs)+'</div>';
     t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray();});
     $("reviewbtn").onclick=renderConfirm;
+    syncTrayStack();
+  }
+  function syncTrayStack(){
+    const bt=$("batchtray"), lt=$("tray");
+    if(!bt)return;
+    const legsOpen=lt && !lt.hidden;
+    bt.classList.toggle("above-legs", !!(legsOpen && BATCH.tips.length));
+  }
+  function batchTipLabel(tip){
+    const legs=tip.legs||[];
+    const name=tip.game_name||(tip.custom?"Custom tip":"Tip");
+    const n=legs.length;
+    return name+" · "+n+" leg"+(n===1?"":"s")+" @ "+tip.odds+" · "+tip.units+"u";
+  }
+  function clearBatch(){ BATCH={guildId:null,tips:[]}; renderBatchTray(); }
+  function renderBatchTray(){
+    const t=$("batchtray");
+    if(!t)return;
+    if(!BATCH.tips.length){ t.hidden=true; syncTrayStack(); return; }
+    t.hidden=false;
+    t.innerHTML='<div class="batchtray-in"><span class="batch-label">Batch · '+BATCH.tips.length+'</span><div class="legchips">'+BATCH.tips.map((tip,i)=>'<span class="chip">'+esc(batchTipLabel(tip))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove tip '+(i+1)+' from batch">✕</button></span>').join("")+'</div>'
+      +'<button class="btn" id="batchschedbtn">Schedule batch ('+BATCH.tips.length+') →</button></div>';
+    t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BATCH.tips.splice(+x.dataset.i,1); if(!BATCH.tips.length)BATCH.guildId=null; renderBatchTray();});
+    const btn=$("batchschedbtn"); if(btn)btn.onclick=renderBatchConfirm;
+    syncTrayStack();
   }
   // Stake entry: units always available; dollars mode appears when the guild has
   // a unit size configured, and shows a live half-up "= X.XXu" preview.
@@ -2911,9 +2965,11 @@ async function loadPerms(gid){
   function renderConfirm(){
     clearLiveTimer();
     panel("builder");
+    const lt=$("tray"); if(lt)lt.hidden=true; syncTrayStack();
     const bk=TB.bookie.options();
+    const title=BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi");
     $("builder").innerHTML='<div class="back" id="bc">← Keep building</div><h1 style="margin:0 0 16px">Confirm & schedule</h1>'
-      +'<div class="panel"><h3>'+esc(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi"))+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3><div class="tb-review-kind">'+TB.multiSummary(BUILD.legs)+'</div>'
+      +'<div class="panel"><h3>'+esc(title)+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3><div class="tb-review-kind">'+TB.multiSummary(BUILD.legs)+'</div>'
       +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+esc(legText(l))+'</div><div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div></div>').join("")+'</div>'
       +'<div class="panel"><h3>Details</h3>'
       +'<div class="field"><label>Total odds</label><input id="f_odds" type="number" step="0.01" placeholder="e.g. 3.20"></div>'
@@ -2921,11 +2977,15 @@ async function loadPerms(gid){
       +'<div class="field"><label for="f_book">Bookmaker</label><div class="tb-bookmaker-picker"><select id="f_book">'+bk+'</select><div id="f_book_preview" class="tb-bookmaker-selected" aria-live="polite"></div></div></div>'
       +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
       +'<div class="field"><label>Screenshot (optional)</label><input id="f_img" type="file" accept="image/*"><div id="f_img_prev" style="margin-top:8px"></div></div>'
-      +'<button class="btn" id="schedbtn">Schedule tip →</button> <span id="scherr" class="err" style="margin-left:10px"></span></div>';
+      +'<div class="sched-actions"><button class="btn secondary" id="batchaddbtn" type="button">Add to batch</button>'
+      +'<button class="btn" id="schedbtn" type="button">Schedule tip →</button></div>'
+      +'<div id="scherr" class="err" style="margin-top:10px"></div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
     $("bc").onclick=()=>{ if(BUILD.custom){renderCustom();} else {renderGame();} };
     wireStakeField();
     TB.bookie.wireSelect($("f_book"),$("f_book_preview"));
     $("schedbtn").onclick=scheduleTip;
+    $("batchaddbtn").onclick=addCurrentTipToBatch;
     const fi=$("f_img");
     if(fi)fi.onchange=async()=>{
       const prev=$("f_img_prev");const file=fi.files&&fi.files[0];
@@ -2935,6 +2995,110 @@ async function loadPerms(gid){
         prev.innerHTML='<img src="'+BUILD.image+'" style="max-height:120px;border-radius:8px;border:1px solid var(--line)"> <span style="color:var(--faint);font-size:12px">attached — the bot posts it with the tip</span>';
       }catch(e){ BUILD.image=null; prev.innerHTML='<span class="err" style="font-size:12px">Couldn\'t read that image.</span>'; }
     };
+  }
+  function readTipForm(){
+    const odds=parseFloat(($("f_odds")||{}).value);
+    if(!(odds>1))return {error:"Odds must be greater than 1."};
+    const st=resolveStakeUnits();
+    if(st.error)return {error:st.error};
+    const units=st.units;
+    const bookmaker=(($("f_book")||{}).value)||"";
+    const game_name=BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"");
+    const sport=BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL";
+    return {odds,units,bookmaker,game_name,sport,legs:BUILD.legs.slice(),image_b64:BUILD.image||""};
+  }
+  function addCurrentTipToBatch(){
+    const tip=readTipForm();
+    if(tip.error){ $("scherr").textContent=tip.error; return; }
+    $("scherr").textContent="";
+    if(BATCH.guildId && String(BATCH.guildId)!==String(BUILD.guildId)){ BATCH={guildId:null,tips:[]}; }
+    BATCH.guildId=BUILD.guildId;
+    BATCH.tips.push({
+      legs:tip.legs, odds:tip.odds, units:tip.units, bookmaker:tip.bookmaker,
+      game_name:tip.game_name, sport:tip.sport, image_b64:tip.image_b64||""
+    });
+    BUILD.legs=[]; BUILD.image=null;
+    renderTray();
+    renderBatchTray();
+    toast("Added to batch ("+BATCH.tips.length+")");
+    // Keep building the next tip on the same game / custom form.
+    if(BUILD.custom){ BUILD.customEvent=BUILD.customEvent||""; renderCustom(); }
+    else if(BUILD.game){ renderGame(); }
+    else { openBuilder(BUILD.guildId, BUILD.serverName); }
+  }
+  function renderBatchConfirm(){
+    if(!BATCH.tips.length){ renderBatchTray(); return; }
+    clearLiveTimer();
+    panel("builder");
+    const t=$("tray"); if(t)t.hidden=true;
+    const bt=$("batchtray"); if(bt)bt.hidden=true;
+    const n=BATCH.tips.length;
+    $("builder").innerHTML='<div class="back" id="bcb">← Back to batch</div><h1 style="margin:0 0 16px">Schedule batch</h1>'
+      +'<div class="panel"><h3>'+n+' tip'+(n===1?"":"s")+' ready</h3>'
+      +BATCH.tips.map((tip,i)=>'<div class="tip"><div style="flex:1;min-width:0"><div class="g">'+esc(batchTipLabel(tip))+'</div>'
+      +'<div class="meta">'+(tip.legs||[]).map(l=>esc(legText(l))).join(" · ")+'</div></div>'
+      +'<button type="button" class="ghost" data-rm="'+i+'" aria-label="Remove tip '+(i+1)+'">Remove</button></div>').join("")
+      +'</div>'
+      +'<div class="panel"><h3>When to post</h3>'
+      +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
+      +'<label class="trickle-row" for="f_trickle"><input id="f_trickle" type="checkbox">'
+      +'<div><div class="title">Trickle</div><div class="thint">Stagger tips ~30s apart so followers can get on</div></div></label>'
+      +'<div style="color:var(--faint);font-size:12px;margin:12px 0 0">Off → all tips share the same delay. On → tip i posts at base delay + i×30s.</div>'
+      +'<div class="sched-actions" style="margin-top:16px"><button class="btn" id="batchgo" type="button">Schedule '+n+' tips →</button></div>'
+      +'<div id="scherr" class="err" style="margin-top:10px"></div></div>';
+    $("bcb").onclick=()=>{ renderBatchTray(); if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} };
+    $("builder").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{
+      BATCH.tips.splice(+b.dataset.rm,1);
+      if(!BATCH.tips.length){ BATCH.guildId=null; renderBatchTray(); if(BUILD.custom)renderCustom(); else if(BUILD.game)renderGame(); else openBuilder(BUILD.guildId,BUILD.serverName); return; }
+      renderBatchConfirm();
+    });
+    $("batchgo").onclick=scheduleBatch;
+  }
+  function scheduleBatch(){
+    const n=BATCH.tips.length;
+    if(!n){ $("scherr").textContent="Batch is empty."; return; }
+    const delay=parseInt(($("f_delay")||{}).value||"0",10)||0;
+    const trickle=!!(($("f_trickle")||{}).checked);
+    $("scherr").textContent="";
+    NDCountdownConfirm.open({
+      title:"Schedule "+n+" tip"+(n===1?"":"s")+"?",
+      message:n+" tip"+(n===1?"":"s")+" · delay <b>"+delay+"m</b> · Trickle <b>"+(trickle?"on (~30s stagger)":"off (same time)")+"</b> — posts to Discord.",
+      seconds:5,confirmLabel:"Schedule batch",secondaryLabel:"Cancel",accent:"#5b8cff",
+      onConfirm:()=>doBatchSchedule(delay,trickle),
+    });
+  }
+  async function doBatchSchedule(delay,trickle){
+    const btn=$("batchgo"); if(btn)btn.disabled=true;
+    const payload={
+      guild_id:BATCH.guildId||BUILD.guildId,
+      delay_minutes:delay,
+      trickle:!!trickle,
+      trickle_seconds:30,
+      tips:BATCH.tips.map(t=>({
+        legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
+        game_name:t.game_name, sport:t.sport, image_b64:t.image_b64||""
+      }))
+    };
+    try{
+      const r=await api("/api/queue-tips",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const j=await r.json();
+      if(r.ok&&j.ok){
+        const n=BATCH.tips.length;
+        clearBatch();
+        BUILD.legs=[]; BUILD.image=null;
+        if($("tray"))$("tray").hidden=true;
+        if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
+        toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""));
+        loadDetail(payload.guild_id);
+      }else{
+        $("scherr").textContent=j.message||"Couldn't schedule batch.";
+        if(btn)btn.disabled=false;
+      }
+    }catch(e){
+      if(e.unauth)return renderLogin("Session expired.");
+      $("scherr").textContent="Couldn't reach the bot.";
+      if(btn)btn.disabled=false;
+    }
   }
   // Downscale + JPEG-compress client-side so only a small image ever travels.
   function compressImage(file,maxDim,quality){
@@ -2976,7 +3140,7 @@ async function loadPerms(gid){
       image_b64:BUILD.image||""};
     try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const j=await r.json();
-      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; $("tray").hidden=true; loadDetail(BUILD.guildId); }
+      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
       else{ $("scherr").textContent=j.message||"Couldn't schedule."; $("schedbtn").disabled=false; }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; $("schedbtn").disabled=false; }
   }
