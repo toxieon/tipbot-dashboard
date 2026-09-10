@@ -50,13 +50,19 @@
   }
   .tb-loadpanel-bar{
     width:min(280px,70vw);height:6px;border-radius:99px;background:rgba(255,255,255,.08);
-    overflow:hidden;margin:18px auto 0;
+    overflow:hidden;margin:14px auto 0;
   }
   .tb-loadpanel-bar > i{
-    display:block;height:100%;width:40%;border-radius:99px;
+    display:block;height:100%;width:0%;border-radius:99px;
     background:linear-gradient(90deg,var(--accent,#5b8cff),var(--accent2,#7b5bff));
-    animation:tb-load-slide 1.15s ease-in-out infinite;
+    transition:width .28s ease;
   }
+  .tb-loadpanel-meta{
+    display:flex;justify-content:space-between;align-items:baseline;
+    width:min(280px,70vw);margin:10px auto 0;gap:12px;
+    font-size:12px;color:var(--muted);
+  }
+  .tb-loadpanel-meta #loadingpct{font-variant-numeric:tabular-nums;font-weight:700;color:var(--txt)}
 
   :root{
     --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;
@@ -439,9 +445,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a></div>
   </div>
-  <div id="loading" class="center"><div><h1>TipBot Dashboard</h1><p id="loadingmsg">Loading…</p>
-    <div class="tb-loadpanel-bar" aria-hidden="true"><i></i></div>
-    <p style="color:var(--faint);font-size:13px;margin-top:14px">First load can take a bit while the bot wakes — this bar means it’s still going.</p></div></div>
+  <div id="loading" class="center"><div><h1>TipBot Dashboard</h1>
+    <div class="tb-loadpanel-bar" aria-hidden="true"><i id="loadingfill"></i></div>
+    <div class="tb-loadpanel-meta"><span id="loadingmsg">Starting…</span><span id="loadingpct">0%</span></div>
+  </div></div>
 
   <div id="app" hidden>
     <div class="top">
@@ -899,7 +906,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }catch(e){}
   })();
   
-  // Top loading bar — visible progress while TipBot/Render wakes
+  // Top bar + loading panel — real staged % (no fake ticks / wake copy)
   const TopBar = (function(){
     let el=null, fill=null, pending=0, hardTimer=null;
     function ensure(){
@@ -910,22 +917,29 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       document.body.appendChild(el);
       fill=el.firstElementChild;
     }
+    function syncPanel(pct, label){
+      const pf=$("loadingfill"), msg=$("loadingmsg"), pctEl=$("loadingpct");
+      if(pf) pf.style.width=Math.max(0, Math.min(100, pct))+"%";
+      if(pctEl) pctEl.textContent=Math.round(Math.max(0, Math.min(100, pct)))+"%";
+      if(msg && label) msg.textContent=label;
+    }
     function start(indeterminate){
       ensure();
       pending++;
       el.classList.add("on");
       if(indeterminate!==false) el.classList.add("indeterminate");
       else el.classList.remove("indeterminate");
-      if(fill && indeterminate===false) fill.style.width="12%";
+      if(fill && indeterminate===false) fill.style.width="8%";
       clearTimeout(hardTimer);
-      // Never leave the bar stuck forever
       hardTimer=setTimeout(()=>{ pending=0; done(true); }, 120000);
     }
-    function set(pct){
+    function set(pct, label){
       ensure();
       el.classList.add("on");
       el.classList.remove("indeterminate");
-      if(fill) fill.style.width=Math.max(5, Math.min(98, pct))+"%";
+      const n=Math.max(0, Math.min(100, pct));
+      if(fill) fill.style.width=n+"%";
+      syncPanel(n, label);
     }
     function done(force){
       if(!force){ pending=Math.max(0, pending-1); if(pending>0) return; }
@@ -933,6 +947,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ensure();
       el.classList.remove("indeterminate");
       if(fill) fill.style.width="100%";
+      syncPanel(100, "Ready");
       setTimeout(()=>{
         if(pending) return;
         el.classList.remove("on");
@@ -942,6 +957,43 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }
     return { start, set, done };
   })();
+
+  const BOOT_CACHE_KEY="tipdash_boot_v1";
+  function readBootCache(){
+    try{
+      const raw=localStorage.getItem(BOOT_CACHE_KEY);
+      if(!raw) return null;
+      const j=JSON.parse(raw);
+      if(!j || typeof j!=="object") return null;
+      return j;
+    }catch(e){ return null; }
+  }
+  function writeBootCache(data){
+    try{
+      localStorage.setItem(BOOT_CACHE_KEY, JSON.stringify({
+        role:data.role,
+        servers:data.servers||[],
+        follower_servers:data.follower_servers||[],
+        theme_prefs:data.theme_prefs||null,
+        saved_at:Date.now()
+      }));
+    }catch(e){}
+  }
+  function applyBootPayload(data, opts){
+    opts=opts||{};
+    STATE.role=data.role;
+    STATE.servers=data.servers||[];
+    STATE.followerServers=data.follower_servers||[];
+    if(data.theme_prefs) hydrateTheme(data.theme_prefs);
+    else if(opts.armTheme) hydrateTheme(null);
+    $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
+    $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
+    buildViewAsMenu();
+  }
+  function warmTipBot(){
+    // Fire-and-forget — wakes Render so /api/servers is warm when we need it.
+    try{ fetch(API+"/healthz",{mode:"cors",cache:"no-store"}).catch(function(){}); }catch(e){}
+  }
 
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
@@ -2896,26 +2948,62 @@ async function loadPerms(gid){
     if(hash.get("error")){history.replaceState(null,"",location.pathname);return renderLogin(ERR[hash.get("error")]||"Login error.");}
     if(hash.get("token")){setToken(hash.get("token"));history.replaceState(null,"",location.pathname);}
     if(!getToken())return renderLogin();
-    show("loading");
-    TopBar.start();
-    let fake=18; TopBar.set(fake);
-    const tick=setInterval(()=>{ fake=Math.min(90, fake+3); TopBar.set(fake); }, 1500);
+    warmTipBot();
+    const cached=readBootCache();
+    let paintedFromCache=false;
+    if(cached && (cached.servers||cached.follower_servers)){
+      applyBootPayload(cached, {armTheme:true});
+      show("app");
+      enterHome();
+      paintedFromCache=true;
+      TopBar.start(false);
+      TopBar.set(35, "Refreshing…");
+    }else{
+      show("loading");
+      TopBar.start(false);
+      TopBar.set(8, "Checking session…");
+    }
     try{
-      const r=await api("/api/servers");
-      TopBar.set(92);
-      if(!r.ok){ TopBar.done(true); return renderLogin(); }
+      if(!paintedFromCache) TopBar.set(22, "Connecting…");
+      // lite=1 skips N× server_stats — paint fast; hydrate full stats after.
+      const r=await api("/api/servers?lite=1");
+      if(!paintedFromCache) TopBar.set(72, "Loading servers…");
+      else TopBar.set(70, "Updating servers…");
+      if(!r.ok){
+        TopBar.done(true);
+        if(paintedFromCache) return; // keep stale UI
+        return renderLogin();
+      }
       const data=await r.json();
-      STATE.role=data.role;STATE.servers=data.servers||[];STATE.followerServers=data.follower_servers||[];
-      hydrateTheme(data.theme_prefs);
-      $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
-      $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
-      buildViewAsMenu();show("app");enterHome();
+      writeBootCache(data);
+      applyBootPayload(data);
+      if(!paintedFromCache){
+        TopBar.set(92, "Almost ready…");
+        show("app");
+        enterHome();
+      }else if(!$("overview").hidden || !$("detail").hidden){
+        // Re-render home cards with fresh lite payload (stats may fill next).
+        try{ enterHome(); }catch(e){}
+      }
       TopBar.done(true);
+      // Background: full stats for home cards (non-blocking).
+      api("/api/servers?lite=0").then(async function(r2){
+        if(!r2 || !r2.ok) return;
+        try{
+          const full=await r2.json();
+          writeBootCache(full);
+          STATE.servers=full.servers||STATE.servers;
+          STATE.followerServers=full.follower_servers||STATE.followerServers;
+          if(full.theme_prefs) hydrateTheme(full.theme_prefs);
+          if(!$("overview").hidden) try{ renderOverview(); }catch(e){}
+        }catch(e){}
+      }).catch(function(){});
     }catch(e){
       TopBar.done(true);
+      if(paintedFromCache) return; // offline/cold — keep cached UI
       if(e.unauth)return renderLogin();
       renderLogin("Couldn't reach the bot — try again in a moment.");
-    }finally{ clearInterval(tick); }
+    }
   }
   // ── Theme sync per account (#44) ──────────────────────────────────────────
   // localStorage is the per-device cache + pre-paint source; the server copy is
@@ -2945,7 +3033,7 @@ async function loadPerms(gid){
     THEME_SYNC_READY=true;   // arm saves only after the login hydrate settles
   }
   TB.theme.init(); TB.theme.mount($("tb-appearance")); TB.bookie.init();
-  try{ if(getToken()) TopBar.start(); }catch(e){}
+  try{ if(getToken()) warmTipBot(); }catch(e){}
   load();
 </script>
 </body>
