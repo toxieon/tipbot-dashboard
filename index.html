@@ -251,6 +251,45 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .tb-bookmaker-picker select{flex:1;min-width:160px;}
 .tb-bookmaker-selected{font-size:13px;min-height:30px;}
 
+
+/* Follower promo chip — Expansion Pass–inspired (rough MVP) */
+.tb-promo-chip{
+  position:fixed;right:18px;bottom:18px;z-index:80;
+  display:flex;align-items:center;gap:10px;
+  min-width:200px;max-width:min(280px,calc(100vw - 36px));
+  padding:10px 14px 10px 8px;
+  border:none;border-radius:999px;cursor:pointer;
+  background:linear-gradient(90deg,#ffe566 0%,#7bc96f 55%,#1f8a4c 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35);
+  font:inherit;color:#111;text-align:left;
+}
+.tb-promo-chip:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.tb-promo-chip:active{transform:translateY(0)}
+.tb-promo-chip .tb-promo-chev{
+  flex:none;width:22px;height:22px;border-radius:999px;background:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:13px;color:#111;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.tb-promo-chip .tb-promo-bag{
+  flex:none;width:28px;height:28px;border-radius:8px;
+  background:rgba(255,255,255,.92);border:2px solid #f0a020;
+  display:grid;place-items:center;font-size:14px;
+}
+.tb-promo-chip .tb-promo-copy{flex:1;min-width:0;line-height:1.15}
+.tb-promo-chip .tb-promo-kicker{
+  font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  color:rgba(0,0,0,.55);margin-bottom:2px;
+}
+.tb-promo-chip .tb-promo-title{font-size:14px;font-weight:800;color:#111}
+.tb-promo-chip .tb-promo-sub{font-size:11px;font-weight:600;color:rgba(0,0,0,.62);margin-top:1px}
+.tb-promo-x{
+  position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:999px;
+  border:none;background:#1a1f2b;color:#fff;font-size:12px;cursor:pointer;
+  display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.tb-promo-wrap{position:fixed;right:18px;bottom:18px;z-index:80}
+#mytips .mt-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+#mytips .mt-row:last-child{border-bottom:none}
 </style>
 </head>
 <body>
@@ -283,6 +322,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     <div id="detail" hidden></div>
     <div id="followers" hidden></div>
     <div id="follower" hidden></div>
+    <div id="mytips" hidden></div>
     <div id="builder" hidden></div>
   </div>
 </div>
@@ -705,7 +745,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","builder"])$(x).hidden=(x!==p);};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","builder"])$(x).hidden=(x!==p); if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
@@ -899,6 +939,94 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
     $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
       openFollowerView(gid,nm,calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
     });
+    mountFollowerPromoChip(gid,nm);
+  }
+
+  function promoChipDismissed(){ try{ return localStorage.getItem("tb_promo_mytips_hide")==="1"; }catch(e){ return false; } }
+  function dismissPromoChip(){ try{ localStorage.setItem("tb_promo_mytips_hide","1"); }catch(e){} const w=$("tb-promo-wrap"); if(w)w.remove(); }
+  function mountFollowerPromoChip(gid,nm){
+    const old=$("tb-promo-wrap"); if(old)old.remove();
+    if(promoChipDismissed()) return;
+    const wrap=document.createElement("div");
+    wrap.id="tb-promo-wrap"; wrap.className="tb-promo-wrap";
+    wrap.innerHTML='<button type="button" class="tb-promo-x" id="tb-promo-x" title="Hide">×</button>'
+      +'<button type="button" class="tb-promo-chip" id="tb-promo-chip" aria-label="Log your own tips">'
+      +'<span class="tb-promo-chev" aria-hidden="true">›</span>'
+      +'<span class="tb-promo-bag" aria-hidden="true">📝</span>'
+      +'<span class="tb-promo-copy"><span class="tb-promo-kicker">Free</span>'
+      +'<span class="tb-promo-title">My Tips</span>'
+      +'<span class="tb-promo-sub">Log your own tips</span></span></button>';
+    document.body.appendChild(wrap);
+    $("tb-promo-chip").onclick=()=>openMyTips(gid,nm);
+    $("tb-promo-x").onclick=(e)=>{ e.stopPropagation(); dismissPromoChip(); };
+  }
+  function unmountFollowerPromoChip(){ const w=$("tb-promo-wrap"); if(w)w.remove(); }
+
+  async function openMyTips(fromGid,fromName){
+    unmountFollowerPromoChip();
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    panel("mytips");show("app");
+    const back=()=>{ if(fromGid) openFollowerView(fromGid,fromName); else enterHome(); };
+    $("mytips").innerHTML='<div class="back" id="mt-back">← Back</div>'
+      +'<div class="dhead"><h1 style="margin:0">My Tips</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:rgba(224,160,74,.18);color:#e0a04a;padding:2px 8px;border-radius:999px">FREE</span></div>'
+      +'<p style="color:var(--muted);font-size:13px;margin:8px 0 16px;line-height:1.45">Log your own tips — personal bankroll in tipdash. Tips &amp; follower dash stay free. Rough MVP.</p>'
+      +'<div class="panel"><h3>Add a tip</h3>'
+      +'<div class="field"><label>Selection</label><input id="mt-sel" placeholder="e.g. Collingwood 1–12" style="width:100%"></div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+      +'<div class="field" style="flex:1;min-width:100px"><label>Odds</label><input id="mt-odds" type="number" step="0.01" placeholder="2.10"></div>'
+      +'<div class="field" style="flex:1;min-width:100px"><label>Units</label><input id="mt-units" type="number" step="0.1" placeholder="1"></div>'
+      +'<div class="field" style="flex:1;min-width:120px"><label>Result</label><select id="mt-result"><option value="pending">Pending</option><option value="win">Win</option><option value="loss">Loss</option><option value="push">Push</option></select></div></div>'
+      +'<div class="field"><label>Note (optional)</label><input id="mt-note" placeholder="Bookie / market" style="width:100%"></div>'
+      +'<button class="btn sm" id="mt-add" type="button">Add tip</button> <span id="mt-msg" style="font-size:12px"></span></div>'
+      +'<div class="panel" style="margin-top:14px"><h3>Your log</h3><div id="mt-list"><div class="empty">Loading…</div></div></div>';
+    $("mt-back").onclick=back;
+    const loadLocalMyTips=()=>{ try{ return JSON.parse(localStorage.getItem("tb_my_tips")||"[]"); }catch(e){ return []; } };
+    const saveLocalMyTips=(arr)=>{ try{ localStorage.setItem("tb_my_tips",JSON.stringify(arr)); }catch(e){} };
+    const paint=async()=>{
+      const box=$("mt-list");
+      try{
+        const r=await api("/api/my-tips");
+        if(!r.ok) throw new Error("api");
+        const j=await r.json();
+        const tips=(j&&j.tips)||[];
+        if(!tips.length){ box.innerHTML='<div class="empty">No personal tips yet — add one above.</div>'; return; }
+        box.innerHTML=tips.map(t=>{
+          const res=(t.result||"pending");
+          const col=res==="win"?"var(--win)":res==="loss"?"var(--loss)":"var(--muted)";
+          return '<div class="mt-row"><div><div style="font-weight:700">'+esc(t.selection||"—")+'</div>'
+            +'<div style="font-size:12px;color:var(--faint)">'+esc(String(t.odds||"—"))+' · '+esc(String(t.units||"—"))+'u'
+            +(t.note?(" · "+esc(t.note)):"")+'</div></div>'
+            +'<div style="font-weight:700;color:'+col+';text-transform:capitalize">'+esc(res)+'</div></div>';
+        }).join("");
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
+        const tips=loadLocalMyTips();
+        if(!tips.length){ box.innerHTML='<div class="empty">No tips yet — add one above (saves to server when API is live, else locally).</div>'; return; }
+        box.innerHTML=tips.map(t=>'<div class="mt-row"><div><div style="font-weight:700">'+esc(t.selection)+'</div><div style="font-size:12px;color:var(--faint)">'+esc(String(t.odds))+' · '+esc(String(t.units))+'u</div></div><div style="font-weight:700;text-transform:capitalize">'+esc(t.result||"pending")+'</div></div>').join("");
+      }
+    };
+    $("mt-add").onclick=async()=>{
+      const selection=($("mt-sel").value||"").trim();
+      const odds=parseFloat($("mt-odds").value);
+      const units=parseFloat($("mt-units").value);
+      const result=$("mt-result").value||"pending";
+      const note=($("mt-note").value||"").trim();
+      const m=$("mt-msg");
+      if(!selection){ if(m){m.textContent="Need a selection";m.style.color="var(--loss)";} return; }
+      $("mt-add").disabled=true; if(m)m.textContent="";
+      const body={selection,odds:odds||null,units:units||null,result,note};
+      try{
+        const r=await api("/api/my-tips",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        const j=await r.json();
+        if(j&&j.ok){ if(m){m.textContent="✓ saved";m.style.color="var(--win)";} $("mt-sel").value=""; await paint(); }
+        else { throw new Error(j&&j.message||"fail"); }
+      }catch(e){
+        if(e&&e.unauth)return renderLogin("Session expired.");
+        const arr=loadLocalMyTips(); arr.unshift(Object.assign({id:Date.now()},body)); saveLocalMyTips(arr.slice(0,100));
+        if(m){m.textContent="✓ saved locally (API later)";m.style.color="var(--win)";}
+        $("mt-sel").value=""; await paint();
+      }finally{ $("mt-add").disabled=false; }
+    };
+    await paint();
   }
   async function openFollowers(gid,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
