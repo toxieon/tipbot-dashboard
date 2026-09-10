@@ -1515,11 +1515,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     backdrop.innerHTML='<div role="dialog" aria-modal="true" aria-label="Follower server map" style="background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:85vh;overflow:auto;padding:18px 18px 28px;box-shadow:0 -12px 40px rgba(0,0,0,.45)">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
       +'<img src="'+esc(av)+'" alt="" style="width:48px;height:48px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:17px">'+esc(name)+'</div>'
-      +'<div style="color:var(--faint);font-size:12px">Servers they share with TipBot</div></div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:17px">'+esc(name)+'</div></div>'
       +'<button type="button" id="fmap-x" class="ghost" style="padding:8px 12px">Close</button></div>'
       +'<div id="fmap-body" style="color:var(--faint);font-size:13px">Loading map…</div>'
-      +'<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);color:var(--faint);font-size:11px">OAuth is identify-only — Discord servers TipBot is not in are not listed. Invite only when the bot is present.</div>'
+      +'<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);color:var(--faint);font-size:11px">Invite only when TipBot is in the server. Other Discord servers appear after they re-log on tipdash.</div>'
       +'</div>';
     document.body.appendChild(backdrop);
     backdrop.addEventListener("click",e=>{ if(e.target===backdrop) closeFollowerMap(); });
@@ -1531,17 +1530,42 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const data=await r.json();
       if(data&&data.error){ body.innerHTML='<div class="empty">'+esc(data.error)+'</div>'; return; }
       const guilds=(data&&data.tipbot_guilds)||[];
-      if(!guilds.length){ body.innerHTML='<div class="empty">No TipBot-mutual guilds for this user yet.</div>'; return; }
-      body.innerHTML=guilds.map(g=>{
-        const present=!!g.bot_present;
-        const inv=present
-          ?('<button type="button" class="fmap-inv" data-g="'+esc(g.guild_id)+'" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:7px 11px;cursor:pointer;font:inherit;font-size:12px;font-weight:600">Invite</button>')
-          :('<span style="color:var(--faint);font-size:12px">Bot not present</span>');
-        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">'
-          +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(g.display_name||g.guild_id)+'</div>'
-          +'<div style="color:var(--faint);font-size:12px">'+esc(String(g.follow_count||0))+' follow'+(g.follow_count===1?"":"s")
-          +(present?" · bot present":" · bot absent")+'</div></div>'+inv+'</div>';
-      }).join("")+'<div id="fmap-msg" style="font-size:12px;color:var(--faint);margin-top:10px"></div>';
+      const other=(data&&data.other_guilds)||[];
+      let html="";
+      if(data&&data.guilds_oauth===false){
+        html+='<div style="color:var(--faint);font-size:12px;margin-bottom:12px">This follower hasn’t re-logged since we added server sharing.</div>';
+      }
+      if(!guilds.length&&!other.length){
+        body.innerHTML=html+'<div class="empty">No Discord servers to show for this follower yet.</div>';
+        return;
+      }
+      if(guilds.length){
+        html+='<div style="font-weight:700;font-size:13px;color:var(--muted);margin:4px 0 6px">Servers they share with TipBot</div>';
+        html+=guilds.map(g=>{
+          const present=!!g.bot_present;
+          const inv=present
+            ?('<button type="button" class="fmap-inv" data-g="'+esc(g.guild_id)+'" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:7px 11px;cursor:pointer;font:inherit;font-size:12px;font-weight:600">Invite</button>')
+            :('<span style="color:var(--faint);font-size:12px">Bot not present</span>');
+          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">'
+            +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(g.display_name||g.guild_id)+'</div>'
+            +'<div style="color:var(--faint);font-size:12px">'+esc(String(g.follow_count||0))+' follow'+(g.follow_count===1?"":"s")
+            +(present?" · bot present":" · bot absent")+'</div></div>'+inv+'</div>';
+        }).join("");
+      }
+      if(other.length){
+        html+='<div style="font-weight:700;font-size:13px;color:var(--muted);margin:'+(guilds.length?"16px":"4px")+' 0 6px">Other Discord servers</div>';
+        html+=other.map(g=>{
+          const icon=g.icon_url
+            ?('<img src="'+esc(g.icon_url)+'" alt="" style="width:28px;height:28px;border-radius:8px;background:var(--card2);object-fit:cover;flex-shrink:0" onerror="this.style.visibility=\'hidden\'">')
+            :'';
+          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">'
+            +icon
+            +'<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(g.display_name||g.guild_id)+'</div>'
+            +'<div style="color:var(--faint);font-size:12px">TipBot not in this server</div></div></div>';
+        }).join("");
+      }
+      html+='<div id="fmap-msg" style="font-size:12px;color:var(--faint);margin-top:10px"></div>';
+      body.innerHTML=html;
       body.querySelectorAll(".fmap-inv").forEach(btn=>btn.onclick=async()=>{
         const gid=btn.dataset.g; const msg=$("fmap-msg");
         btn.disabled=true; if(msg){msg.textContent="Creating invite…";msg.style.color="var(--faint)";}
