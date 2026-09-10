@@ -1034,6 +1034,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
     if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div>'; loadRouting(gid); return; }
+    if(tab==="features"){ body.innerHTML='<div id="features-box"><div class="empty">Loading…</div></div>'; loadFeatures(gid); return; }
     if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
     body.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
       +'<label style="color:var(--muted);font-size:13px">Follow emoji</label>'
@@ -1159,6 +1160,14 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Override or re-grade any tip, including settled ones. Grades post as <b>God</b>.</div></div>'
       +'<button id="godtoggle" class="toggle '+(STATE.god?"on":"")+'" style="flex:none"></button></div>'
       +'<div id="godhint" style="font-size:12px;margin-top:8px;color:'+(godOn()?'var(--warn,#e0a04a)':'var(--faint)')+'">'+(godOn()?"● ON — expand any tip in Recent Results to re-grade it.":"Off — tips grade normally.")+'</div></div>';
+    const inviteZone='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
+      +'<div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Invite me</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Create a Discord invite for <b>this server</b> so you can join and inspect it. Platform owner only. Needs bot Create Instant Invite (or Administrator).</div>'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+      +'<button id="inviteMeBtn" type="button" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Generate invite</button>'
+      +'<a id="inviteMeLink" href="#" target="_blank" rel="noopener" hidden style="font-size:13px;color:var(--accent)"></a>'
+      +'</div><div id="inviteMeMsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
+
     // Danger zone lives INSIDE Admin controls (platform-owner-only, #34). Type the
     // server name (or LEAVE if unnamed) to arm the remove button.
     const leaveToken=(s.display_name||"").trim()||"LEAVE";
@@ -1169,9 +1178,9 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       +'<input id="leaveconfirm" placeholder="'+esc(leaveToken)+'" autocomplete="off" style="flex:1;min-width:160px;padding:8px 10px;border-radius:9px;border:1px solid #7a2a2a;background:#1c1414;color:var(--txt);font:inherit">'
       +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" data-token="'+esc(leaveToken)+'" disabled style="border:1px solid #7a2a2a;background:#2a1717;color:#7a5252;border-radius:9px;padding:9px 14px;cursor:not-allowed;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button>'
       +'</div><div id="leaveservermsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+dangerZone+'</div></div>'):'';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+inviteZone+dangerZone+'</div></div>'):'';
     const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
-      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Permissions</button></div>'
+      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-features">Features</button><button class="tab" id="stab-perms">Command access</button></div>'
       +'<div id="settings-body"></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div style="display:flex;gap:8px;align-items:center"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
@@ -1202,6 +1211,21 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       const gh=$("godhint"); if(gh){ gh.textContent=godOn()?"● ON — expand any tip in Recent Results to re-grade it.":"Off — tips grade normally."; gh.style.color=godOn()?"var(--warn,#e0a04a)":"var(--faint)"; }
       // Collapse any open legs so they re-render with (or without) the re-grade UI.
       document.querySelectorAll(".betlegs").forEach(el=>{el.hidden=true;el.dataset.loaded="";el.innerHTML="";});
+    }; }
+    { const ib=$("inviteMeBtn"); if(ib)ib.onclick=async()=>{
+      const m=$("inviteMeMsg"), link=$("inviteMeLink");
+      ib.disabled=true; if(m)m.textContent="Creating invite…"; if(link){link.hidden=true;link.removeAttribute("href");link.textContent="";}
+      try{
+        const r=await api("/api/owner-invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id})});
+        const j=await r.json();
+        if(j.ok&&j.invite_url){
+          if(link){link.href=j.invite_url;link.textContent=j.invite_url;link.hidden=false;}
+          if(m){m.textContent="Invite ready — open the link to join.";m.style.color="var(--win)";}
+        }else{
+          if(m){m.textContent=j.message||"Couldn't create invite";m.style.color="var(--loss)";}
+        }
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m){m.textContent="Couldn't reach the bot.";m.style.color="var(--loss)";} }
+      finally{ ib.disabled=false; }
     }; }
     $("detail").querySelectorAll(".dbgbtn").forEach(b=>b.onclick=async()=>{
       const st=$("dbgstatus"); b.disabled=true; if(st)st.textContent="Asking the bot to run: "+b.textContent+"…";
@@ -1251,8 +1275,8 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
     $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle")return; b.onclick=()=>toggle(b); });
     wireTipRows($("recent-box"),s.guild_id,true);
-    function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
-    $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
+    function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); const sf=$("stab-features"); if(sf)sf.classList.toggle("active",t==="features"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
+    $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); { const sf=$("stab-features"); if(sf)sf.onclick=()=>setTab("features"); } $("stab-perms").onclick=()=>setTab("perms");
     setTab("general");
     loadUpcoming(s.guild_id,tips.queued);
     if(!STATE._cel)STATE._cel=new Set();
@@ -1452,7 +1476,48 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 
   /* ---------- COMMAND PERMISSIONS ---------- */
   var PERM={};
-  async function loadPerms(gid){
+  
+  async function loadFeatures(gid){
+    const box=$("features-box"); if(!box)return;
+    try{
+      const d=await (await api("/api/feature-flags?guild_id="+encodeURIComponent(gid))).json();
+      if(!d||d.error){ box.innerHTML='<div class="empty">'+(d&&d.error?d.error:"Couldn't load features.")+'</div>'; return; }
+      const flags=d.flags||{}, labels=d.labels||{}, keys=d.keys||Object.keys(flags);
+      let html='<div style="color:var(--faint);font-size:12px;margin-bottom:12px;line-height:1.45">Per-guild product features. Off = hide/disable that capability for this server. Does not delete Discord channels. <b>Command access</b> (who can run slash cmds) is the next tab.</div>';
+      html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+        +'<button type="button" class="ghost" id="feat-enable-all">Enable all</button>'
+        +'<button type="button" class="ghost" id="feat-disable-all">Disable all</button>'
+        +'<button type="button" class="btn sm" id="feat-save">Save</button>'
+        +'<span id="feat-msg" style="font-size:12px;align-self:center"></span></div>';
+      html+='<div style="display:flex;flex-direction:column;gap:8px">';
+      keys.forEach(k=>{
+        const on=flags[k]!==false&&flags[k]!==0;
+        const lab=labels[k]||k;
+        html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card2)">'
+          +'<input type="checkbox" class="feat-cb" data-k="'+k+'" '+(on?'checked':'')+' style="width:16px;height:16px">'
+          +'<span style="flex:1"><span style="font-weight:600;font-size:13px">'+esc(lab)+'</span>'
+          +'<span style="display:block;color:var(--faint);font-size:11px;margin-top:2px">'+esc(k)+'</span></span></label>';
+      });
+      html+='</div>';
+      box.innerHTML=html;
+      const msg=$("feat-msg");
+      const collect=()=>{ const o={}; box.querySelectorAll(".feat-cb").forEach(cb=>{o[cb.dataset.k]=!!cb.checked;}); return o; };
+      const post=async(body)=>{
+        if(msg)msg.textContent="Saving…";
+        try{
+          const r=await api("/api/feature-flags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({guild_id:gid},body))});
+          const j=await r.json();
+          if(msg){msg.textContent=j.ok?"✓ saved":(j.message||"error");msg.style.color=j.ok?"var(--win)":"var(--loss)";}
+          if(j.ok&&j.flags){ Object.keys(j.flags).forEach(k=>{ const cb=box.querySelector('.feat-cb[data-k="'+k+'"]'); if(cb)cb.checked=!!j.flags[k]; }); }
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(msg){msg.textContent="couldn't save";msg.style.color="var(--loss)";} }
+      };
+      $("feat-enable-all").onclick=()=>box.querySelectorAll(".feat-cb").forEach(cb=>cb.checked=true);
+      $("feat-disable-all").onclick=()=>box.querySelectorAll(".feat-cb").forEach(cb=>cb.checked=false);
+      $("feat-save").onclick=()=>post({flags:collect()});
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t reach the bot.</div>'; }
+  }
+
+async function loadPerms(gid){
     var box=$("perms-box"); if(!box)return;
     box.innerHTML=NDSkeleton.lines(6);
     var data;
