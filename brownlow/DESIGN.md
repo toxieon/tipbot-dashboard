@@ -42,3 +42,11 @@ Copy `brownlow/` into `toxieon/tipbot-dashboard`. Wire auth + APIs without resty
 - Login: `https://afl-tipster-bot.onrender.com/auth/login`
 - Absorb `#token=` hash on return
 - Probe `GET /api/me` then `GET /api/brownlow/week` (404 = wait copy)
+
+## Owner-only Board
+- **Board** tab is platform-owner only (hides community tally from voters).
+
+## Season snapshots
+- `2026.json` — Squiggle 2026 games/teams for preview.
+- `2027.json` — stub for later.
+

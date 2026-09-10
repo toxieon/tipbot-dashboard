@@ -12,6 +12,42 @@
 <div class="app" id="app"></div>
 <script>
 const API = "https://afl-tipster-bot.onrender.com";
+const SEASON_YEAR = 2026;
+const SEASON_SNAP_URL = "./" + SEASON_YEAR + ".json";
+let SEASON = null;
+
+async function loadSeasonSnapshot(){
+  try{
+    const r = await fetch(SEASON_SNAP_URL, {cache:"no-store"});
+    if(!r.ok) throw new Error("snap "+r.status);
+    SEASON = await r.json();
+    return SEASON;
+  }catch(e){ console.warn("season snapshot", e); SEASON = null; return null; }
+}
+function applySeasonSnapshot(){
+  if(!SEASON || !Array.isArray(SEASON.rounds)) return;
+  ROUNDS.length = 0;
+  Object.keys(MATCHES).forEach(k => delete MATCHES[k]);
+  for(const r of SEASON.rounds){
+    const id = "r"+r.id;
+    ROUNDS.push({ id, label: r.label || ("R"+r.id), done: !!r.done });
+    MATCHES[id] = (SEASON.games||[])
+      .filter(g => String(g.round)===String(r.id) && g.played)
+      .map(g => ({
+        id: "m"+g.id,
+        home: g.home,
+        away: g.away,
+        score: g.score || "—",
+        venue: g.venue || "",
+        when: g.when || "",
+        voted: !!(state.myVotes && state.myVotes["m"+g.id]),
+      }));
+  }
+  const withGames = [...ROUNDS].reverse().find(r => (MATCHES[r.id]||[]).length);
+  if(withGames) state.round = withGames.id;
+  state.apiNote = "2026 season snapshot ("+((SEASON.games||[]).length)+" games)";
+}
+
 /* Placeholder match data until Ned's brownlow APIs land — UI stays fully usable */
 const ROUNDS = [
   { id: "r22", label: "R22" },
@@ -86,10 +122,7 @@ const state = {
   round: "r23",
   matchId: null,
   votes: { 3: null, 2: null, 1: null },
-  myVotes: {
-    m2: [{ pts:3, name:"Lachie Neale" }, { pts:2, name:"Patrick Dangerfield" }, { pts:1, name:"Tom Stewart" }],
-    m4: [{ pts:3, name:"Zach Merrett" }, { pts:2, name:"Jordan Ridley" }, { pts:1, name:"Jayden Short" }],
-  },
+  myVotes: {},
   toast: null,
   booting: true,
 };
@@ -112,6 +145,13 @@ async function api(path, opts){
   return r;
 }
 
+function isPlatformOwner(){
+  const u = state.user;
+  if(!u) return false;
+  if(u.role === "owner" || u.is_platform_owner === true) return true;
+  // tipdash sessions often use role owner for OWNER_DISCORD_ID
+  return String(u.role||"").toLowerCase() === "owner";
+}
 const $ = (s, el=document) => el.querySelector(s);
 const app = () => $("#app");
 function esc(s) {
@@ -131,6 +171,7 @@ function findMatch(id) {
 
 async function boot(){
   state.booting = true; render();
+  await loadSeasonSnapshot(); applySeasonSnapshot();
   if(!getToken()){ state.booting = false; state.user = null; render(); return; }
   try{
     const r = await api("/api/me");
@@ -160,7 +201,10 @@ function render() {
   }
   if (!state.user) return renderGate();
   if (state.matchId) return renderMatch();
-  if (state.tab === "board") return renderBoard();
+  if (state.tab === "board") {
+    if (!isPlatformOwner()) { state.tab = "vote"; return renderHome(); }
+    return renderBoard();
+  }
   if (state.tab === "mine") return renderMine();
   return renderHome();
 }
@@ -172,7 +216,7 @@ function shell(body, { showNav = true } = {}) {
       ${showNav ? `<nav class="nav">
         <button type="button" data-tab="vote" class="${state.tab==="vote"?"on":""}">Vote</button>
         <button type="button" data-tab="mine" class="${state.tab==="mine"?"on":""}">My votes</button>
-        <button type="button" data-tab="board" class="${state.tab==="board"?"on":""}">Board</button>
+        ${isPlatformOwner() ? `<button type="button" data-tab="board" class="${state.tab==="board"?"on":""}">Board</button>` : ""}
       </nav>` : ""}
     </header>
     ${body}
@@ -319,7 +363,7 @@ function renderMine() {
 
 function renderBoard() {
   const body = `
-    <p class="hint">Community leaderboard (placeholder totals until Ned aggregates ballots).</p>
+    <p class="hint">Owner-only leaderboard — hidden from voters so it can’t sway ballots. Placeholder totals until live aggregation.</p>
     <section class="section">
       <h2>Season leaders</h2>
       ${LEADERBOARD.map((r,i) => `
