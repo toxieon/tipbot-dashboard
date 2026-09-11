@@ -264,6 +264,9 @@
   .game-group-hd .fin-score{font-weight:800;font-size:16px;letter-spacing:.02em;color:var(--txt)}
   .game-group-bd{padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px;min-width:0}
   .betcard{border:1px solid var(--line);border-radius:11px;background:var(--bg2);padding:10px 12px;min-width:0;max-width:100%;box-sizing:border-box}
+  .betcard.hit{border-color:var(--win);box-shadow:0 0 0 1px rgba(46,175,98,.28)}
+  .betcard.miss{border-color:var(--loss);box-shadow:0 0 0 1px rgba(229,89,95,.28)}
+  .betcard.mixed{border-color:var(--warn,#e0a04a);box-shadow:0 0 0 1px rgba(224,160,74,.22)}
   .betcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap;min-width:0}
   .betcard-bookie{display:inline-flex;align-items:center;gap:7px;min-width:0;flex:1 1 auto;overflow:hidden}
   .betcard-bookie .bk-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:600;min-width:0}
@@ -1263,18 +1266,97 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const m=String(s).match(/(?:over|under|o\/u|ou)?\s*(\d+(?:\.\d+)?)/i);
     return m?Number(m[1]):null;
   }
-  function legProgress(leg, tip, liveLeg){
+  function parseSideFromText(s){
+    if(!s) return null;
+    const t=String(s).toLowerCase();
+    if(/\bunder\b/.test(t)) return "Under";
+    if(/\bover\b|\d+(?:\.\d+)?\+/.test(t)) return "Over";
+    return null;
+  }
+  function legSide(leg, liveLeg){
+    const L=leg||{}, LV=liveLeg||{};
+    const raw=L.side||L.ou||L.selection||LV.side||LV.ou||"";
+    const s=String(raw).trim().toLowerCase();
+    if(s==="under"||s==="u") return "Under";
+    if(s==="over"||s==="o") return "Over";
+    return parseSideFromText(L.description||L.text||L.market||LV.text||"")||null;
+  }
+  function legNums(leg, tip, liveLeg){
     const L=leg||{}, T=tip||{}, LV=liveLeg||{};
     const cur=pickNum(L.current, L.live_current, L.current_value, L.value, L.stat_current,
       LV.current, LV.live_current, T.current, T.live_current,
       L.disposals, L.goals);
     let line=pickNum(L.line, L.line_value, L.market_line, LV.line, T.line, T.market_line);
     if(line==null) line=parseLineFromText(L.description||L.text||L.market||"");
-    return fmtProg(cur, line);
+    return {cur:cur, line:line, side:legSide(L, LV)};
+  }
+  function legProgress(leg, tip, liveLeg){
+    const n=legNums(leg, tip, liveLeg);
+    return fmtProg(n.cur, n.line);
+  }
+  /** Evaluate Over/Under vs current. Returns "hit"|"miss"|null (pending/unknown). */
+  function evalLegOutcome(leg, tip, liveLeg, opts){
+    opts=opts||{};
+    const n=legNums(leg, tip, liveLeg);
+    if(n.cur==null||n.line==null||!n.side) return null;
+    const finished=!!opts.finished;
+    if(n.side==="Under"){
+      // Under: current <= line → hit; current > line → miss (half-lines inclusive)
+      return n.cur<=n.line?"hit":"miss";
+    }
+    if(n.side==="Over"){
+      if(n.cur>n.line) return "hit";
+      // Mid-game Over still reachable when current <= line → pending; FT always decide
+      if(!finished) return null;
+      return "miss";
+    }
+    return null;
+  }
+  function evalTipOutcome(legs, tip, liveByPos, opts){
+    opts=opts||{};
+    const list=(legs&&legs.length)?legs:null;
+    if(!list) return null;
+    let hits=0, misses=0, unknown=0;
+    list.forEach((l,i)=>{
+      const o=evalLegOutcome(l, tip, (liveByPos&&liveByPos[i])||null, opts);
+      if(o==="hit") hits++;
+      else if(o==="miss") misses++;
+      else unknown++;
+    });
+    if(!hits&&!misses) return null;
+    if(misses&&hits) return "mixed";
+    if(misses) return "miss";
+    if(hits&&!unknown) return "hit";
+    if(hits&&unknown) return "mixed";
+    return null;
+  }
+  function betcardOutcomeClass(outcome){
+    if(outcome==="hit") return "hit";
+    if(outcome==="miss") return "miss";
+    if(outcome==="mixed") return "mixed";
+    return "";
+  }
+  function applyBetcardOutcome(cardEl, outcome){
+    if(!cardEl||!cardEl.classList) return;
+    cardEl.classList.remove("hit","miss","mixed");
+    const cls=betcardOutcomeClass(outcome);
+    if(cls) cardEl.classList.add(cls);
   }
   function legLabel(leg){
     if(!leg) return "Leg";
-    return leg.description||leg.text||leg.market||leg.leg_type||"Leg";
+    if(leg.description||leg.text||leg.market||leg.leg_type){
+      return leg.description||leg.text||leg.market||leg.leg_type||"Leg";
+    }
+    // Finished-games / queued prop legs often only have player/stat/side/line
+    if(leg.player&&leg.stat!=null&&(leg.line!=null||leg.line===0)){
+      const side=legSide(leg,null)||"";
+      const line=leg.line;
+      if(side==="Over") return leg.player+" "+line+"+ "+leg.stat;
+      if(side==="Under") return leg.player+" under "+line+" "+leg.stat;
+      return leg.player+" "+line+" "+leg.stat;
+    }
+    if(leg.player) return String(leg.player);
+    return "Leg";
   }
   function gradeRowHtml(tipId, settled, godRegrade){
     const pending=!settled||godRegrade;
@@ -1286,8 +1368,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button type="button" class="gradebtn" data-tip="'+esc(tipId)+'" data-r="Push" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700">Push</button>'
       +'</div>';
   }
+  function usableLegs(legs){
+    if(!legs||!legs.length) return null;
+    const ok=legs.some(l=>l&&(l.description||l.text||l.market||l.player||l.line!=null||l.current!=null||l.live_current!=null));
+    return ok?legs:null;
+  }
   function legsBlockHtml(t, legs, liveByPos){
-    const list=(legs&&legs.length)?legs:null;
+    const list=usableLegs(legs);
     if(!list){
       return '<div class="betcard-legs"><div class="betcard-leg"><span class="leg-txt" style="color:var(--faint)">Loading legs…</span><span class="leg-prog na">—</span></div></div>';
     }
@@ -1316,8 +1403,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ? ''
       : '<div style="font-weight:700;font-size:13px;margin-bottom:6px;min-width:0;overflow-wrap:break-word">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+'</div>';
     const godRegrade=settled&&godOn();
-    const legsSrc=(t._fullLegs||((t.legs||[]).some(l=>l&&(l.description||l.text))?t.legs:null));
-    return '<div class="betcard tip betrow" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'">'
+    const legsSrc=t._fullLegs||usableLegs(t.legs);
+    const finishedCtx=!!opts.finished;
+    const outcome=evalTipOutcome(legsSrc, t, t._liveLegs, {finished:finishedCtx});
+    const ocls=betcardOutcomeClass(outcome);
+    return '<div class="betcard tip betrow'+(ocls?(" "+ocls):"")+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'">'
       +title
       +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+del+'</div></div>'
       +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
@@ -1339,9 +1429,47 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       gradeBet(gid,tipId,b.dataset.r,card,(settled||godOn()));
     });
   }
-  async function hydrateTipCards(box,gid,tips){
+  function mergeLegFields(base, extra){
+    const b=base||{}, e=extra||{};
+    return Object.assign({}, b, {
+      current: pickNum(b.current,b.live_current,e.current,e.live_current),
+      live_current: pickNum(b.live_current,e.live_current),
+      line: pickNum(b.line,b.line_value,e.line,e.line_value),
+      side: b.side||e.side||null,
+      player: b.player||e.player||null,
+      stat: b.stat||e.stat||null,
+      description: b.description||b.text||e.description||e.text||null,
+      text: b.text||e.text||null
+    });
+  }
+  function legsHaveCurrent(legs){
+    return !!(legs&&legs.some(l=>l&&pickNum(l.current,l.live_current)!=null));
+  }
+  async function fetchFinishedTipsMap(gid){
+    const map={};
+    try{
+      const r=await api("/api/finished-games?guild_id="+encodeURIComponent(gid)+"&days=14");
+      if(!r.ok) return map;
+      const d=await r.json();
+      (d.games||[]).forEach(g=>{
+        (g.tips||[]).forEach(t=>{
+          if(t&&t.tip_id) map[String(t.tip_id)]=t;
+        });
+      });
+    }catch(e){ if(e&&e.unauth) throw e; }
+    return map;
+  }
+  async function hydrateTipCards(box,gid,tips,opts){
     if(!box||!tips||!tips.length)return;
+    opts=opts||{};
+    const finishedCtx=!!opts.finished;
     const liveMap={};
+    let finishedMap={};
+    try{
+      if(finishedCtx||opts.preferFinished){
+        finishedMap=await fetchFinishedTipsMap(gid);
+      }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
     try{
       const r=await api("/api/live-tips?guild_id="+encodeURIComponent(gid));
       if(r.ok){
@@ -1354,27 +1482,51 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     await Promise.all((tips||[]).map(async t=>{
       const tipId=t&&t.tip_id; if(!tipId)return;
       const body=$("cardbody_"+tipId); if(!body)return;
+      const cardEl=body.closest(".betcard");
+      const isFinished=finishedCtx||(cardEl&&cardEl.dataset&&cardEl.dataset.finished==="1");
       let full=t;
-      const needsFetch=!(t._fullLegs||((t.legs||[]).some(l=>l&&(l.description||l.text))));
-      if(needsFetch){
+      let legs=null;
+      const fin=finishedMap[String(tipId)];
+      // Prefer /api/finished-games legs when they carry current (or any legs on FT cards).
+      if(fin&&usableLegs(fin.legs)&&(legsHaveCurrent(fin.legs)||isFinished)){
+        legs=(fin.legs||[]).map(l=>mergeLegFields(l,null));
+        t._fullLegs=legs;
+        full=Object.assign({},t,fin,{legs:legs});
+      }
+      const needsFetch=!legs&&!(t._fullLegs||usableLegs(t.legs));
+      const needsDetailEnrich=!!legs&&legs.some(l=>l&&!l.description&&!l.text&&l.player);
+      if(needsFetch||needsDetailEnrich){
         try{
           const det=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
-          if(det&&!det.error){ full=Object.assign({},t,det); t._fullLegs=det.legs||[]; }
+          if(det&&!det.error){
+            full=Object.assign({},t,det);
+            if(needsFetch){
+              legs=(det.legs||[]).map(l=>mergeLegFields(l,null));
+              t._fullLegs=legs;
+            }else if(needsDetailEnrich){
+              // Keep finished current; borrow labels from tip detail when present
+              const detLegs=det.legs||[];
+              legs=legs.map((l,i)=>mergeLegFields(l, detLegs[i]||{}));
+              t._fullLegs=legs;
+            }
+          }
         }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+      }
+      if(!legs){
+        legs=(t._fullLegs||usableLegs(full.legs)||usableLegs(t.legs)||[]).slice();
       }
       const live=liveMap[String(tipId)];
       if(live&&live.legs) t._liveLegs=live.legs;
       // Merge live current/line onto full legs when TipBot supplies them.
-      const legs=(t._fullLegs||full.legs||[]).map((l,i)=>{
+      legs=legs.map((l,i)=>{
         const lv=(t._liveLegs&&t._liveLegs[i])||{};
-        return Object.assign({}, l, {
-          current: pickNum(l.current,l.live_current,lv.current,lv.live_current),
-          line: pickNum(l.line,l.line_value,lv.line)
-        });
+        return mergeLegFields(l, lv);
       });
-      const cardEl=body.closest(".betcard"); const settled=String((full.status||t.status||"")).toLowerCase()==="settled" || !!(cardEl&&cardEl.dataset&&cardEl.dataset.settled==="1");
+      t._fullLegs=legs;
+      const settled=String((full.status||t.status||"")).toLowerCase()==="settled" || !!(cardEl&&cardEl.dataset&&cardEl.dataset.settled==="1");
       const godRegrade=settled&&godOn();
       body.innerHTML=legsBlockHtml(full, legs, t._liveLegs)+gradeRowHtml(tipId, settled, godRegrade);
+      applyBetcardOutcome(cardEl, evalTipOutcome(legs, full, t._liveLegs, {finished:isFinished}));
       wireTipRows(body,gid);
     }));
   }
@@ -2218,11 +2370,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle">'+esc(game)+'</div>'
         +'<div class="gsub">'+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
         +'<div class="gright">'+right+'</div></div>'
-        +'<div class="game-group-bd">'+list.map(t=>tipCard(t,false,{hideGame:true})).join("")+'</div></div>';
+        +'<div class="game-group-bd">'+list.map(t=>tipCard(t,false,{hideGame:true,finished:mode==="finished"})).join("")+'</div></div>';
     });
     box.innerHTML=html;
     wireTipRows(box,gid);
-    hydrateTipCards(box,gid, keys.reduce((a,g)=>a.concat(groups[g]), []));
+    hydrateTipCards(box,gid, keys.reduce((a,g)=>a.concat(groups[g]), []), {finished:mode==="finished",preferFinished:mode==="finished"});
   }
   async function loadUpcoming(gid,queued){
     const box=$("upcoming-box"); const finBox=$("finished-box");
@@ -2246,17 +2398,40 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         };
       });
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    // Prefer /api/finished-games (legs + current) when TipBot has it; fall back to /api/results.
     try{
-      const rr=await api("/api/results");
-      if(rr.ok){
-        const data=await rr.json();
+      const fg=await api("/api/finished-games?guild_id="+encodeURIComponent(gid)+"&days=14");
+      if(fg.ok){
+        const data=await fg.json();
         (data.games||[]).forEach(g=>{
           const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
           if(!name) return;
-          finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||""};
+          finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||"", tips:g.tips||[]};
+          // Seed queued tips with finished legs/current when present so cards paint before hydrate.
+          (g.tips||[]).forEach(ft=>{
+            if(!ft||!ft.tip_id||!usableLegs(ft.legs)) return;
+            const q=queued.find(x=>String(x.tip_id)===String(ft.tip_id));
+            if(q){
+              q._fullLegs=(ft.legs||[]).map(l=>mergeLegFields(l,null));
+              if(legsHaveCurrent(ft.legs)||!usableLegs(q.legs)) q.legs=q._fullLegs;
+            }
+          });
         });
       }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    if(!Object.keys(finishedMap).length){
+      try{
+        const rr=await api("/api/results");
+        if(rr.ok){
+          const data=await rr.json();
+          (data.games||[]).forEach(g=>{
+            const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
+            if(!name) return;
+            finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||""};
+          });
+        }
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    }
 
     const upGroups={}, finGroups={};
     queued.forEach(t=>{
