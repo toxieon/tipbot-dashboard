@@ -263,6 +263,15 @@
   .game-group-hd .gright{text-align:right;font-size:13px;flex:none;white-space:nowrap}
   .game-group-hd .fin-score{font-weight:800;font-size:16px;letter-spacing:.02em;color:var(--txt)}
   .game-group-bd{padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+  .game-group-ft{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line);background:rgba(0,0,0,.14)}
+  .game-group-ft .ft-net{font-size:13px;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .game-group-ft .ft-net-label{color:var(--faint);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .game-group-ft .ft-net b{font-size:15px;font-weight:800;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+  .game-group-ft .ft-net b.muted{color:var(--muted);font-weight:700}
+  @media (max-width:520px){
+    .game-group-ft{padding:10px}
+    .game-group-ft .btn{width:100%}
+  }
   .betcard{border:1px solid var(--line);border-radius:11px;background:var(--bg2);padding:10px 12px;min-width:0;max-width:100%;box-sizing:border-box}
   .betcard.hit{border-color:var(--win);box-shadow:0 0 0 1px rgba(46,175,98,.28)}
   .betcard.miss{border-color:var(--loss);box-shadow:0 0 0 1px rgba(229,89,95,.28)}
@@ -1559,6 +1568,84 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
 
   function toast(msg){ let t=$("nd_toast"); if(!t){ t=document.createElement("div"); t.id="nd_toast"; t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:11px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:60;font-size:14px;max-width:90vw;transition:opacity .3s"; document.body.appendChild(t);} t.textContent=msg; t.style.opacity="1"; clearTimeout(t._h); t._h=setTimeout(()=>{t.style.opacity="0";},4000); }
+  function fmtUnitsNet(n){
+    if(n==null||n===""||isNaN(Number(n))) return null;
+    const v=Math.round(Number(n)*100)/100;
+    const sign=v>0?"+":"";
+    return sign+v.toFixed(2)+"u";
+  }
+  function gameUnitsNet(list, fin){
+    if(fin && fin.units_net!=null && fin.units_net!=="" && !isNaN(Number(fin.units_net))){
+      return Math.round(Number(fin.units_net)*100)/100;
+    }
+    let sum=0, any=false;
+    const tips=(fin&&fin.tips)||[];
+    tips.forEach(t=>{
+      if(t&&t.profit_units!=null&&t.profit_units!==""&&!isNaN(Number(t.profit_units))){
+        sum+=Number(t.profit_units); any=true;
+      }
+    });
+    if(!any){
+      (list||[]).forEach(t=>{
+        if(t&&t.profit_units!=null&&t.profit_units!==""&&!isNaN(Number(t.profit_units))){
+          sum+=Number(t.profit_units); any=true;
+        }
+      });
+    }
+    return any?Math.round(sum*100)/100:null;
+  }
+  async function pushAllFinished(guildId, matchId, btn){
+    if(!matchId){ toast("No match id for this game yet."); return; }
+    toast("Pushing all…");
+    if(btn)btn.disabled=true;
+    try{
+      const r=await api("/api/push-all",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:guildId,match_id:matchId})});
+      if(r.status===404||r.status===501){
+        toast("Deploy needed — TipBot /api/push-all isn't live yet.");
+        return;
+      }
+      const j=await r.json().catch(()=>({}));
+      if(r.ok&&j.ok){
+        const graded=j.graded!=null?j.graded:(j.graded_count!=null?j.graded_count:null);
+        const failed=j.failed!=null?j.failed:null;
+        const net=j.units_net!=null?j.units_net:null;
+        let msg="Pushed";
+        if(graded!=null) msg+=" · "+graded+" graded";
+        if(failed) msg+=" · "+failed+" failed";
+        if(net!=null){ const f=fmtUnitsNet(net); if(f) msg+=" · "+f; }
+        toast(msg);
+      }else toast(j.message||"Couldn't push all.");
+    }catch(e){
+      if(e&&e.unauth)return renderLogin("Session expired.");
+      toast("Couldn't reach the bot.");
+    }finally{ if(btn)btn.disabled=false; }
+  }
+  async function loadAutoPushState(gid, s){
+    const btn=$("autopush-toggle"); if(!btn)return;
+    let on=!!(s&&(s.auto_push_ft===true||s.auto_push_ft===1));
+    btn.classList.toggle("on", on);
+    btn.disabled=false;
+    const msg=$("autopush-msg");
+    try{
+      const r=await api("/api/auto-push?guild_id="+encodeURIComponent(gid));
+      if(r.status===404||r.status===501){
+        if(msg){ msg.textContent="API pending deploy"; msg.style.color="var(--faint)"; }
+        return;
+      }
+      if(!r.ok){
+        if(msg){ msg.textContent=""; }
+        return;
+      }
+      const j=await r.json().catch(()=>({}));
+      on=!!(j.enabled===true||j.enabled===1||j.auto_push_ft===true||j.auto_push_ft===1);
+      btn.classList.toggle("on", on);
+      if(s) s.auto_push_ft=on?1:0;
+      if(msg) msg.textContent="";
+    }catch(e){
+      if(e&&e.unauth)return renderLogin("Session expired.");
+    }
+  }
+
 
   /* ---------- FOLLOWERS ---------- */
   // One row in a follower's tip history: chips + $ figure + SGM/settle badges.
@@ -2252,6 +2339,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         +'<span style="font-size:13px;color:var(--txt)">Listed</span></label>'
         +'<span id="portalopt-msg" style="font-size:12px"></span></div>';
     }
+    // Auto-push when game ends — grades + Discord posts at FT with no click.
+    if(s.can_admin!==false){
+      const apOn=s.auto_push_ft===1||s.auto_push_ft===true;
+      body.innerHTML+='<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'
+        +'<div class="admin-row" style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Auto-push when game ends</div>'
+        +'<div style="color:var(--faint);font-size:12px;line-height:1.45">When ON, TipBot auto-grades pending tips at full time and posts settle results to Discord — no click needed. <b>Push all</b> on finished games still works as a manual override.</div></div>'
+        +'<button type="button" class="toggle'+(apOn?' on':'')+'" id="autopush-toggle" aria-pressed="'+(apOn?'true':'false')+'" title="Auto-push when game ends"></button>'
+        +'<span id="autopush-msg" style="font-size:12px"></span></div>';
+    }
+
     // Auto-send Q1/HT/Q3/FT — collapsible, off the main dashboard clutter.
     body.innerHTML+='<div class="autosend-panel" id="autosend-panel">'
       +'<button type="button" class="autosend-toggle" id="autosend-toggle" aria-expanded="false">'
@@ -2304,6 +2401,39 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }catch(e){if(e.unauth)return renderLogin("Session expired."); if(m){m.textContent="couldn't save";m.style.color="var(--loss)";} po.checked=!po.checked;}
       finally{po.disabled=false;}
     };
+
+    const apBtn=$("autopush-toggle");
+    if(apBtn){
+      loadAutoPushState(gid, s);
+      apBtn.onclick=async()=>{
+        const want=!apBtn.classList.contains("on");
+        const m=$("autopush-msg");
+        apBtn.disabled=true; if(m)m.textContent="";
+        try{
+          const r=await api("/api/auto-push",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,enabled:want,auto_push_ft:want})});
+          if(r.status===404||r.status===501){
+            if(m){m.textContent="API pending deploy";m.style.color="var(--faint)";}
+            toast("Deploy needed — TipBot /api/auto-push isn't live yet.");
+            return;
+          }
+          const j=await r.json().catch(()=>({}));
+          if(r.ok&&j.ok){
+            const on=j.enabled!=null?!!(j.enabled===true||j.enabled===1)
+              :(j.auto_push_ft!=null?!!(j.auto_push_ft===true||j.auto_push_ft===1):want);
+            apBtn.classList.toggle("on", on);
+            apBtn.setAttribute("aria-pressed", String(on));
+            s.auto_push_ft=on?1:0;
+            const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid)); if(g)g.auto_push_ft=s.auto_push_ft;
+            if(m){m.textContent="✓ saved";m.style.color="var(--win)";}
+          }else{
+            if(m){m.textContent=j.message||"error";m.style.color="var(--loss)";}
+          }
+        }catch(e){
+          if(e&&e.unauth)return renderLogin("Session expired.");
+          if(m){m.textContent="couldn't save";m.style.color="var(--loss)";}
+        }finally{ apBtn.disabled=false; }
+      };
+    }
 
     const asToggle=$("autosend-toggle"), asBody=$("autosend-body"), asCaret=$("autosend-caret");
     if(asToggle&&asBody){
@@ -2366,15 +2496,35 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }else{
         right='<span class="cd" data-ts="'+((info&&info.ts)||"")+'" data-live="'+(info&&info.live?1:0)+'"></span>';
       }
+      let footer="";
+      if(mode==="finished"){
+        const net=gameUnitsNet(list, fin);
+        const netTxt=fmtUnitsNet(net);
+        const netCls=net==null?"muted":(net>0?"pos":(net<0?"neg":"muted"));
+        const mid=(fin&&fin.match_id)!=null&&fin.match_id!==""?fin.match_id
+          :((info&&info.match_id)!=null&&info.match_id!==""?info.match_id:"");
+        footer='<div class="game-group-ft">'
+          +'<div class="ft-net"><span class="ft-net-label">Tip sheet</span>'
+          +(netTxt?('<b class="'+netCls+'">'+esc(netTxt)+'</b>'):'<b class="muted">—</b>')
+          +'</div>'
+          +'<button type="button" class="btn sm ft-push-all" data-match="'+esc(String(mid))+'" data-game="'+esc(game)+'" title="Auto-grade pending tips for this match and post to Discord">Push all</button>'
+          +'</div>';
+      }
       html+='<div class="game-group" id="'+cid+'">'
         +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle">'+esc(game)+'</div>'
         +'<div class="gsub">'+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
         +'<div class="gright">'+right+'</div></div>'
-        +'<div class="game-group-bd">'+list.map(t=>tipCard(t,false,{hideGame:true,finished:mode==="finished"})).join("")+'</div></div>';
+        +'<div class="game-group-bd">'+list.map(t=>tipCard(t,false,{hideGame:true,finished:mode==="finished"})).join("")+'</div>'
+        +footer+'</div>';
     });
     box.innerHTML=html;
     wireTipRows(box,gid);
     hydrateTipCards(box,gid, keys.reduce((a,g)=>a.concat(groups[g]), []), {finished:mode==="finished",preferFinished:mode==="finished"});
+    if(mode==="finished"){
+      box.querySelectorAll(".ft-push-all").forEach(b=>{
+        b.onclick=()=>pushAllFinished(gid, b.dataset.match||"", b);
+      });
+    }
   }
   async function loadUpcoming(gid,queued){
     const box=$("upcoming-box"); const finBox=$("finished-box");
@@ -2394,7 +2544,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           ts:g.unixtime, live:!!g.live, complete:Number(g.complete||0),
           hscore:g.hscore, ascore:g.ascore,
           finished:!!g.finished||Number(g.complete||0)>=100,
-          concluded:!!g.concluded
+          concluded:!!g.concluded,
+          match_id:g.aflMatchId||g.match_id||g.id||""
         };
       });
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
@@ -2406,14 +2557,23 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         (data.games||[]).forEach(g=>{
           const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
           if(!name) return;
-          finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||"", tips:g.tips||[]};
+          finishedMap[name]={
+            hscore:g.hscore, ascore:g.ascore, date:g.date||"", tips:g.tips||[],
+            match_id:g.match_id||g.aflMatchId||g.id||"",
+            units_net:g.units_net!=null?g.units_net:null
+          };
           // Seed queued tips with finished legs/current when present so cards paint before hydrate.
           (g.tips||[]).forEach(ft=>{
-            if(!ft||!ft.tip_id||!usableLegs(ft.legs)) return;
+            if(!ft||!ft.tip_id) return;
             const q=queued.find(x=>String(x.tip_id)===String(ft.tip_id));
             if(q){
-              q._fullLegs=(ft.legs||[]).map(l=>mergeLegFields(l,null));
-              if(legsHaveCurrent(ft.legs)||!usableLegs(q.legs)) q.legs=q._fullLegs;
+              if(usableLegs(ft.legs)){
+                q._fullLegs=(ft.legs||[]).map(l=>mergeLegFields(l,null));
+                if(legsHaveCurrent(ft.legs)||!usableLegs(q.legs)) q.legs=q._fullLegs;
+              }
+              // Preview auto-pick profit when TipBot sends it on finished-games tips.
+              if(ft.profit_units!=null && q.profit_units==null) q.profit_units=ft.profit_units;
+              if(ft.result && (!q.result || /pending/i.test(String(q.result)))) q._previewResult=ft.result;
             }
           });
         });
@@ -2427,7 +2587,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           (data.games||[]).forEach(g=>{
             const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
             if(!name) return;
-            finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||""};
+            finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||"", match_id:g.match_id||g.aflMatchId||g.id||"", units_net:g.units_net!=null?g.units_net:null};
           });
         }
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
@@ -2723,7 +2883,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const up=$("upcoming-panel")||$("finished-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
-    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle")return; b.onclick=()=>toggle(b); });
+    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle")return; b.onclick=()=>toggle(b); });
     wireTipRows($("recent-box"),s.guild_id);
     hydrateTipCards($("recent-box"),s.guild_id,tips.settled);
     function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); const sf=$("stab-features"); if(sf)sf.classList.toggle("active",t==="features"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
