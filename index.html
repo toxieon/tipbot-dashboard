@@ -210,11 +210,14 @@
   .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:8px}
   .chip .x{color:var(--faint);cursor:pointer;font-weight:700}
   .chip .x:hover{color:var(--loss)}
-  /* batch tray (multi-tip schedule) */
+  /* batch tray — compact collapsed bar (full tip list lives on review page) */
   .batchtray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:39}
   .batchtray.above-legs{bottom:76px}
-  .batchtray-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .batch-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);border-radius:999px;padding:4px 10px}
+  .batchtray-in{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+  .batch-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);border-radius:999px;padding:4px 10px;flex:none;white-space:nowrap}
+  .batchtray .batch-clear{border:1px solid var(--line);background:transparent;color:var(--faint);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-size:14px;font-weight:700;flex:none;line-height:1}
+  .batchtray .batch-clear:hover{color:var(--loss);border-color:rgba(229,72,77,.45)}
+  .batchtray .btn{flex:none;white-space:nowrap;margin-left:auto}
   .btn.secondary{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none}
   .btn.secondary:hover:not(:disabled){background:rgba(91,140,255,.12);color:var(--accent)}
   .sched-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px}
@@ -222,12 +225,18 @@
   .trickle-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;margin-top:2px;flex:none}
   .trickle-row .title{font-weight:700;color:var(--txt)}
   .trickle-row .thint{color:var(--faint);font-size:12px;margin-top:4px;line-height:1.4}
+  .live-tips-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+  .live-tips-row:last-child{border-bottom:none;padding-bottom:0}
+  .live-tips-row:first-child{padding-top:0}
+  .live-tips-meta{min-width:0;flex:1}
+  .live-tips-meta .g{font-weight:700}
+  .live-tips-meta .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
   @media(max-width:600px){
-    .batchtray .legchips{flex-basis:100%}
-    .batchtray .btn{width:100%}
-    .batchtray{max-height:42vh;overflow:auto}
     .batchtray.above-legs{bottom:0}
+    .batchtray-in{padding:10px 12px;gap:8px}
+    .batchtray .btn{padding:9px 12px;font-size:13px}
     .sched-actions .btn{width:100%}
+    .live-tips-row .btn{width:100%}
   }
   .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
   .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
@@ -2022,6 +2031,61 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     wireTipRows(box,gid);
     tickCountdowns(); DETAIL_TIMER=setInterval(tickCountdowns,1000);
   }
+  async function loadLiveTipsPanel(guildId){
+    const panel=$("live-tips-panel"), box=$("live-tips-box");
+    if(!panel||!box)return;
+    panel.hidden=true;
+    box.innerHTML='<div class="empty">Checking live AFL games…</div>';
+    try{
+      const r=await api("/api/live-tips?guild_id="+encodeURIComponent(guildId));
+      if(r.status===404||r.status===501){
+        panel.hidden=false;
+        box.innerHTML='<div class="empty">Live tips API not on this bot yet — deploy TipBot with <code>/api/live-tips</code>, then refresh.</div>';
+        return;
+      }
+      if(!r.ok){ panel.hidden=true; return; }
+      const data=await r.json();
+      const games=data.games||[];
+      if(!games.length){ panel.hidden=true; return; }
+      panel.hidden=false;
+      box.innerHTML=games.map(g=>{
+        const phase=(g.phase&&g.phase.label)||"Live";
+        const n=g.tip_count||0;
+        const mid=esc(g.match_id||"");
+        return '<div class="live-tips-row" data-match="'+mid+'">'
+          +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
+          +'<div class="meta">'+esc(phase)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
+          +'<button type="button" class="btn sm live-push" data-match="'+mid+'">Push update</button></div>';
+      }).join("")
+        +(games.length>1
+          ?'<div style="margin-top:12px"><button type="button" class="btn secondary sm" id="live-push-all">Push update for all live games</button></div>'
+          :"");
+      box.querySelectorAll(".live-push").forEach(b=>b.onclick=()=>pushLiveTipsUpdate(guildId,b.dataset.match||null,b));
+      const all=$("live-push-all"); if(all)all.onclick=()=>pushLiveTipsUpdate(guildId,null,all);
+    }catch(e){
+      if(e&&e.unauth)return renderLogin("Session expired.");
+      // Soft-fail: keep panel hidden unless we already know the route exists.
+      panel.hidden=true;
+    }
+  }
+  async function pushLiveTipsUpdate(guildId,matchId,btn){
+    if(btn)btn.disabled=true;
+    try{
+      const body={guild_id:guildId};
+      if(matchId)body.match_id=matchId;
+      const r=await api("/api/live-tips/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(r.status===404||r.status===501){
+        toast("Deploy needed — TipBot live-tips update API isn't live yet.");
+        return;
+      }
+      const j=await r.json().catch(()=>({}));
+      if(r.ok&&j.ok) toast("Pushing live tracker to Discord… check your tips channel shortly.");
+      else toast(j.message||"Couldn't queue live update.");
+    }catch(e){
+      if(e&&e.unauth)return renderLogin("Session expired.");
+      toast("Couldn't reach the bot.");
+    }finally{ if(btn)btn.disabled=false; }
+  }
   function renderDetail(d){
     clearDetailTimers();
     const s=d.settings,st=d.stats,tips=d.tips,total=Math.max(st.won+st.lost+st.push,1);
@@ -2083,6 +2147,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +sparkline(d.profit_series||[])
       +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
+      +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +settingsPanel
       +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
@@ -2175,6 +2240,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); { const sf=$("stab-features"); if(sf)sf.onclick=()=>setTab("features"); } $("stab-perms").onclick=()=>setTab("perms");
     setTab("general");
     loadUpcoming(s.guild_id,tips.queued);
+    loadLiveTipsPanel(s.guild_id);
     if(!STATE._cel)STATE._cel=new Set();
     if(!curMonth&&st.profit_units>0&&st.won>0&&!STATE._cel.has(s.guild_id)&&window.NDConfetti){
       STATE._cel.add(s.guild_id);try{NDConfetti.burst({duration:2400,count:140});}catch(e){}
@@ -3189,9 +3255,12 @@ async function loadPerms(gid){
     if(!t)return;
     if(!BATCH.tips.length){ t.hidden=true; syncTrayStack(); return; }
     t.hidden=false;
-    t.innerHTML='<div class="batchtray-in"><span class="batch-label">Batch · '+BATCH.tips.length+'</span><div class="legchips">'+BATCH.tips.map((tip,i)=>'<span class="chip">'+esc(batchTipLabel(tip))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove tip '+(i+1)+' from batch">✕</button></span>').join("")+'</div>'
-      +'<button class="btn" id="batchschedbtn">Schedule batch ('+BATCH.tips.length+') →</button></div>';
-    t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BATCH.tips.splice(+x.dataset.i,1); if(!BATCH.tips.length)BATCH.guildId=null; renderBatchTray();});
+    const n=BATCH.tips.length;
+    // Compact collapsed bar only — tip chips / remove live on the review page.
+    t.innerHTML='<div class="batchtray-in"><span class="batch-label">Batch · '+n+' tip'+(n===1?"":"s")+'</span>'
+      +'<button type="button" class="batch-clear" id="batchclearbtn" aria-label="Clear batch" title="Clear batch">✕</button>'
+      +'<button class="btn" id="batchschedbtn">Review batch →</button></div>';
+    const clr=$("batchclearbtn"); if(clr)clr.onclick=()=>{ if(confirm("Clear all "+n+" tip"+(n===1?"":"s")+" from this batch?")) clearBatch(); };
     const btn=$("batchschedbtn"); if(btn)btn.onclick=renderBatchConfirm;
     syncTrayStack();
   }
