@@ -3308,12 +3308,33 @@ async function loadPerms(gid){
       $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side,assumed:teamAssumed});
     });});
   }
+  /** Whole-number player-prop lines → N−0.5 (Over/Under). .5 lines unchanged. */
+  function applyHalfPointLine(leg){
+    if(!leg||leg.market||leg.custom) return leg;
+    if(leg.line==null||leg.line==="") return leg;
+    // Markets/custom use desc; player props have stat + line.
+    if(!leg.stat && leg.desc) return leg;
+    const n=parseFloat(leg.line);
+    if(!(n>0)||!isFinite(n)) return leg;
+    if(Math.abs(n-Math.round(n))>1e-9) return leg; // already a half-point (or fractional)
+    const adjusted=Math.round(n)-0.5;
+    if(leg.line_adjusted_from!=null && Number(leg.line)===adjusted) return leg;
+    return Object.assign({},leg,{line:adjusted,line_adjusted_from:Math.round(n)});
+  }
+  function normalizePropLines(legs){
+    return (legs||[]).map(l=>applyHalfPointLine(l));
+  }
+  function lineAdjustNote(l){
+    if(l==null||l.line_adjusted_from==null) return "";
+    return "Line adjusted "+l.line_adjusted_from+" → "+l.line+" (half-point)";
+  }
   function addLeg(leg){
-    const next=Object.assign({},leg);
+    let next=Object.assign({},leg);
     if(!BUILD.custom&&!TB.gameId(next)){
       const gameId=TB.gameId({game:BUILD.game});
       if(gameId)next.game_id=gameId;
     }
+    next=applyHalfPointLine(next);
     BUILD.legs.push(next);renderTray();saveMultiDraft();
   }
   function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
@@ -3413,13 +3434,29 @@ async function loadPerms(gid){
   }
   function renderConfirm(){
     clearLiveTimer();
+    // Resolve half-points before review so Discord matches what Brandon sees.
+    BUILD.legs=normalizePropLines(BUILD.legs);
+    saveMultiDraft();
     panel("builder");
     const lt=$("tray"); if(lt)lt.hidden=true; syncTrayStack();
     const bk=TB.bookie.options();
     const title=BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi");
+    const adjustNotes=BUILD.legs.map(lineAdjustNote).filter(Boolean);
+    const adjustBanner=adjustNotes.length
+      ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:13px;line-height:1.45">'
+        +'<b>Half-point lines</b> — whole numbers become N−0.5 (Over &amp; Under).<br>'
+        +adjustNotes.map(n=>esc(n)).join("<br>")+'</div>'
+      :'';
     $("builder").innerHTML='<div class="back" id="bc">← Keep building</div><h1 style="margin:0 0 16px">Confirm & schedule</h1>'
+      +adjustBanner
       +'<div class="panel"><h3>'+esc(title)+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3><div class="tb-review-kind">'+TB.multiSummary(BUILD.legs)+'</div>'
-      +BUILD.legs.map(l=>'<div class="tip"><div class="g">'+esc(legText(l))+'</div><div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div></div>').join("")+'</div>'
+      +BUILD.legs.map(l=>{
+        const note=lineAdjustNote(l);
+        return '<div class="tip"><div class="g">'+esc(legText(l))+'</div>'
+          +'<div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div>'
+          +(note?'<div class="meta" style="color:var(--accent);margin-top:4px">'+esc(note)+'</div>':'')
+          +'</div>';
+      }).join("")+'</div>'
       +'<div class="panel"><h3>Details</h3>'
       +'<div class="field"><label>Total odds</label><input id="f_odds" type="number" step="0.01" placeholder="e.g. 3.20"></div>'
       +stakeFieldHTML()
@@ -3454,6 +3491,7 @@ async function loadPerms(gid){
     const bookmaker=(($("f_book")||{}).value)||"";
     const game_name=BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"");
     const sport=BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL";
+    BUILD.legs=normalizePropLines(BUILD.legs);
     return {odds,units,bookmaker,game_name,sport,legs:BUILD.legs.slice(),image_b64:BUILD.image||""};
   }
   function addCurrentTipToBatch(){
@@ -3479,14 +3517,27 @@ async function loadPerms(gid){
   function renderBatchConfirm(){
     if(!BATCH.tips.length){ renderBatchTray(); return; }
     clearLiveTimer();
+    // Ensure every batched prop line is half-point before review/schedule.
+    BATCH.tips=BATCH.tips.map(tip=>Object.assign({},tip,{legs:normalizePropLines(tip.legs||[])}));
     panel("builder");
     const t=$("tray"); if(t)t.hidden=true;
     const bt=$("batchtray"); if(bt)bt.hidden=true;
     const n=BATCH.tips.length;
+    const batchNotes=[];
+    BATCH.tips.forEach((tip,ti)=>{(tip.legs||[]).forEach(l=>{const nte=lineAdjustNote(l); if(nte) batchNotes.push("Tip "+(ti+1)+": "+nte);});});
+    const adjustBanner=batchNotes.length
+      ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:13px;line-height:1.45">'
+        +'<b>Half-point lines</b> — whole numbers become N−0.5 (Over &amp; Under).<br>'
+        +batchNotes.map(n=>esc(n)).join("<br>")+'</div>'
+      :'';
     $("builder").innerHTML='<div class="back" id="bcb">← Back to batch</div><h1 style="margin:0 0 16px">Schedule batch</h1>'
+      +adjustBanner
       +'<div class="panel"><h3>'+n+' tip'+(n===1?"":"s")+' ready</h3>'
       +BATCH.tips.map((tip,i)=>'<div class="tip"><div style="flex:1;min-width:0"><div class="g">'+esc(batchTipLabel(tip))+'</div>'
-      +'<div class="meta">'+(tip.legs||[]).map(l=>esc(legText(l))).join(" · ")+'</div></div>'
+      +'<div class="meta">'+(tip.legs||[]).map(l=>{
+        const nte=lineAdjustNote(l);
+        return esc(legText(l))+(nte?' <span style="color:var(--accent)">('+esc(nte)+')</span>':'');
+      }).join(" · ")+'</div></div>'
       +'<button type="button" class="ghost" data-rm="'+i+'" aria-label="Remove tip '+(i+1)+'">Remove</button></div>').join("")
       +'</div>'
       +'<div class="panel"><h3>When to post</h3>'
