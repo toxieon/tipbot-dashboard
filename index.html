@@ -254,6 +254,42 @@
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--win);color:#04120a;font-weight:700;padding:12px 20px;border-radius:12px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.4)}
   [hidden]{display:none!important}
 
+
+  /* Compact always-visible bet cards (no accordion expand) */
+  .game-group{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;min-width:0;max-width:100%}
+  .game-group-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--card2);min-width:0}
+  .game-group-hd .gtitle{font-weight:700;min-width:0;overflow-wrap:break-word;word-break:normal}
+  .game-group-hd .gsub{color:var(--faint);font-size:12px;margin-top:3px}
+  .game-group-hd .gright{text-align:right;font-size:13px;flex:none;white-space:nowrap}
+  .game-group-hd .fin-score{font-weight:800;font-size:16px;letter-spacing:.02em;color:var(--txt)}
+  .game-group-bd{padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+  .betcard{border:1px solid var(--line);border-radius:11px;background:var(--bg2);padding:10px 12px;min-width:0;max-width:100%;box-sizing:border-box}
+  .betcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap;min-width:0}
+  .betcard-bookie{display:inline-flex;align-items:center;gap:7px;min-width:0;flex:1 1 auto;overflow:hidden}
+  .betcard-bookie .bk-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:600;min-width:0}
+  .betcard-meta{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:nowrap}
+  .betcard-meta .tb-quote{white-space:nowrap;font-size:12px;color:var(--muted)}
+  .betcard-id{color:var(--faint);font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .betcard-type{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px}
+  .betcard-legs{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .betcard-leg{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;line-height:1.35;min-width:0}
+  .betcard-leg .leg-txt{min-width:0;flex:1;overflow-wrap:anywhere}
+  .betcard-leg .leg-prog{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px;color:var(--accent)}
+  .betcard-leg .leg-prog.na{color:var(--faint);font-weight:600}
+  .betcard .graderow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .betcard .graderow>span{flex:none}
+  .betcard .gradebtn{white-space:nowrap}
+  .autosend-panel{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .autosend-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none;width:100%;background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left}
+  .autosend-toggle h4{margin:0;font-size:13px;font-weight:700;color:var(--txt)}
+  .autosend-body{margin-top:10px}
+  @media(max-width:420px){
+    .betcard-top{flex-wrap:wrap}
+    .betcard-meta{width:100%;justify-content:flex-end}
+    .game-group-hd{flex-wrap:wrap}
+    .game-group-hd .gright{width:100%;text-align:left}
+  }
+
 /* ===== Codex theme + chips + multi + bookies (items 1-6,8) ===== */
 /* TipBot items 1–2. Paste at the END of the existing <style> block. */
 :root,html[data-theme="navy"] {
@@ -373,8 +409,8 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .tb-bookie{position:relative;display:inline-grid;place-items:center;flex:none;vertical-align:middle;width:var(--bookie-size,24px);height:var(--bookie-size,24px);border-radius:6px;overflow:hidden;background:var(--card2);color:var(--txt);border-bottom:2px solid var(--bookie-color,var(--line));font-variant-numeric:tabular-nums;}
 .tb-bookie-fallback{font-size:calc(var(--bookie-size,24px) * .38);font-weight:800;line-height:1;}
 .tb-bookie img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--card2);}
-.tb-bookie-label{display:inline-flex;align-items:center;gap:7px;max-width:100%;vertical-align:middle;}
-.tb-bookie-label>span:last-child{overflow-wrap:anywhere;}
+.tb-bookie-label{display:inline-flex;align-items:center;gap:7px;max-width:100%;vertical-align:middle;flex-wrap:nowrap;min-width:0;}
+.tb-bookie-label>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:10em;overflow-wrap:normal;word-break:normal;}
 .tip .meta .tb-bookie{margin:2px 0;}
 .tb-bookmaker-picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .tb-bookmaker-picker select{flex:1;min-width:160px;}
@@ -1204,42 +1240,143 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(!$("detail").hidden) renderDetail(data);
     }catch(e){if(e.unauth)return renderLogin("Session expired.");if(!cached)$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
   }
-  function tipRow(t,settled){
+  function fmtProg(cur, line){
+    const c=(cur===0||cur)?cur:null, l=(line===0||line)?line:null;
+    if(c==null && l==null) return null;
+    const cs=c==null?"—":(Number.isFinite(+c)?((+c%1)?(+c).toFixed(1):String(+c)):String(c));
+    const ls=l==null?"—":(Number.isFinite(+l)?((+l%1)?(+l).toFixed(1):String(+l)):String(l));
+    return cs+" / "+ls;
+  }
+  function pickNum(){
+    for(let i=0;i<arguments.length;i++){
+      const v=arguments[i];
+      if(v===0||v==="0") return 0;
+      if(v==null||v==="") continue;
+      if(typeof v==="number" && !Number.isNaN(v)) return v;
+      const n=Number(v);
+      if(!Number.isNaN(n)) return n;
+    }
+    return null;
+  }
+  function parseLineFromText(s){
+    if(!s) return null;
+    const m=String(s).match(/(?:over|under|o\/u|ou)?\s*(\d+(?:\.\d+)?)/i);
+    return m?Number(m[1]):null;
+  }
+  function legProgress(leg, tip, liveLeg){
+    const L=leg||{}, T=tip||{}, LV=liveLeg||{};
+    const cur=pickNum(L.current, L.live_current, L.current_value, L.value, L.stat_current,
+      LV.current, LV.live_current, T.current, T.live_current,
+      L.disposals, L.goals);
+    let line=pickNum(L.line, L.line_value, L.market_line, LV.line, T.line, T.market_line);
+    if(line==null) line=parseLineFromText(L.description||L.text||L.market||"");
+    return fmtProg(cur, line);
+  }
+  function legLabel(leg){
+    if(!leg) return "Leg";
+    return leg.description||leg.text||leg.market||leg.leg_type||"Leg";
+  }
+  function gradeRowHtml(tipId, settled, godRegrade){
+    const pending=!settled||godRegrade;
+    if(!pending) return "";
+    return '<div class="graderow">'
+      +'<span style="color:'+(godRegrade?'var(--warn,#e0a04a)':'var(--faint)')+';font-size:11px;text-transform:uppercase;letter-spacing:.05em">'+(godRegrade?'🔱 God re-grade:':'Grade')+'</span>'
+      +'<button type="button" class="gradebtn" data-tip="'+esc(tipId)+'" data-r="Win" style="border:1px solid rgba(66,176,111,.45);background:rgba(66,176,111,.14);color:#7ee0a6;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700">Win</button>'
+      +'<button type="button" class="gradebtn" data-tip="'+esc(tipId)+'" data-r="Loss" style="border:1px solid rgba(229,72,77,.45);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700">Loss</button>'
+      +'<button type="button" class="gradebtn" data-tip="'+esc(tipId)+'" data-r="Push" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700">Push</button>'
+      +'</div>';
+  }
+  function legsBlockHtml(t, legs, liveByPos){
+    const list=(legs&&legs.length)?legs:null;
+    if(!list){
+      return '<div class="betcard-legs"><div class="betcard-leg"><span class="leg-txt" style="color:var(--faint)">Loading legs…</span><span class="leg-prog na">—</span></div></div>';
+    }
+    if(!list.length){
+      return '<div class="betcard-legs"><div class="betcard-leg"><span class="leg-txt" style="color:var(--faint)">No legs recorded.</span><span class="leg-prog na">—</span></div></div>';
+    }
+    return '<div class="betcard-legs">'+list.map((l,i)=>{
+      const prog=legProgress(l,t,(liveByPos&&liveByPos[i])||null);
+      const lr=l.leg_result?(' '+TB.chips.render(l.leg_result)):'';
+      return '<div class="betcard-leg"><span class="leg-txt">'+esc(legLabel(l))+lr+'</span>'
+        +'<span class="leg-prog'+(prog?'':' na')+'">'+(prog?esc(prog):'—')+'</span></div>';
+    }).join("")+'</div>';
+  }
+  function tipCard(t,settled,opts){
+    opts=opts||{};
     const result=settled?(t.result||"Push"):"Pending";
     const right=TB.chips.render(result)+(settled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
     const tid=esc(t.tip_id||"");
     const canDel=!!tid&&(!settled||godOn());
-    const del=canDel?'<button class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(settled?"1":"0")+'" title="'+(settled?"God-delete & redact":"Delete & redact")+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px">✕</button>':'';
-    return '<div class="tip betrow" data-tip="'+tid+'" style="cursor:pointer"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+' <span style="color:var(--faint);font-size:11px">▸</span></div><div class="meta">'+esc(t.bet_type||"")+(t.bookmaker?" · "+TB.bookie.label(t.bookmaker,20):"")+(t.display_id?" · "+esc(t.display_id):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+right+del+'</div></div>'
-      +'<div class="betlegs" id="legs_'+tid+'" hidden style="padding:4px 0 10px 6px;margin:-4px 0 6px"></div>';
+    const del=canDel?'<button type="button" class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(settled?"1":"0")+'" title="'+(settled?"God-delete & redact":"Delete & redact")+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px;flex:none">✕</button>':'';
+    const bookie=t.bookmaker
+      ?('<span class="betcard-bookie">'+TB.bookie.render(t.bookmaker,20)+'<span class="bk-name">'+esc(String(t.bookmaker).trim())+'</span></span>')
+      :('<span class="betcard-bookie"><span class="bk-name" style="color:var(--faint)">No bookie</span></span>');
+    const hideGame=!!opts.hideGame;
+    const title=hideGame
+      ? ''
+      : '<div style="font-weight:700;font-size:13px;margin-bottom:6px;min-width:0;overflow-wrap:break-word">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+'</div>';
+    const godRegrade=settled&&godOn();
+    const legsSrc=(t._fullLegs||((t.legs||[]).some(l=>l&&(l.description||l.text))?t.legs:null));
+    return '<div class="betcard tip betrow" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'">'
+      +title
+      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+del+'</div></div>'
+      +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
+      +'<div class="betcard-type">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units!=null?(" · "+t.units+"u"):"")+'</div>'
+      +'<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div>'
+      +'<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, settled, godRegrade)+'</div>'
+      +'</div>';
   }
+  // Back-compat alias used by Recent Results + god-mode repaint.
+  function tipRow(t,settled){ return tipCard(t,settled,{hideGame:false}); }
   function wireTipRows(box,gid){
     if(!box)return;
-    box.querySelectorAll(".betrow").forEach(row=>{ row.onclick=(e)=>{ if(e.target.closest(".delbet"))return; toggleLegs(gid,row.dataset.tip); }; });
     box.querySelectorAll(".delbet").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); deleteBet(gid,b.dataset.tip,b.dataset.name,b); });
+    box.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{
+      e.stopPropagation();
+      const tipId=b.dataset.tip;
+      const card=b.closest(".betcard");
+      const settled=card&&card.dataset.settled==="1";
+      gradeBet(gid,tipId,b.dataset.r,card,(settled||godOn()));
+    });
   }
-  async function toggleLegs(gid,tipId){
-    if(!tipId)return; const el=$("legs_"+tipId); if(!el)return;
-    if(!el.hidden){ el.hidden=true; return; }
-    el.hidden=false;
-    if(el.dataset.loaded)return;
-    el.innerHTML='<span style="color:var(--faint);font-size:12px">Loading…</span>';
-    try{ const t=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
-      const legs=(t.legs||[]).map(l=>'<div style="font-size:13px;padding:2px 0">• '+esc(l.description)+(l.leg_result?' '+TB.chips.render(l.leg_result):'')+'</div>').join("")||'<div style="color:var(--faint);font-size:12px">No legs recorded.</div>';
-      let grade='';
-      const isGodRegrade=(t.status||"")==="Settled"&&godOn();
-      if((t.status||"")==="Pending"||isGodRegrade){
-        grade='<div class="graderow" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center'+(isGodRegrade?';border-top:1px dashed var(--warn,#e0a04a);padding-top:10px':'')+'">'
-          +'<span style="color:'+(isGodRegrade?'var(--warn,#e0a04a)':'var(--faint)')+';font-size:11px;text-transform:uppercase;letter-spacing:.05em">'+(isGodRegrade?'🔱 God re-grade:':'Grade result:')+'</span>'
-          +'<button class="gradebtn" data-r="Win"  style="border:1px solid rgba(66,176,111,.45);background:rgba(66,176,111,.14);color:#7ee0a6;border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Win</button>'
-          +'<button class="gradebtn" data-r="Loss" style="border:1px solid rgba(229,72,77,.45);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Loss</button>'
-          +'<button class="gradebtn" data-r="Push" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:8px;padding:5px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700">Push</button>'
-          +'</div>';
+  async function hydrateTipCards(box,gid,tips){
+    if(!box||!tips||!tips.length)return;
+    const liveMap={};
+    try{
+      const r=await api("/api/live-tips?guild_id="+encodeURIComponent(gid));
+      if(r.ok){
+        const d=await r.json();
+        (d.games||[]).forEach(g=>{(g.tips||[]).forEach(t=>{
+          if(t&&t.tip_id) liveMap[String(t.tip_id)]=t;
+        });});
       }
-      el.innerHTML='<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 4px">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units?(" · "+t.units+"u"):"")+'</div><div class="tb-tip-tags">'+TB.multiBadge(t.legs)+((t.status==='Settled')?TB.settleBadge.render(t.settle_source):'')+'</div>'+legs+grade;
-      el.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); gradeBet(gid,tipId,b.dataset.r,el,(t.status||"")==="Settled"||godOn()); });
-      el.dataset.loaded="1";
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); el.innerHTML='<span class="err" style="font-size:12px">Couldn\'t load legs.</span>'; }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    await Promise.all((tips||[]).map(async t=>{
+      const tipId=t&&t.tip_id; if(!tipId)return;
+      const body=$("cardbody_"+tipId); if(!body)return;
+      let full=t;
+      const needsFetch=!(t._fullLegs||((t.legs||[]).some(l=>l&&(l.description||l.text))));
+      if(needsFetch){
+        try{
+          const det=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
+          if(det&&!det.error){ full=Object.assign({},t,det); t._fullLegs=det.legs||[]; }
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+      }
+      const live=liveMap[String(tipId)];
+      if(live&&live.legs) t._liveLegs=live.legs;
+      // Merge live current/line onto full legs when TipBot supplies them.
+      const legs=(t._fullLegs||full.legs||[]).map((l,i)=>{
+        const lv=(t._liveLegs&&t._liveLegs[i])||{};
+        return Object.assign({}, l, {
+          current: pickNum(l.current,l.live_current,lv.current,lv.live_current),
+          line: pickNum(l.line,l.line_value,lv.line)
+        });
+      });
+      const cardEl=body.closest(".betcard"); const settled=String((full.status||t.status||"")).toLowerCase()==="settled" || !!(cardEl&&cardEl.dataset&&cardEl.dataset.settled==="1");
+      const godRegrade=settled&&godOn();
+      body.innerHTML=legsBlockHtml(full, legs, t._liveLegs)+gradeRowHtml(tipId, settled, godRegrade);
+      wireTipRows(body,gid);
+    }));
   }
   async function gradeBet(gid,tipId,result,box,god){
     const useGod=!!god&&godOn();
@@ -1249,7 +1386,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const j=await r.json();
       if(j.ok){ if(STATE._detailCache)STATE._detailCache={}; toast((useGod?"🔱 Overriding as ":"Grading as ")+result+" — updating Discord…");
         if(useGod){ setTimeout(()=>loadDetail(gid,null,{force:true}),400); }
-        else { const row=document.querySelector('.betrow[data-tip="'+tipId+'"]'); const lg=$("legs_"+tipId); if(row)row.remove(); if(lg)lg.remove(); } }
+        else { document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>row.remove()); } }
       else { toast(j.message||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
@@ -1262,12 +1399,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(btn)btn.disabled=true;
     try{ const r=await api("/api/delete-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId})});
       const j=await r.json();
-      if(j.ok){ document.querySelectorAll('.betrow').forEach(row=>{ if(row.dataset.tip===tipId){ const lg=$("legs_"+tipId); row.remove(); if(lg)lg.remove(); } });
+      if(j.ok){ document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>row.remove());
         if(STATE._detailCache)STATE._detailCache={};
         toast("Redacted — it previously contained: "+(j.message||"the bet"));
       } else { toast(j.message||"Couldn't delete that bet."); if(btn)btn.disabled=false; }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(btn)btn.disabled=false; }
   }
+
   function toast(msg){ let t=$("nd_toast"); if(!t){ t=document.createElement("div"); t.id="nd_toast"; t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:11px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:60;font-size:14px;max-width:90vw;transition:opacity .3s"; document.body.appendChild(t);} t.textContent=msg; t.style.opacity="1"; clearTimeout(t._h); t._h=setTimeout(()=>{t.style.opacity="0";},4000); }
 
   /* ---------- FOLLOWERS ---------- */
@@ -1962,6 +2100,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         +'<span style="font-size:13px;color:var(--txt)">Listed</span></label>'
         +'<span id="portalopt-msg" style="font-size:12px"></span></div>';
     }
+    // Auto-send Q1/HT/Q3/FT — collapsible, off the main dashboard clutter.
+    body.innerHTML+='<div class="autosend-panel" id="autosend-panel">'
+      +'<button type="button" class="autosend-toggle" id="autosend-toggle" aria-expanded="false">'
+      +'<div><h4>Auto-send livestats</h4>'
+      +'<div style="color:var(--faint);font-size:12px;margin-top:3px;line-height:1.4">Bot posts once per breakpoint per match into the tips channel. Full time includes “tips will settle soon”.</div></div>'
+      +'<span id="autosend-caret" style="color:var(--muted);font-size:14px;flex:none">▸</span></button>'
+      +'<div class="autosend-body" id="autosend-body" hidden><div id="live-auto-flags"><div class="empty">Loading toggles…</div></div></div></div>';
+
     const fsv=$("femoji-save");
     if(fsv)fsv.onclick=async()=>{
       const emoji=$("femoji").value.trim();const m=$("femoji-msg");fsv.disabled=true;m.textContent="";
@@ -2007,6 +2153,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       finally{po.disabled=false;}
     };
 
+    const asToggle=$("autosend-toggle"), asBody=$("autosend-body"), asCaret=$("autosend-caret");
+    if(asToggle&&asBody){
+      asToggle.onclick=()=>{
+        const open=asBody.hidden;
+        asBody.hidden=!open;
+        asToggle.setAttribute("aria-expanded", String(open));
+        if(asCaret) asCaret.textContent=open?"▾":"▸";
+        if(open) loadLiveAutoFlags(gid);
+      };
+    }
+
   }
   function tickCountdowns(){
     document.querySelectorAll("#upcoming-box .cd").forEach(el=>{
@@ -2019,26 +2176,101 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       el.innerHTML='<span style="color:var(--faint)">starts in </span><b>'+(d?d+"d ":"")+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(sc).padStart(2,"0")+'</b>';
     });
   }
-  async function loadUpcoming(gid,queued){
-    const box=$("upcoming-box"); if(!box)return;
-    if(!queued||!queued.length){ box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>'; return; }
-    let starts={};
-    try{ const fx=await (await api("/api/fixtures")).json(); (fx.games||[]).forEach(g=>{ if(g.game_name) starts[g.game_name]={ts:g.unixtime,live:g.live}; }); }
-    catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
-    const groups={}; queued.forEach(t=>{ const k=t.game_name||"Other"; (groups[k]=groups[k]||[]).push(t); });
+  function tipLooksFinished(t, starts, finished){
+    if(!t) return false;
+    if(t.finished || t.game_finished || t.ft || t.full_time) return true;
+    const g=t.game_name||"";
+    if(finished&&finished[g]) return true;
+    const info=starts&&starts[g];
+    if(info && (info.finished || info.complete>=100 || info.concluded)) return true;
+    // Wall-clock: started >4h ago and not marked live → treat as finished for grading glance
+    if(info && info.ts && !info.live){
+      const age=Date.now()-(info.ts*1000);
+      if(age>4*3600*1000) return true;
+    }
+    return false;
+  }
+  function renderGameGroups(box, gid, groups, starts, finishedMap, mode){
     let html="";
-    Object.keys(groups).forEach((game,gi)=>{
-      const list=groups[game],info=starts[game],cid="ug_"+gi;
-      const cd='<span class="cd" data-ts="'+((info&&info.ts)||"")+'" data-live="'+(info&&info.live?1:0)+'"></span>';
-      html+='<div style="border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden">'
-        +'<div class="ugh" data-g="'+cid+'" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:var(--card2)">'
-        +'<div><div style="font-weight:700">'+esc(game)+'</div><div style="color:var(--faint);font-size:12px">'+list.length+" bet"+(list.length>1?"s":"")+' · tap to '+(list.length>1?"expand":"view")+'</div></div>'
-        +'<div style="text-align:right;font-size:13px">'+cd+'</div></div>'
-        +'<div id="'+cid+'" hidden style="padding:2px 14px 8px">'+list.map(t=>tipRow(t,false)).join("")+'</div></div>';
+    const keys=Object.keys(groups);
+    if(!keys.length){
+      box.innerHTML=mode==="finished"
+        ?'<div class="empty">No finished games with pending tips.</div>'
+        :'<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
+      return;
+    }
+    keys.forEach((game,gi)=>{
+      const list=groups[game], info=starts[game], fin=finishedMap[game];
+      const cid=(mode==="finished"?"fg_":"ug_")+gi;
+      let right="";
+      if(mode==="finished"){
+        const hs=fin&&fin.hscore!=null?fin.hscore:(info&&info.hscore);
+        const as_=fin&&fin.ascore!=null?fin.ascore:(info&&info.ascore);
+        if(hs!=null&&as_!=null){
+          right='<div class="fin-score">'+esc(String(hs))+' – '+esc(String(as_))+'</div><div style="color:var(--faint);font-size:11px;margin-top:2px">FT</div>';
+        }else{
+          right='<div class="fin-score" style="font-size:13px;color:var(--muted)">FT</div><div style="color:var(--faint);font-size:11px;margin-top:2px">score TBC</div>';
+        }
+      }else{
+        right='<span class="cd" data-ts="'+((info&&info.ts)||"")+'" data-live="'+(info&&info.live?1:0)+'"></span>';
+      }
+      html+='<div class="game-group" id="'+cid+'">'
+        +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle">'+esc(game)+'</div>'
+        +'<div class="gsub">'+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
+        +'<div class="gright">'+right+'</div></div>'
+        +'<div class="game-group-bd">'+list.map(t=>tipCard(t,false,{hideGame:true})).join("")+'</div></div>';
     });
     box.innerHTML=html;
-    box.querySelectorAll(".ugh").forEach(hh=>hh.onclick=()=>{const el=$(hh.dataset.g); if(el)el.hidden=!el.hidden;});
     wireTipRows(box,gid);
+    hydrateTipCards(box,gid, keys.reduce((a,g)=>a.concat(groups[g]), []));
+  }
+  async function loadUpcoming(gid,queued){
+    const box=$("upcoming-box"); const finBox=$("finished-box");
+    if(!box)return;
+    if(!queued||!queued.length){
+      box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
+      if(finBox){ finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>'; }
+      const fp=$("finished-panel"); if(fp)fp.hidden=true;
+      return;
+    }
+    let starts={}, finishedMap={};
+    try{
+      const fx=await (await api("/api/fixtures")).json();
+      (fx.games||[]).forEach(g=>{
+        if(!g.game_name) return;
+        starts[g.game_name]={
+          ts:g.unixtime, live:!!g.live, complete:Number(g.complete||0),
+          hscore:g.hscore, ascore:g.ascore,
+          finished:!!g.finished||Number(g.complete||0)>=100,
+          concluded:!!g.concluded
+        };
+      });
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    try{
+      const rr=await api("/api/results");
+      if(rr.ok){
+        const data=await rr.json();
+        (data.games||[]).forEach(g=>{
+          const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
+          if(!name) return;
+          finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||""};
+        });
+      }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+
+    const upGroups={}, finGroups={};
+    queued.forEach(t=>{
+      const k=t.game_name||"Other";
+      if(tipLooksFinished(t, starts, finishedMap)) (finGroups[k]=finGroups[k]||[]).push(t);
+      else (upGroups[k]=upGroups[k]||[]).push(t);
+    });
+    renderGameGroups(box, gid, upGroups, starts, finishedMap, "upcoming");
+    if(finBox){
+      const hasFin=Object.keys(finGroups).length>0;
+      const fp=$("finished-panel"); if(fp)fp.hidden=!hasFin;
+      if(hasFin) renderGameGroups(finBox, gid, finGroups, starts, finishedMap, "finished");
+      else finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>';
+    }
     tickCountdowns(); DETAIL_TIMER=setInterval(tickCountdowns,1000);
   }
   const LIVE_AUTO_FLAGS=[
@@ -2075,13 +2307,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(!r.ok){ panel.hidden=true; return; }
       const data=await r.json();
       const games=data.games||[];
-      // Always show panel so auto-send toggles are reachable even with no live games.
+      // Push panel only when there are live games (auto-send lives in Settings).
+      if(!games.length){ panel.hidden=true; box.innerHTML=''; return; }
       panel.hidden=false;
       let html="";
-      if(!games.length){
-        html='<div class="empty">No live AFL games with pending tips right now.</div>';
-      }else{
-        html=games.map((g,gi)=>{
+      html=games.map((g,gi)=>{
           const phase=(g.phase&&g.phase.label)||"Live";
           const n=g.tip_count||0;
           const mid=esc(g.match_id||"");
@@ -2105,10 +2335,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         if(games.length>1){
           html+='<div style="margin-top:12px"><button type="button" class="btn secondary sm" id="live-push-all">Push update for all live games</button></div>';
         }
-      }
-      html+='<div class="live-auto" id="live-auto-box"><h4>Auto-send livestats</h4>'
-        +'<div style="color:var(--faint);font-size:12px;margin-bottom:8px;line-height:1.4">Bot posts once per breakpoint per match into the tips channel. Full time includes “tips will settle soon”.</div>'
-        +'<div id="live-auto-flags"><div class="empty">Loading toggles…</div></div></div>';
       box.innerHTML=html;
       box.querySelectorAll(".live-toggle-prev").forEach(b=>b.onclick=()=>{
         const el=$(b.dataset.pid); if(!el)return; el.hidden=!el.hidden;
@@ -2126,7 +2352,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       });
       box.querySelectorAll(".live-send").forEach(b=>b.onclick=()=>pushLiveTipsUpdate(guildId,b.dataset.match||null,b));
       const all=$("live-push-all"); if(all)all.onclick=()=>pushLiveTipsUpdate(guildId,null,all);
-      loadLiveAutoFlags(guildId);
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
       panel.hidden=true;
@@ -2200,13 +2425,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button class="dbgqbtn" title="Shows whether the bot is draining the dashboard queues" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Queue status</button>'
       +'</div><div id="dbgstatus" style="font-size:12px;color:var(--faint);margin-top:8px;white-space:pre-wrap;font-family:ui-monospace,monospace"></div></div>';
     // God mode (#32): owner-only override. When on, ANY tip — even a settled one —
-    // can be (re-)graded from its expanded view, stamped with 'god' provenance.
+    // can be (re-)graded from the always-visible grade row, stamped with 'god' provenance.
     const godZone='<div style="margin-top:16px;border-top:1px solid var(--warn,#e0a04a);padding-top:14px">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'
       +'<div><div style="color:var(--warn,#e0a04a);font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700">🔱 God mode</div>'
       +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Override or re-grade any tip, including settled ones. Grades post as <b>God</b>.</div></div>'
       +'<button id="godtoggle" class="toggle '+(STATE.god?"on":"")+'" style="flex:none"></button></div>'
-      +'<div id="godhint" style="font-size:12px;margin-top:8px;color:'+(godOn()?'var(--warn,#e0a04a)':'var(--faint)')+'">'+(godOn()?"● ON — expand any tip in Recent Results to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally.")+'</div></div>';
+      +'<div id="godhint" style="font-size:12px;margin-top:8px;color:'+(godOn()?'var(--warn,#e0a04a)':'var(--faint)')+'">'+(godOn()?"● ON — use grade controls on any tip to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally.")+'</div></div>';
     const inviteZone='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
       +'<div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Invite me</div>'
       +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Create a Discord invite for <b>this server</b> so you can join and inspect it. Platform owner only. Needs bot Create Instant Invite (or Administrator).</div>'
@@ -2240,6 +2465,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +settingsPanel
       +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel" id="finished-panel" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Final scores at a glance — grade pending tips below.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
@@ -2257,11 +2483,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
     { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
       const on=godOn();
-      const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — expand any tip in Recent Results to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
-      // Collapse any open legs so they re-render with (or without) the re-grade UI.
-      document.querySelectorAll(".betlegs").forEach(el=>{el.hidden=true;el.dataset.loaded="";el.innerHTML="";});
-      // Re-paint settled rows so god ✕ shows/hides without a full reload.
-      const rb=$("recent-box"); if(rb){ rb.innerHTML=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>'; wireTipRows(rb,s.guild_id); }
+      const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — use grade controls on any tip to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
+      // Re-paint settled cards so god grade/✕ shows without a full reload.
+      const rb=$("recent-box"); if(rb){ rb.innerHTML=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>'; wireTipRows(rb,s.guild_id); hydrateTipCards(rb,s.guild_id,tips.settled); }
     }; }
     { const ib=$("inviteMeBtn"); if(ib)ib.onclick=async()=>{
       const m=$("inviteMeMsg"), link=$("inviteMeLink");
@@ -2322,10 +2546,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ci.onkeydown=(e)=>{ if(e.key==="Enter"&&armed())lb.click(); };
     }}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
-      if(a==="queued"){const up=$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
+      if(a==="queued"){const up=$("upcoming-panel")||$("finished-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
     $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle")return; b.onclick=()=>toggle(b); });
-    wireTipRows($("recent-box"),s.guild_id,true);
+    wireTipRows($("recent-box"),s.guild_id);
+    hydrateTipCards($("recent-box"),s.guild_id,tips.settled);
     function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); const sf=$("stab-features"); if(sf)sf.classList.toggle("active",t==="features"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); { const sf=$("stab-features"); if(sf)sf.onclick=()=>setTab("features"); } $("stab-perms").onclick=()=>setTab("perms");
     setTab("general");
