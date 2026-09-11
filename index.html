@@ -225,12 +225,22 @@
   .trickle-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;margin-top:2px;flex:none}
   .trickle-row .title{font-weight:700;color:var(--txt)}
   .trickle-row .thint{color:var(--faint);font-size:12px;margin-top:4px;line-height:1.4}
-  .live-tips-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+  .live-tips-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
   .live-tips-row:last-child{border-bottom:none;padding-bottom:0}
   .live-tips-row:first-child{padding-top:0}
   .live-tips-meta{min-width:0;flex:1}
   .live-tips-meta .g{font-weight:700}
   .live-tips-meta .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .live-tips-preview{margin-top:10px;width:100%;border:1px solid var(--line);border-radius:10px;background:var(--card2);padding:10px 12px}
+  .live-tips-preview .tip-block{padding:8px 0;border-bottom:1px solid var(--line)}
+  .live-tips-preview .tip-block:last-child{border-bottom:none;padding-bottom:0}
+  .live-tips-preview .tip-head{font-weight:700;font-size:12.5px;margin-bottom:4px}
+  .live-tips-preview .leg{font-size:12.5px;line-height:1.45;color:var(--txt);white-space:pre-wrap}
+  .live-tips-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .live-auto{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .live-auto h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .live-auto label{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0;cursor:pointer;user-select:none}
+  .live-auto input{width:15px;height:15px;accent-color:var(--accent)}
   @media(max-width:600px){
     .batchtray.above-legs{bottom:0}
     .batchtray-in{padding:10px 12px;gap:8px}
@@ -2031,6 +2041,25 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     wireTipRows(box,gid);
     tickCountdowns(); DETAIL_TIMER=setInterval(tickCountdowns,1000);
   }
+  const LIVE_AUTO_FLAGS=[
+    ["feat.livestats_auto_q1","End of 1st quarter"],
+    ["feat.livestats_auto_ht","Half time"],
+    ["feat.livestats_auto_q3","End of 3rd quarter"],
+    ["feat.livestats_auto_ft","Full time (footer: tips will settle soon)"],
+  ];
+  function liveTipsPreviewHtml(g){
+    const tips=g.tips||[];
+    if(!tips.length) return '<div class="empty" style="padding:4px 0">No tip lines yet.</div>';
+    return tips.map(t=>{
+      const bits=[t.display_id||t.tip_id||"Tip"];
+      if(t.units!=null) bits.push(t.units+"u");
+      if(t.odds!=null) bits.push("@ "+t.odds);
+      if(t.bookmaker) bits.push("· "+t.bookmaker);
+      const legs=(t.legs||[]).map(l=>'<div class="leg">'+esc(l.text||((l.emoji||"")+" "+(l.status||"")))+'</div>').join("")
+        ||'<div class="leg" style="color:var(--faint)">No tracked legs</div>';
+      return '<div class="tip-block"><div class="tip-head">'+esc(bits.join(" "))+'</div>'+legs+'</div>';
+    }).join("");
+  }
   async function loadLiveTipsPanel(guildId){
     const panel=$("live-tips-panel"), box=$("live-tips-box");
     if(!panel||!box)return;
@@ -2046,29 +2075,90 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(!r.ok){ panel.hidden=true; return; }
       const data=await r.json();
       const games=data.games||[];
-      if(!games.length){ panel.hidden=true; return; }
+      // Always show panel so auto-send toggles are reachable even with no live games.
       panel.hidden=false;
-      box.innerHTML=games.map(g=>{
-        const phase=(g.phase&&g.phase.label)||"Live";
-        const n=g.tip_count||0;
-        const mid=esc(g.match_id||"");
-        return '<div class="live-tips-row" data-match="'+mid+'">'
-          +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
-          +'<div class="meta">'+esc(phase)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
-          +'<button type="button" class="btn sm live-push" data-match="'+mid+'">Push update</button></div>';
-      }).join("")
-        +(games.length>1
-          ?'<div style="margin-top:12px"><button type="button" class="btn secondary sm" id="live-push-all">Push update for all live games</button></div>'
-          :"");
-      box.querySelectorAll(".live-push").forEach(b=>b.onclick=()=>pushLiveTipsUpdate(guildId,b.dataset.match||null,b));
+      let html="";
+      if(!games.length){
+        html='<div class="empty">No live AFL games with pending tips right now.</div>';
+      }else{
+        html=games.map((g,gi)=>{
+          const phase=(g.phase&&g.phase.label)||"Live";
+          const n=g.tip_count||0;
+          const mid=esc(g.match_id||"");
+          const score=(g.hscore!=null&&g.ascore!=null)?(" · "+g.hscore+"–"+g.ascore):"";
+          const venue=g.venue?(" · "+g.venue):"";
+          const pid="live-prev-"+gi;
+          return '<div class="live-tips-row" data-match="'+mid+'">'
+            +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
+            +'<div class="meta">'+esc(phase)+score+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
+            +'<div class="live-tips-actions">'
+            +'<button type="button" class="ghost sm live-toggle-prev" data-pid="'+pid+'">Preview</button>'
+            +'<button type="button" class="btn sm live-confirm-push" data-match="'+mid+'" data-pid="'+pid+'">Push update</button>'
+            +'</div>'
+            +'<div id="'+pid+'" class="live-tips-preview" hidden>'
+            +liveTipsPreviewHtml(g)
+            +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+            +'<button type="button" class="btn sm live-send" data-match="'+mid+'">Confirm &amp; send to Discord</button>'
+            +'<button type="button" class="ghost sm live-collapse" data-pid="'+pid+'">Collapse</button>'
+            +'</div></div></div>';
+        }).join("");
+        if(games.length>1){
+          html+='<div style="margin-top:12px"><button type="button" class="btn secondary sm" id="live-push-all">Push update for all live games</button></div>';
+        }
+      }
+      html+='<div class="live-auto" id="live-auto-box"><h4>Auto-send livestats</h4>'
+        +'<div style="color:var(--faint);font-size:12px;margin-bottom:8px;line-height:1.4">Bot posts once per breakpoint per match into the tips channel. Full time includes “tips will settle soon”.</div>'
+        +'<div id="live-auto-flags"><div class="empty">Loading toggles…</div></div></div>';
+      box.innerHTML=html;
+      box.querySelectorAll(".live-toggle-prev").forEach(b=>b.onclick=()=>{
+        const el=$(b.dataset.pid); if(!el)return; el.hidden=!el.hidden;
+        b.textContent=el.hidden?"Preview":"Hide preview";
+      });
+      box.querySelectorAll(".live-collapse").forEach(b=>b.onclick=()=>{
+        const el=$(b.dataset.pid); if(el)el.hidden=true;
+        const tog=box.querySelector('.live-toggle-prev[data-pid="'+b.dataset.pid+'"]');
+        if(tog)tog.textContent="Preview";
+      });
+      box.querySelectorAll(".live-confirm-push").forEach(b=>b.onclick=()=>{
+        const el=$(b.dataset.pid); if(el){ el.hidden=false; }
+        const tog=box.querySelector('.live-toggle-prev[data-pid="'+b.dataset.pid+'"]');
+        if(tog)tog.textContent="Hide preview";
+      });
+      box.querySelectorAll(".live-send").forEach(b=>b.onclick=()=>pushLiveTipsUpdate(guildId,b.dataset.match||null,b));
       const all=$("live-push-all"); if(all)all.onclick=()=>pushLiveTipsUpdate(guildId,null,all);
+      loadLiveAutoFlags(guildId);
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
-      // Soft-fail: keep panel hidden unless we already know the route exists.
       panel.hidden=true;
     }
   }
+  async function loadLiveAutoFlags(guildId){
+    const box=$("live-auto-flags"); if(!box)return;
+    try{
+      const r=await api("/api/feature-flags?guild_id="+encodeURIComponent(guildId));
+      if(!r.ok){ box.innerHTML='<div class="empty">Couldn\'t load auto-send settings.</div>'; return; }
+      const d=await r.json();
+      const flags=d.flags||{};
+      box.innerHTML=LIVE_AUTO_FLAGS.map(([k,lab])=>{
+        const on=flags[k]===true||flags[k]===1;
+        return '<label><input type="checkbox" class="live-auto-cb" data-k="'+k+'" '+(on?"checked":"")+'>'+esc(lab)+'</label>';
+      }).join("")
+        +'<div style="margin-top:8px"><button type="button" class="btn sm" id="live-auto-save">Save auto-send</button> <span id="live-auto-msg" style="font-size:12px;color:var(--faint)"></span></div>';
+      const save=$("live-auto-save");
+      if(save)save.onclick=async()=>{
+        const body={guild_id:guildId, flags:{}};
+        box.querySelectorAll(".live-auto-cb").forEach(cb=>{ body.flags[cb.dataset.k]=!!cb.checked; });
+        const msg=$("live-auto-msg"); if(msg)msg.textContent="Saving…";
+        try{
+          const rr=await api("/api/feature-flags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+          const j=await rr.json().catch(()=>({}));
+          if(msg){ msg.textContent=j.ok?"✓ saved":(j.message||"error"); msg.style.color=j.ok?"var(--win)":"var(--loss)"; }
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(msg){msg.textContent="couldn't save";msg.style.color="var(--loss)";} }
+      };
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t reach the bot.</div>'; }
+  }
   async function pushLiveTipsUpdate(guildId,matchId,btn){
+    toast("Posting update…");
     if(btn)btn.disabled=true;
     try{
       const body={guild_id:guildId};
@@ -2079,7 +2169,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return;
       }
       const j=await r.json().catch(()=>({}));
-      if(r.ok&&j.ok) toast("Pushing live tracker to Discord… check your tips channel shortly.");
+      if(r.ok&&j.ok) toast("Queued — check your tips channel shortly.");
       else toast(j.message||"Couldn't queue live update.");
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
