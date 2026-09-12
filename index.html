@@ -1014,7 +1014,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(bar) bar.setAttribute("aria-valuenow", String(p));
   }
 
-  // Top bar + loading panel — real staged % (no fake ticks / wake copy)
+  // Top bar + loading panel — real staged %; "Waking TipBot…" only during cold-start retries
   const TopBar = (function(){
     let el=null, fill=null, pending=0, hardTimer=null;
     function ensure(){
@@ -1095,14 +1095,53 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
     buildViewAsMenu();
   }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, Math.max(0, ms|0)); }); }
+
   function warmTipBot(){
-    // Fire-and-forget — wakes Render so /api/servers is warm when we need it.
+    // Soft ping — wakes Render so /api/servers is warmer when we need it.
     try{ fetch(API+"/healthz",{mode:"cors",cache:"no-store"}).catch(function(){}); }catch(e){}
   }
+  (function softPingLifecycle(){
+    document.addEventListener("visibilitychange", function(){
+      if(!document.hidden && getToken()) warmTipBot();
+    });
+    window.addEventListener("pageshow", function(){
+      if(getToken()) warmTipBot();
+    });
+  })();
 
   function getToken(){try{return localStorage.getItem("tipbot_token")}catch{return null}}
   function setToken(t){try{localStorage.setItem("tipbot_token",t)}catch{}}
   function clearToken(){try{localStorage.removeItem("tipbot_token")}catch{}}
+
+  const DETAIL_CACHE_KEY="tipdash_detail_v1";
+  function readDetailStore(){
+    try{
+      const raw=localStorage.getItem(DETAIL_CACHE_KEY);
+      if(!raw) return {};
+      const j=JSON.parse(raw);
+      return (j && typeof j==="object" && !Array.isArray(j)) ? j : {};
+    }catch(e){ return {}; }
+  }
+  function readDetailDisk(key){
+    try{
+      const ent=readDetailStore()[key];
+      return ent && ent.data ? ent.data : null;
+    }catch(e){ return null; }
+  }
+  function writeDetailDisk(key, data){
+    try{
+      const store=readDetailStore();
+      store[key]={ data:data, saved_at:Date.now() };
+      const ranked=Object.keys(store).map(function(k){ return [k, store[k]&&store[k].saved_at||0]; })
+        .sort(function(a,b){ return b[1]-a[1]; });
+      const keep={};
+      ranked.slice(0,8).forEach(function(pair){ keep[pair[0]]=store[pair[0]]; });
+      localStorage.setItem(DETAIL_CACHE_KEY, JSON.stringify(keep));
+    }catch(e){
+      try{ localStorage.removeItem(DETAIL_CACHE_KEY); }catch(e2){}
+    }
+  }
 
   $("loginbtn").href=API+"/auth/login";
   $("gear").onclick=e=>{e.stopPropagation();$("dropdown").hidden=!$("dropdown").hidden;$("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));$("viewas-list").hidden=true;};
@@ -1123,24 +1162,72 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
 
   function renderLogin(msg){clearDetailTimers();clearLiveTimer();clearGamesTimer();if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
-  async function api(path,opts){opts=opts||{};opts.headers=Object.assign({Authorization:"Bearer "+getToken()},opts.headers||{});
-    // Hard ceiling so a cold/hung Render never leaves the load panel at 0% forever.
-    if(!opts.signal && typeof AbortController!=="undefined"){
-      const ac=new AbortController();
-      const ms=opts.timeoutMs!=null?opts.timeoutMs:45000;
-      const timer=setTimeout(function(){ try{ac.abort();}catch(e){} }, ms);
-      opts.signal=ac.signal;
+  async function api(path,opts){
+    opts=opts||{};
+    const method=String(opts.method||"GET").toUpperCase();
+    // Cold Render: 60s/attempt, 3 tries with backoff on network / 502 / 503 warming.
+    // 401 never retries — always login flow. Mutations only auto-retry on 502/503/network.
+    const maxAttempts=opts.retries!=null?opts.retries:3;
+    const timeoutMs=opts.timeoutMs!=null?opts.timeoutMs:60000;
+    const onAttempt=opts.onAttempt;
+    const fetchOpts=Object.assign({}, opts);
+    delete fetchOpts.retries; delete fetchOpts.timeoutMs; delete fetchOpts.onAttempt;
+
+    let lastResponse=null, lastError=null;
+    for(let attempt=1; attempt<=maxAttempts; attempt++){
+      const headers=Object.assign({Authorization:"Bearer "+getToken()}, fetchOpts.headers||{});
+      const attemptOpts=Object.assign({}, fetchOpts, {headers:headers});
+      delete attemptOpts.signal; // never reuse an aborted signal across retries
+      let timer=null;
+      if(typeof AbortController!=="undefined"){
+        const ac=new AbortController();
+        timer=setTimeout(function(){ try{ac.abort();}catch(e){} }, timeoutMs);
+        attemptOpts.signal=ac.signal;
+      }
       try{
-        const r=await fetch(API+path,opts);
-        clearTimeout(timer);
-        if(r.status===401){clearToken();throw{unauth:true};}
+        if(typeof onAttempt==="function"){
+          try{ onAttempt(attempt, maxAttempts, {phase:"start"}); }catch(e){}
+        }
+        const r=await fetch(API+path, attemptOpts);
+        if(timer) clearTimeout(timer);
+        if(r.status===401){ clearToken(); throw{unauth:true}; }
+
+        if((r.status===502 || r.status===503) && attempt<maxAttempts){
+          let body=null;
+          try{ body=await r.clone().json(); }catch(e){}
+          const warming=!!(r.status===503 && body && (body.error==="warming" || body.warming===true || body.status==="warming"));
+          let waitMs=1500*Math.pow(2, attempt-1);
+          if(body && body.retry_after!=null){
+            const ra=Number(body.retry_after);
+            if(Number.isFinite(ra) && ra>=0) waitMs=(ra>0 && ra<120)?(ra*1000):ra; // seconds or ms
+          }
+          waitMs=Math.min(Math.max(waitMs, 400), 15000);
+          lastResponse=r;
+          if(typeof onAttempt==="function"){
+            try{ onAttempt(attempt, maxAttempts, {phase:"retry", status:r.status, warming:warming||r.status===503, waitMs:waitMs}); }catch(e){}
+          }
+          await sleep(waitMs);
+          continue;
+        }
         return r;
       }catch(e){
-        clearTimeout(timer);
+        if(timer) clearTimeout(timer);
+        if(e && e.unauth) throw e;
+        lastError=e;
+        if(attempt<maxAttempts){
+          const waitMs=Math.min(1500*Math.pow(2, attempt-1), 8000);
+          if(typeof onAttempt==="function"){
+            try{ onAttempt(attempt, maxAttempts, {phase:"retry", network:true, waitMs:waitMs}); }catch(e2){}
+          }
+          await sleep(waitMs);
+          continue;
+        }
         throw e;
       }
     }
-    const r=await fetch(API+path,opts);if(r.status===401){clearToken();throw{unauth:true};}return r;}
+    if(lastResponse) return lastResponse;
+    throw lastError||new Error("unreachable");
+  }
 
   function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
     const it=document.createElement("div");it.className="dd-item";it.textContent=s.display_name||"Unnamed";
@@ -1199,15 +1286,44 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     renderBatchTray();
     const key=guildId+"|"+(month||"");
     STATE._detailCache=STATE._detailCache||{};
-    const cached=STATE._detailCache[key];
-    // Show the cached snapshot instantly for quick loads, then refresh behind it.
-    if(cached && !opts.force){ renderDetail(cached); }
-    else { $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>'; }
-    try{const r=await api("/api/server?guild_id="+encodeURIComponent(guildId)+(month?"&month="+encodeURIComponent(month):""));
-      if(!r.ok){ if(!cached)$("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>'; return; }
-      const data=await r.json(); STATE._detailCache[key]=data;
+    const mem=STATE._detailCache[key];
+    const disk=(!mem && !opts.force)?readDetailDisk(key):null;
+    const cached=mem||disk;
+    // Cache-first: paint last good detail (memory or localStorage), refresh behind it.
+    if(cached && !opts.force){
+      STATE._detailCache[key]=cached;
+      renderDetail(cached);
+    }else{
+      $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
+    }
+    function paintWaking(attempt, maxAttempts){
+      if(cached) return; // keep stale UI while background retries
+      const pct=Math.min(90, Math.round((attempt/Math.max(maxAttempts,1))*80));
+      $("detail").innerHTML='<div class="tb-loadpanel" style="padding:28px 12px"><p class="tb-loadpanel-label">Waking TipBot…</p>'
+        +'<div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div>'
+        +'<p class="tb-loadpanel-pct">'+pct+'%</p></div>';
+    }
+    try{
+      const r=await api("/api/server?guild_id="+encodeURIComponent(guildId)+(month?"&month="+encodeURIComponent(month):""),{
+        onAttempt:function(attempt, maxAttempts, info){
+          if(info && info.phase==="retry") paintWaking(attempt, maxAttempts);
+        }
+      });
+      if(!r.ok){
+        if(cached) return; // keep last good detail
+        if(r.status===502||r.status===503) $("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';
+        else $("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';
+        return;
+      }
+      const data=await r.json();
+      STATE._detailCache[key]=data;
+      writeDetailDisk(key, data);
       if(!$("detail").hidden) renderDetail(data);
-    }catch(e){if(e.unauth)return renderLogin("Session expired.");if(!cached)$("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';}
+    }catch(e){
+      if(e.unauth)return renderLogin("Session expired.");
+      if(cached) return; // offline/cold — keep cached detail
+      $("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';
+    }
   }
   function fmtProg(cur, line){
     const c=(cur===0||cur)?cur:null, l=(line===0||line)?line:null;
@@ -4588,12 +4704,19 @@ async function loadPerms(gid){
     try{
       if(!paintedFromCache) TopBar.set(22, "Connecting…");
       // lite=1 skips N× server_stats — paint fast; hydrate full stats after.
-      const r=await api("/api/servers?lite=1");
+      const r=await api("/api/servers?lite=1",{
+        onAttempt:function(attempt, maxAttempts, info){
+          if(!(info && info.phase==="retry")) return;
+          const pct=Math.min(85, (paintedFromCache?40:18) + attempt*18);
+          TopBar.set(pct, "Waking TipBot…");
+        }
+      });
       if(!paintedFromCache) TopBar.set(72, "Loading servers…");
       else TopBar.set(70, "Updating servers…");
       if(!r.ok){
         TopBar.done(true);
         if(paintedFromCache) return; // keep stale UI
+        if(r.status===502||r.status===503) return renderLogin("Couldn't reach the bot — try again in a moment.");
         return renderLogin();
       }
       const data=await r.json();
