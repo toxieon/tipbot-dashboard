@@ -119,6 +119,31 @@
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
   .tile .tv{font-weight:800;font-size:26px;line-height:1.1}.tile .tl{color:var(--faint);font-size:12px;text-transform:uppercase;margin-top:4px}
+  .stats-wrap{margin-bottom:22px}
+  .stats-wrap .tiles{margin-bottom:0}
+  .stats-toggle{display:none;width:100%;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--txt);font:inherit;cursor:pointer;margin-bottom:10px}
+  .stats-toggle .st-sum{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline;font-size:13px;color:var(--muted)}
+  .stats-toggle .st-sum b{font-size:15px}
+  .stats-toggle .st-caret{color:var(--muted);font-size:14px;flex:none}
+  .cal-day{cursor:pointer;transition:outline-color .12s,transform .12s}
+  .cal-day:hover,.cal-day:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .cal-day-empty{cursor:default}
+  .day-sheet{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55);padding:12px}
+  .day-sheet-card{width:min(520px,100%);max-height:min(78vh,640px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px 16px 12px 12px;padding:16px 16px 20px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .day-sheet-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .day-sheet-hd h3{margin:0;font-size:16px}
+  .day-sheet-hd .sub{color:var(--muted);font-size:12px;margin-top:4px}
+  @media(min-width:641px){
+    .day-sheet{align-items:center;padding:24px}
+    .day-sheet-card{border-radius:16px}
+  }
+  @media(max-width:640px){
+    .stats-toggle{display:flex}
+    .stats-wrap.is-collapsed .tiles{display:none}
+    .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
+    .tile{padding:10px 12px;border-radius:12px}
+    .tile .tv{font-size:18px}.tile .tl{font-size:10px;margin-top:2px;letter-spacing:.04em}
+  }
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:22px}
   .panel h3{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
   .wlbar{display:flex;height:14px;border-radius:8px;overflow:hidden;gap:2px;background:var(--bg2)}.wlbar>span{display:block}
@@ -869,74 +894,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   root.NDCountdownConfirm = API;
 })(typeof window !== "undefined" ? window : globalThis);
 /* =========================================================================
- *  confetti.js — celebration confetti burst  (reusable asset)
- *
- *  A full-screen confetti rain for wins — quote accepted, milestone hit, a
- *  fun "yes". Creates its own canvas, runs for a set duration, cleans up.
- *
- *  No dependencies. Global `NDConfetti`:
- *    NDConfetti.burst({ duration, count, colors }) -> stop()
- *    NDConfetti.start(opts) / NDConfetti.stop()
- * ========================================================================= */
-(function (root) {
-  "use strict";
-  if (root.NDConfetti) return;
-  var doc = root.document;
-  var DEFAULT_COLORS = ["#e07b2a", "#f5a05a", "#3ab87a", "#ffffff", "#e3b341", "#5b9ce6"];
-
-  var canvas = null, ctx = null, parts = [], raf = null;
-
-  function ensureCanvas() {
-    if (canvas) return canvas;
-    canvas = doc.createElement("canvas");
-    canvas.style.cssText = "position:fixed;inset:0;z-index:2147482400;pointer-events:none;";
-    (doc.body || doc.documentElement).appendChild(canvas);
-    ctx = canvas.getContext("2d");
-    return canvas;
-  }
-  function size() { canvas.width = root.innerWidth; canvas.height = root.innerHeight; }
-
-  function start(opts) {
-    opts = opts || {};
-    if (!doc) return function () {};
-    ensureCanvas(); size();
-    var colors = opts.colors || DEFAULT_COLORS, n = opts.count || 180;
-    parts = [];
-    for (var i = 0; i < n; i++) parts.push({
-      x: Math.random() * canvas.width, y: Math.random() * -canvas.height,
-      s: 6 + Math.random() * 8, vy: 2 + Math.random() * 4, vx: -2 + Math.random() * 4,
-      c: colors[Math.floor(Math.random() * colors.length)], rot: Math.random() * Math.PI, vr: -0.2 + Math.random() * 0.4
-    });
-    if (!raf) loop();
-    return stop;
-  }
-  function loop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
-      if (p.y > canvas.height + 20) { p.y = -20; p.x = Math.random() * canvas.width; }
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); ctx.restore();
-    }
-    raf = root.requestAnimationFrame(loop);
-  }
-  function stop() {
-    if (raf) { root.cancelAnimationFrame(raf); raf = null; }
-    if (canvas) { try { canvas.parentNode.removeChild(canvas); } catch (e) {} canvas = null; ctx = null; }
-    parts = [];
-  }
-  function burst(opts) {
-    opts = opts || {};
-    start(opts);
-    setTimeout(stop, opts.duration || 3200);
-    return stop;
-  }
-
-  var API = { start: start, stop: stop, burst: burst };
-  if (typeof module !== "undefined" && module.exports) module.exports = API;
-  root.NDConfetti = API;
-})(typeof window !== "undefined" ? window : globalThis);
-/* =========================================================================
  *  confirm-pop.js — animated success tick  (reusable asset)
  *
  *  A self-drawing checkmark with a ring + halo pop, for "done!" moments —
@@ -1539,15 +1496,230 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       wireTipRows(body,gid);
     }));
   }
+  function estimateSettleProfit(units, odds, result){
+    const uN=Number(units), oN=Number(odds);
+    const res=String(result||"");
+    if(/^win$/i.test(res)){
+      if(!(uN>0) || !(oN>1)) return null;
+      return Math.round(uN*(oN-1)*100)/100;
+    }
+    if(/^loss$/i.test(res)){
+      if(!(uN>0)) return null;
+      return Math.round((-uN)*100)/100;
+    }
+    if(/^(push|void)$/i.test(res)) return 0;
+    return null;
+  }
+  function tipDayKey(t){
+    const v=t&& (t.settled_at||t.created_at||null);
+    if(!v) return "";
+    const s=String(v);
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+    const n=Date.parse(s);
+    if(!Number.isFinite(n)) return "";
+    const d=new Date(n);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function patchDetailCacheSettle(gid, tipPatch, opts){
+    opts=opts||{};
+    STATE._detailCache=STATE._detailCache||{};
+    Object.keys(STATE._detailCache).forEach(k=>{
+      if(!String(k).startsWith(String(gid)+"|")) return;
+      const d=STATE._detailCache[k]; if(!d||!d.tips) return;
+      const tid=String(tipPatch.tip_id||"");
+      const q=(d.tips.queued||[]).slice();
+      const s=(d.tips.settled||[]).slice();
+      const qi=q.findIndex(t=>String(t.tip_id)===tid);
+      let tip=qi>=0?Object.assign({},q[qi],tipPatch):Object.assign({},tipPatch);
+      if(qi>=0) q.splice(qi,1);
+      const si=s.findIndex(t=>String(t.tip_id)===tid);
+      tip.status="Settled";
+      tip.result=tipPatch.result||tip.result||"Push";
+      if(tipPatch.profit_units!=null) tip.profit_units=tipPatch.profit_units;
+      if(!tip.settled_at) tip.settled_at=(new Date()).toISOString();
+      if(si>=0) s[si]=Object.assign({},s[si],tip);
+      else s.unshift(tip);
+      d.tips.queued=q; d.tips.settled=s;
+      if(d.stats && !opts.skipStats){
+        const st=d.stats;
+        const res=String(tip.result||"");
+        const profit=Number(tip.profit_units||0);
+        const units=Number(tip.units||0);
+        if(opts.fromPending!==false){
+          st.queued=Math.max(0,Number(st.queued||0)-1);
+          st.settled=Number(st.settled||0)+1;
+          st.staked_units=Math.round((Number(st.staked_units||0)+units)*100)/100;
+          if(/^win$/i.test(res)) st.won=Number(st.won||0)+1;
+          else if(/^loss$/i.test(res)) st.lost=Number(st.lost||0)+1;
+          else st.push=Number(st.push||0)+1;
+          st.profit_units=Math.round((Number(st.profit_units||0)+profit)*100)/100;
+          const decided=Number(st.won||0)+Number(st.lost||0);
+          st.roi=st.staked_units?Math.round((st.profit_units/st.staked_units)*1000)/10:0;
+          st.strike_rate=decided?Math.round((st.won/decided)*1000)/10:0;
+        }
+      }
+      // Keep calendar daily_series roughly in sync for the settle day.
+      const day=tipDayKey(tip);
+      if(day && d.daily_series && (!d.cal_month || day.slice(0,7)===d.cal_month)){
+        const e=d.daily_series[day]||{net:0,n:0,won:0,lost:0,push:0};
+        e.n=Number(e.n||0)+1;
+        e.net=Math.round((Number(e.net||0)+Number(tip.profit_units||0))*100)/100;
+        const res=String(tip.result||"");
+        if(/^win$/i.test(res)) e.won=Number(e.won||0)+1;
+        else if(/^loss$/i.test(res)) e.lost=Number(e.lost||0)+1;
+        else e.push=Number(e.push||0)+1;
+        d.daily_series[day]=e;
+      }
+    });
+  }
+  function refreshStatsTilesFromCache(gid){
+    const cache=STATE._detailCache||{};
+    const keys=Object.keys(cache).filter(k=>String(k).startsWith(String(gid)+"|"));
+    if(!keys.length) return;
+    // Prefer lifetime key, else any.
+    const d=cache[gid+"|"]||cache[keys[0]];
+    const st=d&&d.stats; if(!st) return;
+    const map={
+      "Tips Queued":st.queued,
+      "Won":st.won,
+      "Lost":st.lost,
+      "Success Rate":(st.strike_rate!=null?st.strike_rate+"%":null),
+      "Profit":u(st.profit_units),
+      "ROI":(st.roi!=null?st.roi+"%":null),
+      "Followers":st.followers
+    };
+    document.querySelectorAll("#detail .stats-wrap .tile, #detail .tiles .tile").forEach(tile=>{
+      const lab=(tile.querySelector(".tl")||{}).textContent||"";
+      const key=lab.replace(/\s*›\s*$/,"").trim();
+      if(!(key in map) || map[key]==null) return;
+      const tv=tile.querySelector(".tv"); if(!tv) return;
+      tv.textContent=String(map[key]);
+      if(key==="Profit"||key==="ROI"){
+        tv.classList.toggle("pos", Number(st.profit_units||0)>=0 || (key==="ROI"&&Number(st.roi||0)>=0));
+        tv.classList.toggle("neg", Number(st.profit_units||0)<0 || (key==="ROI"&&Number(st.roi||0)<0));
+        if(key==="ROI"){ tv.classList.toggle("pos", Number(st.roi||0)>=0); tv.classList.toggle("neg", Number(st.roi||0)<0); }
+      }
+    });
+    const sum=$("stats-sum");
+    if(sum){
+      const pCls=Number(st.profit_units||0)>=0?"pos":"neg";
+      sum.innerHTML='<span>Profit <b class="'+pCls+'">'+esc(u(st.profit_units))+'</b></span>'
+        +'<span>ROI <b class="'+(Number(st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi))+'%</b></span>'
+        +'<span>Queued <b>'+esc(String(st.queued||0))+'</b></span>';
+    }
+  }
+  function appendSettledToRecent(tip, gid){
+    const rb=$("recent-box"); if(!rb) return;
+    const empty=rb.querySelector(".empty"); if(empty) empty.remove();
+    const html=tipRow(tip, true);
+    rb.insertAdjacentHTML("afterbegin", html);
+    const card=rb.querySelector('.betrow[data-tip="'+esc(tip.tip_id)+'"]');
+    if(card){ wireTipRows(card.parentNode===rb?rb:card, gid); }
+    else wireTipRows(rb, gid);
+  }
+  function removeFinishedCard(tipId){
+    document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>{
+      const group=row.closest(".game-group");
+      row.remove();
+      if(group){
+        const left=group.querySelectorAll(".betrow").length;
+        const gsub=group.querySelector(".gsub");
+        if(gsub && left){ gsub.textContent=left+" bet"+(left>1?"s":"")+" · confirm tips"; }
+        if(!left){
+          group.remove();
+          const finBox=$("finished-box");
+          if(finBox && !finBox.querySelector(".game-group")){
+            finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>';
+            const fp=$("finished-panel"); if(fp) fp.hidden=true;
+          }
+        }
+      }
+    });
+  }
+  function applyLocalSettle(gid, tipLike, result, profit){
+    const tipId=String(tipLike.tip_id||"");
+    if(!tipId) return null;
+    // Idempotent: skip if UI/cache already shows this tip settled.
+    const existingCard=document.querySelector('.betrow[data-tip="'+tipId+'"][data-settled="1"]');
+    if(existingCard) return null;
+    let alreadySettled=false;
+    const cache0=STATE._detailCache||{};
+    Object.keys(cache0).forEach(k=>{
+      if(!String(k).startsWith(String(gid)+"|")) return;
+      const s=((cache0[k].tips||{}).settled||[]).find(t=>String(t.tip_id)===tipId);
+      const q=((cache0[k].tips||{}).queued||[]).find(t=>String(t.tip_id)===tipId);
+      if(s && !q) alreadySettled=true;
+    });
+    if(alreadySettled) return null;
+    let base=Object.assign({}, tipLike);
+    // Prefer fields from the live card dataset / queued cache.
+    const cache=STATE._detailCache||{};
+    Object.keys(cache).forEach(k=>{
+      if(!String(k).startsWith(String(gid)+"|")) return;
+      const q=((cache[k].tips||{}).queued||[]).find(t=>String(t.tip_id)===tipId);
+      const s=((cache[k].tips||{}).settled||[]).find(t=>String(t.tip_id)===tipId);
+      if(q) base=Object.assign({},q,base);
+      if(s) base=Object.assign({},s,base);
+    });
+    const profitVal=profit!=null&&profit!==""&&!isNaN(Number(profit))
+      ? Math.round(Number(profit)*100)/100
+      : estimateSettleProfit(base.units, base.odds, result);
+    const tip=Object.assign({}, base, {
+      tip_id: tipId,
+      status: "Settled",
+      result: result,
+      profit_units: profitVal!=null?profitVal:base.profit_units,
+      settled_at: (new Date()).toISOString(),
+      settle_source: base.settle_source||"manual"
+    });
+    removeFinishedCard(tipId);
+    // Also drop any leftover pending cards (upcoming) for this tip.
+    document.querySelectorAll('#upcoming-box .betrow[data-tip="'+tipId+'"]').forEach(row=>row.remove());
+    appendSettledToRecent(tip, gid);
+    patchDetailCacheSettle(gid, tip, {fromPending:true});
+    refreshStatsTilesFromCache(gid);
+    return tip;
+  }
+  function updateFinishedNet(matchId, gameName, unitsNet){
+    const finBox=$("finished-box"); if(!finBox) return;
+    finBox.querySelectorAll(".ft-push-all").forEach(btn=>{
+      const matchOk=matchId && String(btn.dataset.match||"")===String(matchId);
+      const gameOk=gameName && String(btn.dataset.game||"")===String(gameName);
+      if(!matchOk && !gameOk) return;
+      const netEl=btn.parentNode && btn.parentNode.querySelector(".ft-net b");
+      if(!netEl) return;
+      const f=fmtUnitsNet(unitsNet);
+      if(f){
+        const n=Number(unitsNet);
+        netEl.textContent=f;
+        netEl.className=n>0?"pos":(n<0?"neg":"muted");
+      }
+    });
+  }
   async function gradeBet(gid,tipId,result,box,god){
     const useGod=!!god&&godOn();
     if(!confirm((useGod?"🔱 God-mode grade as ":"Grade this bet as ")+result+"? Followers will be notified and it will post to bet-results."))return;
     if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=true);
+    // Snapshot tip fields from the card before the DOM moves.
+    let tipSnap={tip_id:tipId};
+    if(box){
+      tipSnap.display_id=(box.querySelector(".betcard-id")||{}).textContent||"";
+      tipSnap.bet_type=((box.querySelector(".betcard-type")||{}).textContent||"").split("·")[0].trim();
+      const gtitle=box.closest(".game-group") && box.closest(".game-group").querySelector(".gtitle");
+      tipSnap.game_name=(gtitle&&gtitle.textContent)||"";
+    }
     try{ const r=await api(useGod?"/api/god-settle":"/api/settle-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId,result:result})});
       const j=await r.json();
-      if(j.ok){ if(STATE._detailCache)STATE._detailCache={}; toast((useGod?"🔱 Overriding as ":"Grading as ")+result+" — updating Discord…");
-        if(useGod){ setTimeout(()=>loadDetail(gid,null,{force:true}),400); }
-        else { document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>row.remove()); } }
+      if(j.ok){
+        toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…");
+        if(useGod){
+          if(STATE._detailCache)STATE._detailCache={};
+          setTimeout(()=>loadDetail(gid,null,{force:true}),400);
+        }else{
+          const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
+          applyLocalSettle(gid, Object.assign({}, tipSnap, j.tip||{}), result, profit);
+        }
+      }
       else { toast(j.message||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
@@ -1598,6 +1770,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!matchId){ toast("No match id for this game yet."); return; }
     toast("Pushing all…");
     if(btn)btn.disabled=true;
+    const gameName=btn&&btn.dataset? (btn.dataset.game||"") : "";
     try{
       const r=await api("/api/push-all",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:guildId,match_id:matchId})});
       if(r.status===404||r.status===501){
@@ -1605,7 +1778,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return;
       }
       const j=await r.json().catch(()=>({}));
-      if(r.ok&&j.ok){
+      if(r.ok&&(j.ok || (j.graded!=null && Number(j.graded)>0) || j.units_net!=null || (Array.isArray(j.tips)&&j.tips.length))){
         const graded=j.graded!=null?j.graded:(j.graded_count!=null?j.graded_count:null);
         const failed=j.failed!=null?j.failed:null;
         const net=j.units_net!=null?j.units_net:null;
@@ -1614,6 +1787,23 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         if(failed) msg+=" · "+failed+" failed";
         if(net!=null){ const f=fmtUnitsNet(net); if(f) msg+=" · "+f; }
         toast(msg);
+        // Instant UI: patch chips / move cards / refresh units from response tips + units_net.
+        const details=Array.isArray(j.tips)?j.tips:[];
+        details.forEach(d=>{
+          if(!d||!d.tip_id) return;
+          if(d.ok===false) return;
+          const res=d.result; if(!res) return;
+          applyLocalSettle(guildId, d, res, d.profit_units);
+        });
+        if(net!=null) updateFinishedNet(matchId, gameName, net);
+        // If group still has pending cards but API graded them without tip details, force-hide graded count.
+        if(graded && btn){
+          const group=btn.closest(".game-group");
+          if(group && details.length){
+            // already moved individually
+          }
+        }
+        refreshStatsTilesFromCache(guildId);
       }else toast(j.message||"Couldn't push all.");
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
@@ -1687,16 +1877,18 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
       +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
-      +'<div class="tiles">'+tiles+'</div>'
+      +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
+      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
       +'<div class="panel"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.staked_units+'u staked</span></div></div>'
-      +renderCalendar(d.cal_month,d.daily_series)
-      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>';
+      +renderCalendar(d.cal_month,d.daily_series);
     if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
     { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
     $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
       openFollowerView(gid,nm,calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
     });
+    wireCalendarDays($("follower"), d.feed||[], d.daily_series||{}, {follower:true,guildId:gid});
+    wireStatsCollapse($("follower"));
     mountFollowerPromoChip(gid,nm);
   }
 
@@ -1785,15 +1977,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div style="color:var(--muted);font-size:13px;margin:4px 0 12px">Combined · '+(d.communityCount||0)+' communities</div>'
       +failNote
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
-      +'<div class="tiles">'+tiles+'</div>'
+      +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
+      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
       +'<div class="panel"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+(st.staked_units||0)+'u staked</span></div></div>'
-      +renderCalendar(d.cal_month,d.daily_series,(d.follows&&d.follows.length)?'<div class="tb-comm-chips" style="margin-top:8px">'+d.follows.map(s=>'<span class="tb-comm-chip">'+esc(s.display_name||"Community")+'</span>').join("")+'</div>':'')
-      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>';
+      +renderCalendar(d.cal_month,d.daily_series,(d.follows&&d.follows.length)?'<div class="tb-comm-chips" style="margin-top:8px">'+d.follows.map(s=>'<span class="tb-comm-chip">'+esc(s.display_name||"Community")+'</span>').join("")+'</div>':'');
     { const b=$("flbx"); if(b)b.onclick=enterHome; }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerAllView(ms.value||null); }
     $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
       openFollowerAllView(calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
     });
+    wireCalendarDays($("follower"), d.feed||[], d.daily_series||{}, {follower:true});
+    wireStatsCollapse($("follower"));
     const first=(d.follows&&d.follows[0])||null;
     mountFollowerPromoChip(first?first.guild_id:null, first?(first.display_name||"All communities"):"All communities");
   }
@@ -2237,6 +2431,80 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +series.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.profit)+'" r="2.6" fill="'+(p.profit>=0?"var(--win)":"var(--loss)")+'"><title>'+esc(fmtMonth(p.month))+": "+u(p.profit)+'</title></circle>').join("")
       +'</svg><div style="color:var(--muted);font-size:12px">'+series.length+' months · net <b class="'+(tot>=0?"pos":"neg")+'">'+u(tot)+'</b></div></div></div>';
   }
+  // ── Day settle sheet (calendar tap) ──────────────────────────────────────
+  function closeDaySheet(){
+    const el=$("day-sheet"); if(el) el.remove();
+  }
+  function tipsSettledOnDay(day, tips){
+    const list=(tips||[]).filter(t=>tipDayKey(t)===day);
+    // Stable: newest first when timestamps differ
+    return list.slice().sort((a,b)=>{
+      const am=tipTimeMs(a)||0, bm=tipTimeMs(b)||0;
+      return bm-am;
+    });
+  }
+  function openDaySheet(day, dailyEntry, tips, opts){
+    opts=opts||{};
+    closeDaySheet();
+    const e=dailyEntry||{net:0,n:0,won:0,lost:0,push:0};
+    const settled=tipsSettledOnDay(day, tips);
+    let whenLabel=day;
+    try{
+      const [yy,mm,dd]=day.split("-").map(Number);
+      whenLabel=new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+    }catch(err){}
+    const parts=[]; if(e.won)parts.push(e.won+"W"); if(e.lost)parts.push(e.lost+"L"); if(e.push)parts.push(e.push+"P");
+    const sub=u(e.net)+" · "+(e.n||settled.length)+" tip"+((e.n||settled.length)===1?"":"s")+(parts.length?" ("+parts.join(" ")+")":"");
+    const body=settled.length
+      ? settled.map(t=>opts.follower?followerFeedRow(t):tipRow(t,true)).join("")
+      : '<div class="empty">No tip rows loaded for this day yet — totals above still count. Pull a refresh or open Recent Results.</div>';
+    const wrap=document.createElement("div");
+    wrap.id="day-sheet";
+    wrap.className="day-sheet";
+    wrap.innerHTML='<div class="day-sheet-card" role="dialog" aria-modal="true" aria-label="Settled tips">'
+      +'<div class="day-sheet-hd"><div><h3>'+esc(whenLabel)+'</h3><div class="sub">'+esc(sub)+'</div></div>'
+      +'<button type="button" class="ghost" id="day-sheet-x" aria-label="Close">✕</button></div>'
+      +'<div id="day-sheet-list">'+body+'</div></div>';
+    document.body.appendChild(wrap);
+    const closer=()=>closeDaySheet();
+    wrap.addEventListener("click",ev=>{ if(ev.target===wrap) closer(); });
+    const xb=$("day-sheet-x"); if(xb) xb.onclick=closer;
+    document.addEventListener("keydown", function onEsc(ev){
+      if(ev.key==="Escape"){ closer(); document.removeEventListener("keydown", onEsc); }
+    });
+    if(!opts.follower){
+      const list=$("day-sheet-list");
+      if(list){ wireTipRows(list, opts.guildId||""); }
+    }
+  }
+  function wireCalendarDays(root, tips, daily, opts){
+    if(!root) return;
+    opts=opts||{};
+    root.querySelectorAll(".cal-day").forEach(btn=>{
+      btn.onclick=()=>{
+        const day=btn.dataset.day; if(!day) return;
+        openDaySheet(day, (daily||{})[day], tips||[], opts);
+      };
+    });
+  }
+  function wireStatsCollapse(root){
+    const wrap=root && root.querySelector(".stats-wrap");
+    const btn=root && root.querySelector("#stats-toggle");
+    if(!wrap||!btn) return;
+    // Collapsed by default on narrow screens so tips are reachable faster.
+    const narrow=window.matchMedia && window.matchMedia("(max-width:640px)").matches;
+    wrap.classList.toggle("is-collapsed", !!narrow);
+    btn.setAttribute("aria-expanded", String(!narrow));
+    const caret=btn.querySelector(".st-caret");
+    if(caret) caret.textContent=narrow?"▸":"▾";
+    btn.onclick=()=>{
+      wrap.classList.toggle("is-collapsed");
+      const collapsed=wrap.classList.contains("is-collapsed");
+      btn.setAttribute("aria-expanded", String(!collapsed));
+      const c=btn.querySelector(".st-caret"); if(c) c.textContent=collapsed?"▸":"▾";
+    };
+  }
+
   // ── Units calendar (month heatmap) ───────────────────────────────────────
   // Win/loss/push are sacred + constant across themes, so tint straight from
   // their fixed rgb (no color-mix needed). Reusable by the follower surface (#31).
@@ -2269,16 +2537,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const key=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
       const e=daily[key];
       if(!e){
-        cells+='<div style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--card2);display:flex;align-items:flex-start;padding:6px"><span style="color:var(--faint);font-size:11px">'+d+'</span></div>';
+        cells+='<div class="cal-day-empty" style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--card2);display:flex;align-items:flex-start;padding:6px"><span style="color:var(--faint);font-size:11px">'+d+'</span></div>';
         continue;
       }
       const t=calCellTint(e.net,maxAbs);
       const parts2=[]; if(e.won)parts2.push(e.won+"W"); if(e.lost)parts2.push(e.lost+"L"); if(e.push)parts2.push(e.push+"P");
       const wd=new Date(y,mo-1,d).toLocaleDateString(undefined,{weekday:"short"});
-      const tip=wd+" "+d+" "+fmtMonth(month).split(" ")[0]+" — "+u(e.net)+" · "+e.n+" tip"+(e.n>1?"s":"")+(parts2.length?" ("+parts2.join(" ")+")":"");
-      cells+='<div title="'+esc(tip)+'" style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:'+t.bg+';display:flex;flex-direction:column;justify-content:space-between;padding:6px;overflow:hidden">'
+      const tip=wd+" "+d+" "+fmtMonth(month).split(" ")[0]+" — "+u(e.net)+" · "+e.n+" tip"+(e.n>1?"s":"")+(parts2.length?" ("+parts2.join(" ")+")":"")+" — tap for list";
+      cells+='<button type="button" class="cal-day" data-day="'+esc(key)+'" title="'+esc(tip)+'" style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:'+t.bg+';display:flex;flex-direction:column;justify-content:space-between;padding:6px;overflow:hidden;font:inherit;color:inherit;text-align:left">'
         +'<span style="color:var(--muted);font-size:11px">'+d+'</span>'
-        +'<span style="color:'+t.fg+';font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+(e.net>0?"+":"")+(Math.round(e.net*100)/100)+'</span></div>';
+        +'<span style="color:'+t.fg+';font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+(e.net>0?"+":"")+(Math.round(e.net*100)/100)+'</span></button>';
     }
     const netCls=net>=0?"pos":"neg";
     const legend='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;color:var(--faint);font-size:12px">'
@@ -2746,6 +3014,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
     const tileDefs=[["Tips Queued",st.queued,"","queued"],["Won",st.won,"pos",""],["Lost",st.lost,"neg",""],["Success Rate",st.strike_rate+"%","",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg",""],["ROI",st.roi+"%",st.roi>=0?"pos":"neg",""],["Followers",st.followers,"","followers"]];
     const tiles=tileDefs.map(t=>'<div class="tile'+(t[3]?" clk":"")+'"'+(t[3]?' data-act="'+t[3]+'"':'')+'><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+(t[3]?' <span style="color:var(--accent)">›</span>':'')+'</div></div>').join("");
+    const pCls=st.profit_units>=0?"pos":"neg";
+    const rCls=st.roi>=0?"pos":"neg";
+    const statsBlock='<div class="stats-wrap" id="stats-wrap">'
+      +'<button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true">'
+      +'<div class="st-sum" id="stats-sum"><span>Profit <b class="'+pCls+'">'+esc(u(st.profit_units))+'</b></span>'
+      +'<span>ROI <b class="'+rCls+'">'+esc(String(st.roi))+'%</b></span>'
+      +'<span>Queued <b>'+esc(String(st.queued))+'</b></span></div>'
+      +'<span class="st-caret">▾</span></button>'
+      +'<div class="tiles">'+tiles+'</div></div>';
     const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("");
     const se=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>';
     const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
@@ -2793,14 +3070,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div class="dhead-actions"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
-      +'<div class="tiles">'+tiles+'</div>'
+      +statsBlock
+      +'<div class="panel" id="finished-panel" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
+      +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
-      +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +settingsPanel
-      +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="finished-panel" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Final scores at a glance — grade pending tips below.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
@@ -2815,6 +3092,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const target=calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1);
       loadDetail(s.guild_id,target);
     });
+    wireCalendarDays($("detail"), tips.settled||[], d.daily_series||{}, {guildId:s.guild_id});
+    wireStatsCollapse($("detail"));
     { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
     { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
       const on=godOn();
@@ -2881,7 +3160,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ci.onkeydown=(e)=>{ if(e.key==="Enter"&&armed())lb.click(); };
     }}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
-      if(a==="queued"){const up=$("upcoming-panel")||$("finished-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
+      if(a==="queued"){const up=$("finished-panel")||$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
     $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle")return; b.onclick=()=>toggle(b); });
     wireTipRows($("recent-box"),s.guild_id);
@@ -2891,10 +3170,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     setTab("general");
     loadUpcoming(s.guild_id,tips.queued);
     loadLiveTipsPanel(s.guild_id);
-    if(!STATE._cel)STATE._cel=new Set();
-    if(!curMonth&&st.profit_units>0&&st.won>0&&!STATE._cel.has(s.guild_id)&&window.NDConfetti){
-      STATE._cel.add(s.guild_id);try{NDConfetti.burst({duration:2400,count:140});}catch(e){}
-    }
   }
   async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
@@ -3326,6 +3601,7 @@ async function loadPerms(gid){
       custom:!!BUILD.custom,
       customEvent:BUILD.customEvent||"",
       customSport:BUILD.customSport||"",
+      customStartDay:BUILD.customStartDay||"",
       tab:BUILD.tab||"Disposals",
       search:BUILD.search||"",
       sort:BUILD.sort||"number",
@@ -3377,6 +3653,7 @@ async function loadPerms(gid){
     BUILD.custom=!!d.custom;
     BUILD.customEvent=d.customEvent||"";
     BUILD.customSport=d.customSport||"";
+    BUILD.customStartDay=d.customStartDay||"";
     BUILD.serverName=d.serverName||BUILD.serverName;
     if(d.custom){
       BUILD.game=null;
@@ -3470,7 +3747,7 @@ async function loadPerms(gid){
   function openCustom(guildId,name,presetSport){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",unitSize:guildUnitSize(guildId)};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",customStartDay:"",unitSize:guildUnitSize(guildId)};
     panel("builder");renderTray();renderBatchTray();
     renderCustom();
     offerDraftResume(guildId, null);
@@ -3482,11 +3759,13 @@ async function loadPerms(gid){
       +'<div class="panel">'
       +'<div class="field"><label>Event / match</label><input id="c_event" placeholder="e.g. Lakers v Celtics · Race 5 Flemington · Man City v Arsenal" value="'+esc(BUILD.customEvent||"")+'"></div>'
       +'<div class="field"><label>Sport / league (optional)</label><input id="c_sport" placeholder="e.g. NBA · EPL · UFC · Racing · NRL" value="'+esc(BUILD.customSport||"")+'"></div>'
+      +'<div class="field"><label>Start day (optional)</label><input id="c_start" type="date" value="'+esc(BUILD.customStartDay||"")+'"><div style="color:var(--faint);font-size:12px;margin-top:6px">When the event tips off — sent as <code>start_date</code> when TipBot supports it.</div></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:12px;margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
       +'</div>';
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
     const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;saveMultiDraft();};
     const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;saveMultiDraft();};
+    const sd=$("c_start"); if(sd)sd.onchange=()=>{BUILD.customStartDay=sd.value||"";saveMultiDraft();};
     const add=()=>{ const inp=$("c_leg"); const v=(inp.value||"").trim(); if(!v)return; addLeg({custom:true,desc:v}); inp.value=""; inp.focus(); };
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
@@ -4052,7 +4331,11 @@ async function loadPerms(gid){
     const game_name=BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"");
     const sport=BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL";
     BUILD.legs=normalizePropLines(BUILD.legs);
-    return {odds,units,bookmaker,game_name,sport,legs:BUILD.legs.slice(),image_b64:BUILD.image||""};
+    const start_date=BUILD.custom?((BUILD.customStartDay||"").trim()):"";
+    const out={odds,units,bookmaker,game_name,sport,legs:BUILD.legs.slice(),image_b64:BUILD.image||""};
+    // TipBot may accept start_date / game_start; ignore-unknown on lagging deploys.
+    if(start_date){ out.start_date=start_date; out.game_start=start_date; }
+    return out;
   }
   function addCurrentTipToBatch(){
     const tip=readTipForm();
@@ -4062,7 +4345,8 @@ async function loadPerms(gid){
     BATCH.guildId=BUILD.guildId;
     BATCH.tips.push({
       legs:tip.legs, odds:tip.odds, units:tip.units, bookmaker:tip.bookmaker,
-      game_name:tip.game_name, sport:tip.sport, image_b64:tip.image_b64||""
+      game_name:tip.game_name, sport:tip.sport, image_b64:tip.image_b64||"",
+      start_date:tip.start_date||"", game_start:tip.game_start||""
     });
     BUILD.legs=[]; BUILD.image=null;
     clearMultiDraft(BUILD.guildId);
@@ -4133,10 +4417,12 @@ async function loadPerms(gid){
     const errEl=$("scherr");
     function setErr(msg){ if(errEl)errEl.textContent=msg||""; }
     const guildId=BATCH.guildId||BUILD.guildId;
-    const tips=BATCH.tips.map(t=>({
-      legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
-      game_name:t.game_name, sport:t.sport, image_b64:t.image_b64||""
-    }));
+    const tips=BATCH.tips.map(t=>{
+      const row={legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
+        game_name:t.game_name, sport:t.sport, image_b64:t.image_b64||""};
+      if(t.start_date){ row.start_date=t.start_date; row.game_start=t.game_start||t.start_date; }
+      return row;
+    });
     const payload={
       guild_id:guildId,
       delay_minutes:delay,
@@ -4168,6 +4454,7 @@ async function loadPerms(gid){
           guild_id:guildId, legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
           game_name:t.game_name, sport:t.sport, delay_minutes:delay, image_b64:t.image_b64||""
         };
+        if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
         try{
           const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(one)});
           const {j,raw}=await readBody(r);
@@ -4265,6 +4552,10 @@ async function loadPerms(gid){
       sport:BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL",
       delay_minutes:parseInt($("f_delay").value||"0",10),
       image_b64:BUILD.image||""};
+    if(BUILD.custom && (BUILD.customStartDay||"").trim()){
+      payload.start_date=BUILD.customStartDay.trim();
+      payload.game_start=BUILD.customStartDay.trim();
+    }
     try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
       const j=await r.json();
       if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
