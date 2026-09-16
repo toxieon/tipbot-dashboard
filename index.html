@@ -146,6 +146,12 @@
   }
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:22px}
   .panel h3{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .panel.collapsible > .panel-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;cursor:pointer;user-select:none}
+  .panel.collapsible > .panel-hd h3{margin:0}
+  .panel.collapsible > .panel-hd .panel-caret{color:var(--muted);font-size:14px;flex:none}
+  .panel.collapsible.is-collapsed > .panel-hd{margin-bottom:0}
+  .panel.collapsible.is-collapsed > .panel-body{display:none}
+  .panel.collapsible .panel-hd-sum{color:var(--faint);font-size:12px;font-weight:600;margin-left:8px}
   .wlbar{display:flex;height:14px;border-radius:8px;overflow:hidden;gap:2px;background:var(--bg2)}.wlbar>span{display:block}
   .wl-legend{display:flex;gap:18px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
   .lg{display:inline-flex;align-items:center;gap:7px}.sw{width:10px;height:10px;border-radius:3px}
@@ -1371,10 +1377,33 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(s==="over"||s==="o") return "Over";
     return parseSideFromText(L.description||L.text||L.market||LV.text||"")||null;
   }
+  /** Normalize tip status/result after TipBot settle sync (won/lost/pending or Settled+result). */
+  function tipOutcome(t, settledFlag){
+    t=t||{};
+    const st=String(t.status||t.outcome||"").trim().toLowerCase();
+    let raw=String(t.result!=null&&t.result!==""?t.result:(t._previewResult||"")).trim();
+    if(/^(won|win)$/.test(st)) raw=raw||"Win";
+    else if(/^(lost|loss)$/.test(st)) raw=raw||"Loss";
+    else if(/^(push|void)$/.test(st)) raw=raw||st.charAt(0).toUpperCase()+st.slice(1);
+    const resKey=String(raw||"").trim().toLowerCase();
+    const map={win:"Win",won:"Win",loss:"Loss",lost:"Loss",push:"Push",void:"Void"};
+    const mapped=map[resKey]||null;
+    const settled=!!settledFlag
+      || st==="settled"
+      || !!mapped
+      || /^(won|lost|win|loss|push|void)$/.test(st);
+    if(!settled) return {settled:false, result:"Pending"};
+    return {settled:true, result:mapped||(raw&&!/^pending$/i.test(raw)?raw:"Push")};
+  }
+  function tipIsSettled(t, settledFlag){ return tipOutcome(t, settledFlag).settled; }
+  function tipResultLabel(t, settledFlag){ return tipOutcome(t, settledFlag).result; }
   function legNums(leg, tip, liveLeg){
     const L=leg||{}, T=tip||{}, LV=liveLeg||{};
-    const cur=pickNum(L.current, L.live_current, L.current_value, L.value, L.stat_current,
-      LV.current, LV.live_current, T.current, T.live_current,
+    // Prefer TipBot settle `actual` when present; fall back to live current aliases.
+    const cur=pickNum(L.actual, L.actual_count, L.final, L.final_value, L.ft_value,
+      L.current, L.live_current, L.current_value, L.value, L.stat_current,
+      LV.actual, LV.actual_count, LV.current, LV.live_current,
+      T.actual, T.actual_count, T.current, T.live_current,
       L.disposals, L.goals);
     let line=pickNum(L.line, L.line_value, L.market_line, LV.line, T.line, T.market_line);
     if(line==null) line=parseLineFromText(L.description||L.text||L.market||"");
@@ -1460,7 +1489,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function usableLegs(legs){
     if(!legs||!legs.length) return null;
-    const ok=legs.some(l=>l&&(l.description||l.text||l.market||l.player||l.line!=null||l.current!=null||l.live_current!=null));
+    const ok=legs.some(l=>l&&(l.description||l.text||l.market||l.player||l.line!=null||l.current!=null||l.live_current!=null||l.actual!=null||l.actual_count!=null));
     return ok?legs:null;
   }
   function legsBlockHtml(t, legs, liveByPos){
@@ -1480,11 +1509,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function tipCard(t,settled,opts){
     opts=opts||{};
-    const result=settled?(t.result||"Push"):"Pending";
-    const right=TB.chips.render(result)+(settled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
+    const oc=tipOutcome(t, settled);
+    const isSettled=oc.settled;
+    const result=oc.result;
+    const right=TB.chips.render(result)+(isSettled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!isSettled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
     const tid=esc(t.tip_id||"");
-    const canDel=!!tid&&(!settled||godOn());
-    const del=canDel?'<button type="button" class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(settled?"1":"0")+'" title="'+(settled?"God-delete & redact":"Delete & redact")+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px;flex:none">✕</button>':'';
+    const canDel=!!tid&&(!isSettled||godOn());
+    const del=canDel?'<button type="button" class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(isSettled?"1":"0")+'" title="'+(isSettled?"God-delete & redact":"Delete & redact")+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:12px;flex:none">✕</button>':'';
     const bookie=t.bookmaker
       ?('<span class="betcard-bookie">'+TB.bookie.render(t.bookmaker,20)+'<span class="bk-name">'+esc(String(t.bookmaker).trim())+'</span></span>')
       :('<span class="betcard-bookie"><span class="bk-name" style="color:var(--faint)">No bookie</span></span>');
@@ -1492,18 +1523,18 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const title=hideGame
       ? ''
       : '<div style="font-weight:700;font-size:13px;margin-bottom:6px;min-width:0;overflow-wrap:break-word">'+esc(t.game_name||t.bet_type||("Tip "+(t.display_id||"")))+'</div>';
-    const godRegrade=settled&&godOn();
+    const godRegrade=isSettled&&godOn();
     const legsSrc=t._fullLegs||usableLegs(t.legs);
     const finishedCtx=!!opts.finished;
-    const outcome=evalTipOutcome(legsSrc, t, t._liveLegs, {finished:finishedCtx});
+    const outcome=evalTipOutcome(legsSrc, t, t._liveLegs, {finished:finishedCtx||isSettled});
     const ocls=betcardOutcomeClass(outcome);
-    return '<div class="betcard tip betrow'+(ocls?(" "+ocls):"")+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'">'
+    return '<div class="betcard tip betrow'+(ocls?(" "+ocls):"")+'" data-tip="'+tid+'" data-settled="'+(isSettled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'">'
       +title
       +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+del+'</div></div>'
       +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
       +'<div class="betcard-type">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units!=null?(" · "+t.units+"u"):"")+'</div>'
-      +'<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div>'
-      +'<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, settled, godRegrade)+'</div>'
+      +'<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>'
+      +'<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, isSettled, godRegrade)+'</div>'
       +'</div>';
   }
   // Back-compat alias used by Recent Results + god-mode repaint.
@@ -1522,7 +1553,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function mergeLegFields(base, extra){
     const b=base||{}, e=extra||{};
     return Object.assign({}, b, {
-      current: pickNum(b.current,b.live_current,e.current,e.live_current),
+      actual: pickNum(b.actual,b.actual_count,e.actual,e.actual_count),
+      actual_count: pickNum(b.actual_count,e.actual_count),
+      current: pickNum(b.actual,b.actual_count,b.current,b.live_current,e.actual,e.actual_count,e.current,e.live_current),
       live_current: pickNum(b.live_current,e.live_current),
       line: pickNum(b.line,b.line_value,e.line,e.line_value),
       side: b.side||e.side||null,
@@ -1533,7 +1566,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     });
   }
   function legsHaveCurrent(legs){
-    return !!(legs&&legs.some(l=>l&&pickNum(l.current,l.live_current)!=null));
+    return !!(legs&&legs.some(l=>l&&pickNum(l.actual,l.actual_count,l.current,l.live_current)!=null));
   }
   async function fetchFinishedTipsMap(gid){
     const map={};
@@ -1613,11 +1646,31 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return mergeLegFields(l, lv);
       });
       t._fullLegs=legs;
-      const settled=String((full.status||t.status||"")).toLowerCase()==="settled" || !!(cardEl&&cardEl.dataset&&cardEl.dataset.settled==="1");
+      Object.assign(t, {status:full.status||t.status, result:full.result||t.result||t._previewResult, settle_source:full.settle_source||t.settle_source, profit_units:full.profit_units!=null?full.profit_units:t.profit_units});
+      const flagSettled=!!(cardEl&&cardEl.dataset&&cardEl.dataset.settled==="1");
+      const oc=tipOutcome(Object.assign({}, t, full, {_previewResult:t._previewResult}), flagSettled);
+      const settled=oc.settled;
       const godRegrade=settled&&godOn();
+      if(cardEl){
+        cardEl.dataset.settled=settled?"1":"0";
+        const meta=cardEl.querySelector(".betcard-meta");
+        if(meta){
+          const del=meta.querySelector(".delbet");
+          const delHtml=del?del.outerHTML:"";
+          const right=TB.chips.render(oc.result)+(settled&&/^(win|loss)$/i.test(oc.result)?'<span class="num '+(oc.result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
+          meta.innerHTML=right+delHtml;
+          const tags=cardEl.querySelector(".tb-tip-tags");
+          if(tags&&settled){
+            const badge=TB.settleBadge.render(t.settle_source||full.settle_source);
+            if(badge && !tags.querySelector(".tb-settle")){
+              tags.insertAdjacentHTML("beforeend", badge);
+            }
+          }
+        }
+      }
       body.innerHTML=legsBlockHtml(full, legs, t._liveLegs)+gradeRowHtml(tipId, settled, godRegrade);
-      applyBetcardOutcome(cardEl, evalTipOutcome(legs, full, t._liveLegs, {finished:isFinished}));
-      wireTipRows(body,gid);
+      applyBetcardOutcome(cardEl, evalTipOutcome(legs, full, t._liveLegs, {finished:isFinished||settled}));
+      wireTipRows(cardEl||body,gid);
     }));
   }
   function estimateSettleProfit(units, odds, result){
@@ -1964,7 +2017,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   /* ---------- FOLLOWERS ---------- */
   // One row in a follower's tip history: chips + $ figure + SGM/settle badges.
   function followerFeedRow(t){
-    const result=String(t.result||"Pending"),settled=/^(win|loss|push|void)$/i.test(result);
+    const oc=tipOutcome(t,false); const result=oc.result, settled=oc.settled;
     const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
     const cname=t.community_name||t._community||"";
     const clabel=cname?'<div style="margin-top:5px"><span class="tb-comm-chip">'+esc(cname)+'</span></div>':'';
@@ -2013,6 +2066,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     });
     wireCalendarDays($("follower"), d.feed||[], d.daily_series||{}, {follower:true,guildId:gid});
     wireStatsCollapse($("follower"));
+    wirePanelCollapse($("follower"));
     mountFollowerPromoChip(gid,nm);
   }
 
@@ -2112,6 +2166,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     });
     wireCalendarDays($("follower"), d.feed||[], d.daily_series||{}, {follower:true});
     wireStatsCollapse($("follower"));
+    wirePanelCollapse($("follower"));
     const first=(d.follows&&d.follows[0])||null;
     mountFollowerPromoChip(first?first.guild_id:null, first?(first.display_name||"All communities"):"All communities");
   }
@@ -2214,11 +2269,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           cal.querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
             openMyTips(fromGid,fromName,calMonthShift(j.cal_month,b.dataset.cal==="next"?1:-1));
           });
+          wirePanelCollapse(cal);
         }
         const tips=(j&&j.tips)||[];
         if(!tips.length){ box.innerHTML='<div class="empty">No personal tips yet — add one above.</div>'; return; }
         box.innerHTML=tips.map(t=>{
-          const res=(t.result||"pending");
+          const oc=tipOutcome(t,false);
+          const res=oc.settled?String(oc.result).toLowerCase():"pending";
           const col=res==="win"?"var(--win)":res==="loss"?"var(--loss)":"var(--muted)";
           const profit=t.profit_units!=null?(' · <span style="color:'+col+'">'+(t.profit_units>0?"+":"")+t.profit_units+'u</span>'):"";
           const settle=res==="pending"
@@ -2228,9 +2285,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
               +'<button type="button" class="mt-settlebtn" data-id="'+esc(t.id)+'" data-r="push">Push</button>'
               +'<button type="button" class="mt-settlebtn" data-id="'+esc(t.id)+'" data-r="void">Void</button></div>')
             :"";
+          const actualBits=[];
+          const act=pickNum(t.actual,t.actual_count,t.current);
+          const line=pickNum(t.line,t.line_value);
+          if(act!=null||line!=null) actualBits.push((act!=null?act:"—")+" / "+(line!=null?line:"—"));
           return '<div class="mt-row"><div style="flex:1"><div style="font-weight:700">'+esc(t.selection||"—")+'</div>'
             +'<div style="font-size:12px;color:var(--faint)">'+esc(String(t.odds||"—"))+' · '+esc(String(t.units||"—"))+'u'
-            +profit+(t.note?(" · "+esc(t.note)):"")+'</div>'+settle+'</div>'
+            +profit+(t.note?(" · "+esc(t.note)):"")
+            +(actualBits.length?(' · <span style="color:var(--accent)">'+esc(actualBits[0])+'</span>'):"")
+            +'</div>'+settle+'</div>'
             +'<div style="font-weight:700;color:'+col+';text-transform:capitalize">'+esc(res)+'</div></div>';
         }).join("");
         box.querySelectorAll(".mt-settlebtn").forEach(b=>b.onclick=async()=>{
@@ -2404,15 +2467,69 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); $("dc-list").innerHTML='<div class="empty">Couldn\'t load Discover. <button type="button" class="btn sm" id="dc-retry">Retry</button></div>'; const rb=$("dc-retry"); if(rb)rb.onclick=()=>openDiscover(fromGid,fromName); }
   }
 
+  function followersCacheKey(gid){ return "tipdash_followers_"+String(gid); }
+  function readFollowersCache(gid){
+    try{ const raw=localStorage.getItem(followersCacheKey(gid)); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+  }
+  function writeFollowersCache(gid, data){
+    try{
+      const list=((data&&data.followers)||[]).map(f=>{
+        const o=Object.assign({}, f);
+        delete o.follows_list; // roster only — bets stay in memory / lazy fetch
+        return o;
+      });
+      localStorage.setItem(followersCacheKey(gid), JSON.stringify({followers:list, cached_at:Date.now()}));
+    }catch(e){}
+  }
+  function stashFollowerBets(gid, list){
+    STATE._followerBets=STATE._followerBets||{};
+    const g=(STATE._followerBets[String(gid)]=STATE._followerBets[String(gid)]||{});
+    (list||[]).forEach(f=>{
+      if(!f||f.user_id==null) return;
+      if(Array.isArray(f.follows_list)) g[String(f.user_id)]=f.follows_list;
+    });
+  }
+  async function fetchFollowerBets(gid, uid){
+    STATE._followerBets=STATE._followerBets||{};
+    const g=(STATE._followerBets[String(gid)]=STATE._followerBets[String(gid)]||{});
+    const key=String(uid);
+    if(Array.isArray(g[key])) return g[key];
+    // Prefer per-user feed when TipBot supports user_id; else fall back to full roster once.
+    try{
+      let r=await api("/api/followers?guild_id="+encodeURIComponent(gid)+"&user_id="+encodeURIComponent(uid)+"&include_feeds=1");
+      if(r.ok){
+        const data=await r.json();
+        const list=(data&&data.followers)||[];
+        stashFollowerBets(gid, list);
+        const one=list.find(f=>String(f.user_id)===key);
+        if(one&&Array.isArray(one.follows_list)){ g[key]=one.follows_list; return g[key]; }
+        if(Array.isArray(data.follows_list)){ g[key]=data.follows_list; return g[key]; }
+        if(Array.isArray(data.feed)){ g[key]=data.feed; return g[key]; }
+      }
+    }catch(e){ if(e&&e.unauth) throw e; }
+    return g[key]||[];
+  }
   async function openFollowers(gid,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("followers");show("app");
-    $("followers").innerHTML='<div class="back" id="fbx">← Back</div><h1 style="margin:0 0 14px">Followers</h1>'+NDSkeleton.lines(6);
-    $("fbx").onclick=()=>loadDetail(gid);
-    try{ const data=await (await api("/api/followers?guild_id="+encodeURIComponent(gid))).json();
-      renderFollowers(gid,name,data);
+    const cached=readFollowersCache(gid);
+    if(cached&&Array.isArray(cached.followers)){
+      renderFollowers(gid,name,cached,{fromCache:true});
+    }else{
+      $("followers").innerHTML='<div class="back" id="fbx">← Back</div><h1 style="margin:0 0 14px">Followers</h1>'+NDSkeleton.lines(6);
+      $("fbx").onclick=()=>loadDetail(gid);
+    }
+    try{
+      // include_feeds=0 asks TipBot for roster-only when supported; ignored otherwise.
+      const data=await (await api("/api/followers?guild_id="+encodeURIComponent(gid)+"&include_feeds=0")).json();
+      stashFollowerBets(gid, (data&&data.followers)||[]);
+      writeFollowersCache(gid, data);
+      renderFollowers(gid,name,data,{fromCache:false,appendOnly:!!(cached&&cached.followers&&cached.followers.length)});
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
-      $("followers").innerHTML='<div class="back" id="fbx">← Back</div><div class="empty">Couldn\'t load followers.</div>'; $("fbx").onclick=()=>loadDetail(gid); }
+      if(!(cached&&cached.followers)){
+        $("followers").innerHTML='<div class="back" id="fbx">← Back</div><div class="empty">Couldn\'t load followers.</div>'; $("fbx").onclick=()=>loadDetail(gid);
+      }
+    }
   }
   function modButtons(uid){
     const u2=esc(uid);
@@ -2421,35 +2538,41 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button class="ghost mact" data-uid="'+u2+'" data-a="timeout" data-min="1440" style="padding:6px 8px;font-size:12px">1d</button>'
       +'<button class="mact" data-uid="'+u2+'" data-a="kick" style="padding:6px 8px;font-size:12px;border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:9px;cursor:pointer;font:inherit">Kick</button>';
   }
-  function renderFollowers(gid,name,data){
-    const list=(data&&data.followers)||[];
-    const isOwnerMap=STATE.role==="owner"&&!STATE.viewAs; // platform owner — TipBot-mutual map via avatar
-    let html='<div class="back" id="fbx">← Back</div><div class="dhead"><h1 style="margin:0">Followers</h1><span style="color:var(--faint);font-size:13px">'+list.length+' member'+(list.length===1?"":"s")+' · '+esc(name||"")+'</span></div>';
-    if(!list.length){ html+='<div class="panel"><div class="empty">No one is following bets yet.</div></div>'; }
-    list.forEach((f,i)=>{ const prof=f.profit_units||0;
-      html+='<div class="panel" style="padding:14px 16px">'
-        +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-          +(isOwnerMap?'<button type="button" class="fmap" data-i="'+i+'" title="TipBot server map" style="padding:0;border:0;background:transparent;cursor:pointer;border-radius:50%;line-height:0"><img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover;pointer-events:none" onerror="this.style.visibility=\'hidden\'"></button>':'<img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">')
-          +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:16px">'+esc(f.name||f.user_id)+'</div><div style="color:var(--faint);font-size:12px">'+f.follows+' bet'+(f.follows===1?"":"s")+' followed'+(f.unit_size?(" · $"+f.unit_size+"/unit"):"")+'</div></div>'
-          +'<div style="display:flex;gap:16px;flex-wrap:wrap;text-align:center">'
-            +'<div><div class="'+(prof>=0?"pos":"neg")+'" style="font-weight:800;font-size:18px">'+u(prof)+'</div><div style="color:var(--faint);font-size:11px">PROFIT</div></div>'
-            +'<div><div style="font-weight:800;font-size:18px"><span class="pos">'+f.won+'</span>–<span class="neg">'+f.lost+'</span></div><div style="color:var(--faint);font-size:11px">W – L</div></div>'
-            +'<div><div style="font-weight:800;font-size:18px">'+f.success_rate+'%</div><div style="color:var(--faint);font-size:11px">SUCCESS</div></div>'
-            +'<div><div style="font-weight:800;font-size:18px">'+f.roi+'%</div><div style="color:var(--faint);font-size:11px">ROI</div></div>'
-          +'</div></div>'
-        +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px">'
-          +'<button class="ghost fexp" data-i="'+i+'" style="padding:7px 12px">Followed bets ›</button>'
-          +'<span style="flex:1"></span>'+modButtons(f.user_id)
-        +'</div>'
-        +'<div class="fbets" id="fbets_'+i+'" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px"></div>'
-      +'</div>';
-    });
-    $("followers").innerHTML=html;
+  function followerRowHtml(f,i,isOwnerMap){
+    const prof=f.profit_units||0;
+    const uid=esc(String(f.user_id||""));
+    return '<div class="panel frow" data-uid="'+uid+'" style="padding:14px 16px">'
+      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+        +(isOwnerMap?'<button type="button" class="fmap" data-uid="'+uid+'" title="TipBot server map" style="padding:0;border:0;background:transparent;cursor:pointer;border-radius:50%;line-height:0"><img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover;pointer-events:none" onerror="this.style.visibility=\'hidden\'"></button>':'<img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">')
+        +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:16px">'+esc(f.name||f.user_id)+'</div><div style="color:var(--faint);font-size:12px">'+f.follows+' bet'+(f.follows===1?"":"s")+' followed'+(f.unit_size?(" · $"+f.unit_size+"/unit"):"")+'</div></div>'
+        +'<div style="display:flex;gap:16px;flex-wrap:wrap;text-align:center">'
+          +'<div><div class="'+(prof>=0?"pos":"neg")+'" style="font-weight:800;font-size:18px">'+u(prof)+'</div><div style="color:var(--faint);font-size:11px">PROFIT</div></div>'
+          +'<div><div style="font-weight:800;font-size:18px"><span class="pos">'+f.won+'</span>–<span class="neg">'+f.lost+'</span></div><div style="color:var(--faint);font-size:11px">W – L</div></div>'
+          +'<div><div style="font-weight:800;font-size:18px">'+f.success_rate+'%</div><div style="color:var(--faint);font-size:11px">SUCCESS</div></div>'
+          +'<div><div style="font-weight:800;font-size:18px">'+f.roi+'%</div><div style="color:var(--faint);font-size:11px">ROI</div></div>'
+        +'</div></div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px">'
+        +'<button class="ghost fexp" data-uid="'+uid+'" style="padding:7px 12px">Followed bets ›</button>'
+        +'<span style="flex:1"></span>'+modButtons(f.user_id)
+      +'</div>'
+      +'<div class="fbets" id="fbets_'+uid+'" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px"></div>'
+    +'</div>';
+  }
+  function wireFollowerActions(gid,name,listByUid){
     $("fbx").onclick=()=>loadDetail(gid);
-    list.forEach((f,i)=>{ const b=$("followers").querySelector('.fexp[data-i="'+i+'"]'); if(b)b.onclick=()=>{
-      const box=$("fbets_"+i); if(!box)return; if(!box.hidden){box.hidden=true;return;} box.hidden=false;
-      box.innerHTML=(f.follows_list||[]).map(followerFeedRow).join("")||'<div class="empty">No bets yet.</div>';
-    };});
+    $("followers").querySelectorAll(".fexp").forEach(b=>{
+      b.onclick=async()=>{
+        const uid=b.dataset.uid;
+        const box=$("fbets_"+uid); if(!box)return;
+        if(!box.hidden){ box.hidden=true; return; }
+        box.hidden=false;
+        box.innerHTML='<div class="empty">Loading bets…</div>';
+        try{
+          const bets=await fetchFollowerBets(gid, uid);
+          box.innerHTML=(bets||[]).map(followerFeedRow).join("")||'<div class="empty">No bets yet.</div>';
+        }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t load bets.</div>'; }
+      };
+    });
     $("followers").querySelectorAll(".mact").forEach(b=>b.onclick=async()=>{
       const a=b.dataset.a,uid=b.dataset.uid,min=b.dataset.min;
       const human=a==="kick"?"Kick this member?":("Time this member out for "+(min>=1440?(min/1440+" day"):min>=60?(min/60+" hour"):(min+" min"))+"?");
@@ -2459,7 +2582,49 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); }
       finally{ b.disabled=false; }
     });
-    $("followers").querySelectorAll(".fmap").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); const f=list[+b.dataset.i]; if(f) openFollowerMap(f); });
+    $("followers").querySelectorAll(".fmap").forEach(b=>b.onclick=(e)=>{
+      e.stopPropagation();
+      const f=listByUid[String(b.dataset.uid)];
+      if(f) openFollowerMap(f);
+    });
+  }
+  function renderFollowers(gid,name,data,opts){
+    opts=opts||{};
+    const list=(data&&data.followers)||[];
+    const isOwnerMap=STATE.role==="owner"&&!STATE.viewAs; // platform owner — TipBot-mutual map via avatar
+    const listByUid={}; list.forEach(f=>{ if(f&&f.user_id!=null) listByUid[String(f.user_id)]=f; });
+    STATE._followersList=STATE._followersList||{}; STATE._followersList[String(gid)]=listByUid;
+
+    const root=$("followers");
+    const scroller=document.scrollingElement||document.documentElement;
+    const prevScroll=scroller?scroller.scrollTop:0;
+    const existing=root.querySelector("#flist");
+    // Background refresh: append only net-new followers at bottom (don't jump scroll / rebuild).
+    if(opts.appendOnly && existing){
+      const seen=new Set(Array.from(existing.querySelectorAll(".frow")).map(el=>String(el.dataset.uid||"")));
+      const countEl=root.querySelector("#fcount");
+      if(countEl) countEl.textContent=list.length+' member'+(list.length===1?"":"s")+' · '+(name||"");
+      list.forEach((f,i)=>{
+        const uid=String(f.user_id||"");
+        if(!uid||seen.has(uid)) return;
+        existing.insertAdjacentHTML("beforeend", followerRowHtml(f,i,isOwnerMap));
+        seen.add(uid);
+      });
+      // Re-wire actions for new rows (and refresh handlers).
+      wireFollowerActions(gid,name,listByUid);
+      if(scroller) scroller.scrollTop=prevScroll;
+      return;
+    }
+
+    let html='<div class="back" id="fbx">← Back</div><div class="dhead"><h1 style="margin:0">Followers</h1><span id="fcount" style="color:var(--faint);font-size:13px">'+list.length+' member'+(list.length===1?"":"s")+' · '+esc(name||"")+'</span>'
+      +(opts.fromCache?'<span style="color:var(--faint);font-size:11px;margin-left:8px">cached · refreshing…</span>':'')
+      +'</div><div id="flist">';
+    if(!list.length){ html+='<div class="panel"><div class="empty">No one is following bets yet.</div></div>'; }
+    list.forEach((f,i)=>{ html+=followerRowHtml(f,i,isOwnerMap); });
+    html+='</div>';
+    root.innerHTML=html;
+    wireFollowerActions(gid,name,listByUid);
+    if(opts.appendOnly && scroller) scroller.scrollTop=prevScroll;
   }
   function closeFollowerMap(){ const el=$("fmap-backdrop"); if(el)el.remove(); }
   async function openFollowerMap(follower){
@@ -2628,6 +2793,31 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const c=btn.querySelector(".st-caret"); if(c) c.textContent=collapsed?"▸":"▾";
     };
   }
+  function wirePanelCollapse(root, opts){
+    opts=opts||{};
+    (root||document).querySelectorAll(".panel.collapsible").forEach(panel=>{
+      const hd=panel.querySelector(":scope > .panel-hd");
+      if(!hd||hd.dataset.wired==="1") return;
+      hd.dataset.wired="1";
+      const key=panel.dataset.collapseKey||"";
+      const defCollapsed=opts.defaultCollapsed!=null?!!opts.defaultCollapsed:false;
+      let collapsed=defCollapsed;
+      if(key){
+        try{ const v=localStorage.getItem("tipdash_collapse_"+key); if(v==="1") collapsed=true; if(v==="0") collapsed=false; }catch(e){}
+      }
+      panel.classList.toggle("is-collapsed", collapsed);
+      hd.setAttribute("aria-expanded", String(!collapsed));
+      const caret=hd.querySelector(".panel-caret"); if(caret) caret.textContent=collapsed?"▸":"▾";
+      hd.onclick=(ev)=>{
+        if(ev.target.closest("button.calnav,select,input,a")) return;
+        panel.classList.toggle("is-collapsed");
+        const now=panel.classList.contains("is-collapsed");
+        hd.setAttribute("aria-expanded", String(!now));
+        const c=hd.querySelector(".panel-caret"); if(c) c.textContent=now?"▸":"▾";
+        if(key){ try{ localStorage.setItem("tipdash_collapse_"+key, now?"1":"0"); }catch(e){} }
+      };
+    });
+  }
 
   // ── Units calendar (month heatmap) ───────────────────────────────────────
   // Win/loss/push are sacred + constant across themes, so tint straight from
@@ -2678,19 +2868,22 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(229,89,95,.55)"></span>Down day</span>'
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--card2);border:1px solid var(--line)"></span>No tips</span>'
       +'<span style="margin-left:auto">'+days+' active day'+(days===1?"":"s")+' · '+tips+' tips</span></div>';
-    return '<div class="panel"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:12px;flex-wrap:wrap">'
-      +'<div style="min-width:0"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')+'</div>'
-      +'<div class="cal-nav-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto;min-width:0;max-width:100%">'
+    return '<div class="panel collapsible" data-collapse-key="calendar">'
+      +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="true">'
+      +'<div style="min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')
+      +'<span class="panel-hd-sum">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span></div>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+      +'<div class="cal-nav-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%">'
       +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px;flex:none">‹</button>'
       +'<span style="min-width:112px;text-align:center;font-size:13px;font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
       +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px;flex:none">›</button>'
-      +'<span style="margin-left:6px;color:var(--faint);font-size:12px;white-space:nowrap;flex:none">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span>'
-      +'</div></div>'+head+cells+'</div>'+legend+'</div>';
+      +'</div><span class="panel-caret">▾</span></div></div>'
+      +'<div class="panel-body">'+head+cells+'</div>'+legend+'</div>';
   }
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
     if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div>'; loadRouting(gid); return; }
-    if(tab==="features"){ body.innerHTML='<div id="features-box"><div class="empty">Loading…</div></div>'; loadFeatures(gid); return; }
+    if(tab==="features"){ body.innerHTML='<div class="empty">Features moved to Admin Tools (platform owner only).</div>'; return; }
     if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
     body.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
       +'<label style="color:var(--muted);font-size:13px">Follow emoji</label>'
@@ -2947,6 +3140,12 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
               // Preview auto-pick profit when TipBot sends it on finished-games tips.
               if(ft.profit_units!=null && q.profit_units==null) q.profit_units=ft.profit_units;
               if(ft.result && (!q.result || /pending/i.test(String(q.result)))) q._previewResult=ft.result;
+              if(ft.status && (!q.status || /pending/i.test(String(q.status)))) q.status=ft.status;
+              if(ft.actual!=null && q.actual==null) q.actual=ft.actual;
+              // Copy actual onto seeded legs when TipBot settle sync provides it
+              if(Array.isArray(ft.legs)&&Array.isArray(q._fullLegs)){
+                q._fullLegs=q._fullLegs.map((l,i)=>mergeLegFields(l, ft.legs[i]||{}));
+              }
             }
           });
         });
@@ -3139,10 +3338,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<input id="leaveconfirm" placeholder="'+esc(leaveToken)+'" autocomplete="off" style="flex:1;min-width:160px;padding:8px 10px;border-radius:9px;border:1px solid #7a2a2a;background:#1c1414;color:var(--txt);font:inherit">'
       +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" data-token="'+esc(leaveToken)+'" disabled style="border:1px solid #7a2a2a;background:#2a1717;color:#7a5252;border-radius:9px;padding:9px 14px;cursor:not-allowed;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button>'
       +'</div><div id="leaveservermsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin controls <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+inviteZone+dangerZone+'</div></div>'):'';
-    const settingsPanel='<div class="panel"><h3>Settings</h3><div class="tabs" style="margin-bottom:14px">'
-      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-features">Features</button><button class="tab" id="stab-perms">Command access</button></div>'
-      +'<div id="settings-body"></div></div>';
+    const adminFeatures='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
+      +'<div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Features</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Platform-owner feature flags for this guild. Tipsters do not see this section.</div>'
+      +'<div id="features-box"><div class="empty">Loading…</div></div></div>';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin Tools <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+adminFeatures+debugMenu+godZone+inviteZone+dangerZone+'</div></div>'):'';
+    const settingsPanel='<div class="panel collapsible" id="settings-panel" data-collapse-key="settings">'
+      +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="true"><h3 style="margin:0">Settings</h3><span class="panel-caret">▾</span></div>'
+      +'<div class="panel-body"><div class="tabs" style="margin-bottom:14px">'
+      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button></div>'
+      +'<div id="settings-body"></div></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div class="dhead-actions"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
@@ -3171,7 +3376,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     });
     wireCalendarDays($("detail"), tips.settled||[], d.daily_series||{}, {guildId:s.guild_id});
     wireStatsCollapse($("detail"));
-    { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
+    wirePanelCollapse($("detail"));
+    { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾"; if(!b.hidden) loadFeatures(s.guild_id);}}; }
     { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
       const on=godOn();
       const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — use grade controls on any tip to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
@@ -3242,8 +3448,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle")return; b.onclick=()=>toggle(b); });
     wireTipRows($("recent-box"),s.guild_id);
     hydrateTipCards($("recent-box"),s.guild_id,tips.settled);
-    function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); const sf=$("stab-features"); if(sf)sf.classList.toggle("active",t==="features"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
-    $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); { const sf=$("stab-features"); if(sf)sf.onclick=()=>setTab("features"); } $("stab-perms").onclick=()=>setTab("perms");
+    function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
+    $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
     setTab("general");
     loadUpcoming(s.guild_id,tips.queued);
     loadLiveTipsPanel(s.guild_id);
