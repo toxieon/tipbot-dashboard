@@ -1396,6 +1396,83 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function tipIsSettled(t, settledFlag){ return tipOutcome(t, settledFlag).settled; }
   function tipResultLabel(t, settledFlag){ return tipOutcome(t, settledFlag).result; }
+  /** Tip grade is source-of-truth for follows. Prefer tip_* / nested tip fields when TipBot lands them. */
+  function tipGradeFields(t){
+    t=t||{};
+    const tip=t.tip||t.source_tip||t.parent_tip||null;
+    const tipStatus=t.tip_status!=null&&t.tip_status!==""?t.tip_status
+      :(t.tipStatus!=null&&t.tipStatus!==""?t.tipStatus
+      :(tip&&(tip.status!=null&&tip.status!==""?tip.status:tip.outcome)));
+    const tipResult=t.tip_result!=null&&t.tip_result!==""?t.tip_result
+      :(t.tipResult!=null&&t.tipResult!==""?t.tipResult
+      :(tip&&tip.result!=null&&tip.result!==""?tip.result:null));
+    return {tipStatus:tipStatus||null, tipResult:tipResult||null};
+  }
+  function rememberTipGrade(gid, tipId, grade){
+    if(gid==null||tipId==null||!grade) return;
+    STATE._tipGrades=STATE._tipGrades||{};
+    const g=(STATE._tipGrades[String(gid)]=STATE._tipGrades[String(gid)]||{});
+    g[String(tipId)]=Object.assign({}, g[String(tipId)]||{}, grade);
+  }
+  function tipGradeMapForGuild(gid){
+    const map={};
+    STATE._tipGrades=STATE._tipGrades||{};
+    Object.assign(map, STATE._tipGrades[String(gid)]||{});
+    const dc=STATE._detailCache||{};
+    Object.keys(dc).forEach(k=>{
+      if(!String(k).startsWith(String(gid)+"|")) return;
+      const tips=dc[k]&&dc[k].tips; if(!tips) return;
+      (tips.settled||[]).concat(tips.queued||[]).forEach(t=>{
+        if(!t||t.tip_id==null) return;
+        const oc=tipOutcome(t,true);
+        if(!oc.settled) return;
+        map[String(t.tip_id)]={status:t.status||"Settled", result:oc.result,
+          profit_units:t.profit_units, settle_source:t.settle_source, odds:t.odds, units:t.units};
+      });
+    });
+    STATE._tipGrades[String(gid)]=Object.assign({}, STATE._tipGrades[String(gid)]||{}, map);
+    return map;
+  }
+  /** Follow row outcome: tip grade SoT over independent follow Pending. */
+  function followOutcome(t, tipGrade){
+    t=t||{};
+    const g=tipGradeFields(t);
+    const cached=tipGrade||null;
+    const status=g.tipStatus||(cached&&cached.status)||t.status||t.outcome||"";
+    let result=g.tipResult;
+    if(result==null||result==="") result=(cached&&cached.result)||null;
+    // Tip status alone can encode the grade (won/lost/…).
+    const st=String(status||"").trim().toLowerCase();
+    if((result==null||result==="") && /^(won|win|lost|loss|push|void)$/.test(st)){
+      result=null; // tipOutcome maps status → result
+    }
+    // If tip Settled but follow result still empty and no tip_result yet, keep Pending
+    // (do not invent). Prefer follow result only when tip has no SoT grade fields.
+    const tipHasGrade=!!(g.tipResult||(cached&&cached.result)||/^(won|win|lost|loss|push|void)$/.test(st));
+    if(!tipHasGrade && (result==null||result==="")) result=t.result;
+    else if(tipHasGrade && (result==null||result==="") && !/^(won|win|lost|loss|push|void)$/.test(st)){
+      // tip_status=Settled with tip_result missing — fall back to follow result if present
+      result=t.result;
+    }
+    const oc=tipOutcome({status:status, result:result, _previewResult:t._previewResult}, true);
+    if(oc.settled && cached&&cached.settle_source && !t.settle_source) t.settle_source=cached.settle_source;
+    return oc;
+  }
+  function ingestFollowTipGrades(gid, bets){
+    (bets||[]).forEach(t=>{
+      if(!t||t.tip_id==null) return;
+      const g=tipGradeFields(t);
+      const oc=followOutcome(t, null);
+      if(oc.settled){
+        rememberTipGrade(gid, t.tip_id, {
+          status:g.tipStatus||t.status||"Settled",
+          result:oc.result,
+          profit_units:t.profit_units,
+          settle_source:t.settle_source
+        });
+      }
+    });
+  }
   function legNums(leg, tip, liveLeg){
     const L=leg||{}, T=tip||{}, LV=liveLeg||{};
     // Prefer TipBot settle `actual` when present; fall back to live current aliases.
@@ -1888,11 +1965,30 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const j=await r.json();
       if(j.ok){
         toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…");
+        const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
+        rememberTipGrade(gid, tipId, {status:"Settled", result:result, profit_units:profit, settle_source:useGod?"god":"manual"});
+        // Patch in-memory follower feeds so open panes re-paint tip SoT immediately.
+        try{
+          const fb=STATE._followerBets&&STATE._followerBets[String(gid)];
+          if(fb){
+            Object.keys(fb).forEach(uid=>{
+              const arr=fb[uid]; if(!Array.isArray(arr)) return;
+              arr.forEach((t,i)=>{
+                if(t&&String(t.tip_id)===String(tipId)){
+                  arr[i]=Object.assign({}, t, {status:"Settled", tip_status:"Settled", tip_result:result, result:result, profit_units:profit!=null?profit:t.profit_units});
+                }
+              });
+              const box=$("fbets_"+uid);
+              if(box&&!box.hidden){ box.innerHTML=renderFollowerBetsHtml(gid, arr); wireFollowerBetGrades(gid, box); }
+            });
+          }
+        }catch(e2){}
         if(useGod){
           if(STATE._detailCache)STATE._detailCache={};
-          setTimeout(()=>loadDetail(gid,null,{force:true}),400);
+          // Stay on Followers if that's the active panel; otherwise reload detail.
+          if($("followers")&&!$("followers").hidden){ /* keep Followers; SoT already patched */ }
+          else setTimeout(()=>loadDetail(gid,null,{force:true}),400);
         }else{
-          const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
           applyLocalSettle(gid, Object.assign({}, tipSnap, j.tip||{}), result, profit);
         }
       }
@@ -2015,12 +2111,21 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   /* ---------- FOLLOWERS ---------- */
   // One row in a follower's tip history: chips + $ figure + SGM/settle badges.
-  function followerFeedRow(t){
-    const oc=tipOutcome(t,false); const result=oc.result, settled=oc.settled;
-    const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
+  // Tip grade is SoT (follow Pending must not override a Settled tip).
+  function followerFeedRow(t, opts){
+    opts=opts||{};
+    const tipGrade=opts.tipGrade||null;
+    const oc=followOutcome(t, tipGrade); const result=oc.result, settled=oc.settled;
+    const profit=t.profit_units!=null?t.profit_units:(tipGrade&&tipGrade.profit_units);
+    const amount=/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(profit||0))+'</span>':!settled?'<span class="tb-quote">'+esc(t.stake_units||0)+'u @ '+esc(t.odds||"")+'</span>':'';
     const cname=t.community_name||t._community||"";
     const clabel=cname?'<div style="margin-top:5px"><span class="tb-comm-chip">'+esc(cname)+'</span></div>':'';
-    return '<div class="tip" style="cursor:default"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(t.settle_source):'')+'</div></div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
+    const tid=esc(t.tip_id||"");
+    const god=!!opts.god && !!tid;
+    const godRegrade=settled&&god;
+    const grade=god?gradeRowHtml(tid, settled, godRegrade):"";
+    const settleSrc=t.settle_source||(tipGrade&&tipGrade.settle_source)||"";
+    return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0"><div class="g">'+esc(t.game_name||t.bet_type||t.display_id||"Bet")+'</div><div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- FOLLOWER SURFACE (read-only, #31 / #45) ---------- */
   async function openFollowerView(gid,name,month){
@@ -2047,7 +2152,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
     const tiles=[["Profit",u(st.profit_units||0),(st.profit_units||0)>=0?"pos":"neg"],["ROI",(st.roi||0)+"%",(st.roi||0)>=0?"pos":"neg"],["Success",(st.strike_rate||0)+"%",""],["Pending",st.pending||0,""]]
       .map(t=>'<div class="tile"><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+'</div></div>').join("");
-    const feed=(d.feed&&d.feed.length)?d.feed.map(followerFeedRow).join(""):
+    ingestFollowTipGrades(gid, d.feed||[]);
+    const fgrades=tipGradeMapForGuild(gid);
+    const feed=(d.feed&&d.feed.length)?d.feed.map(t=>followerFeedRow(t,{tipGrade:t&&t.tip_id!=null?fgrades[String(t.tip_id)]:null})).join(""):
       '<div class="empty">No tracked bets yet. In Discord, react to a tip with the follow emoji and it\'ll appear here.</div>';
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
@@ -2146,7 +2253,12 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
     const tiles=[["Profit",u(st.profit_units||0),(st.profit_units||0)>=0?"pos":"neg"],["ROI",(st.roi||0)+"%",(st.roi||0)>=0?"pos":"neg"],["Success",(st.strike_rate||0)+"%",""],["Pending",st.pending||0,""]]
       .map(t=>'<div class="tile"><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+'</div></div>').join("");
-    const feed=(d.feed&&d.feed.length)?d.feed.map(followerFeedRow).join(""):
+    const feed=(d.feed&&d.feed.length)?d.feed.map(t=>{
+      const gid=t&&(t._guild_id||t.guild_id)||null;
+      if(gid) ingestFollowTipGrades(gid, [t]);
+      const g=t&&t.tip_id!=null&&gid?tipGradeMapForGuild(gid)[String(t.tip_id)]:null;
+      return followerFeedRow(t,{tipGrade:g});
+    }).join(""):
       '<div class="empty">No tracked bets yet across your communities.</div>';
     const failNote=(d.failed&&d.failed.length)?'<div style="margin:0 0 14px;padding:10px 12px;border-radius:10px;border:1px dashed var(--line);color:var(--faint);font-size:12px">Couldn\'t load: '+esc(d.failed.join(", "))+' — showing the rest.</div>':'';
     $("follower").innerHTML='<div class="back" id="flbx">← Home</div>'
@@ -2485,15 +2597,53 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const g=(STATE._followerBets[String(gid)]=STATE._followerBets[String(gid)]||{});
     (list||[]).forEach(f=>{
       if(!f||f.user_id==null) return;
-      if(Array.isArray(f.follows_list)) g[String(f.user_id)]=f.follows_list;
+      if(Array.isArray(f.follows_list)){
+        g[String(f.user_id)]=f.follows_list;
+        ingestFollowTipGrades(gid, f.follows_list);
+      }
     });
+  }
+  function followerBetsCached(gid, uid){
+    STATE._followerBets=STATE._followerBets||{};
+    const g=STATE._followerBets[String(gid)]||{};
+    const v=g[String(uid)];
+    return Array.isArray(v)?v:null;
+  }
+  function followersNeedFeedWarm(gid, roster){
+    const list=roster||[];
+    if(!list.length) return false;
+    let missing=0;
+    list.forEach(f=>{ if(f&&f.user_id!=null && !followerBetsCached(gid,f.user_id)) missing++; });
+    // Warm when any feeds missing — one include_feeds=1 beats N+1 per-user calls.
+    return missing>0;
+  }
+  async function warmFollowerBets(gid){
+    STATE._followerWarm=STATE._followerWarm||{};
+    const key=String(gid);
+    if(STATE._followerWarm[key]) return STATE._followerWarm[key];
+    STATE._followerWarm[key]=(async()=>{
+      try{
+        const r=await api("/api/followers?guild_id="+encodeURIComponent(gid)+"&include_feeds=1");
+        if(!r.ok) return null;
+        const data=await r.json();
+        stashFollowerBets(gid, (data&&data.followers)||[]);
+        return data;
+      }catch(e){ if(e&&e.unauth) throw e; return null; }
+      finally{ /* keep promise cached so concurrent expands share one warm */ }
+    })();
+    return STATE._followerWarm[key];
   }
   async function fetchFollowerBets(gid, uid){
     STATE._followerBets=STATE._followerBets||{};
     const g=(STATE._followerBets[String(gid)]=STATE._followerBets[String(gid)]||{});
     const key=String(uid);
     if(Array.isArray(g[key])) return g[key];
-    // Prefer per-user feed when TipBot supports user_id; else fall back to full roster once.
+    // Prefer one guild-wide warm (batch) over per-user N+1.
+    try{
+      await warmFollowerBets(gid);
+      if(Array.isArray(g[key])) return g[key];
+    }catch(e){ if(e&&e.unauth) throw e; }
+    // Fallback: per-user feed when TipBot supports user_id and warm missed this user.
     try{
       let r=await api("/api/followers?guild_id="+encodeURIComponent(gid)+"&user_id="+encodeURIComponent(uid)+"&include_feeds=1");
       if(r.ok){
@@ -2501,16 +2651,32 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const list=(data&&data.followers)||[];
         stashFollowerBets(gid, list);
         const one=list.find(f=>String(f.user_id)===key);
-        if(one&&Array.isArray(one.follows_list)){ g[key]=one.follows_list; return g[key]; }
-        if(Array.isArray(data.follows_list)){ g[key]=data.follows_list; return g[key]; }
-        if(Array.isArray(data.feed)){ g[key]=data.feed; return g[key]; }
+        if(one&&Array.isArray(one.follows_list)){ g[key]=one.follows_list; ingestFollowTipGrades(gid, g[key]); return g[key]; }
+        if(Array.isArray(data.follows_list)){ g[key]=data.follows_list; ingestFollowTipGrades(gid, g[key]); return g[key]; }
+        if(Array.isArray(data.feed)){ g[key]=data.feed; ingestFollowTipGrades(gid, g[key]); return g[key]; }
       }
     }catch(e){ if(e&&e.unauth) throw e; }
     return g[key]||[];
   }
+  function renderFollowerBetsHtml(gid, bets){
+    const grades=tipGradeMapForGuild(gid);
+    const god=godOn();
+    return (bets||[]).map(t=>followerFeedRow(t,{god:god, tipGrade:t&&t.tip_id!=null?grades[String(t.tip_id)]:null})).join("")||'<div class="empty">No bets yet.</div>';
+  }
+  function wireFollowerBetGrades(gid, box){
+    if(!box||!godOn()) return;
+    box.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{
+      e.stopPropagation();
+      const tipId=b.dataset.tip;
+      const card=b.closest(".tip, .betrow, .betcard");
+      const settled=card&&card.dataset.settled==="1";
+      gradeBet(gid, tipId, b.dataset.r, card, (settled||godOn()));
+    });
+  }
   async function openFollowers(gid,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("followers");show("app");
+    tipGradeMapForGuild(gid); // seed SoT from detail cache when present
     const cached=readFollowersCache(gid);
     if(cached&&Array.isArray(cached.followers)){
       renderFollowers(gid,name,cached,{fromCache:true});
@@ -2518,13 +2684,34 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       $("followers").innerHTML='<div class="back" id="fbx">← Back</div><h1 style="margin:0 0 14px">Followers</h1>'+NDSkeleton.lines(6);
       $("fbx").onclick=()=>loadDetail(gid);
     }
+    TopBar.start(false);
+    TopBar.set(cached?38:12, cached?"Refreshing followers…":"Loading followers…");
     try{
+      // Parallel: roster (+ optional lite) and finished-tip grades for tip-SoT map.
+      const gradesP=fetchFinishedTipsMap(gid).then(fmap=>{
+        Object.keys(fmap||{}).forEach(tid=>{
+          const t=fmap[tid]; if(!t) return;
+          const oc=tipOutcome(t,true);
+          if(oc.settled) rememberTipGrade(gid, tid, {status:t.status||"Settled", result:oc.result, profit_units:t.profit_units, settle_source:t.settle_source, odds:t.odds, units:t.units});
+        });
+        tipGradeMapForGuild(gid);
+      }).catch(()=>{});
       // include_feeds=0 asks TipBot for roster-only when supported; ignored otherwise.
       const data=await (await api("/api/followers?guild_id="+encodeURIComponent(gid)+"&include_feeds=0")).json();
+      TopBar.set(72, "Updating followers…");
       stashFollowerBets(gid, (data&&data.followers)||[]);
       writeFollowersCache(gid, data);
+      await gradesP;
+      // Drop stale warm promise so a later expand can re-batch if needed.
+      if(STATE._followerWarm) delete STATE._followerWarm[String(gid)];
       renderFollowers(gid,name,data,{fromCache:false,appendOnly:!!(cached&&cached.followers&&cached.followers.length)});
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
+      TopBar.set(90, "Warming bet feeds…");
+      // Background batch warm when roster came without feeds — one request, not N+1.
+      if(followersNeedFeedWarm(gid, (data&&data.followers)||[])){
+        warmFollowerBets(gid).catch(()=>{});
+      }
+      TopBar.done(true);
+    }catch(e){ TopBar.done(true); if(e&&e.unauth)return renderLogin("Session expired.");
       if(!(cached&&cached.followers)){
         $("followers").innerHTML='<div class="back" id="fbx">← Back</div><div class="empty">Couldn\'t load followers.</div>'; $("fbx").onclick=()=>loadDetail(gid);
       }
@@ -2565,10 +2752,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const box=$("fbets_"+uid); if(!box)return;
         if(!box.hidden){ box.hidden=true; return; }
         box.hidden=false;
+        const cachedBets=followerBetsCached(gid, uid);
+        if(cachedBets){
+          box.innerHTML=renderFollowerBetsHtml(gid, cachedBets);
+          wireFollowerBetGrades(gid, box);
+          return;
+        }
         box.innerHTML='<div class="empty">Loading bets…</div>';
         try{
           const bets=await fetchFollowerBets(gid, uid);
-          box.innerHTML=(bets||[]).map(followerFeedRow).join("")||'<div class="empty">No bets yet.</div>';
+          box.innerHTML=renderFollowerBetsHtml(gid, bets);
+          wireFollowerBetGrades(gid, box);
         }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t load bets.</div>'; }
       };
     });
@@ -2617,6 +2811,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
     let html='<div class="back" id="fbx">← Back</div><div class="dhead"><h1 style="margin:0">Followers</h1><span id="fcount" style="color:var(--faint);font-size:13px">'+list.length+' member'+(list.length===1?"":"s")+' · '+esc(name||"")+'</span>'
       +(opts.fromCache?'<span style="color:var(--faint);font-size:11px;margin-left:8px">cached · refreshing…</span>':'')
+      +(godOn()?'<span id="fgodhint" style="color:var(--warn,#e0a04a);font-size:11px;margin-left:8px;font-weight:700">🔱 God — expand a member to re-grade / settle</span>':'')
       +'</div><div id="flist">';
     if(!list.length){ html+='<div class="panel"><div class="empty">No one is following bets yet.</div></div>'; }
     list.forEach((f,i)=>{ html+=followerRowHtml(f,i,isOwnerMap); });
@@ -2744,7 +2939,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const parts=[]; if(e.won)parts.push(e.won+"W"); if(e.lost)parts.push(e.lost+"L"); if(e.push)parts.push(e.push+"P");
     const sub=u(e.net)+" · "+(e.n||settled.length)+" tip"+((e.n||settled.length)===1?"":"s")+(parts.length?" ("+parts.join(" ")+")":"");
     const body=settled.length
-      ? settled.map(t=>opts.follower?followerFeedRow(t):tipRow(t,true)).join("")
+      ? settled.map(t=>opts.follower?followerFeedRow(t,{tipGrade:(opts.guildId&&t.tip_id!=null)?(tipGradeMapForGuild(opts.guildId)[String(t.tip_id)]||null):null}):tipRow(t,true)).join("")
       : '<div class="empty">No tip rows loaded for this day yet — totals above still count. Pull a refresh or open Recent Results.</div>';
     const wrap=document.createElement("div");
     wrap.id="day-sheet";
@@ -3410,6 +3605,24 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const rb2=$("godresyncbtn"); if(rb2){ rb2.disabled=!on; rb2.style.cursor=on?"pointer":"not-allowed"; rb2.style.color=on?"var(--warn,#e0a04a)":"#7a6a4a"; }
       // Re-paint settled cards so god grade/✕ shows without a full reload.
       const rb=$("recent-box"); if(rb){ rb.innerHTML=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>'; wireTipRows(rb,s.guild_id); hydrateTipCards(rb,s.guild_id,tips.settled); }
+      // If Followers is open, re-paint expanded bet panes for God grade controls.
+      try{
+        if($("followers")&&!$("followers").hidden){
+          $("followers").querySelectorAll(".fbets").forEach(box=>{
+            if(box.hidden) return;
+            const uid=(box.id||"").replace(/^fbets_/,"");
+            const bets=followerBetsCached(s.guild_id, uid);
+            if(bets){ box.innerHTML=renderFollowerBetsHtml(s.guild_id, bets); wireFollowerBetGrades(s.guild_id, box); }
+          });
+          const fc=$("fcount"); const head=fc&&fc.parentNode;
+          // Refresh god hint without full rebuild
+          let hint=document.getElementById("fgodhint");
+          if(on){
+            if(!hint&&head){ hint=document.createElement("span"); hint.id="fgodhint"; hint.style.cssText="color:var(--warn,#e0a04a);font-size:11px;margin-left:8px;font-weight:700"; hint.textContent="🔱 God — expand a member to re-grade / settle"; head.appendChild(hint); }
+            else if(hint) hint.hidden=false;
+          }else if(hint) hint.remove();
+        }
+      }catch(e6){}
     }; }
     { const gr=$("godresyncbtn"); if(gr)gr.onclick=async()=>{
       if(!godOn()){ toast("Turn God mode on first"); return; }
