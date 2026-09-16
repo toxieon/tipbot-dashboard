@@ -1388,12 +1388,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const resKey=String(raw||"").trim().toLowerCase();
     const map={win:"Win",won:"Win",loss:"Loss",lost:"Loss",push:"Push",void:"Void"};
     const mapped=map[resKey]||null;
-    const settled=!!settledFlag
-      || st==="settled"
-      || !!mapped
-      || /^(won|lost|win|loss|push|void)$/.test(st);
-    if(!settled) return {settled:false, result:"Pending"};
-    return {settled:true, result:mapped||(raw&&!/^pending$/i.test(raw)?raw:"Push")};
+    // Real grades only — never invent Push when result empty (optimistic Manual /
+    // settledFlag / status=Settled with blank result must stay Pending until TipBot sync).
+    if(mapped) return {settled:true, result:mapped};
+    void settledFlag; // list settledFlag alone is not a grade
+    return {settled:false, result:"Pending"};
   }
   function tipIsSettled(t, settledFlag){ return tipOutcome(t, settledFlag).settled; }
   function tipResultLabel(t, settledFlag){ return tipOutcome(t, settledFlag).result; }
