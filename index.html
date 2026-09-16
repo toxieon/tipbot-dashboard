@@ -603,35 +603,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .dc-spotlight{border-left:4px solid var(--win)}
 .dc-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 
-/* ===== Sportsbet odds (tip tracking) + Extended browse ===== */
+/* ===== Sportsbet odds (inline tip-leg display) ===== */
 .leg-odds{flex:none;display:inline-flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px;color:var(--muted);white-space:nowrap;margin-left:4px}
 .leg-odds-note{font-weight:600;font-size:10.5px;color:var(--faint);letter-spacing:.02em}
 .betcard-leg .leg-odds{order:0}
-.tb-ext-toggle{position:fixed;right:14px;bottom:18px;z-index:45;border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.28);opacity:.92}
-.tb-ext-toggle:hover{opacity:1;border-color:var(--accent)}
-.tb-ext-toggle[aria-pressed="true"]{background:rgba(91,140,255,.18);border-color:var(--accent);color:var(--accent)}
-.tb-ext-panel{position:fixed;right:14px;bottom:62px;z-index:44;width:min(420px,calc(100vw - 28px));max-height:min(70vh,640px);overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--bg2);box-shadow:0 12px 40px rgba(0,0,0,.4);padding:12px 14px}
-.tb-ext-panel h3{margin:0 0 6px;font-size:14px}
-.tb-ext-note{font-size:11px;color:var(--faint);line-height:1.4;margin:0 0 10px}
-.tb-ext-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-.tb-ext-row select,.tb-ext-row input{flex:1;min-width:120px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font:inherit;font-size:13px}
-.tb-ext-row button{border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;cursor:pointer}
-.tb-ext-mkt{border-top:1px solid var(--line);padding:8px 0}
-.tb-ext-mkt summary{cursor:pointer;font-weight:700;font-size:12.5px;list-style:none;display:flex;justify-content:space-between;gap:8px}
-.tb-ext-mkt summary::-webkit-details-marker{display:none}
-.tb-ext-mkt summary:before{content:"▸";color:var(--faint);margin-right:6px;font-size:11px}
-.tb-ext-mkt[open] summary:before{content:"▾"}
-.tb-ext-sels{display:flex;flex-direction:column;gap:3px;margin-top:6px;padding-left:2px}
-.tb-ext-sel{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;line-height:1.35}
-.tb-ext-sel .px{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);flex:none}
-.tb-ext-empty{color:var(--faint);font-size:12.5px;padding:8px 0}
-.tb-ext-filter{width:100%;margin-bottom:8px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font:inherit;font-size:13px;box-sizing:border-box}
-.tb-odds-note{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:46;max-width:min(420px,90vw);padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:12.5px;line-height:1.4;box-shadow:0 10px 28px rgba(0,0,0,.35);opacity:0;transition:opacity .25s;pointer-events:none}
-.tb-odds-note.show{opacity:1}
-@media(max-width:600px){
-  .tb-ext-toggle{right:10px;bottom:14px}
-  .tb-ext-panel{right:10px;bottom:56px;width:calc(100vw - 20px)}
-}
 
 </style>
 </head>
@@ -673,20 +648,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     <div id="mytips" hidden></div>
     <div id="discover" hidden></div>
     <div id="builder" hidden></div>
-    <button type="button" id="extended-toggle" class="tb-ext-toggle" hidden aria-pressed="false" title="Sportsbet / Extended match markets for tip tracking">Markets</button>
-    <div id="extended-panel" class="tb-ext-panel" hidden>
-      <h3>Match markets</h3>
-      <p class="tb-ext-note">Decimal prices for tip tracking only — not a bet slip. Gamble responsibly. 18+</p>
-      <div class="tb-ext-row">
-        <select id="ext-event-sel" aria-label="AFL match"><option value="">Select match…</option></select>
-      </div>
-      <div class="tb-ext-row">
-        <input id="ext-event-id" placeholder="or event_id" inputmode="numeric" autocomplete="off" aria-label="Sportsbet event id">
-        <button type="button" id="ext-load-btn">Load</button>
-      </div>
-      <input type="search" id="ext-mkt-filter" class="tb-ext-filter" placeholder="Filter markets…" hidden>
-      <div id="ext-markets"><div class="tb-ext-empty">Pick a match to browse markets.</div></div>
-    </div>
   </div>
 </div>
 <div id="tray" class="tray" hidden></div>
@@ -1042,8 +1003,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function dollarsToUnits(dollars,unitSize){
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
-  const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s); try{ if(typeof syncExtendedChrome==="function") syncExtendedChrome(); }catch(e){} };
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder"])$(x).hidden=(x!==p); if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); try{ if(typeof syncExtendedChrome==="function") syncExtendedChrome(); }catch(e){} };
+  const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder"])$(x).hidden=(x!==p); if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
     // Force re-auth wave (guilds OAuth) — bump TIPBOT_AUTH_EPOCH to invalidate all local sessions.
   var TIPBOT_AUTH_EPOCH = "2";
   (function forceReauthIfNeeded(){
@@ -1750,18 +1711,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     return map;
   }
 
-  /* ---------- Sportsbet odds (TipBot /api/odds/*) ---------- */
-  const SB_ODDS_LS_KEY="tipbot_extended_odds";
+  /* ---------- Sportsbet odds (TipBot /api/odds/for-tips — inline tip legs) ---------- */
   STATE._oddsByTip=STATE._oddsByTip||{};
-  STATE._oddsEvents=STATE._oddsEvents||{}; // event_id -> {event_id,name,game_name}
-  STATE._oddsApi={forTips:null, markets:null}; // null unknown, true ok, false unavailable
+  STATE._oddsApi={forTips:null}; // null unknown, true ok, false unavailable
 
-  function getExtendedMode(){
-    try{ return localStorage.getItem(SB_ODDS_LS_KEY)==="1"; }catch(e){ return false; }
-  }
-  function setExtendedMode(on){
-    try{ localStorage.setItem(SB_ODDS_LS_KEY, on?"1":"0"); }catch(e){}
-  }
   function normalizeLegOddsList(raw){
     if(!raw) return [];
     const arr=Array.isArray(raw)?raw:(Array.isArray(raw.legs)?raw.legs:[]);
@@ -1799,12 +1752,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const id=String(t.tip_id||t.id||"");
         if(!id) return;
         map[id]=normalizeLegOddsList(t.legs||t.leg_odds||t.odds_legs||t);
-        const eid=t.event_id||t.sportsbet_event_id||(t.event&&t.event.id);
-        const gname=t.game_name||t.match_name||(t.event&&(t.event.name||t.event.game_name));
-        if(eid){
-          STATE._oddsEvents[String(eid)]={event_id:String(eid), name:gname||("Event "+eid), game_name:gname||""};
-          map[id]._event_id=String(eid);
-        }
       });
     }
     const by=data.by_tip||data.odds_by_tip||data.tip_odds;
@@ -1812,60 +1759,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       Object.keys(by).forEach(id=>{
         const v=by[id];
         map[String(id)]=normalizeLegOddsList(Array.isArray(v)?v:(v&&(v.legs||v.leg_odds))||[]);
-        if(v&&(v.event_id||v.sportsbet_event_id)){
-          const eid=String(v.event_id||v.sportsbet_event_id);
-          STATE._oddsEvents[eid]={event_id:eid, name:v.game_name||v.match_name||("Event "+eid), game_name:v.game_name||v.match_name||""};
-        }
-      });
-    }
-    const evs=data.events||data.event_list||data.matches||[];
-    if(Array.isArray(evs)){
-      evs.forEach(e=>{
-        if(!e) return;
-        const eid=String(e.event_id||e.id||e.sportsbet_event_id||"");
-        if(!eid) return;
-        const name=e.name||e.game_name||e.match_name||e.display_name||("Event "+eid);
-        STATE._oddsEvents[eid]={event_id:eid, name:name, game_name:e.game_name||name};
       });
     }
     return map;
-  }
-  function forTipsHasUsableOdds(data){
-    if(!data||typeof data!=="object") return false;
-    const map=ingestForTipsPayload(data);
-    return Object.keys(map).some(id=>{
-      const legs=map[id];
-      return Array.isArray(legs) && legs.some(L=>L&&L.price!=null);
-    });
-  }
-  function oddsUnavailMessage(data, status){
-    if(data&&typeof data==="object"){
-      if(data.discovery_message) return String(data.discovery_message);
-      if(data.geo_blocked) return String(data.message||data.detail||"Sportsbet odds unavailable from server (geo/403)");
-      if(data.unavailable||data.odds_unavailable) return String(data.message||data.detail||data.discovery_message||"Sportsbet odds unavailable from server");
-      if(data.message&&(status===403||status===404||data.error)) return String(data.message);
-      if(data.error_message) return String(data.error_message);
-      if(data.detail&&typeof data.detail==="string") return data.detail;
-    }
-    if(status===403||status===404) return "Sportsbet odds unavailable from server (geo/403)";
-    return "Sportsbet odds unavailable from server";
-  }
-  function maybeNoteOddsUnusable(data, status){
-    if(STATE._oddsUnavailNoted) return;
-    STATE._oddsUnavailNoted=true;
-    const msg=oddsUnavailMessage(data, status);
-    let el=$("tb-odds-note");
-    if(!el){
-      el=document.createElement("div");
-      el.id="tb-odds-note";
-      el.className="tb-odds-note";
-      el.setAttribute("role","status");
-      document.body.appendChild(el);
-    }
-    el.textContent=msg;
-    el.classList.add("show");
-    clearTimeout(el._h);
-    el._h=setTimeout(()=>{ el.classList.remove("show"); }, 5500);
   }
   async function fetchOddsForTips(gid){
     if(STATE._oddsApi.forTips===false) return null;
@@ -1875,253 +1771,24 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       try{ data=await r.json(); }catch(e){ data=null; }
       if(r.status===404||r.status===403){
         STATE._oddsApi.forTips=false;
-        maybeNoteOddsUnusable(data, r.status);
         return null;
       }
-      if(!r.ok){
-        maybeNoteOddsUnusable(data, r.status);
-        return null;
-      }
+      if(!r.ok) return null;
       STATE._oddsApi.forTips=true;
-      if(!forTipsHasUsableOdds(data)) maybeNoteOddsUnusable(data, r.status);
       return data;
     }catch(e){
       if(e&&e.unauth) throw e;
       return null;
     }
   }
-  function extractMarketList(payload){
-    if(!payload) return [];
-    if(Array.isArray(payload.marketList)) return payload.marketList;
-    if(Array.isArray(payload.markets)) return payload.markets;
-    if(payload.event&&Array.isArray(payload.event.marketList)) return payload.event.marketList;
-    if(payload.data&&Array.isArray(payload.data.marketList)) return payload.data.marketList;
-    return [];
-  }
-  async function fetchSportsbetMarkets(eventId){
-    if(!eventId) return {ok:false, unavailable:false, markets:[], meta:{}};
-    if(STATE._oddsApi.markets===false) return {ok:false, unavailable:true, markets:[], meta:{}};
-    const paths=[
-      "/api/odds/sportsbet/markets?event_id="+encodeURIComponent(eventId),
-      "/api/odds/sportsbet/match-markets?event_id="+encodeURIComponent(eventId)
-    ];
-    for(const p of paths){
-      try{
-        const r=await api(p,{timeoutMs:25000,retries:1});
-        if(r.status===404||r.status===403){
-          if(p===paths[paths.length-1]){
-            STATE._oddsApi.markets=false;
-            return {ok:false, unavailable:true, markets:[], meta:{}};
-          }
-          continue;
-        }
-        if(!r.ok) continue;
-        const data=await r.json();
-        STATE._oddsApi.markets=true;
-        const markets=extractMarketList(data);
-        const name=data.name||data.match_name||data.game_name||(data.event&&(data.event.name||data.event.displayName))||"";
-        if(name) STATE._oddsEvents[String(eventId)]={event_id:String(eventId), name:name, game_name:name};
-        return {ok:true, unavailable:false, markets:markets, meta:{name:name, event_id:String(eventId), raw:data}};
-      }catch(e){
-        if(e&&e.unauth) throw e;
-      }
-    }
-    return {ok:false, unavailable:false, markets:[], meta:{}};
-  }
-  async function fetchSportsbetEventMeta(eventId){
-    if(!eventId) return null;
-    try{
-      const r=await api("/api/odds/sportsbet/event?event_id="+encodeURIComponent(eventId),{timeoutMs:15000,retries:1});
-      if(r.status===404||r.status===403) return null;
-      if(!r.ok) return null;
-      const d=await r.json();
-      const name=d.name||d.displayName||d.match_name||d.game_name||(d.event&&(d.event.name||d.event.displayName));
-      if(name){
-        STATE._oddsEvents[String(eventId)]={event_id:String(eventId), name:name, game_name:name};
-      }
-      return d;
-    }catch(e){
-      if(e&&e.unauth) throw e;
-      return null;
-    }
-  }
-  function rememberTipEventHints(tips){
-    (tips||[]).forEach(t=>{
-      if(!t) return;
-      const eid=t.sportsbet_event_id||t.sb_event_id||t.event_id;
-      // Prefer numeric Sportsbet-looking ids (skip ESPN ids that are non-numeric long)
-      if(eid!=null && /^\d{6,}$/.test(String(eid))){
-        const name=t.game_name||t.match_name||("Event "+eid);
-        STATE._oddsEvents[String(eid)]={event_id:String(eid), name:name, game_name:name};
-      }else if(t.game_name){
-        // keep name-only placeholder keyed later when for-tips resolves
-        STATE._oddsGameHints=STATE._oddsGameHints||{};
-        STATE._oddsGameHints[String(t.game_name)]=true;
-      }
-    });
-  }
-
-  function selectionWinPrice(sel){
-    if(!sel) return null;
-    return pickNum(sel.price&&sel.price.winPrice, sel.winPrice, sel.price, sel.odds, sel.decimal);
-  }
-  function renderExtMarkets(markets, filterText){
-    const box=$("ext-markets");
-    const filt=$("ext-mkt-filter");
-    if(!box) return;
-    if(STATE._oddsApi.markets===false){
-      if(filt) filt.hidden=true;
-      box.innerHTML='<div class="tb-ext-empty">Match markets unavailable — TipBot odds APIs not live yet (404/403). Tip cards still work.</div>';
-      return;
-    }
-    const q=(filterText||"").trim().toLowerCase();
-    const list=(markets||[]).filter(m=>{
-      if(!m) return false;
-      if(!q) return true;
-      const name=String(m.name||m.market_name||"");
-      if(name.toLowerCase().includes(q)) return true;
-      const sels=m.selections||m.selectionList||[];
-      return sels.some(s=>String(s.name||"").toLowerCase().includes(q));
-    });
-    if(filt) filt.hidden=false;
-    if(!list.length){
-      box.innerHTML='<div class="tb-ext-empty">'+(markets&&markets.length?'No markets match that filter.':'No markets returned for this event.')+'</div>';
-      return;
-    }
-    // Keep board tight: collapse by default; open first 3 when unfiltered
-    box.innerHTML=list.map((m,i)=>{
-      const name=m.name||m.market_name||("Market "+(m.id||i+1));
-      const sels=m.selections||m.selectionList||[];
-      const open=(!q && i<3) || !!q;
-      const rows=sels.map(s=>{
-        const px=selectionWinPrice(s);
-        const nm=s.name||s.selection||"—";
-        return '<div class="tb-ext-sel"><span>'+esc(nm)+'</span><span class="px">'+(px!=null?esc(formatSbPrice(px)):"—")+'</span></div>';
-      }).join("");
-      return '<details class="tb-ext-mkt"'+(open?" open":"")+'>'
-        +'<summary><span>'+esc(name)+'</span><span style="color:var(--faint);font-weight:600;font-size:11px">'+sels.length+'</span></summary>'
-        +'<div class="tb-ext-sels">'+(rows||'<div class="tb-ext-empty">No selections</div>')+'</div></details>';
-    }).join("");
-  }
-  function fillExtEventSelect(){
-    const sel=$("ext-event-sel"); if(!sel) return;
-    const cur=sel.value;
-    const events=Object.keys(STATE._oddsEvents||{}).map(k=>STATE._oddsEvents[k]).filter(Boolean);
-    events.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
-    const opts=['<option value="">Select match…</option>']
-      .concat(events.map(e=>'<option value="'+esc(e.event_id)+'">'+esc(e.name||e.game_name||e.event_id)+'</option>'));
-    sel.innerHTML=opts.join("");
-    if(cur && STATE._oddsEvents[cur]) sel.value=cur;
-  }
-  async function loadExtMarketsFor(eventId){
-    const box=$("ext-markets");
-    const filt=$("ext-mkt-filter");
-    if(!eventId){
-      if(box) box.innerHTML='<div class="tb-ext-empty">Pick a match to browse markets.</div>';
-      if(filt){ filt.hidden=true; filt.value=""; }
-      return;
-    }
-    if(box) box.innerHTML='<div class="tb-ext-empty">Loading markets…</div>';
-    try{ await fetchSportsbetEventMeta(eventId); }catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); }
-    let res;
-    try{ res=await fetchSportsbetMarkets(eventId); }
-    catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); res={ok:false,unavailable:false,markets:[]}; }
-    fillExtEventSelect();
-    const sel=$("ext-event-sel"); if(sel) sel.value=String(eventId);
-    const idInput=$("ext-event-id"); if(idInput && !idInput.value) idInput.value=String(eventId);
-    if(res.unavailable){
-      renderExtMarkets([], "");
-      syncExtendedChrome();
-      return;
-    }
-    STATE._extMarketsCache=STATE._extMarketsCache||{};
-    STATE._extMarketsCache[String(eventId)]=res.markets||[];
-    STATE._extActiveEvent=String(eventId);
-    renderExtMarkets(res.markets||[], (filt&&filt.value)||"");
-    syncExtendedChrome();
-  }
-  function syncExtendedChrome(){
-    const btn=$("extended-toggle");
-    const panel=$("extended-panel");
-    if(!btn||!panel) return;
-    // Tipster chrome: Markets toggle on ALL logged-in tipster views (not detail-only).
-    // Role gate unchanged — owner/moderator/god. Distinct from builder "Assumption mode".
-    const appVisible=!!$("app") && !$("app").hidden;
-    const show=appVisible && (STATE.role==="owner"||STATE.role==="moderator"||!!STATE.god);
-    btn.hidden=!show;
-    const on=getExtendedMode();
-    btn.setAttribute("aria-pressed", on?"true":"false");
-    btn.textContent="Markets";
-    btn.title="Sportsbet / Extended match markets for tip tracking";
-    panel.hidden=!show || !on;
-    if(show && on){
-      if(STATE._oddsApi.markets===false){
-        const box=$("ext-markets");
-        if(box) box.innerHTML='<div class="tb-ext-empty">Match markets unavailable — TipBot odds APIs not live yet (404/403). Tipdash tips still work.</div>';
-        const filt=$("ext-mkt-filter"); if(filt) filt.hidden=true;
-      }
-    }
-  }
-  function wireExtendedUI(){
-    const btn=$("extended-toggle");
-    if(!btn || btn._sbWired) return;
-    btn._sbWired=true;
-    btn.onclick=()=>{
-      const next=!getExtendedMode();
-      setExtendedMode(next);
-      syncExtendedChrome();
-      if(next){
-        fillExtEventSelect();
-        const sel=$("ext-event-sel");
-        if(sel && sel.value) loadExtMarketsFor(sel.value);
-        else if(STATE._extActiveEvent) loadExtMarketsFor(STATE._extActiveEvent);
-      }
-    };
-    const sel=$("ext-event-sel");
-    if(sel && !sel._sbWired){
-      sel._sbWired=true;
-      sel.onchange=()=>{
-        const v=sel.value;
-        const idInput=$("ext-event-id"); if(idInput) idInput.value=v||"";
-        loadExtMarketsFor(v);
-      };
-    }
-    const loadBtn=$("ext-load-btn");
-    if(loadBtn && !loadBtn._sbWired){
-      loadBtn._sbWired=true;
-      loadBtn.onclick=()=>{
-        const idInput=$("ext-event-id");
-        const v=((idInput&&idInput.value)||"").trim();
-        if(!v){ toast("Enter an event_id or pick a match."); return; }
-        if(STATE._oddsEvents[v]==null){
-          STATE._oddsEvents[v]={event_id:v, name:"Event "+v, game_name:""};
-          fillExtEventSelect();
-        }
-        loadExtMarketsFor(v);
-      };
-    }
-    const filt=$("ext-mkt-filter");
-    if(filt && !filt._sbWired){
-      filt._sbWired=true;
-      filt.oninput=()=>{
-        const eid=STATE._extActiveEvent;
-        const markets=(STATE._extMarketsCache&&STATE._extMarketsCache[eid])||[];
-        renderExtMarkets(markets, filt.value);
-      };
-    }
-  }
 
 
   async function hydrateTipOdds(box, gid, tips){
     if(!gid) return;
-    rememberTipEventHints(tips);
     let data=null;
     try{ data=await fetchOddsForTips(gid); }
     catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); return; }
-    if(!data){
-      syncExtendedChrome();
-      return;
-    }
+    if(!data) return;
     const map=ingestForTipsPayload(data);
     STATE._oddsByTip=Object.assign(STATE._oddsByTip||{}, map);
     (tips||[]).forEach(t=>{
@@ -2142,8 +1809,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       body.innerHTML=legsBlockHtml(t, legs, t._liveLegs)+gradeHtml;
       if(cardEl) wireTipRows(cardEl, gid);
     });
-    syncExtendedChrome();
-    if(getExtendedMode()) fillExtEventSelect();
   }
 
 
@@ -2153,7 +1818,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const finishedCtx=!!opts.finished;
     const liveMap={};
     let finishedMap={};
-    rememberTipEventHints(tips);
     const oddsPromise=fetchOddsForTips(gid).catch(e=>{ if(e&&e.unauth) throw e; return null; });
     try{
       if(finishedCtx||opts.preferFinished){
@@ -2249,8 +1913,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       applyBetcardOutcome(cardEl, evalTipOutcome(legs, full, t._liveLegs, {finished:isFinished||settled}));
       wireTipRows(cardEl||body,gid);
     }));
-    syncExtendedChrome();
-    if(getExtendedMode()) fillExtEventSelect();
   }
   function estimateSettleProfit(units, odds, result){
     const uN=Number(units), oN=Number(odds);
@@ -4279,7 +3941,6 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     setTab("general");
     loadUpcoming(s.guild_id,tips.queued);
     loadLiveTipsPanel(s.guild_id);
-    try{ wireExtendedUI(); syncExtendedChrome(); fillExtEventSelect(); }catch(e){}
   }
   async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
@@ -6216,7 +5877,6 @@ async function loadPerms(gid){
   }
   function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
 
-  try{ wireExtendedUI(); }catch(e){}
   async function load(){
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.get("error")){history.replaceState(null,"",location.pathname);return renderLogin(ERR[hash.get("error")]||"Login error.");}
