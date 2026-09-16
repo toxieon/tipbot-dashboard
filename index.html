@@ -626,6 +626,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .tb-ext-sel .px{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);flex:none}
 .tb-ext-empty{color:var(--faint);font-size:12.5px;padding:8px 0}
 .tb-ext-filter{width:100%;margin-bottom:8px;padding:7px 9px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font:inherit;font-size:13px;box-sizing:border-box}
+.tb-odds-note{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:46;max-width:min(420px,90vw);padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:12.5px;line-height:1.4;box-shadow:0 10px 28px rgba(0,0,0,.35);opacity:0;transition:opacity .25s;pointer-events:none}
+.tb-odds-note.show{opacity:1}
 @media(max-width:600px){
   .tb-ext-toggle{right:10px;bottom:14px}
   .tb-ext-panel{right:10px;bottom:56px;width:calc(100vw - 20px)}
@@ -671,7 +673,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     <div id="mytips" hidden></div>
     <div id="discover" hidden></div>
     <div id="builder" hidden></div>
-    <button type="button" id="extended-toggle" class="tb-ext-toggle" hidden aria-pressed="false" title="Match markets for tip tracking">Extended</button>
+    <button type="button" id="extended-toggle" class="tb-ext-toggle" hidden aria-pressed="false" title="Sportsbet / Extended match markets for tip tracking">Markets</button>
     <div id="extended-panel" class="tb-ext-panel" hidden>
       <h3>Match markets</h3>
       <p class="tb-ext-note">Decimal prices for tip tracking only — not a bet slip. Gamble responsibly. 18+</p>
@@ -1828,17 +1830,61 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }
     return map;
   }
+  function forTipsHasUsableOdds(data){
+    if(!data||typeof data!=="object") return false;
+    const map=ingestForTipsPayload(data);
+    return Object.keys(map).some(id=>{
+      const legs=map[id];
+      return Array.isArray(legs) && legs.some(L=>L&&L.price!=null);
+    });
+  }
+  function oddsUnavailMessage(data, status){
+    if(data&&typeof data==="object"){
+      if(data.discovery_message) return String(data.discovery_message);
+      if(data.geo_blocked) return String(data.message||data.detail||"Sportsbet odds unavailable from server (geo/403)");
+      if(data.unavailable||data.odds_unavailable) return String(data.message||data.detail||data.discovery_message||"Sportsbet odds unavailable from server");
+      if(data.message&&(status===403||status===404||data.error)) return String(data.message);
+      if(data.error_message) return String(data.error_message);
+      if(data.detail&&typeof data.detail==="string") return data.detail;
+    }
+    if(status===403||status===404) return "Sportsbet odds unavailable from server (geo/403)";
+    return "Sportsbet odds unavailable from server";
+  }
+  function maybeNoteOddsUnusable(data, status){
+    if(STATE._oddsUnavailNoted) return;
+    STATE._oddsUnavailNoted=true;
+    const msg=oddsUnavailMessage(data, status);
+    let el=$("tb-odds-note");
+    if(!el){
+      el=document.createElement("div");
+      el.id="tb-odds-note";
+      el.className="tb-odds-note";
+      el.setAttribute("role","status");
+      document.body.appendChild(el);
+    }
+    el.textContent=msg;
+    el.classList.add("show");
+    clearTimeout(el._h);
+    el._h=setTimeout(()=>{ el.classList.remove("show"); }, 5500);
+  }
   async function fetchOddsForTips(gid){
     if(STATE._oddsApi.forTips===false) return null;
     try{
       const r=await api("/api/odds/for-tips?guild_id="+encodeURIComponent(gid),{timeoutMs:20000,retries:1});
+      let data=null;
+      try{ data=await r.json(); }catch(e){ data=null; }
       if(r.status===404||r.status===403){
         STATE._oddsApi.forTips=false;
+        maybeNoteOddsUnusable(data, r.status);
         return null;
       }
-      if(!r.ok) return null;
+      if(!r.ok){
+        maybeNoteOddsUnusable(data, r.status);
+        return null;
+      }
       STATE._oddsApi.forTips=true;
-      return await r.json();
+      if(!forTipsHasUsableOdds(data)) maybeNoteOddsUnusable(data, r.status);
+      return data;
     }catch(e){
       if(e&&e.unauth) throw e;
       return null;
@@ -1998,14 +2044,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const btn=$("extended-toggle");
     const panel=$("extended-panel");
     if(!btn||!panel) return;
-    // Owner focus: show toggle on tipster/owner detail views (not login/loading)
+    // Tipster chrome: Markets toggle on ALL logged-in tipster views (not detail-only).
+    // Role gate unchanged — owner/moderator/god. Distinct from builder "Assumption mode".
     const appVisible=!!$("app") && !$("app").hidden;
-    const onDetail=!!$("detail") && !$("detail").hidden;
-    const show=appVisible && onDetail && (STATE.role==="owner"||STATE.role==="moderator"||!!STATE.god);
+    const show=appVisible && (STATE.role==="owner"||STATE.role==="moderator"||!!STATE.god);
     btn.hidden=!show;
     const on=getExtendedMode();
     btn.setAttribute("aria-pressed", on?"true":"false");
-    btn.textContent="Extended";
+    btn.textContent="Markets";
+    btn.title="Sportsbet / Extended match markets for tip tracking";
     panel.hidden=!show || !on;
     if(show && on){
       if(STATE._oddsApi.markets===false){
