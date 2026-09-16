@@ -3342,10 +3342,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button id="leaveserverbtn" data-g="'+s.guild_id+'" data-n="'+esc(s.display_name||"this server")+'" data-token="'+esc(leaveToken)+'" disabled style="border:1px solid #7a2a2a;background:#2a1717;color:#7a5252;border-radius:9px;padding:9px 14px;cursor:not-allowed;font:inherit;font-size:13px;font-weight:700">🗑 Remove this server</button>'
       +'</div><div id="leaveservermsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
     const adminFeatures='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
-      +'<div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Features</div>'
+      +'<div id="featurestoggle" role="button" tabindex="0" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none">'
+      +'<div><div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700">Features</div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Feature flags for this guild (owner only). Collapsed so Admin Tools stays short.</div></div>'
+      +'<span id="featurescaret" style="color:#b9a5ff;font-size:14px;flex:none">▸</span></div>'
+      +'<div id="featuresbody" hidden style="margin-top:10px">'
       +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Platform-owner feature flags for this guild. Tipsters do not see this section.</div>'
-      +'<div id="features-box"><div class="empty">Loading…</div></div></div>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin Tools <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+adminFeatures+debugMenu+godZone+inviteZone+dangerZone+'</div></div>'):'';
+      +'<div id="features-box"><div class="empty">Open to load…</div></div></div></div>';
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin Tools <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+inviteZone+dangerZone+adminFeatures+'</div></div>'):'';
     const settingsPanel='<div class="panel collapsible" id="settings-panel" data-collapse-key="settings">'
       +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="true"><h3 style="margin:0">Settings</h3><span class="panel-caret">▾</span></div>'
       +'<div class="panel-body"><div class="tabs" style="margin-bottom:14px">'
@@ -3380,7 +3384,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     wireCalendarDays($("detail"), tips.settled||[], d.daily_series||{}, {guildId:s.guild_id});
     wireStatsCollapse($("detail"));
     wirePanelCollapse($("detail"));
-    { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾"; if(!b.hidden) loadFeatures(s.guild_id);}}; }
+    { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
+    { const ft=$("featurestoggle"); if(ft){
+      const toggleFeat=()=>{
+        const b=$("featuresbody"),c=$("featurescaret"); if(!b)return;
+        b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";
+        if(!b.hidden) loadFeatures(s.guild_id);
+      };
+      ft.onclick=toggleFeat;
+      ft.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleFeat(); } };
+    } }
     { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
       const on=godOn();
       const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — use grade controls on any tip to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
