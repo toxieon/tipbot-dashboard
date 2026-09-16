@@ -4513,14 +4513,42 @@ async function loadPerms(gid){
         }
         BUILD.espnEvents=(d.events||[]).map(normalizeEspnEvent);
       }else{
-        const dates=BUILD.espnDate?ymdToEspnDates(BUILD.espnDate):"";
-        d=await espnFetchJson(espnScoreboardUrl(league, dates?{dates}:{}));
-        const leagueObj=(d.leagues||[])[0]||{};
-        const cal=leagueObj.calendar||[];
-        BUILD.espnCalendar=[...new Set(cal.filter(x=>typeof x==="string").map(x=>String(x).slice(0,10)))].sort();
+        // GPT-style: initial fetch without dates so ESPN returns the current/next
+        // game day (not an empty ET "today"). Then snap via calendar dates.
+        function validYmd(v){ return /^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+"T12:00Z"))&&new Date(v+"T12:00Z").toISOString().slice(0,10)===v; }
+        function parseEspnCalendar(leagueObj){
+          const cal=(leagueObj&&leagueObj.calendar)||[];
+          return [...new Set(cal.filter(x=>typeof x==="string").map(x=>String(x).slice(0,10)).filter(validYmd))].sort();
+        }
+        function snapBasketballDate(cal, d){
+          const today=easternYmd();
+          if(cal.includes(today)) return today;
+          const next=cal.find(x=>x>=today);
+          if(next) return next;
+          if(d.day&&d.day.date&&validYmd(String(d.day.date).slice(0,10))) return String(d.day.date).slice(0,10);
+          if((d.events||[])[0]&&(d.events||[])[0].date) return easternYmd((d.events||[])[0].date);
+          return today;
+        }
         if(initial){
+          d=await espnFetchJson(espnScoreboardUrl(league,{}));
+          let leagueObj=(d.leagues||[])[0]||{};
+          BUILD.espnCalendar=parseEspnCalendar(leagueObj);
+          const snap=snapBasketballDate(BUILD.espnCalendar, d);
+          const fetched=d.day&&d.day.date?String(d.day.date).slice(0,10):"";
+          BUILD.espnDate=snap;
+          if(snap&&snap!==fetched){
+            d=await espnFetchJson(espnScoreboardUrl(league,{dates:ymdToEspnDates(snap)}));
+            leagueObj=(d.leagues||[])[0]||{};
+            const cal2=parseEspnCalendar(leagueObj);
+            if(cal2.length) BUILD.espnCalendar=cal2;
+          }
+        }else{
+          const dates=BUILD.espnDate?ymdToEspnDates(BUILD.espnDate):"";
+          d=await espnFetchJson(espnScoreboardUrl(league, dates?{dates}:{}));
+          const leagueObj=(d.leagues||[])[0]||{};
+          const cal=parseEspnCalendar(leagueObj);
+          if(cal.length) BUILD.espnCalendar=cal;
           if(d.day&&d.day.date) BUILD.espnDate=String(d.day.date).slice(0,10);
-          else if((d.events||[])[0]&&(d.events||[])[0].date) BUILD.espnDate=easternYmd((d.events||[])[0].date);
         }
         BUILD.espnEvents=(d.events||[]).map(normalizeEspnEvent);
       }
@@ -4673,7 +4701,7 @@ async function loadPerms(gid){
     let html='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><button class="ghost" id="espnplayref">↻ Players</button></div>'
       +'<div class="tabs" style="flex-wrap:wrap">'+tabs+'</div>'
       +'<div class="builder-tools">'
-      +'<input id="psearch" placeholder="Search players…" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;flex:1">'
+      +'<input id="psearch" placeholder="Search players… e.g. Hill, Tyreek" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;flex:1">'
       +'</div>';
     if(BUILD.espnErr) html+='<div class="empty" style="margin-bottom:12px">'+esc(BUILD.espnErr)+'</div>';
     html+='<div id="players"></div>';
@@ -4687,7 +4715,6 @@ async function loadPerms(gid){
   function paintEspnNflPlayers(){
     const box=$("players"); if(!box)return;
     const prop=NFL_PROP_TABS.find(t=>t.key===BUILD.espnPropKey)||NFL_PROP_TABS[0];
-    const q=(BUILD.search||"").trim().toLowerCase();
     const teams=BUILD.espnTeams&&BUILD.espnTeams.length?BUILD.espnTeams:(()=>{
       // Fallback: group flat players list.
       const map=new Map();
@@ -4704,7 +4731,7 @@ async function loadPerms(gid){
       const nm=team.name||team.abbreviation||("Team "+(ti+1));
       const slug=String(team.id||nm).replace(/\W/g,"");
       let list=espnSkillPlayers(team.players||[]);
-      if(q) list=list.filter(p=>String(p.name||"").toLowerCase().includes(q)||String(p.number||"").includes(q)||String(p.position||"").toLowerCase().includes(q));
+      if(String(BUILD.search||"").trim()) list=list.filter(p=>nameMatchesSearch(p.name, p.number, BUILD.search)||nameMatchesSearch(p.position||"", "", BUILD.search));
       list=list.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
       const collapsed=!!BUILD.collapsed[slug];
       html+='<div class="thdr" data-slug="'+slug+'"><span class="tcaret">'+(collapsed?"▹":"▾")+'</span>'+esc(nm)+' <small style="color:var(--muted);font-weight:400">· '+list.length+'</small></div>';
@@ -4874,7 +4901,8 @@ async function loadPerms(gid){
         +'<div class="reshdr" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="rd" style="margin-bottom:4px">'+esc(g.roundname||"")+' · '+fmtDate(g.date)+compBadge+'</div>'
-            +'<div style="font-weight:700"><span style="'+(hw?"":"opacity:.6")+'">'+esc(teamName(g.hteam))+' '+g.hscore+'</span> <span style="color:var(--faint)"> – </span> <span style="'+(aw?"":"opacity:.6")+'">'+esc(teamName(g.ateam))+' '+g.ascore+'</span></div>'
+            +'<div class="espn-teamrow" style="margin:4px 0;opacity:'+(hw?'1':'.65')+'">'+aflLogoHtml(g.hteam)+'<span class="espn-tname">'+esc(teamName(g.hteam))+'<small>Home</small></span><span class="espn-score">'+esc(String(g.hscore))+'</span></div>'
+            +'<div class="espn-teamrow" style="margin:4px 0;opacity:'+(aw?'1':'.65')+'">'+aflLogoHtml(g.ateam)+'<span class="espn-tname">'+esc(teamName(g.ateam))+'</span><span class="espn-score">'+esc(String(g.ascore))+'</span></div>'
             +'<div class="vn" style="margin-top:2px">'+esc(g.venue||"")+(g.winner?' · '+esc(g.winner)+' won':' · draw')+'</div>'
           +'</div>'
           +'<div class="tcaret" style="color:var(--faint);font-size:15px">'+(open?"▾":"▸")+'</div>'
@@ -4899,6 +4927,53 @@ async function loadPerms(gid){
   // live value for a player on the active stat tab, or null when not live
   function liveVal(name){ const L=BUILD.live; if(!L||!L.available)return null; const p=L.players[tkey(name)]; if(!p)return null; const v=p.summary?.[LIVE_KEYS[BUILD.tab]]; return (typeof v==="number")?v:null; }
   function gameComp(g){ return (g&&g.comp)||"AFL"; }
+  // AFL crests: prefer logo/crest on fixture team objects; else ESPN CDN by abbrev.
+  // TipBot fixtures currently ship abbrev only — no TipBot API change required.
+  const AFL_ESPN_ABBREV=new Set(["adel","bl","carl","coll","ess","fre","gws","geel","suns","haw","melb","nmfc","port","rich","stk","syd","wce","wb"]);
+  const AFL_LOGO_ALIAS={
+    adel:"adel",adelaide:"adel",crows:"adel",
+    bl:"bl",brisbane:"bl",brisbanelions:"bl",lions:"bl",
+    carl:"carl",carlton:"carl",blues:"carl",
+    coll:"coll",collingwood:"coll",magpies:"coll",
+    ess:"ess",essendon:"ess",bombers:"ess",
+    fre:"fre",fremantle:"fre",dockers:"fre",
+    gws:"gws",giants:"gws",greaterwesternsydney:"gws",gwsgiants:"gws",
+    geel:"geel",geelong:"geel",cats:"geel",geelongcats:"geel",
+    suns:"suns",gc:"suns",gcsuns:"suns",goldcoast:"suns",goldcoastsuns:"suns",
+    haw:"haw",hawthorn:"haw",hawks:"haw",
+    melb:"melb",melbourne:"melb",demons:"melb",
+    nmfc:"nmfc",nm:"nmfc",north:"nmfc",northmelbourne:"nmfc",kangaroos:"nmfc",
+    port:"port",pa:"port",portadelaide:"port",power:"port",
+    rich:"rich",richmond:"rich",tigers:"rich",
+    stk:"stk",stkilda:"stk",saints:"stk",
+    syd:"syd",sydney:"syd",swans:"syd",sydneyswans:"syd",
+    wce:"wce",wc:"wce",westcoast:"wce",eagles:"wce",westcoasteagles:"wce",
+    wb:"wb",dogs:"wb",bulldogs:"wb",westernbulldogs:"wb"
+  };
+  function aflEspnSlug(t){
+    if(!t) return "";
+    const ab=String((typeof t==="object"?(t.abbrev||t.abbreviation||""):"")||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    if(ab && AFL_LOGO_ALIAS[ab]) return AFL_LOGO_ALIAS[ab];
+    if(ab && AFL_ESPN_ABBREV.has(ab)) return ab;
+    const nm=String(teamName(t)||"").toLowerCase().replace(/[^a-z]/g,"");
+    if(nm && AFL_LOGO_ALIAS[nm]) return AFL_LOGO_ALIAS[nm];
+    for(const k of Object.keys(AFL_LOGO_ALIAS)){ if(k.length>=4 && nm.includes(k)) return AFL_LOGO_ALIAS[k]; }
+    return ab && AFL_ESPN_ABBREV.has(ab)?ab:"";
+  }
+  function aflLogoUrl(t){
+    if(!t) return "";
+    if(typeof t==="object"){
+      const u=t.logo||t.logo_url||t.crest||t.team_logo||"";
+      if(typeof u==="string"&&/^https:\/\//i.test(u)) return u;
+    }
+    const slug=aflEspnSlug(t);
+    return slug?("https://a.espncdn.com/i/teamlogos/afl/500/"+slug+".png"):"";
+  }
+  function aflLogoHtml(t){
+    const u=aflLogoUrl(t);
+    return u?'<img class="espn-logo" src="'+esc(u)+'" alt="" loading="lazy" width="32" height="32">':'<span class="espn-logo-ph" aria-hidden="true"></span>';
+  }
+
   function renderGames(games){
     // Which competitions are present? (AFL always; AFLW when the season is on.)
     const comps=[]; games.forEach(g=>{const c=gameComp(g); if(!comps.includes(c))comps.push(c);});
@@ -4927,7 +5002,12 @@ async function loadPerms(gid){
     else{ html+='<div class="gcards">'+shown.map((g,i)=>{
       const liveBadge=g.live?' <span style="color:#e5484d;font-weight:800;font-size:11px;letter-spacing:.03em">● LIVE</span>':'';
       const compBadge=hasMulti?' <span class="compbadge'+(gameComp(g)==="AFLW"?" aflw":"")+'">'+gameComp(g)+'</span>':'';
-      return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'><div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+compBadge+'</div><div class="mt">'+teamName(g.hteam)+'<br>v '+teamName(g.ateam)+'</div><div class="vn">'+(g.venue||"")+'</div></div>';
+      const ht=g.hteam, at=g.ateam;
+      return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'>'
+        +'<div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+compBadge+'</div>'
+        +'<div class="espn-teamrow">'+aflLogoHtml(ht)+'<span class="espn-tname">'+esc(teamName(ht)||"Home")+'<small>Home</small></span></div>'
+        +'<div class="espn-teamrow">'+aflLogoHtml(at)+'<span class="espn-tname">'+esc(teamName(at)||"Away")+'</span></div>'
+        +'<div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
@@ -4963,7 +5043,7 @@ async function loadPerms(gid){
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
-    $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+teamName(g.hteam)+' v '+teamName(g.ateam)+'</h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
+    $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
       +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:12px;background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
         +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:13px">△ Assumption mode</div><div style="color:var(--muted);font-size:12px;margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
         +'<button id="assumetoggle" class="toggle '+(BUILD.assume?"on":"")+'" style="flex:none"></button></div>'):"")
@@ -4971,7 +5051,7 @@ async function loadPerms(gid){
       +'<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px">First / last markets</div>'
       +'<div class="tabs">'+mtabs+'</div>'
       +'<div class="builder-tools">'
-      +'<input id="psearch" placeholder="Search players by name or number…" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
+      +'<input id="psearch" placeholder="Search players… e.g. Dangerfield Cameron" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
       +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer;min-width:0"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
       +'</div><div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
@@ -4998,10 +5078,23 @@ async function loadPerms(gid){
       const va=isNaN(na)?9999:na, vb=isNaN(nb)?9999:nb; return va-vb||String(a.name||"").localeCompare(String(b.name||"")); }); }
     return arr;
   }
+  // Multi-token shortlist: "Dangerfield Cameron" or "Dangerfield, Cameron"
+  // → OR across tokens (name/number contains any token). Each token is a
+  // contiguous substring match (AND within the token itself).
+  function searchTokens(q){
+    return String(q||"").trim().toLowerCase().split(/[\s,]+/).filter(Boolean);
+  }
+  function nameMatchesSearch(name, number, q){
+    const tokens=searchTokens(q);
+    if(!tokens.length) return true;
+    const hay=String(name||"").toLowerCase();
+    const num=String(number==null?"":number).toLowerCase();
+    return tokens.some(t=>hay.includes(t)||num.includes(t));
+  }
   function filterPlayers(list){
-    const q=(BUILD.search||"").trim().toLowerCase();
-    if(!q)return list;
-    return list.filter(p=>String(p.name||"").toLowerCase().includes(q)||String(p.number||"").includes(q));
+    const q=BUILD.search||"";
+    if(!String(q).trim())return list;
+    return list.filter(p=>nameMatchesSearch(p.name, p.number, q));
   }
   // The deterministic, displayed roster for a side — used by BOTH the render and
   // wiring loops so row ids line up.
