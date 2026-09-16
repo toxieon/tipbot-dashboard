@@ -3322,7 +3322,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div style="margin-top:12px;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap">'
       +'<button id="godresyncbtn" type="button" '+(godOn()?"":"disabled ")+'title="Durable DB repair only — no Discord posts" style="border:1px solid var(--warn,#e0a04a);background:rgba(224,160,74,.12);color:'+(godOn()?"var(--warn,#e0a04a)":"#7a6a4a")+';border-radius:9px;padding:8px 12px;cursor:'+(godOn()?"pointer":"not-allowed")+';font:inherit;font-size:12.5px;font-weight:650">Resync all bets</button>'
       +'<div style="color:var(--faint);font-size:12px;line-height:1.4;flex:1;min-width:180px">Re-apply durable status/result/profit/actuals for every tip on this server and repair follower bankrolls. <b>No Discord messages.</b> Turn God mode on first. Pending tips with no recoverable grade stay Pending.</div>'
-      +'</div><div id="godresyncmsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div></div>';
+      +'</div><div id="godresyncmsg" style="font-size:12px;color:var(--faint);margin-top:8px"></div>'
+      +'<div id="godresyncprog" hidden style="margin-top:10px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">'
+      +'<div id="godresyncprogtext" style="font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums">0/0 · follows 0 · skipped Pending 0</div>'
+      +'<div id="godresyncprogpct" style="font-size:11px;font-weight:700;color:var(--faint);font-variant-numeric:tabular-nums">0%</div></div>'
+      +'<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="godresyncprobar" style="height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden">'
+      +'<i id="godresyncprobarfill" style="display:block;height:100%;width:0%;border-radius:99px;background:var(--warn,#e0a04a);transition:width .2s ease"></i></div></div>'
+      +'<details id="godresynclogwrap" style="margin-top:10px">'
+      +'<summary style="cursor:pointer;color:var(--faint);font-size:12px;font-weight:650;user-select:none">Resync log</summary>'
+      +'<pre id="godresynclog" style="margin:8px 0 0;padding:10px 12px;max-height:180px;overflow:auto;font:11.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted);background:var(--card2);border:1px solid var(--line);border-radius:9px;white-space:pre-wrap;word-break:break-word"></pre>'
+      +'</details></div>';
     const inviteZone='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
       +'<div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">Invite me</div>'
       +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Create a Discord invite for <b>this server</b> so you can join and inspect it. Platform owner only. Needs bot Create Instant Invite (or Administrator).</div>'
@@ -3404,14 +3414,70 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     { const gr=$("godresyncbtn"); if(gr)gr.onclick=async()=>{
       if(!godOn()){ toast("Turn God mode on first"); return; }
       if(!confirm("🔱 Resync ALL bets on this server?\n\nDurable DB repair of tip status/result/profit/actuals + follower bankrolls.\nDoes NOT post or edit anything on Discord.\nPending tips with no recoverable grade stay Pending.")) return;
-      const m=$("godresyncmsg"); gr.disabled=true; if(m){m.style.color="var(--faint)"; m.textContent="Resyncing…";}
+      const m=$("godresyncmsg"), prog=$("godresyncprog"), logEl=$("godresynclog");
+      const bar=$("godresyncprobar"), fill=$("godresyncprobarfill");
+      const ptxt=$("godresyncprogtext"), ppct=$("godresyncprogpct");
+      gr.disabled=true;
+      if(m){m.style.color="var(--faint)"; m.textContent="Resyncing…";}
+      if(logEl) logEl.textContent="";
+      let lastLineLen=0;
+      const paintProg=(j)=>{
+        if(!j||typeof j!=="object") return;
+        const processed=j.processed!=null?Number(j.processed):(j.tips_touched!=null?Number(j.tips_touched):0);
+        const total=j.total!=null?Number(j.total):(processed||0);
+        const follows=j.follows!=null?Number(j.follows):(j.follows_repaired!=null?Number(j.follows_repaired):0);
+        const skipped=j.skipped_pending!=null?Number(j.skipped_pending):(j.skipped_pending_no_grade!=null?Number(j.skipped_pending_no_grade):0);
+        const p=Number.isFinite(processed)?processed:0;
+        const t=Number.isFinite(total)?total:0;
+        const pct=t>0?Math.min(100,Math.round((p/t)*100)):(p>0?100:0);
+        if(ptxt) ptxt.textContent=p+"/"+t+" · follows "+(Number.isFinite(follows)?follows:0)+" · skipped Pending "+(Number.isFinite(skipped)?skipped:0);
+        if(ppct) ppct.textContent=pct+"%";
+        if(fill) fill.style.width=pct+"%";
+        if(bar) bar.setAttribute("aria-valuenow", String(pct));
+        if(Array.isArray(j.lines)&&logEl){
+          if(j.lines.length>lastLineLen){
+            const neu=j.lines.slice(lastLineLen).map(x=>String(x==null?"":x));
+            const chunk=neu.join("\n");
+            if(chunk){
+              logEl.textContent+=(logEl.textContent&&!logEl.textContent.endsWith("\n")?"\n":"")+chunk;
+              try{ logEl.scrollTop=logEl.scrollHeight; }catch(e3){}
+            }
+            lastLineLen=j.lines.length;
+          }
+        }
+      };
+      if(prog){
+        prog.hidden=false;
+        paintProg({processed:0,total:0,follows:0,skipped_pending:0,lines:[]});
+      }
+      let pollTimer=null;
+      const stopPoll=()=>{ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } };
+      const tickProg=async()=>{
+        try{
+          const pr=await api("/api/god-resync-progress?guild_id="+encodeURIComponent(s.guild_id),{timeoutMs:8000,retries:1});
+          if(!pr||pr.status===404) return;
+          let pj=null; try{ pj=await pr.json(); }catch(e4){ return; }
+          paintProg(pj);
+          if(pj&&pj.durability_warning&&m){
+            m.textContent=String(pj.durability_warning);
+            m.style.color="var(--warn,#e0a04a)";
+          }
+        }catch(e5){ /* progress poll: ignore network / 404 */ }
+      };
+      pollTimer=setInterval(tickProg,500);
+      tickProg();
       try{
         // Idempotent + long timeout: TipBot may 503 db_busy; never Discord-posts.
         const r=await api("/api/god-resync-bets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id, dry_run:false}), timeoutMs:180000, idempotent:true, retries:3});
         const j=await r.json();
+        paintProg(j);
         if(j.ok){
           const msg="Resynced "+(j.tips_touched||0)+" tip(s) · follows repaired "+(j.follows_repaired||0)+(j.skipped_pending_no_grade?(" · "+j.skipped_pending_no_grade+" Pending left"):"")+" — no Discord";
           if(m){m.textContent=msg; m.style.color="var(--win)";}
+          if(j.durability_warning&&m){
+            m.textContent=msg+" — "+j.durability_warning;
+            m.style.color="var(--warn,#e0a04a)";
+          }
           toast("🔱 "+msg);
           try{ await loadDetail(s.guild_id); }catch(e2){}
         }else{
@@ -3419,10 +3485,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           if(j.error && j.message && j.error!==j.message) err=j.message+" ("+j.error+")";
           if(j.retry_after!=null && (j.error==="db_busy"||j.error==="warming")) err+=" — retry in ~"+j.retry_after+"s";
           if(m){m.textContent=err; m.style.color="var(--loss)";}
+          if(j.durability_warning&&m){
+            m.textContent=err+" — "+j.durability_warning;
+            m.style.color="var(--warn,#e0a04a)";
+          }
           toast(err);
         }
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m){m.textContent="Couldn't reach the bot."; m.style.color="var(--loss)";} toast("Couldn't reach the bot"); }
-      finally{ gr.disabled=!godOn(); }
+      finally{ stopPoll(); gr.disabled=!godOn(); }
     }; }
     { const ib=$("inviteMeBtn"); if(ib)ib.onclick=async()=>{
       const m=$("inviteMeMsg"), link=$("inviteMeLink");
