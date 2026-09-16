@@ -3406,7 +3406,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(!confirm("🔱 Resync ALL bets on this server?\n\nDurable DB repair of tip status/result/profit/actuals + follower bankrolls.\nDoes NOT post or edit anything on Discord.\nPending tips with no recoverable grade stay Pending.")) return;
       const m=$("godresyncmsg"); gr.disabled=true; if(m){m.style.color="var(--faint)"; m.textContent="Resyncing…";}
       try{
-        const r=await api("/api/god-resync-bets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id, dry_run:false})});
+        // Idempotent + long timeout: TipBot may 503 db_busy; never Discord-posts.
+        const r=await api("/api/god-resync-bets",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:s.guild_id, dry_run:false}), timeoutMs:180000, idempotent:true, retries:3});
         const j=await r.json();
         if(j.ok){
           const msg="Resynced "+(j.tips_touched||0)+" tip(s) · follows repaired "+(j.follows_repaired||0)+(j.skipped_pending_no_grade?(" · "+j.skipped_pending_no_grade+" Pending left"):"")+" — no Discord";
@@ -3414,8 +3415,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           toast("🔱 "+msg);
           try{ await loadDetail(s.guild_id); }catch(e2){}
         }else{
-          if(m){m.textContent=j.message||"Resync failed"; m.style.color="var(--loss)";}
-          toast(j.message||"Resync failed");
+          let err=j.message||j.error||"Resync failed";
+          if(j.error && j.message && j.error!==j.message) err=j.message+" ("+j.error+")";
+          if(j.retry_after!=null && (j.error==="db_busy"||j.error==="warming")) err+=" — retry in ~"+j.retry_after+"s";
+          if(m){m.textContent=err; m.style.color="var(--loss)";}
+          toast(err);
         }
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m){m.textContent="Couldn't reach the bot."; m.style.color="var(--loss)";} toast("Couldn't reach the bot"); }
       finally{ gr.disabled=!godOn(); }
