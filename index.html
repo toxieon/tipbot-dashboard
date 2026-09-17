@@ -1919,7 +1919,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const g=BUILD.game; if(!g) return "";
     const key=playerLinesCacheKey(BUILD.guildId, g);
     const pack=STATE._playerLinesCache[key];
-    if(STATE._playerLinesInflight[key]) return "Loading book lines…";
+    const inflight=STATE._playerLinesInflight[key];
+    // Prefetch can leave inflight set while Auto is OFF — never sticky "Loading…" then.
+    // Only show Loading when Auto is on and a fetch is truly young (<~25s).
+    if(inflight && BUILD.autoLines){
+      const started=(STATE._playerLinesInflightAt&&STATE._playerLinesInflightAt[key])||0;
+      if(started && (Date.now()-started)>25000) return "TipBot slow — try Auto ↻";
+      return "Loading book lines…";
+    }
     if(!pack) return BUILD.autoLines?"No cache yet":"";
     if(pack.status==="missing") return "Player-lines API not available yet";
     if(pack.status==="empty") return pack.message||"No book lines cached for this game";
@@ -1927,6 +1934,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const n=pack.byKey?Object.keys(pack.byKey).length:0;
     const when=pack.at?(" · cached"):"";
     return n? (n+" player line"+(n===1?"":"s")+when) : (pack.message||"No lines");
+  }
+  function playerLinesFetchErrorMessage(err){
+    if(!err) return "TipBot slow / try again";
+    const name=err.name||"";
+    const aborted=name==="AbortError"||err.code===20||(typeof DOMException!=="undefined"&&err instanceof DOMException&&name==="AbortError");
+    if(aborted) return "Book lines timed out — try Auto ↻";
+    const msg=String(err.message||err||"");
+    if(/abort|timed?\s*out|TimeoutError/i.test(msg)) return "Book lines timed out — try Auto ↻";
+    return "TipBot slow / try again";
   }
   async function fetchPlayerLines(gid, game, opts){
     opts=opts||{};
@@ -1939,9 +1955,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const q="/api/odds/player-lines?guild_id="+encodeURIComponent(gid)
       +"&game="+encodeURIComponent(gameName)
       +(opts.refresh?"&refresh=1":"");
+    // Odds cold pull can be events+odds (~2×20s upstream); allow ~45s before abort.
     const p=(async()=>{
       try{
-        const r=await api(q,{timeoutMs:20000,retries:1});
+        const r=await api(q,{timeoutMs:45000,retries:1});
         let data=null;
         try{ data=await r.json(); }catch(e){ data=null; }
         if(r.status===404||r.status===501){
@@ -1955,6 +1972,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         }
         if(!r.ok){
           STATE._playerLinesCache[key]={at:Date.now(), raw:data, byKey:{}, status:"error", message:(data&&(data.message||data.error))||("HTTP "+r.status)};
+          return STATE._playerLinesCache[key];
+        }
+        // HTTP 200 but TipBot reports ok:false (resolve fail / no key / etc.) — surface message.
+        if(data && data.ok===false){
+          STATE._playerLinesApi.ok=true;
+          const msg=(data.message||data.error||"No book lines");
+          STATE._playerLinesCache[key]={at:Date.now(), raw:data, byKey:{}, status:"error", message:msg,
+            scraped_at:data.scraped_at||null, requests_remaining:data.requests_remaining};
+          try{ noteOddsQuotaFromLines(STATE._playerLinesCache[key]); }catch(e){}
           return STATE._playerLinesCache[key];
         }
         STATE._playerLinesApi.ok=true;
@@ -1971,13 +1997,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return STATE._playerLinesCache[key];
       }catch(e){
         if(e&&e.unauth) throw e;
-        STATE._playerLinesCache[key]={at:Date.now(), raw:null, byKey:{}, status:"error", message:"Network error"};
+        STATE._playerLinesCache[key]={at:Date.now(), raw:null, byKey:{}, status:"error", message:playerLinesFetchErrorMessage(e)};
         return STATE._playerLinesCache[key];
       }finally{
         delete STATE._playerLinesInflight[key];
+        if(STATE._playerLinesInflightAt) delete STATE._playerLinesInflightAt[key];
       }
     })();
     STATE._playerLinesInflight[key]=p;
+    STATE._playerLinesInflightAt=STATE._playerLinesInflightAt||{};
+    STATE._playerLinesInflightAt[key]=Date.now();
     return p;
   }
   async function ensurePlayerLines(game, opts){
@@ -2038,8 +2067,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function oddsQuotaSoftReason(status,data,err){
     const warming=!!(data&&(data.error==="warming"||data.warming===true||data.status==="warming"));
     if(status===503||warming) return "TipBot deploying…";
-    if(status===502||status===504||err) return "TipBot unreachable — try again";
-    if(status>=500) return "TipBot unreachable — try again";
+    // Network / gateway blips are transient — soft pending, retry on next gear open.
+    if(status===502||status===504||err) return "Quota pending — try again";
+    if(status>=500) return "Quota pending — try again";
     return "Quota unavailable — try again";
   }
   function paintOddsQuotaRow(){
@@ -2053,7 +2083,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!hasRem){
       main.textContent="Odds API · — · not pulled yet";
       if(pack.status==="missing") meta.textContent="API pending";
-      else if(pack.status==="error") meta.textContent=pack.message||"TipBot unreachable — try again";
+      else if(pack.status==="error") meta.textContent=pack.message||"Quota pending — try again";
       else meta.textContent=pack.message||"";
     }else{
       main.textContent=oddsQuotaLabel(pack);
@@ -2061,7 +2091,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const when=fmtQuotaWhen(pack.updatedAt);
         meta.textContent=when?("updated "+when):"cached";
       }else{
-        meta.textContent=pack.status==="error"?(pack.message||"TipBot unreachable — try again"):"";
+        meta.textContent=pack.status==="error"?(pack.message||"Quota pending — try again"):"";
       }
     }
   }
@@ -2148,6 +2178,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }
   }
   function refreshOddsQuotaOnSettingsOpen(){
+    // Always re-attempt on gear open (except confirmed 404/501 missing API).
+    // Network blips must not permanently latch _oddsQuotaApi.ok=false.
+    if(STATE._oddsQuota && STATE._oddsQuota.status==="error" && STATE._oddsQuotaApi && STATE._oddsQuotaApi.ok!==false){
+      STATE._oddsQuota=Object.assign({}, STATE._oddsQuota, {status:null, message:null});
+    }
     paintOddsQuotaRow();
     if(!canSeeOwnerSecrets()) return;
     fetchOddsQuota().catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); paintOddsQuotaRow(); });
@@ -5556,9 +5591,11 @@ async function loadPerms(gid){
     saveMultiDraft();
     renderGame();
     // Prefetch TipBot player-lines cache for Auto (session-cached; no spam).
+    // Always paint in finally so "Loading book lines…" cannot stick (esp. Auto OFF).
     ensurePlayerLines(g).then(function(){
-      if(BUILD.game===g){ paintAutoBarStatus(); if(BUILD.autoLines) renderPlayers(); }
-    }).catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); });
+      if(BUILD.game===g){ if(BUILD.autoLines) renderPlayers(); }
+    }).catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); })
+     .finally(function(){ if(BUILD.game===g) paintAutoBarStatus(); });
     // If the game is in progress, pull live stats now and refresh them every 30s.
     const c=Number(g.complete)||0;
     if(g.aflMatchId&&c>0&&c<100){
@@ -5609,8 +5646,11 @@ async function loadPerms(gid){
         autoBtn.setAttribute("aria-pressed", BUILD.autoLines?"true":"false");
         if(BUILD.autoLines){
           paintAutoBarStatus();
-          ensurePlayerLines(g).then(function(){ if(BUILD.game===g){ paintAutoBarStatus(); renderPlayers(); } })
-            .catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); paintAutoBarStatus(); });
+          ensurePlayerLines(g).then(function(){ if(BUILD.game===g) renderPlayers(); })
+            .catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); })
+            .finally(function(){ if(BUILD.game===g) paintAutoBarStatus(); });
+        }else{
+          paintAutoBarStatus();
         }
         renderPlayers();
       };
@@ -5621,9 +5661,9 @@ async function loadPerms(gid){
         autoRef.disabled=true;
         paintAutoBarStatus();
         ensurePlayerLines(g,{refresh:true}).then(function(){
-          if(BUILD.game===g){ paintAutoBarStatus(); if(BUILD.autoLines) renderPlayers(); }
+          if(BUILD.game===g && BUILD.autoLines) renderPlayers();
         }).catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); })
-         .finally(function(){ autoRef.disabled=false; paintAutoBarStatus(); });
+         .finally(function(){ autoRef.disabled=false; if(BUILD.game===g) paintAutoBarStatus(); });
       };
     }
     paintAutoBarStatus();
