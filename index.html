@@ -84,6 +84,9 @@
   .dd-item{padding:9px 11px;border-radius:9px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;gap:8px}
   .dd-item:hover{background:#222c44}
   .dd-label{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 11px 4px}
+  .dd-quota{padding:9px 11px;border-radius:9px;font-size:13px;color:var(--muted);line-height:1.35;cursor:default;user-select:none}
+  .dd-quota .dq-main{color:var(--txt);font-weight:650}
+  .dd-quota .dq-meta{display:block;font-size:11px;color:var(--faint);margin-top:2px}
   .danger{color:var(--loss)}
   .viewas{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,rgba(123,91,255,.18),rgba(91,140,255,.10));border:1px solid #34407a;border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:14px}
   .viewas b{color:#c9d4ff}
@@ -644,6 +647,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           <div class="dd-label">Settings</div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
+          <div class="dd-quota" id="dd-odds-quota" hidden title="The Odds API monthly quota (TipBot cache)">
+            <span class="dq-main" id="dd-odds-quota-main">Odds API · —</span>
+            <span class="dq-meta" id="dd-odds-quota-meta">not pulled yet</span>
+          </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
         </div></div>
@@ -1117,6 +1124,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     else if(opts.armTheme) hydrateTheme(null);
     $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
     $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
+    paintOddsQuotaRow();
     buildViewAsMenu();
   }
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, Math.max(0, ms|0)); }); }
@@ -1168,14 +1176,21 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
 
   $("loginbtn").href=API+"/auth/login";
-  $("gear").onclick=e=>{e.stopPropagation();$("dropdown").hidden=!$("dropdown").hidden;$("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));$("viewas-list").hidden=true;};
+  $("gear").onclick=e=>{
+    e.stopPropagation();
+    const opening=$("dropdown").hidden;
+    $("dropdown").hidden=!$("dropdown").hidden;
+    $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
+    $("viewas-list").hidden=true;
+    if(opening) refreshOddsQuotaOnSettingsOpen();
+  };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
   $("dropdown").addEventListener("click",e=>e.stopPropagation());
   $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
-  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;enterHome();};
+  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){
     const admin=visibleServers();
@@ -1268,7 +1283,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
     const it=document.createElement("div");it.className="dd-item";it.textContent=s.display_name||"Unnamed";
-    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;enterHome();};
+    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();enterHome();};
     box.appendChild(it);});}
   const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
 
@@ -1952,6 +1967,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           scraped_at:data&&data.scraped_at||null,
           requests_remaining:data&&data.requests_remaining
         };
+        try{ noteOddsQuotaFromLines(STATE._playerLinesCache[key]); }catch(e){}
         return STATE._playerLinesCache[key];
       }catch(e){
         if(e&&e.unauth) throw e;
@@ -1993,6 +2009,142 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function paintAutoBarStatus(){
     const el=$("auto-status"); if(!el) return;
     el.textContent=playerLinesStatusText();
+  }
+
+  /* ---------- Odds API quota (gear · owner only · TipBot /api/odds/quota) ---------- */
+  STATE._oddsQuota=STATE._oddsQuota||{remaining:null,updatedAt:null,status:null,message:null};
+  STATE._oddsQuotaApi={ok:null}; // null unknown, true ok, false missing
+  function canSeeOwnerSecrets(){
+    // Same gate as View as / Admin Tools: platform owner, not view-as follower.
+    // God mode is owner-only already (godOn); mods/followers never see this.
+    return STATE.role==="owner" && !STATE.viewAs;
+  }
+  function fmtQuotaWhen(ts){
+    if(!ts) return "";
+    try{
+      const d=(ts instanceof Date)?ts:new Date(ts);
+      if(isNaN(d.getTime())) return "";
+      return d.toLocaleString(undefined,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+    }catch(e){ return ""; }
+  }
+  function oddsQuotaLabel(pack){
+    pack=pack||STATE._oddsQuota||{};
+    const rem=pack.remaining;
+    if(rem==null || rem==="") return "Odds API · —";
+    const n=Number(rem);
+    if(!Number.isFinite(n)) return "Odds API · —";
+    return "Odds API · ~"+Math.max(0, Math.round(n))+" left";
+  }
+  function paintOddsQuotaRow(){
+    const row=$("dd-odds-quota"), main=$("dd-odds-quota-main"), meta=$("dd-odds-quota-meta");
+    if(!row||!main||!meta) return;
+    const show=canSeeOwnerSecrets();
+    row.hidden=!show;
+    if(!show) return;
+    const pack=STATE._oddsQuota||{};
+    const hasRem=pack.remaining!=null && pack.remaining!=="" && Number.isFinite(Number(pack.remaining));
+    if(!hasRem && (pack.status==="missing" || pack.status==null || pack.status==="empty")){
+      main.textContent="Odds API · — · not pulled yet";
+      meta.textContent=pack.status==="missing"?"TipBot /api/odds/quota pending":"";
+    }else if(pack.status==="error" && !hasRem){
+      main.textContent="Odds API · —";
+      meta.textContent=pack.message||"couldn't load quota";
+    }else{
+      main.textContent=oddsQuotaLabel(pack);
+      if(pack.updatedAt){
+        const when=fmtQuotaWhen(pack.updatedAt);
+        meta.textContent=when?("updated "+when):"cached";
+      }else{
+        meta.textContent="";
+      }
+    }
+  }
+  function ingestOddsQuotaPayload(data){
+    if(!data||typeof data!=="object") return null;
+    const rem=pickNum(
+      data.requests_remaining, data.remaining, data.quota_remaining,
+      data.requestsLeft, data.requests_left,
+      data.quota&&data.quota.remaining,
+      data.the_odds&&data.the_odds.remaining
+    );
+    const updated=data.updated_at||data.scraped_at||data.checked_at||data.cached_at||data.as_of||null;
+    let updatedAt=null;
+    if(updated!=null){
+      const t=Date.parse(String(updated));
+      updatedAt=Number.isFinite(t)?t:Date.now();
+    }else if(rem!=null){
+      updatedAt=Date.now();
+    }
+    return {
+      remaining: rem,
+      updatedAt: updatedAt,
+      status: (rem!=null || data.ok!==false)?"ok":"empty",
+      message: data.message||data.error||null,
+      raw: data
+    };
+  }
+  function noteOddsQuotaFromLines(pack){
+    // Opportunistic seed from player-lines cache fields — does not burn credits.
+    if(!pack||!pack.raw) return;
+    const rem=pickNum(pack.requests_remaining, pack.raw.requests_remaining, pack.raw.remaining);
+    if(rem==null) return;
+    const cur=STATE._oddsQuota||{};
+    STATE._oddsQuota={
+      remaining: rem,
+      updatedAt: pack.at||Date.now(),
+      status: "ok",
+      message: null,
+      raw: pack.raw
+    };
+    // Prefer a fresher explicit quota fetch if we already have one newer
+    if(cur.updatedAt && cur.status==="ok" && cur.updatedAt>STATE._oddsQuota.updatedAt){
+      STATE._oddsQuota=cur;
+    }
+    paintOddsQuotaRow();
+  }
+  async function fetchOddsQuota(){
+    if(!canSeeOwnerSecrets()) return null;
+    if(STATE._oddsQuotaApi.ok===false){
+      STATE._oddsQuota=Object.assign({}, STATE._oddsQuota||{}, {status:"missing", message:"API not deployed"});
+      paintOddsQuotaRow();
+      return STATE._oddsQuota;
+    }
+    try{
+      const r=await api("/api/odds/quota",{timeoutMs:15000,retries:1});
+      let data=null;
+      try{ data=await r.json(); }catch(e){ data=null; }
+      if(r.status===404||r.status===501){
+        STATE._oddsQuotaApi.ok=false;
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"missing", message:"API not deployed", raw:data};
+        paintOddsQuotaRow();
+        return STATE._oddsQuota;
+      }
+      if(r.status===403){
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:"Not allowed", raw:data};
+        paintOddsQuotaRow();
+        return STATE._oddsQuota;
+      }
+      if(!r.ok){
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:(data&&(data.message||data.error))||("HTTP "+r.status), raw:data};
+        paintOddsQuotaRow();
+        return STATE._oddsQuota;
+      }
+      STATE._oddsQuotaApi.ok=true;
+      const ing=ingestOddsQuotaPayload(data)||{remaining:null,updatedAt:Date.now(),status:"empty",message:null,raw:data};
+      STATE._oddsQuota=ing;
+      paintOddsQuotaRow();
+      return STATE._oddsQuota;
+    }catch(e){
+      if(e&&e.unauth) throw e;
+      STATE._oddsQuota={remaining:(STATE._oddsQuota&&STATE._oddsQuota.remaining)!=null?STATE._oddsQuota.remaining:null, updatedAt:(STATE._oddsQuota&&STATE._oddsQuota.updatedAt)||null, status:"error", message:"Network error", raw:null};
+      paintOddsQuotaRow();
+      return STATE._oddsQuota;
+    }
+  }
+  function refreshOddsQuotaOnSettingsOpen(){
+    paintOddsQuotaRow();
+    if(!canSeeOwnerSecrets()) return;
+    fetchOddsQuota().catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); paintOddsQuotaRow(); });
   }
 
 
