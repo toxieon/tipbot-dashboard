@@ -84,6 +84,9 @@
   .dd-item{padding:9px 11px;border-radius:9px;cursor:pointer;font-size:14px;display:flex;justify-content:space-between;gap:8px}
   .dd-item:hover{background:#222c44}
   .dd-label{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 11px 4px}
+  .dd-quota{padding:9px 11px;border-radius:9px;font-size:13px;color:var(--muted);line-height:1.35;cursor:default;user-select:none}
+  .dd-quota .dq-main{color:var(--txt);font-weight:650}
+  .dd-quota .dq-meta{display:block;font-size:11px;color:var(--faint);margin-top:2px}
   .danger{color:var(--loss)}
   .viewas{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,rgba(123,91,255,.18),rgba(91,140,255,.10));border:1px solid #34407a;border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:14px}
   .viewas b{color:#c9d4ff}
@@ -214,6 +217,7 @@
     .prow{gap:10px;padding:12px}
     .pname{min-width:0;flex:1 1 100%}
     .linectl{flex:1 1 100%;gap:10px}
+    .linectl-wrap{flex:1 1 100%}
     .prow-actions{flex:1 1 100%;justify-content:space-between}
     .ou{flex:1}
     .ou button{flex:1;padding:9px 10px}
@@ -235,6 +239,16 @@
   .pform-chip.recent{background:rgba(91,140,255,.24);border-color:rgba(91,140,255,.5);color:var(--txt);font-weight:800}
   .pform-chip.ph{opacity:.4;font-weight:600}
   .pform-meta{font-size:10px;color:var(--faint);margin-top:1px}
+  .auto-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2)}
+  .auto-bar .auto-lab{font-weight:700;font-size:13px;color:var(--txt)}
+  .auto-bar .auto-hint{font-size:12px;color:var(--muted);flex:1;min-width:140px}
+  .auto-bar .auto-status{font-size:11px;color:var(--faint);white-space:nowrap}
+  .auto-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;min-height:18px}
+  .auto-price{font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;color:var(--txt);letter-spacing:.01em}
+  .auto-price.muted{color:var(--faint);font-weight:650}
+  .auto-better{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:750;padding:2px 8px;border-radius:999px;background:rgba(91,140,255,.16);border:1px solid rgba(91,140,255,.4);color:#9fc7ff;white-space:nowrap;max-width:100%}
+  .linectl-wrap{display:flex;flex-direction:column;gap:2px;flex:1 1 160px;min-width:0;max-width:100%}
+  .linectl-wrap .linectl{flex:1 1 auto;max-width:100%}
   .compare-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;flex:none;white-space:nowrap}
   .compare-btn:hover{border-color:#3a4772;color:var(--txt)}
   .draft-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(91,140,255,.4);border-radius:12px;background:rgba(91,140,255,.1)}
@@ -633,6 +647,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           <div class="dd-label">Settings</div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
+          <div class="dd-quota" id="dd-odds-quota" hidden title="The Odds API monthly quota (TipBot cache)">
+            <span class="dq-main" id="dd-odds-quota-main">Odds API · —</span>
+            <span class="dq-meta" id="dd-odds-quota-meta">not pulled yet</span>
+          </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
         </div></div>
@@ -988,7 +1006,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server."};
   let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false};
   const godOn=()=>STATE.god&&STATE.role==="owner"&&!STATE.viewAs;   // #32: owner only, not in preview
-  let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[]};
+  let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[],autoLines:false};
   // Multi-tip batch: tipsters accumulate finished tips, then schedule once (optional Trickle).
   let BATCH={guildId:null,tips:[]};
 
@@ -1106,6 +1124,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     else if(opts.armTheme) hydrateTheme(null);
     $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
     $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
+    paintOddsQuotaRow();
     buildViewAsMenu();
   }
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, Math.max(0, ms|0)); }); }
@@ -1157,14 +1176,21 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
 
   $("loginbtn").href=API+"/auth/login";
-  $("gear").onclick=e=>{e.stopPropagation();$("dropdown").hidden=!$("dropdown").hidden;$("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));$("viewas-list").hidden=true;};
+  $("gear").onclick=e=>{
+    e.stopPropagation();
+    const opening=$("dropdown").hidden;
+    $("dropdown").hidden=!$("dropdown").hidden;
+    $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
+    $("viewas-list").hidden=true;
+    if(opening) refreshOddsQuotaOnSettingsOpen();
+  };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
   $("dropdown").addEventListener("click",e=>e.stopPropagation());
   $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
-  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;enterHome();};
+  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){
     const admin=visibleServers();
@@ -1257,7 +1283,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
     const it=document.createElement("div");it.className="dd-item";it.textContent=s.display_name||"Unnamed";
-    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;enterHome();};
+    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();enterHome();};
     box.appendChild(it);});}
   const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
 
@@ -1780,6 +1806,345 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(e&&e.unauth) throw e;
       return null;
     }
+  }
+
+  /* ---------- Builder Auto: TipBot /api/odds/player-lines (cache seed + ~under) ---------- */
+  STATE._playerLinesCache=STATE._playerLinesCache||{}; // key -> {at, raw, byKey, status, message}
+  STATE._playerLinesApi={ok:null}; // null unknown, true ok, false missing
+  STATE._playerLinesInflight=STATE._playerLinesInflight||{};
+
+  function builderGameName(g){
+    if(!g) return "";
+    if(g.game_name) return String(g.game_name);
+    return teamName(g.hteam)+" v "+teamName(g.ateam);
+  }
+  function normalizeLineStat(stat){
+    const s=String(stat||"").trim();
+    if(!s) return "";
+    const k=s.toLowerCase().replace(/[\s-]+/g,"_");
+    const map={
+      disposals:"Disposals", player_disposals:"Disposals", disposal:"Disposals",
+      goals:"Goals", player_goals:"Goals", goal:"Goals",
+      "fantasy_points":"Fantasy Points", fantasy:"Fantasy Points", dream_team:"Fantasy Points", dreamteampoints:"Fantasy Points",
+      hitouts:"Hitouts", marks:"Marks", tackles:"Tackles", kicks:"Kicks", handballs:"Handballs", clearances:"Clearances"
+    };
+    if(map[k]) return map[k];
+    // Title-case fallback for already-pretty TipBot labels
+    if(STATS[s]) return s;
+    const pretty=s.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+    return STATS[pretty]?pretty:s;
+  }
+  function bookieLabel(b){
+    const k=String(b||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    if(k.includes("sportsbet")||k==="sb") return "Sportsbet";
+    if(k.includes("pointsbet")||k==="pb") return "PointsBet";
+    if(k.includes("ladbrokes")||k==="lad") return "Ladbrokes";
+    if(!b) return "Book";
+    return String(b).replace(/_/g," ");
+  }
+  function playerLineKey(player, stat){
+    const p=String(player||"").toLowerCase().trim().replace(/\s+/g," ");
+    const st=normalizeLineStat(stat).toLowerCase();
+    return p+"|"+st;
+  }
+  function pickLinePack(obj){
+    if(!obj||typeof obj!=="object") return null;
+    const line=pickNum(obj.line, obj.handicap, obj.points, obj.total);
+    const under=pickNum(obj.under_price, obj.under, obj.underOdds, obj.under_odds, obj.price_under);
+    const over=pickNum(obj.over_price, obj.over, obj.overOdds, obj.over_odds, obj.price_over);
+    const bookie=obj.bookie||obj.bookmaker||obj.book||obj.source||null;
+    if(line==null && under==null && over==null) return null;
+    return {bookie:bookie, line:line, under_price:under, over_price:over};
+  }
+  function ingestPlayerLinesPayload(data){
+    const byKey={};
+    if(!data||typeof data!=="object") return byKey;
+    const players=data.players||data.lines||data.items||[];
+    if(!Array.isArray(players)) return byKey;
+    players.forEach(row=>{
+      if(!row||typeof row!=="object") return;
+      const player=row.player||row.name||row.player_name||"";
+      const stat=normalizeLineStat(row.stat||row.market||row.prop||row.stat_key||"");
+      if(!player||!stat) return;
+      let primary=pickLinePack(row.primary||row.seed||row.main||null);
+      const by=row.by_bookie||row.bookies||row.books||null;
+      if(!primary && by && typeof by==="object"){
+        // Prefer Sportsbet, else first with a line
+        const order=["sportsbet","pointsbetau","pointsbet","ladbrokes_au","ladbrokes"];
+        for(const k of order){
+          if(by[k]){ primary=pickLinePack(Object.assign({bookie:k}, by[k])); if(primary&&primary.line!=null) break; }
+        }
+        if(!primary||primary.line==null){
+          for(const k of Object.keys(by)){
+            primary=pickLinePack(Object.assign({bookie:k}, by[k]));
+            if(primary&&primary.line!=null) break;
+          }
+        }
+      }
+      if(primary && !primary.bookie) primary.bookie="sportsbet";
+      let better=pickLinePack(row.better_under||row.betterUnder||row.best_under||null);
+      // Client-side better_under if TipBot only sent by_bookie
+      if(!better && by && typeof by==="object" && primary && primary.line!=null){
+        let best=null;
+        Object.keys(by).forEach(k=>{
+          const pack=pickLinePack(Object.assign({bookie:k}, by[k]));
+          if(!pack||pack.line==null) return;
+          const bk=String(k).toLowerCase();
+          if(bk.includes("sportsbet")) return;
+          if(!(bk.includes("pointsbet")||bk.includes("ladbrokes"))) return;
+          if(pack.line>primary.line && (!best || pack.line>best.line)) best=pack;
+        });
+        better=best;
+      }
+      byKey[playerLineKey(player,stat)]={
+        player:player, stat:stat,
+        primary:primary,
+        better_under:better,
+        by_bookie:by||null
+      };
+    });
+    return byKey;
+  }
+  function playerLinesCacheKey(gid, game){
+    return String(gid||"")+"|"+builderGameName(game).toLowerCase();
+  }
+  function lookupPlayerLine(player, stat){
+    const g=BUILD.game; if(!g) return null;
+    const key=playerLinesCacheKey(BUILD.guildId, g);
+    const pack=STATE._playerLinesCache[key];
+    if(!pack||!pack.byKey) return null;
+    return pack.byKey[playerLineKey(player, stat)]||null;
+  }
+  function playerLinesStatusText(){
+    const g=BUILD.game; if(!g) return "";
+    const key=playerLinesCacheKey(BUILD.guildId, g);
+    const pack=STATE._playerLinesCache[key];
+    if(STATE._playerLinesInflight[key]) return "Loading book lines…";
+    if(!pack) return BUILD.autoLines?"No cache yet":"";
+    if(pack.status==="missing") return "Player-lines API not available yet";
+    if(pack.status==="empty") return pack.message||"No book lines cached for this game";
+    if(pack.status==="error") return pack.message||"Couldn't load book lines";
+    const n=pack.byKey?Object.keys(pack.byKey).length:0;
+    const when=pack.at?(" · cached"):"";
+    return n? (n+" player line"+(n===1?"":"s")+when) : (pack.message||"No lines");
+  }
+  async function fetchPlayerLines(gid, game, opts){
+    opts=opts||{};
+    if(!gid||!game) return null;
+    if(STATE._playerLinesApi.ok===false && !opts.force) return null;
+    const gameName=builderGameName(game);
+    if(!gameName) return null;
+    const key=playerLinesCacheKey(gid, game);
+    if(STATE._playerLinesInflight[key] && !opts.refresh) return STATE._playerLinesInflight[key];
+    const q="/api/odds/player-lines?guild_id="+encodeURIComponent(gid)
+      +"&game="+encodeURIComponent(gameName)
+      +(opts.refresh?"&refresh=1":"");
+    const p=(async()=>{
+      try{
+        const r=await api(q,{timeoutMs:20000,retries:1});
+        let data=null;
+        try{ data=await r.json(); }catch(e){ data=null; }
+        if(r.status===404||r.status===501){
+          STATE._playerLinesApi.ok=false;
+          STATE._playerLinesCache[key]={at:Date.now(), raw:null, byKey:{}, status:"missing", message:"API not deployed"};
+          return STATE._playerLinesCache[key];
+        }
+        if(r.status===403){
+          STATE._playerLinesCache[key]={at:Date.now(), raw:null, byKey:{}, status:"error", message:"Not allowed"};
+          return STATE._playerLinesCache[key];
+        }
+        if(!r.ok){
+          STATE._playerLinesCache[key]={at:Date.now(), raw:data, byKey:{}, status:"error", message:(data&&(data.message||data.error))||("HTTP "+r.status)};
+          return STATE._playerLinesCache[key];
+        }
+        STATE._playerLinesApi.ok=true;
+        const byKey=ingestPlayerLinesPayload(data);
+        const empty=!Object.keys(byKey).length;
+        STATE._playerLinesCache[key]={
+          at:Date.now(), raw:data, byKey:byKey,
+          status: empty?"empty":"ok",
+          message:(data&&data.message)||null,
+          scraped_at:data&&data.scraped_at||null,
+          requests_remaining:data&&data.requests_remaining
+        };
+        try{ noteOddsQuotaFromLines(STATE._playerLinesCache[key]); }catch(e){}
+        return STATE._playerLinesCache[key];
+      }catch(e){
+        if(e&&e.unauth) throw e;
+        STATE._playerLinesCache[key]={at:Date.now(), raw:null, byKey:{}, status:"error", message:"Network error"};
+        return STATE._playerLinesCache[key];
+      }finally{
+        delete STATE._playerLinesInflight[key];
+      }
+    })();
+    STATE._playerLinesInflight[key]=p;
+    return p;
+  }
+  async function ensurePlayerLines(game, opts){
+    if(!BUILD.guildId||!game) return null;
+    const key=playerLinesCacheKey(BUILD.guildId, game);
+    const existing=STATE._playerLinesCache[key];
+    if(existing && existing.status!=="error" && !(opts&&opts.refresh)) return existing;
+    return fetchPlayerLines(BUILD.guildId, game, opts);
+  }
+  function autoPriceHtml(hit){
+    if(!hit||!hit.primary) return "";
+    const u=hit.primary.under_price;
+    const line=hit.primary.line;
+    const book=bookieLabel(hit.primary.bookie);
+    let html="";
+    if(u!=null){
+      const price=Number(u);
+      const shown=Number.isFinite(price)?(Math.round(price*100)/100).toFixed(2).replace(/\.0$/,".0"):String(u);
+      html+='<span class="auto-price" title="'+esc(book)+' under'+(line!=null?(" "+line):"")+'">~'+esc(shown)+'</span>';
+    }else if(line!=null){
+      html+='<span class="auto-price muted" title="'+esc(book)+' line">line '+esc(String(line))+'</span>';
+    }
+    if(hit.better_under && hit.better_under.line!=null){
+      const bb=bookieLabel(hit.better_under.bookie);
+      html+='<span class="auto-better" title="Higher under line elsewhere">better on '+esc(bb)+' '+esc(String(hit.better_under.line))+'</span>';
+    }
+    return html?'<div class="auto-meta">'+html+'</div>':"";
+  }
+  function paintAutoBarStatus(){
+    const el=$("auto-status"); if(!el) return;
+    el.textContent=playerLinesStatusText();
+  }
+
+  /* ---------- Odds API quota (gear · owner only · TipBot /api/odds/quota) ---------- */
+  STATE._oddsQuota=STATE._oddsQuota||{remaining:null,updatedAt:null,status:null,message:null};
+  STATE._oddsQuotaApi={ok:null}; // null unknown, true ok, false missing
+  function canSeeOwnerSecrets(){
+    // Same gate as View as / Admin Tools: platform owner, not view-as follower.
+    // God mode is owner-only already (godOn); mods/followers never see this.
+    return STATE.role==="owner" && !STATE.viewAs;
+  }
+  function fmtQuotaWhen(ts){
+    if(!ts) return "";
+    try{
+      const d=(ts instanceof Date)?ts:new Date(ts);
+      if(isNaN(d.getTime())) return "";
+      return d.toLocaleString(undefined,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+    }catch(e){ return ""; }
+  }
+  function oddsQuotaLabel(pack){
+    pack=pack||STATE._oddsQuota||{};
+    const rem=pack.remaining;
+    if(rem==null || rem==="") return "Odds API · —";
+    const n=Number(rem);
+    if(!Number.isFinite(n)) return "Odds API · —";
+    return "Odds API · ~"+Math.max(0, Math.round(n))+" left";
+  }
+  function paintOddsQuotaRow(){
+    const row=$("dd-odds-quota"), main=$("dd-odds-quota-main"), meta=$("dd-odds-quota-meta");
+    if(!row||!main||!meta) return;
+    const show=canSeeOwnerSecrets();
+    row.hidden=!show;
+    if(!show) return;
+    const pack=STATE._oddsQuota||{};
+    const hasRem=pack.remaining!=null && pack.remaining!=="" && Number.isFinite(Number(pack.remaining));
+    if(!hasRem && (pack.status==="missing" || pack.status==null || pack.status==="empty")){
+      main.textContent="Odds API · — · not pulled yet";
+      meta.textContent=pack.status==="missing"?"TipBot /api/odds/quota pending":"";
+    }else if(pack.status==="error" && !hasRem){
+      main.textContent="Odds API · —";
+      meta.textContent=pack.message||"couldn't load quota";
+    }else{
+      main.textContent=oddsQuotaLabel(pack);
+      if(pack.updatedAt){
+        const when=fmtQuotaWhen(pack.updatedAt);
+        meta.textContent=when?("updated "+when):"cached";
+      }else{
+        meta.textContent="";
+      }
+    }
+  }
+  function ingestOddsQuotaPayload(data){
+    if(!data||typeof data!=="object") return null;
+    const rem=pickNum(
+      data.requests_remaining, data.remaining, data.quota_remaining,
+      data.requestsLeft, data.requests_left,
+      data.quota&&data.quota.remaining,
+      data.the_odds&&data.the_odds.remaining
+    );
+    const updated=data.updated_at||data.scraped_at||data.checked_at||data.cached_at||data.as_of||null;
+    let updatedAt=null;
+    if(updated!=null){
+      const t=Date.parse(String(updated));
+      updatedAt=Number.isFinite(t)?t:Date.now();
+    }else if(rem!=null){
+      updatedAt=Date.now();
+    }
+    return {
+      remaining: rem,
+      updatedAt: updatedAt,
+      status: (rem!=null || data.ok!==false)?"ok":"empty",
+      message: data.message||data.error||null,
+      raw: data
+    };
+  }
+  function noteOddsQuotaFromLines(pack){
+    // Opportunistic seed from player-lines cache fields — does not burn credits.
+    if(!pack||!pack.raw) return;
+    const rem=pickNum(pack.requests_remaining, pack.raw.requests_remaining, pack.raw.remaining);
+    if(rem==null) return;
+    const cur=STATE._oddsQuota||{};
+    STATE._oddsQuota={
+      remaining: rem,
+      updatedAt: pack.at||Date.now(),
+      status: "ok",
+      message: null,
+      raw: pack.raw
+    };
+    // Prefer a fresher explicit quota fetch if we already have one newer
+    if(cur.updatedAt && cur.status==="ok" && cur.updatedAt>STATE._oddsQuota.updatedAt){
+      STATE._oddsQuota=cur;
+    }
+    paintOddsQuotaRow();
+  }
+  async function fetchOddsQuota(){
+    if(!canSeeOwnerSecrets()) return null;
+    if(STATE._oddsQuotaApi.ok===false){
+      STATE._oddsQuota=Object.assign({}, STATE._oddsQuota||{}, {status:"missing", message:"API not deployed"});
+      paintOddsQuotaRow();
+      return STATE._oddsQuota;
+    }
+    try{
+      const r=await api("/api/odds/quota",{timeoutMs:15000,retries:1});
+      let data=null;
+      try{ data=await r.json(); }catch(e){ data=null; }
+      if(r.status===404||r.status===501){
+        STATE._oddsQuotaApi.ok=false;
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"missing", message:"API not deployed", raw:data};
+        paintOddsQuotaRow();
+        return STATE._oddsQuota;
+      }
+      if(r.status===403){
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:"Not allowed", raw:data};
+        paintOddsQuotaRow();
+        return STATE._oddsQuota;
+      }
+      if(!r.ok){
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:(data&&(data.message||data.error))||("HTTP "+r.status), raw:data};
+        paintOddsQuotaRow();
+        return STATE._oddsQuota;
+      }
+      STATE._oddsQuotaApi.ok=true;
+      const ing=ingestOddsQuotaPayload(data)||{remaining:null,updatedAt:Date.now(),status:"empty",message:null,raw:data};
+      STATE._oddsQuota=ing;
+      paintOddsQuotaRow();
+      return STATE._oddsQuota;
+    }catch(e){
+      if(e&&e.unauth) throw e;
+      STATE._oddsQuota={remaining:(STATE._oddsQuota&&STATE._oddsQuota.remaining)!=null?STATE._oddsQuota.remaining:null, updatedAt:(STATE._oddsQuota&&STATE._oddsQuota.updatedAt)||null, status:"error", message:"Network error", raw:null};
+      paintOddsQuotaRow();
+      return STATE._oddsQuota;
+    }
+  }
+  function refreshOddsQuotaOnSettingsOpen(){
+    paintOddsQuotaRow();
+    if(!canSeeOwnerSecrets()) return;
+    fetchOddsQuota().catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); paintOddsQuotaRow(); });
   }
 
 
@@ -4519,7 +4884,7 @@ async function loadPerms(gid){
   async function openBuilder(guildId,name){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId)};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
     panel("builder");renderTray();renderBatchTray();
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(guildId);};
@@ -4968,7 +5333,7 @@ async function loadPerms(gid){
   function openCustom(guildId,name,presetSport){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",customStartDay:"",unitSize:guildUnitSize(guildId)};
+    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",customStartDay:"",unitSize:guildUnitSize(guildId),autoLines:false};
     panel("builder");renderTray();renderBatchTray();
     renderCustom();
     offerDraftResume(guildId, null);
@@ -5184,6 +5549,10 @@ async function loadPerms(gid){
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     saveMultiDraft();
     renderGame();
+    // Prefetch TipBot player-lines cache for Auto (session-cached; no spam).
+    ensurePlayerLines(g).then(function(){
+      if(BUILD.game===g){ paintAutoBarStatus(); if(BUILD.autoLines) renderPlayers(); }
+    }).catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); });
     // If the game is in progress, pull live stats now and refresh them every 30s.
     const c=Number(g.complete)||0;
     if(g.aflMatchId&&c>0&&c<100){
@@ -5212,6 +5581,13 @@ async function loadPerms(gid){
       +'<div class="builder-tools">'
       +'<input id="psearch" placeholder="Search players… e.g. Dangerfield Cameron" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
       +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer;min-width:0"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
+      +'</div>'
+      +'<div class="auto-bar" id="auto-bar">'
+      +'<span class="auto-lab">Auto</span>'
+      +'<button type="button" class="toggle'+(BUILD.autoLines?" on":"")+'" id="autolines-toggle" aria-pressed="'+(BUILD.autoLines?"true":"false")+'" title="Seed lines from TipBot book cache"></button>'
+      +'<span class="auto-hint">Book line + ~under from TipBot cache (Sportsbet first). Manual O/U still works.</span>'
+      +'<span class="auto-status" id="auto-status"></span>'
+      +(STATE.role==="owner"&&!STATE.viewAs?'<button type="button" class="ghost" id="autolines-refresh" title="Refresh TipBot cache (owner)" style="padding:6px 10px;font-size:12px">↻</button>':"")
       +'</div><div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
@@ -5219,6 +5595,32 @@ async function loadPerms(gid){
     $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;saveMultiDraft();renderGame();});
     const ps=$("psort"); if(ps){ ps.value=BUILD.sort||"number"; ps.onchange=()=>{BUILD.sort=ps.value;renderPlayers();}; }
     const pq=$("psearch"); if(pq){ pq.oninput=()=>{BUILD.search=pq.value;renderPlayers();}; }
+    const autoBtn=$("autolines-toggle");
+    if(autoBtn){
+      autoBtn.onclick=()=>{
+        BUILD.autoLines=!BUILD.autoLines;
+        autoBtn.classList.toggle("on", BUILD.autoLines);
+        autoBtn.setAttribute("aria-pressed", BUILD.autoLines?"true":"false");
+        if(BUILD.autoLines){
+          paintAutoBarStatus();
+          ensurePlayerLines(g).then(function(){ if(BUILD.game===g){ paintAutoBarStatus(); renderPlayers(); } })
+            .catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); paintAutoBarStatus(); });
+        }
+        renderPlayers();
+      };
+    }
+    const autoRef=$("autolines-refresh");
+    if(autoRef){
+      autoRef.onclick=()=>{
+        autoRef.disabled=true;
+        paintAutoBarStatus();
+        ensurePlayerLines(g,{refresh:true}).then(function(){
+          if(BUILD.game===g){ paintAutoBarStatus(); if(BUILD.autoLines) renderPlayers(); }
+        }).catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); })
+         .finally(function(){ autoRef.disabled=false; paintAutoBarStatus(); });
+      };
+    }
+    paintAutoBarStatus();
     renderPlayers();
   }
   // Only ever show the NAMED side (playerListType==="selected"); before teams are
@@ -5400,7 +5802,10 @@ async function loadPerms(gid){
       const oppNm=teamName(sides[0]===team?sides[1]:sides[0]);
       list.forEach((p,idx)=>{const rid="r_"+slug+"_"+idx;const lv=liveVal(p.name);
         const liveChip=(lv!==null)?' <span style="color:#f0b73f;font-weight:800">· '+lv+' now</span>':"";
-        const formHtml=isMarket?"":formChipsHTML(p, nm, oppNm, def);
+        const hit=(!isMarket && BUILD.autoLines)?lookupPlayerLine(p.name, BUILD.tab):null;
+        const seedLine=(hit&&hit.primary&&hit.primary.line!=null)?Number(hit.primary.line):null;
+        const rowDef=(seedLine!=null&&!isNaN(seedLine))?seedLine:def;
+        const formHtml=isMarket?"":formChipsHTML(p, nm, oppNm, rowDef);
         const nameCell='<div class="pname-block"><div class="pname">'+esc(p.name)+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+esc(p.position)+'</small>':"")+liveChip+'</div>'+formHtml+'</div>';
         const cmp='<a class="compare-btn" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>';
         if(isMarket){
@@ -5408,8 +5813,12 @@ async function loadPerms(gid){
             +'<div class="prow-actions" style="margin-left:auto">'+cmp+'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
           return;
         }
-        html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
-          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="1" value="'+def+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center"></div>'
+        const step=(BUILD.autoLines || (rowDef!=null && Math.abs(rowDef-Math.round(rowDef))>1e-9))?"0.5":"1";
+        const rangeMax=Math.max(mx, Math.ceil(rowDef||0)+5);
+        const autoMeta=(BUILD.autoLines?autoPriceHtml(hit):"");
+        html+='<div class="prow" data-player="'+esc(p.name)+'"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
+          +'<div class="linectl-wrap"><div class="linectl"><input type="range" min="0" max="'+rangeMax+'" step="'+step+'" value="'+rowDef+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="'+step+'" value="'+rowDef+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center"></div>'
+          +autoMeta+'</div>'
           +'<div class="prow-actions">'+cmp+'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
