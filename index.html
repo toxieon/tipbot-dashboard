@@ -2035,6 +2035,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!Number.isFinite(n)) return "Odds API · —";
     return "Odds API · ~"+Math.max(0, Math.round(n))+" left";
   }
+  function oddsQuotaSoftReason(status,data,err){
+    const warming=!!(data&&(data.error==="warming"||data.warming===true||data.status==="warming"));
+    if(status===503||warming) return "TipBot deploying…";
+    if(status===502||status===504||err) return "TipBot unreachable — try again";
+    if(status>=500) return "TipBot unreachable — try again";
+    return "Quota unavailable — try again";
+  }
   function paintOddsQuotaRow(){
     const row=$("dd-odds-quota"), main=$("dd-odds-quota-main"), meta=$("dd-odds-quota-meta");
     if(!row||!main||!meta) return;
@@ -2043,19 +2050,18 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!show) return;
     const pack=STATE._oddsQuota||{};
     const hasRem=pack.remaining!=null && pack.remaining!=="" && Number.isFinite(Number(pack.remaining));
-    if(!hasRem && (pack.status==="missing" || pack.status==null || pack.status==="empty")){
+    if(!hasRem){
       main.textContent="Odds API · — · not pulled yet";
-      meta.textContent=pack.status==="missing"?"TipBot /api/odds/quota pending":"";
-    }else if(pack.status==="error" && !hasRem){
-      main.textContent="Odds API · —";
-      meta.textContent=pack.message||"couldn't load quota";
+      if(pack.status==="missing") meta.textContent="API pending";
+      else if(pack.status==="error") meta.textContent=pack.message||"TipBot unreachable — try again";
+      else meta.textContent=pack.message||"";
     }else{
       main.textContent=oddsQuotaLabel(pack);
       if(pack.updatedAt){
         const when=fmtQuotaWhen(pack.updatedAt);
         meta.textContent=when?("updated "+when):"cached";
       }else{
-        meta.textContent="";
+        meta.textContent=pack.status==="error"?(pack.message||"TipBot unreachable — try again"):"";
       }
     }
   }
@@ -2125,7 +2131,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return STATE._oddsQuota;
       }
       if(!r.ok){
-        STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:(data&&(data.message||data.error))||("HTTP "+r.status), raw:data};
+        STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:oddsQuotaSoftReason(r.status,data,null), raw:data};
         paintOddsQuotaRow();
         return STATE._oddsQuota;
       }
@@ -2136,7 +2142,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       return STATE._oddsQuota;
     }catch(e){
       if(e&&e.unauth) throw e;
-      STATE._oddsQuota={remaining:(STATE._oddsQuota&&STATE._oddsQuota.remaining)!=null?STATE._oddsQuota.remaining:null, updatedAt:(STATE._oddsQuota&&STATE._oddsQuota.updatedAt)||null, status:"error", message:"Network error", raw:null};
+      STATE._oddsQuota={remaining:(STATE._oddsQuota&&STATE._oddsQuota.remaining)!=null?STATE._oddsQuota.remaining:null, updatedAt:(STATE._oddsQuota&&STATE._oddsQuota.updatedAt)||null, status:"error", message:oddsQuotaSoftReason(null,null,e), raw:null};
       paintOddsQuotaRow();
       return STATE._oddsQuota;
     }
