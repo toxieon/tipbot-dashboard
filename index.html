@@ -2043,6 +2043,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   /* ---------- Odds API quota (gear · owner only · TipBot /api/odds/quota) ---------- */
   STATE._oddsQuota=STATE._oddsQuota||{remaining:null,updatedAt:null,status:null,message:null};
   STATE._oddsQuotaApi={ok:null}; // null unknown, true ok, false missing
+  STATE._oddsQuotaFailedAt=STATE._oddsQuotaFailedAt||null; // last soft/hard fetch failure (ms)
   function canSeeOwnerSecrets(){
     // Same gate as View as / Admin Tools: platform owner, not view-as follower.
     // God mode is owner-only already (godOn); mods/followers never see this.
@@ -2067,10 +2068,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function oddsQuotaSoftReason(status,data,err){
     const warming=!!(data&&(data.error==="warming"||data.warming===true||data.status==="warming"));
     if(status===503||warming) return "TipBot deploying…";
-    // Network / gateway blips are transient — soft pending, retry on next gear open.
-    if(status===502||status===504||err) return "Quota pending — try again";
-    if(status>=500) return "Quota pending — try again";
-    return "Quota unavailable — try again";
+    // Soft network / gateway blips — one stable line, not looping "pending".
+    if(status===502||status===504||err) return "couldn't reach TipBot";
+    if(status>=500) return "couldn't reach TipBot";
+    return "couldn't reach TipBot";
   }
   function paintOddsQuotaRow(){
     const row=$("dd-odds-quota"), main=$("dd-odds-quota-main"), meta=$("dd-odds-quota-meta");
@@ -2083,7 +2084,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!hasRem){
       main.textContent="Odds API · — · not pulled yet";
       if(pack.status==="missing") meta.textContent="API pending";
-      else if(pack.status==="error") meta.textContent=pack.message||"Quota pending — try again";
+      else if(pack.status==="error") meta.textContent=pack.message||"couldn't reach TipBot";
+      else if(pack.status==="empty"||pack.status==="never_pulled") meta.textContent="open Auto once to seed";
       else meta.textContent=pack.message||"";
     }else{
       main.textContent=oddsQuotaLabel(pack);
@@ -2091,7 +2093,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const when=fmtQuotaWhen(pack.updatedAt);
         meta.textContent=when?("updated "+when):"cached";
       }else{
-        meta.textContent=pack.status==="error"?(pack.message||"Quota pending — try again"):"";
+        meta.textContent=pack.status==="error"?(pack.message||"couldn't reach TipBot"):"";
       }
     }
   }
@@ -2103,6 +2105,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       data.quota&&data.quota.remaining,
       data.the_odds&&data.the_odds.remaining
     );
+    const used=pickNum(
+      data.requests_used, data.used, data.quota_used,
+      data.quota&&data.quota.used,
+      data.the_odds&&data.the_odds.used
+    );
     const updated=data.updated_at||data.scraped_at||data.checked_at||data.cached_at||data.as_of||null;
     let updatedAt=null;
     if(updated!=null){
@@ -2111,11 +2118,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }else if(rem!=null){
       updatedAt=Date.now();
     }
+    // HTTP 200 + remaining/used null = durable store never seeded — stable empty, not error.
+    const neverPulled=(rem==null && used==null);
     return {
       remaining: rem,
+      used: used,
       updatedAt: updatedAt,
-      status: (rem!=null || data.ok!==false)?"ok":"empty",
-      message: data.message||data.error||null,
+      status: neverPulled?"never_pulled":(rem!=null?"ok":"empty"),
+      message: null,
       raw: data
     };
   }
@@ -2151,42 +2161,52 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       try{ data=await r.json(); }catch(e){ data=null; }
       if(r.status===404||r.status===501){
         STATE._oddsQuotaApi.ok=false;
+        STATE._oddsQuotaFailedAt=null;
         STATE._oddsQuota={remaining:null, updatedAt:null, status:"missing", message:"API not deployed", raw:data};
         paintOddsQuotaRow();
         return STATE._oddsQuota;
       }
       if(r.status===403){
+        STATE._oddsQuotaFailedAt=Date.now();
         STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:"Not allowed", raw:data};
         paintOddsQuotaRow();
         return STATE._oddsQuota;
       }
       if(!r.ok){
+        STATE._oddsQuotaFailedAt=Date.now();
         STATE._oddsQuota={remaining:null, updatedAt:null, status:"error", message:oddsQuotaSoftReason(r.status,data,null), raw:data};
         paintOddsQuotaRow();
         return STATE._oddsQuota;
       }
+      // HTTP 200 — success even when remaining/used are null (never pulled yet).
       STATE._oddsQuotaApi.ok=true;
-      const ing=ingestOddsQuotaPayload(data)||{remaining:null,updatedAt:Date.now(),status:"empty",message:null,raw:data};
+      STATE._oddsQuotaFailedAt=null;
+      const ing=ingestOddsQuotaPayload(data)||{remaining:null,updatedAt:null,status:"never_pulled",message:null,raw:data};
       STATE._oddsQuota=ing;
       paintOddsQuotaRow();
       return STATE._oddsQuota;
     }catch(e){
       if(e&&e.unauth) throw e;
+      STATE._oddsQuotaFailedAt=Date.now();
       STATE._oddsQuota={remaining:(STATE._oddsQuota&&STATE._oddsQuota.remaining)!=null?STATE._oddsQuota.remaining:null, updatedAt:(STATE._oddsQuota&&STATE._oddsQuota.updatedAt)||null, status:"error", message:oddsQuotaSoftReason(null,null,e), raw:null};
       paintOddsQuotaRow();
       return STATE._oddsQuota;
     }
   }
   function refreshOddsQuotaOnSettingsOpen(){
-    // Always re-attempt on gear open (except confirmed 404/501 missing API).
-    // Network blips must not permanently latch _oddsQuotaApi.ok=false.
-    if(STATE._oddsQuota && STATE._oddsQuota.status==="error" && STATE._oddsQuotaApi && STATE._oddsQuotaApi.ok!==false){
-      STATE._oddsQuota=Object.assign({}, STATE._oddsQuota, {status:null, message:null});
-    }
+    // Paint last stable state first. Do NOT clear prior error/message before refetch —
+    // that caused gear open to flash "not pulled yet" then "Quota pending" forever.
     paintOddsQuotaRow();
     if(!canSeeOwnerSecrets()) return;
+    // Confirmed missing API: no refetch.
+    if(STATE._oddsQuotaApi && STATE._oddsQuotaApi.ok===false) return;
+    // Soft-fail throttle: if last fetch failed <60s ago, keep stable message (no refetch spam).
+    const failedAt=STATE._oddsQuotaFailedAt;
+    if(failedAt && (Date.now()-failedAt)<60000) return;
+    // At most one quiet refetch per gear open.
     fetchOddsQuota().catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); paintOddsQuotaRow(); });
   }
+
 
 
   async function hydrateTipOdds(box, gid, tips){
