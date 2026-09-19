@@ -6481,6 +6481,7 @@ async function loadPerms(gid){
       if(t.start_date){ row.start_date=t.start_date; row.game_start=t.game_start||t.start_date; }
       return row;
     });
+    const tipLabels=BATCH.tips.map((t,i)=>batchTipLabel(t)||("Tip "+(i+1)));
     const payload={
       guild_id:guildId,
       delay_minutes:delay,
@@ -6503,46 +6504,171 @@ async function loadPerms(gid){
       if(r&&!r.ok) return "Couldn't schedule batch (HTTP "+r.status+")."+(raw&&raw.length<180?" "+raw:"");
       return "Couldn't schedule batch.";
     }
-    async function sequentialFallback(){
-      // Trickle OFF + 404: post each tip via legacy /api/queue-tip with same delay.
-      let ok=0, lastErr="";
-      for(let i=0;i<tips.length;i++){
-        const t=tips[i];
-        const tipRequestId=batchRequestId+"-"+i;
-        const one={
-          guild_id:guildId, legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
-          game_name:t.game_name, sport:t.sport, delay_minutes:delay, image_b64:t.image_b64||"",
-          client_request_id:tipRequestId
-        };
-        if(t.league) one.league=t.league;
-        if(t.espn_event_id){ one.espn_event_id=t.espn_event_id; one.event_id=t.espn_event_id; }
-        if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
+    function isBusyBody(r, j){
+      if(!r) return false;
+      if(r.status!==502 && r.status!==503) return false;
+      if(!j) return true;
+      const err=String(j.error||j.code||"");
+      if(err==="db_busy"||err==="warming"||err==="timeout"||err==="DashboardBusy") return true;
+      if(j.warming===true || j.status==="warming") return true;
+      return true; // any 502/503 from queue is retryable (stable Idempotency-Key)
+    }
+    function parseFailedIndices(j, total){
+      const failed=[];
+      const seen={};
+      const errs=Array.isArray(j&&j.errors)?j.errors:[];
+      errs.forEach(function(e){
+        const m=String(e||"").match(/tip\s+(\d+)\s*:/i);
+        if(m){
+          const idx=+m[1];
+          if(idx>=0 && idx<total && !seen[idx]){ seen[idx]=1; failed.push(idx); }
+        }
+      });
+      if(failed.length) return failed;
+      const queued=j&&j.queued!=null?Number(j.queued):NaN;
+      if(Number.isFinite(queued) && queued>=0 && queued<total){
+        // Unknown which failed — retry from queued onward (earlier tips have per-tip idempotency).
+        for(let i=Math.max(0,Math.floor(queued)); i<total; i++) failed.push(i);
+        return failed;
+      }
+      return [];
+    }
+    function batchFullyQueued(j, total){
+      if(!(j&&j.ok)) return false;
+      const errs=Array.isArray(j.errors)?j.errors:[];
+      if(errs.length) return false;
+      if(j.queued!=null){
+        const q=Number(j.queued);
+        if(Number.isFinite(q) && q<total) return false;
+      }
+      if(j.total!=null){
+        const t=Number(j.total);
+        if(Number.isFinite(t) && j.queued!=null && Number(j.queued)<t) return false;
+      }
+      return true;
+    }
+    function finishAllOk(n, note){
+      clearBatch();
+      BUILD.legs=[]; BUILD.image=null;
+      clearMultiDraft(guildId);
+      if($("tray"))$("tray").hidden=true;
+      if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tip"+(n===1?"":"s")+" scheduled",color:"#2eaf62"});
+      toast(n+" tip"+(n===1?"":"s")+" scheduled"+(note||""));
+      loadDetail(guildId);
+    }
+    function keepFailedInBatch(okIdx){
+      // Drop successfully queued tips from Review tray; leave failures for retry.
+      const keep=[];
+      for(let i=0;i<BATCH.tips.length;i++){
+        if(!okIdx[i]) keep.push(BATCH.tips[i]);
+      }
+      BATCH.tips=keep;
+      if(!BATCH.tips.length) BATCH.guildId=null;
+      renderBatchTray();
+      if(BATCH.tips.length) renderBatchConfirm();
+    }
+    async function queueOneTip(i, tipRequestId, attemptNote){
+      const t=tips[i];
+      const one={
+        guild_id:guildId, legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
+        game_name:t.game_name, sport:t.sport, delay_minutes:delay, image_b64:t.image_b64||"",
+        client_request_id:tipRequestId
+      };
+      if(t.league) one.league=t.league;
+      if(t.espn_event_id){ one.espn_event_id=t.espn_event_id; one.event_id=t.espn_event_id; }
+      if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
+      // Stable Idempotency-Key: retries must not mint a new key (no duplicate Discord).
+      const maxTries=5;
+      let lastErr="Couldn't schedule tip "+(i+1)+".";
+      for(let attempt=1; attempt<=maxTries; attempt++){
+        if(attemptNote && attempt>1) setErr(attemptNote(i, attempt, maxTries));
         try{
-          const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":tipRequestId},body:JSON.stringify(one)});
+          const r=await api("/api/queue-tip",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","Idempotency-Key":tipRequestId},
+            body:JSON.stringify(one),
+            idempotent:true,
+            retries:1, // outer loop owns busy backoff so we can show progress + continue batch
+            timeoutMs:90000
+          });
           const {j,raw}=await readBody(r);
-          if(r.ok&&j&&j.ok){ ok++; }
-          else{ lastErr=failMsg(r,j,raw); break; }
+          if(r.ok&&j&&j.ok) return {ok:true};
+          if(isBusyBody(r,j) && attempt<maxTries){
+            let waitMs=1500*Math.pow(2, attempt-1);
+            if(j&&j.retry_after!=null){
+              const ra=Number(j.retry_after);
+              if(Number.isFinite(ra)&&ra>=0) waitMs=(ra>0&&ra<120)?(ra*1000):ra;
+            }
+            waitMs=Math.min(Math.max(waitMs,400),15000);
+            lastErr=failMsg(r,j,raw);
+            setErr("Database busy — retrying tip "+(i+1)+"/"+tips.length+" in ~"+Math.ceil(waitMs/1000)+"s…");
+            await sleep(waitMs);
+            continue;
+          }
+          lastErr=failMsg(r,j,raw);
+          return {ok:false, err:lastErr, hard:true};
         }catch(e){
-          if(e&&e.unauth)throw e;
-          lastErr="Couldn't reach the bot.";
-          break;
+          if(e&&e.unauth) throw e;
+          if(attempt<maxTries){
+            const waitMs=Math.min(1500*Math.pow(2, attempt-1), 8000);
+            lastErr="Couldn't reach the bot.";
+            setErr("Network blip — retrying tip "+(i+1)+"/"+tips.length+"…");
+            await sleep(waitMs);
+            continue;
+          }
+          return {ok:false, err:"Couldn't reach the bot.", hard:true};
         }
       }
-      return {ok:ok, lastErr:lastErr};
+      return {ok:false, err:lastErr, hard:true};
+    }
+    async function sequentialQueue(indices, keyStyle){
+      // keyStyle "colon" matches TipBot batch per-tip keys `${batchId}:${i}` (safe after partial batch).
+      // keyStyle "dash" is legacy fallback when /api/queue-tips 404'd (nothing batch-keyed).
+      let ok=0;
+      const failed=[];
+      const okIdx={};
+      for(let n=0;n<indices.length;n++){
+        const i=indices[n];
+        const tipRequestId=keyStyle==="colon"?(batchRequestId+":"+i):(batchRequestId+"-"+i);
+        setErr("Scheduling tip "+(i+1)+"/"+tips.length+"…");
+        const res=await queueOneTip(i, tipRequestId, function(idx, attempt, maxAttempts){
+          return "Busy — retry tip "+(idx+1)+" (try "+attempt+"/"+maxAttempts+")…";
+        });
+        if(res.ok){ ok++; okIdx[i]=1; }
+        else{
+          failed.push({index:i, label:tipLabels[i]||("Tip "+(i+1)), err:res.err||"failed"});
+          // Continue remaining tips — never stop the batch after first 503/hard fail.
+        }
+      }
+      return {ok:ok, failed:failed, okIdx:okIdx};
+    }
+    function toastFailures(failed, okCount){
+      const names=failed.map(f=>f.label).slice(0,6);
+      const more=failed.length>6?(" +"+(failed.length-6)+" more"):"";
+      const head=okCount? (okCount+" queued, "+failed.length+" failed: ") : (failed.length+" tip"+(failed.length===1?"":"s")+" failed: ");
+      toast(head+names.join(", ")+more);
+      const detail=failed.map(f=>"#"+(f.index+1)+" "+f.label+(f.err?(" — "+f.err):"")).join(" · ");
+      setErr(detail.slice(0,420));
     }
     payload.client_request_id=batchRequestId;
     try{
-      const r=await api("/api/queue-tips",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":batchRequestId},body:JSON.stringify(payload)});
+      setErr("Scheduling "+tips.length+" tip"+(tips.length===1?"":"s")+"…");
+      const r=await api("/api/queue-tips",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Idempotency-Key":batchRequestId},
+        body:JSON.stringify(payload),
+        idempotent:true,
+        retries:5,
+        timeoutMs:120000,
+        onAttempt:function(attempt, maxAttempts, info){
+          if(!(info&&info.phase==="retry")) return;
+          const secs=info.waitMs?Math.ceil(info.waitMs/1000):2;
+          setErr("Database busy — retrying batch ("+attempt+"/"+maxAttempts+") in ~"+secs+"s…");
+        }
+      });
       const {j,raw}=await readBody(r);
-      if(r.ok&&j&&j.ok){
-        const n=BATCH.tips.length;
-        clearBatch();
-        BUILD.legs=[]; BUILD.image=null;
-        clearMultiDraft(guildId);
-        if($("tray"))$("tray").hidden=true;
-        if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
-        toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""));
-        loadDetail(guildId);
+      if(r.ok&&j&&batchFullyQueued(j, tips.length)){
+        finishAllOk(tips.length, trickle?" (trickle on)":"");
         return;
       }
       if(r.status===404){
@@ -6553,23 +6679,59 @@ async function loadPerms(gid){
         }
         // Fallback: sequential queue-tip (same delay_minutes, no fake stagger).
         setErr("Trickle API not live — falling back to sequential schedule…");
-        const fb=await sequentialFallback();
-        if(fb.ok===tips.length){
-          const n=tips.length;
-          clearBatch();
-          BUILD.legs=[]; BUILD.image=null;
-          clearMultiDraft(guildId);
-          if($("tray"))$("tray").hidden=true;
-          if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
-          toast(n+" tip"+(n===1?"":"s")+" scheduled (legacy fallback)");
-          loadDetail(guildId);
+        const fb=await sequentialQueue(tips.map((_,i)=>i), "dash");
+        if(fb.failed.length===0){
+          finishAllOk(tips.length, " (legacy fallback)");
           return;
         }
-        setErr(fb.lastErr||("Bot is updating — Trickle API not live yet. Try again in a minute."+(fb.ok?" ("+fb.ok+"/"+tips.length+" queued)":"")));
+        if(fb.ok) keepFailedInBatch(fb.okIdx);
+        toastFailures(fb.failed, fb.ok);
         unlockBtn();
         return;
       }
-      setErr(failMsg(r,j,raw));
+      // Partial batch success (ok:true + errors / queued<total) OR exhausted 503 — finish remaining.
+      const partialOk=r.ok&&j&&j.ok;
+      const busy=isBusyBody(r,j);
+      let needIdx=[];
+      if(partialOk){
+        needIdx=parseFailedIndices(j, tips.length);
+        if(!needIdx.length && !batchFullyQueued(j, tips.length)){
+          // ok but incomplete without parseable errors — retry all via per-tip keys (idempotent).
+          needIdx=tips.map((_,i)=>i);
+        }
+      }else if(busy || !r.ok){
+        // Whole request failed after api() retries — try each tip with colon keys so any
+        // already-inserted rows from a mid-batch busy are replayed, not duplicated.
+        needIdx=tips.map((_,i)=>i);
+        setErr(busy
+          ? ("Database busy after retries — finishing "+tips.length+" tips one-by-one…")
+          : ("Batch failed — finishing remaining tips… ("+failMsg(r,j,raw)+")"));
+      }else{
+        setErr(failMsg(r,j,raw));
+        unlockBtn();
+        return;
+      }
+      if(partialOk && needIdx.length){
+        const q=j.queued!=null?Number(j.queued): (tips.length-needIdx.length);
+        setErr("Partial queue ("+(Number.isFinite(q)?q: "?")+"/"+tips.length+") — finishing remaining…");
+      }
+      const fb=await sequentialQueue(needIdx, "colon");
+      // Tips already counted in batch response success + sequential ok.
+      const alreadyOk={};
+      if(partialOk){
+        for(let i=0;i<tips.length;i++){
+          if(needIdx.indexOf(i)<0) alreadyOk[i]=1;
+        }
+      }
+      const okIdx=Object.assign({}, alreadyOk, fb.okIdx);
+      const okCount=Object.keys(okIdx).filter(k=>okIdx[k]).length;
+      if(fb.failed.length===0 && okCount===tips.length){
+        finishAllOk(tips.length, trickle?" (trickle on)":"");
+        return;
+      }
+      if(okCount) keepFailedInBatch(okIdx);
+      if(fb.failed.length) toastFailures(fb.failed, okCount);
+      else setErr(failMsg(r,j,raw));
       unlockBtn();
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
@@ -6624,10 +6786,28 @@ async function loadPerms(gid){
     if(tipFields.league) payload.league=tipFields.league;
     if(tipFields.espn_event_id){ payload.espn_event_id=tipFields.espn_event_id; payload.event_id=tipFields.espn_event_id; }
     if(tipFields.start_date){ payload.start_date=tipFields.start_date; payload.game_start=tipFields.game_start||tipFields.start_date; }
-    try{const r=await api("/api/queue-tip",{method:"POST",headers:{"Content-Type":"application/json","Idempotency-Key":clientRequestId},body:JSON.stringify(payload)});
-      const j=await r.json();
-      if(r.ok&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
-      else{ $("scherr").textContent=j.message||"Couldn't schedule."; if(btn){btn.disabled=false; delete btn.dataset.busy;} }
+    try{
+      const r=await api("/api/queue-tip",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Idempotency-Key":clientRequestId},
+        body:JSON.stringify(payload),
+        idempotent:true,
+        retries:5,
+        timeoutMs:90000,
+        onAttempt:function(attempt, maxAttempts, info){
+          if(!(info&&info.phase==="retry")) return;
+          const secs=info.waitMs?Math.ceil(info.waitMs/1000):2;
+          $("scherr").textContent="Database busy — retrying ("+attempt+"/"+maxAttempts+") in ~"+secs+"s…";
+        }
+      });
+      const raw=await r.text();
+      let j=null; try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
+      if(r.ok&&j&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
+      else{
+        const msg=(j&&(j.message||j.error))||(r.status===503?"Database busy — try again.":"Couldn't schedule.");
+        $("scherr").textContent=(r.status&&!r.ok?("HTTP "+r.status+": "):"")+msg;
+        if(btn){btn.disabled=false; delete btn.dataset.busy;}
+      }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; if(btn){btn.disabled=false; delete btn.dataset.busy;} }
   }
   function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
