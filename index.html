@@ -48,6 +48,38 @@
     0%{background-position:200% 0}
     100%{background-position:-200% 0}
   }
+
+  /* Inline submit progress — every tip post path (Review, batch, TipSheet).
+     Submitting used to look hung: the button greyed out and nothing moved
+     until TipBot answered. */
+  .submit-prog{
+    margin:12px 0 0;opacity:0;max-height:0;overflow:hidden;
+    transition:opacity .18s ease,max-height .18s ease;
+  }
+  .submit-prog.on{opacity:1;max-height:72px}
+  .submit-prog-bar{
+    height:6px;border-radius:99px;overflow:hidden;
+    background:rgba(127,140,170,.16);
+  }
+  .submit-prog-bar > i{
+    display:block;height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,var(--accent,#5b8cff),var(--accent2,#7b5bff));
+    transition:width .25s ease;
+  }
+  .submit-prog.indet .submit-prog-bar > i{
+    width:38% !important;animation:tb-load-slide 1.05s ease-in-out infinite;
+  }
+  .submit-prog.ok  .submit-prog-bar > i{background:linear-gradient(90deg,#2eaf62,#7ee0a6)}
+  .submit-prog.err .submit-prog-bar > i{background:linear-gradient(90deg,#e5484d,#f0857f)}
+  .submit-prog-label{
+    margin-top:7px;font-size:12.5px;line-height:1.35;color:var(--muted);
+  }
+  .submit-prog.ok  .submit-prog-label{color:#7ee0a6}
+  .submit-prog.err .submit-prog-label{color:#f0857f}
+  @media (prefers-reduced-motion:reduce){
+    .submit-prog.indet .submit-prog-bar > i{animation:none;width:100% !important}
+    .submit-prog-bar > i{transition:none}
+  }
   .tb-loadpanel{text-align:center;max-width:320px;margin:0 auto}
   .tb-loadpanel-label{color:var(--muted);margin:0 0 4px;font-size:14px;min-height:1.3em}
   .tb-loadpanel-bar{
@@ -87,6 +119,45 @@
   .dd-quota{padding:9px 11px;border-radius:9px;font-size:13px;color:var(--muted);line-height:1.35;cursor:default;user-select:none}
   .dd-quota .dq-main{color:var(--txt);font-weight:650}
   .dd-quota .dq-meta{display:block;font-size:11px;color:var(--faint);margin-top:2px}
+  /* Odds API market picker (gear · owner only) */
+  .dd-mk{padding:4px 11px 10px;font-size:13px;color:var(--muted);user-select:none}
+  .dd-mk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:5px 0;cursor:pointer;color:var(--txt);font-weight:650}
+  .dd-mk-head .caret{color:var(--faint);font-size:11px;transition:transform .15s}
+  .dd-mk.open .dd-mk-head .caret{transform:rotate(90deg)}
+  .dd-mk-body{margin-top:4px}
+  .dd-mk-note{font-size:11px;color:var(--faint);line-height:1.4;margin:0 0 8px}
+  .dd-mk-row{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:8px;cursor:pointer}
+  .dd-mk-row:hover{background:var(--bg2)}
+  .dd-mk-row input{margin:0;cursor:pointer;flex:none}
+  .dd-mk-row .mk-name{flex:1;color:var(--txt);font-size:13px}
+  .dd-mk-row .mk-tag{font-size:10px;letter-spacing:.03em;color:var(--warn-ink,#f0bf79);
+    border:1px solid var(--warn,#e0a04a);border-radius:999px;padding:1px 6px;flex:none}
+  .dd-mk-row.off .mk-name{color:var(--muted)}
+  .dd-mk-row{align-items:flex-start}
+  .dd-mk-row .mk-main{flex:1;min-width:0}
+  .dd-mk-row .mk-sub{display:block;font-size:10.5px;color:var(--faint);margin-top:1px;line-height:1.3}
+  .dd-mk-row .mk-sub.good{color:#7ee0a6}
+  .dd-mk-row .mk-sub.warn{color:var(--warn-ink,#f0bf79)}
+  .mk-side{font-size:10px;font-weight:700;letter-spacing:.03em;border-radius:999px;
+    padding:1px 6px;flex:none;border:1px solid transparent;margin-top:1px}
+  .mk-side.ou{color:#7ee0a6;border-color:rgba(126,224,166,.45);background:rgba(126,224,166,.10)}
+  .mk-side.over{color:var(--muted);border-color:var(--line)}
+  .dd-mk-group{font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--faint);padding:9px 2px 3px;font-weight:700}
+  .dd-mk-group .g-note{text-transform:none;letter-spacing:0;font-weight:400;color:var(--faint)}
+  .dd-mk-warn{margin-top:8px;font-size:11.5px;line-height:1.4;color:var(--warn-ink,#f0bf79);
+    border:1px solid var(--warn,#e0a04a);border-radius:8px;padding:6px 8px;background:rgba(224,160,74,.08)}
+  .dd-mk-cost{margin-top:8px;font-size:12px;color:var(--txt)}
+  .dd-mk-cost b{color:var(--accent,#5b8cff)}
+  .dd-mk-actions{display:flex;gap:8px;margin-top:9px}
+  .dd-mk-actions button{flex:1;font-size:12px;padding:6px 8px;border-radius:8px;
+    border:1px solid var(--line);background:var(--card2);color:var(--txt);cursor:pointer}
+  .dd-mk-actions button[disabled]{opacity:.5;cursor:default}
+  .dd-mk-actions button.primary{border-color:var(--accent,#5b8cff);background:rgba(91,140,255,.16)}
+  .dd-mk-msg{margin-top:7px;font-size:11.5px;line-height:1.4;min-height:1em}
+  .dd-mk-msg.ok{color:#7ee0a6}
+  .dd-mk-msg.err{color:#f0857f}
   .danger{color:var(--loss)}
   .viewas{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,rgba(123,91,255,.18),rgba(91,140,255,.10));border:1px solid #34407a;border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:14px}
   .viewas b{color:#c9d4ff}
@@ -663,6 +734,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
             <span class="dq-main" id="dd-odds-quota-main">Odds API · —</span>
             <span class="dq-meta" id="dd-odds-quota-meta">not pulled yet</span>
           </div>
+          <div class="dd-mk" id="dd-odds-markets" hidden>
+            <div class="dd-mk-head" id="dd-mk-toggle" role="button" tabindex="0"
+                 aria-expanded="false" aria-controls="dd-mk-body">
+              <span>Odds API markets</span><span class="caret">▸</span>
+            </div>
+            <div class="dd-mk-body" id="dd-mk-body" hidden></div>
+          </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
         </div></div>
@@ -1106,6 +1184,95 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     return { start, set, done };
   })();
 
+  /* ---------- Tip submit progress ----------------------------------------
+     One place that owns in-flight feedback for a tip post: an inline bar, a
+     live label (including "Database busy — retrying in Ns"), and the button
+     lock/unlock. Wire `onAttempt` straight into api() so the retry loop
+     narrates itself instead of sitting silent. */
+  const SubmitProgress=(function(){
+    function host(anchor,id){
+      if(!anchor||!anchor.parentNode) return null;
+      let h=document.getElementById(id);
+      if(!h){
+        h=document.createElement("div");
+        h.id=id; h.className="submit-prog";
+        h.innerHTML='<div class="submit-prog-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>'
+                   +'<div class="submit-prog-label" aria-live="polite"></div>';
+        anchor.parentNode.insertBefore(h,anchor);
+      }
+      return h;
+    }
+    function open(opts){
+      opts=opts||{};
+      const btn=opts.btn||null;
+      const btnText=btn?btn.textContent:"";
+      const h=host(opts.anchor,opts.id||"submitprog");
+      const fill=h?h.querySelector(".submit-prog-bar > i"):null;
+      const bar=h?h.querySelector(".submit-prog-bar"):null;
+      const lab=h?h.querySelector(".submit-prog-label"):null;
+      let closed=false;
+      if(h){ h.classList.add("on"); h.classList.remove("err","ok","indet"); }
+      if(btn){ btn.disabled=true; btn.dataset.busy="1"; if(opts.busyLabel) btn.textContent=opts.busyLabel; }
+      try{ TopBar.start(true); }catch(e){}
+      function set(pct,label){
+        if(closed) return;
+        const n=Math.max(0,Math.min(100,pct|0));
+        if(h) h.classList.remove("indet");
+        if(fill) fill.style.width=n+"%";
+        if(bar) bar.setAttribute("aria-valuenow",String(n));
+        if(lab&&label!=null) lab.textContent=label;
+      }
+      function indet(label){
+        if(closed) return;
+        if(h) h.classList.add("indet");
+        if(lab&&label!=null) lab.textContent=label;
+      }
+      function finish(kind,label,keepLocked){
+        if(closed) return; closed=true;
+        try{ TopBar.done(true); }catch(e){}
+        if(h){
+          h.classList.remove("indet");
+          h.classList.add(kind==="ok"?"ok":"err");
+          if(fill) fill.style.width="100%";
+          if(bar) bar.setAttribute("aria-valuenow","100");
+          if(lab) lab.textContent=label||"";
+          const keepFor=(kind==="ok")?1100:5000;
+          setTimeout(function(){ if(h) h.classList.remove("on","ok","err"); },keepFor);
+        }
+        if(btn){
+          btn.textContent=btnText;
+          if(!keepLocked){ btn.disabled=false; delete btn.dataset.busy; }
+        }
+      }
+      return {
+        set:set,
+        indeterminate:indet,
+        onAttempt:function(attempt,max,info){
+          info=info||{};
+          if(info.phase==="start"){
+            if(attempt===1) set(20,opts.sendingLabel||"Sending to TipBot…");
+            else set(30,"Retrying… (attempt "+attempt+" of "+max+")");
+            return;
+          }
+          if(info.phase==="retry"){
+            const secs=Math.max(1,Math.round((info.waitMs||1500)/1000));
+            const code=String(info.code||"");
+            const why=info.network?"Connection dropped"
+                     :(code==="warming"?"TipBot is waking up"
+                     :(code==="db_busy"||code==="timeout"?"Database busy"
+                     :(info.warming?"TipBot is waking up":"TipBot is busy")));
+            indet(why+" — retrying in "+secs+"s (attempt "+attempt+" of "+max+")…");
+          }
+        },
+        // Success: leave the button locked, the panel is about to be replaced.
+        ok:function(label){ finish("ok",label||"Done",true); },
+        // Failure: unlock so the tipster can fix and resubmit.
+        fail:function(label){ finish("err",label||"Couldn't schedule.",false); }
+      };
+    }
+    return { open:open };
+  })();
+
   const BOOT_CACHE_KEY="tipdash_boot_v1";
   function readBootCache(){
     try{
@@ -1194,7 +1361,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("dropdown").hidden=!$("dropdown").hidden;
     $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
     $("viewas-list").hidden=true;
-    if(opening) refreshOddsQuotaOnSettingsOpen();
+    if(opening){ refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); }
   };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
@@ -1202,7 +1369,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
-  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();enterHome();};
+  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){
     const admin=visibleServers();
@@ -1268,7 +1435,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           waitMs=Math.min(Math.max(waitMs, 400), 15000);
           lastResponse=r;
           if(typeof onAttempt==="function"){
-            try{ onAttempt(attempt, maxAttempts, {phase:"retry", status:r.status, warming:warming||r.status===503, waitMs:waitMs}); }catch(e){}
+            // `code` is the body's own error ("warming" | "db_busy" | "timeout")
+            // so callers can word the retry accurately; `warming` stays as it
+            // was for older callers that only distinguish 503 from network.
+            const code=(body&&body.error)?String(body.error):"";
+            try{ onAttempt(attempt, maxAttempts, {phase:"retry", status:r.status, code:code, warming:warming||r.status===503, waitMs:waitMs}); }catch(e){}
           }
           await sleep(waitMs);
           continue;
@@ -1295,7 +1466,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
     const it=document.createElement("div");it.className="dd-item";it.textContent=s.display_name||"Unnamed";
-    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();enterHome();};
+    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
     box.appendChild(it);});}
   const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
 
@@ -2003,7 +2174,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           status: empty?"empty":"ok",
           message:(data&&data.message)||null,
           scraped_at:data&&data.scraped_at||null,
-          requests_remaining:data&&data.requests_remaining
+          requests_remaining:(data&&(data.requests_remaining!=null?data.requests_remaining
+            :(data.meta&&data.meta.x_requests_remaining)))
         };
         try{ noteOddsQuotaFromLines(STATE._playerLinesCache[key]); }catch(e){}
         return STATE._playerLinesCache[key];
@@ -2094,6 +2266,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const pack=STATE._oddsQuota||{};
     const hasRem=pack.remaining!=null && pack.remaining!=="" && Number.isFinite(Number(pack.remaining));
     if(!hasRem){
+      if(pack.status==="pending"){
+        main.textContent="Odds API · — · seeding…";
+        meta.textContent="reading your credit balance";
+        return;
+      }
       main.textContent="Odds API · — · not pulled yet";
       if(pack.status==="missing") meta.textContent="API pending";
       else if(pack.status==="error") meta.textContent=pack.message||"couldn't reach TipBot";
@@ -2111,14 +2288,20 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function ingestOddsQuotaPayload(data){
     if(!data||typeof data!=="object") return null;
+    // TipBot sends quota nested under `meta` on the player-lines payload and
+    // flat on /api/odds/quota. Read both — missing the nested spelling is why
+    // the badge never seeded itself off a pull we'd already paid for.
+    const m=(data.meta&&typeof data.meta==="object")?data.meta:{};
     const rem=pickNum(
       data.requests_remaining, data.remaining, data.quota_remaining,
       data.requestsLeft, data.requests_left,
+      m.x_requests_remaining, data.x_requests_remaining,
       data.quota&&data.quota.remaining,
       data.the_odds&&data.the_odds.remaining
     );
     const used=pickNum(
       data.requests_used, data.used, data.quota_used,
+      m.x_requests_used, data.x_requests_used,
       data.quota&&data.quota.used,
       data.the_odds&&data.the_odds.used
     );
@@ -2132,19 +2315,28 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }
     // HTTP 200 + remaining/used null = durable store never seeded — stable empty, not error.
     const neverPulled=(rem==null && used==null);
+    // TipBot kicked a background seed: this is transient, NOT "never pulled".
+    // Without this the gear parked on "not pulled yet" while the seed landed
+    // seconds later, and nothing ever re-read it.
+    const seeding=(rem==null && !!data.pending);
     return {
       remaining: rem,
       used: used,
       updatedAt: updatedAt,
-      status: neverPulled?"never_pulled":(rem!=null?"ok":"empty"),
-      message: null,
+      status: seeding?"pending":(neverPulled?"never_pulled":(rem!=null?"ok":"empty")),
+      message: seeding?(data.message||"seeding…"):null,
+      pending: !!data.pending,
       raw: data
     };
   }
   function noteOddsQuotaFromLines(pack){
     // Opportunistic seed from player-lines cache fields — does not burn credits.
     if(!pack||!pack.raw) return;
-    const rem=pickNum(pack.requests_remaining, pack.raw.requests_remaining, pack.raw.remaining);
+    const lm=(pack.raw.meta&&typeof pack.raw.meta==="object")?pack.raw.meta:{};
+    const rem=pickNum(
+      pack.requests_remaining, pack.raw.requests_remaining, pack.raw.remaining,
+      lm.x_requests_remaining, pack.raw.x_requests_remaining
+    );
     if(rem==null) return;
     const cur=STATE._oddsQuota||{};
     STATE._oddsQuota={
@@ -2196,6 +2388,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const ing=ingestOddsQuotaPayload(data)||{remaining:null,updatedAt:null,status:"never_pulled",message:null,raw:data};
       STATE._oddsQuota=ing;
       paintOddsQuotaRow();
+      // The seed runs in a TipBot background thread and lands within seconds.
+      // Re-read a few times so the badge fills itself instead of sitting on
+      // "seeding…" until the next gear open. Reads the durable row only —
+      // never burns a credit.
+      if(ing.status==="pending") scheduleOddsQuotaRepoll();
       return STATE._oddsQuota;
     }catch(e){
       if(e&&e.unauth) throw e;
@@ -2205,6 +2402,255 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       return STATE._oddsQuota;
     }
   }
+  // Bounded re-read after TipBot kicks a seed. Cache-only on the TipBot side,
+  // so this costs nothing; it just stops the badge parking on "seeding…".
+  const ODDS_QUOTA_REPOLL_MS=[2000,4000,8000];
+  function scheduleOddsQuotaRepoll(step){
+    const i=step||0;
+    if(i>=ODDS_QUOTA_REPOLL_MS.length) return;
+    clearTimeout(STATE._oddsQuotaRepollTimer);
+    STATE._oddsQuotaRepollTimer=setTimeout(function(){
+      if(!canSeeOwnerSecrets()) return;
+      const cur=STATE._oddsQuota||{};
+      if(cur.status==="ok") return;                 // landed — stop
+      api("/api/odds/quota",{timeoutMs:15000,retries:1}).then(function(r){
+        if(!r.ok) return;
+        return r.json().then(function(d){
+          const ing=ingestOddsQuotaPayload(d);
+          if(!ing) return;
+          STATE._oddsQuota=ing;
+          paintOddsQuotaRow();
+          if(ing.status!=="ok") scheduleOddsQuotaRepoll(i+1);
+        });
+      }).catch(function(){ /* quiet: the badge keeps its last stable state */ });
+    }, ODDS_QUOTA_REPOLL_MS[i]);
+  }
+
+  /* ---------- Odds API market picker (gear · owner only) -------------------
+     Cost is (markets returned) x (region-equivalents); with <=10 bookmakers
+     that is 1 region-equivalent, so each selected market is ~1 credit per cold
+     pull. Deselecting is a direct saving, which is the point of this control. */
+  STATE._oddsMk=STATE._oddsMk||{loaded:false, list:[], sel:[], saved:[], api:null, busy:false};
+
+  function oddsMkCredits(sel){
+    // Mirrors TipBot's estimated_credits(): markets x region-equivalents.
+    const books=(STATE._oddsMk.bookmakers||[]).length||3;
+    return (sel||[]).length * Math.max(1, Math.ceil(books/10));
+  }
+  function oddsMkDirty(){
+    const a=(STATE._oddsMk.sel||[]).slice().sort().join(",");
+    const b=(STATE._oddsMk.saved||[]).slice().sort().join(",");
+    return a!==b;
+  }
+  function mkSeenLine(m){
+    // What the last cold pull actually returned for this market. Free info —
+    // it rides a response we already paid for.
+    if(m.rejected) return {cls:"warn", text:"the API rejected this key — it won't be requested"};
+    if(m.last_line_count>0){
+      return {cls:"good", text:m.last_line_count+" line"+(m.last_line_count===1?"":"s")+" last pull"
+        +(m.last_had_under?" · unders ✓":" · no unders")};
+    }
+    if(m.last_seen_at||m.last_empty_at) return {cls:"warn", text:"returned nothing last pull"};
+    if(m.status==="confirmed") return null;
+    if(m.status==="candidate") return {cls:"", text:"unverified key — tick it and check the next pull"};
+    return {cls:"", text:"not seen here yet"};
+  }
+  function paintOddsMarkets(){
+    const box=$("dd-odds-markets"), body=$("dd-mk-body");
+    if(!box||!body) return;
+    const show=canSeeOwnerSecrets();
+    box.hidden=!show;
+    if(!show) return;
+    if(STATE._oddsMk.api===false){
+      body.innerHTML='<p class="dd-mk-note">Market picker needs a TipBot deploy.</p>';
+      return;
+    }
+    if(!STATE._oddsMk.loaded){
+      body.innerHTML='<p class="dd-mk-note">Loading markets…</p>';
+      return;
+    }
+    const sel=STATE._oddsMk.sel||[];
+    const all=STATE._oddsMk.list||[];
+    function rowHtml(m){
+      const on=sel.indexOf(m.key)>=0;
+      const seen=mkSeenLine(m);
+      return '<label class="dd-mk-row'+(on?"":" off")+'">'
+        +'<input type="checkbox" data-mk="'+esc(m.key)+'"'+(on?" checked":"")+'>'
+        +'<span class="mk-main"><span class="mk-name">'+esc(m.label)+'</span>'
+        +(seen?'<span class="mk-sub '+seen.cls+'">'+esc(seen.text)+'</span>':'')
+        +'</span>'
+        +'<span class="mk-side '+(m.two_sided?"ou":"over")+'" title="'
+        +(m.two_sided?"Returns Over AND Under prices":"Returns Over prices only — no unders")
+        +'">'+(m.two_sided?"O/U":"Over only")+'</span>'
+        +'</label>';
+    }
+    const ou=all.filter(function(m){return m.two_sided;});
+    const over=all.filter(function(m){return !m.two_sided;});
+    const n=oddsMkCredits(sel);
+    // An Over-only market never carries an unders price, so flag it loudly:
+    // it is the difference between a usable lean and a dead row.
+    const overOnlyOn=over.filter(function(m){return sel.indexOf(m.key)>=0;});
+    const ouOn=ou.filter(function(m){return sel.indexOf(m.key)>=0;});
+
+    body.innerHTML=
+       '<p class="dd-mk-note">Only what you tick is requested. Each market that '
+      +'returns data costs about 1 credit per cold pull, per game.</p>'
+      +'<div class="dd-mk-group">Over / Under <span class="g-note">— has an unders price</span></div>'
+      +ou.map(rowHtml).join("")
+      +'<div class="dd-mk-group">Over only <span class="g-note">— no unders price</span></div>'
+      +over.map(rowHtml).join("")
+      +(overOnlyOn.length
+        ? '<div class="dd-mk-warn">'+esc(overOnlyOn.map(function(m){return m.label;}).join(", "))
+          +(overOnlyOn.length===1?" is":" are")+' Over-only — those lines come back with no unders '
+          +'price. Use the O/U version above if it returns data.</div>'
+        : "")
+      +(ouOn.length?"":'<div class="dd-mk-warn">Nothing selected carries an unders price.</div>')
+      +'<div class="dd-mk-cost">Cold pull: <b>~'+n+' credit'+(n===1?"":"s")+'</b> per game</div>'
+      +'<div class="dd-mk-actions">'
+      +'<button type="button" id="dd-mk-ou">O/U only</button>'
+      +'<button type="button" id="dd-mk-reset">Defaults</button>'
+      +'<button type="button" class="primary" id="dd-mk-save"'+(oddsMkDirty()?"":" disabled")+'>Save</button>'
+      +'</div>'
+      +'<div class="dd-mk-msg'+(STATE._oddsMk.msgKind?(" "+STATE._oddsMk.msgKind):"")+'" id="dd-mk-msg">'
+      +esc(STATE._oddsMk.msg||"")+'</div>';
+
+    body.querySelectorAll("input[data-mk]").forEach(function(cb){
+      cb.onchange=function(){
+        const key=cb.getAttribute("data-mk");
+        const cur=(STATE._oddsMk.sel||[]).slice();
+        const at=cur.indexOf(key);
+        if(cb.checked){ if(at<0) cur.push(key); }
+        else{ if(at>=0) cur.splice(at,1); }
+        if(!cur.length){
+          // TipBot would fall back to defaults anyway; say so before saving.
+          STATE._oddsMk.msg="Pick at least one market — a pull with none still costs a request.";
+          STATE._oddsMk.msgKind="err";
+          cb.checked=true;
+          paintOddsMarkets();
+          return;
+        }
+        STATE._oddsMk.sel=cur;
+        STATE._oddsMk.msg=""; STATE._oddsMk.msgKind="";
+        paintOddsMarkets();
+      };
+    });
+    const save=$("dd-mk-save");
+    if(save) save.onclick=saveOddsMarkets;
+    const reset=$("dd-mk-reset");
+    if(reset) reset.onclick=function(){
+      STATE._oddsMk.sel=(STATE._oddsMk.defaults||[]).slice();
+      STATE._oddsMk.msg=""; STATE._oddsMk.msgKind="";
+      paintOddsMarkets();
+    };
+    const ouBtn=$("dd-mk-ou");
+    if(ouBtn) ouBtn.onclick=function(){
+      // Drop every Over-only market, keeping the O/U ones already ticked.
+      // If that would empty the selection, fall back to the O/U markets we
+      // know return data rather than leaving nothing.
+      let next=sel.filter(function(k){
+        const m=all.filter(function(x){return x.key===k;})[0];
+        return m && m.two_sided;
+      });
+      if(!next.length){
+        next=ou.filter(function(m){return m.status==="confirmed"||m.last_line_count>0;})
+               .map(function(m){return m.key;});
+      }
+      if(!next.length){
+        STATE._oddsMk.msg="No Over/Under market has returned data yet — tick one to try it.";
+        STATE._oddsMk.msgKind="err";
+        paintOddsMarkets();
+        return;
+      }
+      STATE._oddsMk.sel=next;
+      STATE._oddsMk.msg=""; STATE._oddsMk.msgKind="";
+      paintOddsMarkets();
+    };
+  }
+  function ingestOddsMarkets(data){
+    if(!data||typeof data!=="object") return false;
+    const list=Array.isArray(data.markets)?data.markets:[];
+    if(!list.length) return false;
+    STATE._oddsMk.list=list;
+    STATE._oddsMk.sel=Array.isArray(data.selected)?data.selected.slice()
+      :list.filter(function(m){return m.selected;}).map(function(m){return m.key;});
+    STATE._oddsMk.saved=STATE._oddsMk.sel.slice();
+    STATE._oddsMk.defaults=Array.isArray(data.defaults)?data.defaults.slice():STATE._oddsMk.sel.slice();
+    STATE._oddsMk.bookmakers=Array.isArray(data.bookmakers)?data.bookmakers:[];
+    STATE._oddsMk.hasUnders=!!data.has_unders;
+    STATE._oddsMk.loaded=true;
+    STATE._oddsMk.api=true;
+    return true;
+  }
+  async function fetchOddsMarkets(){
+    if(!canSeeOwnerSecrets()) return;
+    if(STATE._oddsMk.api===false) return;
+    try{
+      const r=await api("/api/odds/markets",{timeoutMs:15000,retries:1});
+      if(r.status===404||r.status===501){ STATE._oddsMk.api=false; paintOddsMarkets(); return; }
+      if(!r.ok) return;
+      let d=null; try{ d=await r.json(); }catch(e){ d=null; }
+      if(ingestOddsMarkets(d)) paintOddsMarkets();
+    }catch(e){
+      if(e&&e.unauth) throw e;
+      // Quiet: the picker keeps whatever it last showed.
+    }
+  }
+  async function saveOddsMarkets(){
+    if(STATE._oddsMk.busy) return;
+    const sel=(STATE._oddsMk.sel||[]).slice();
+    if(!sel.length) return;
+    STATE._oddsMk.busy=true;
+    const btn=$("dd-mk-save");
+    if(btn){ btn.disabled=true; btn.textContent="Saving…"; }
+    try{
+      const r=await api("/api/odds/markets",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({markets:sel}),
+        idempotent:true, retries:3,
+      });
+      let d=null; try{ d=await r.json(); }catch(e){ d=null; }
+      if(r.status===404||r.status===501){
+        STATE._oddsMk.api=false; STATE._oddsMk.msg="Market picker needs a TipBot deploy.";
+        STATE._oddsMk.msgKind="err";
+      }else if(r.ok&&d&&d.ok!==false){
+        ingestOddsMarkets(d);
+        STATE._oddsMk.msg=d.message||"Saved.";
+        STATE._oddsMk.msgKind="ok";
+        toast("Odds markets saved");
+      }else{
+        STATE._oddsMk.msg=(d&&(d.message||d.error))||("Couldn't save (HTTP "+r.status+")");
+        STATE._oddsMk.msgKind="err";
+      }
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      STATE._oddsMk.msg="Couldn't reach TipBot.";
+      STATE._oddsMk.msgKind="err";
+    }finally{
+      STATE._oddsMk.busy=false;
+      paintOddsMarkets();
+    }
+  }
+  function wireOddsMarketsToggle(){
+    const head=$("dd-mk-toggle"), box=$("dd-odds-markets"), body=$("dd-mk-body");
+    if(!head||!box||!body||head.dataset.wired==="1") return;
+    head.dataset.wired="1";
+    const flip=function(){
+      const open=box.classList.toggle("open");
+      body.hidden=!open;
+      head.setAttribute("aria-expanded", open?"true":"false");
+      if(open && !STATE._oddsMk.loaded) fetchOddsMarkets();
+    };
+    head.onclick=flip;
+    head.onkeydown=function(e){
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); flip(); }
+    };
+  }
+  function refreshOddsMarketsOnSettingsOpen(){
+    wireOddsMarketsToggle();
+    paintOddsMarkets();
+  }
+
   function refreshOddsQuotaOnSettingsOpen(){
     // Paint last stable state first. Do NOT clear prior error/message before refetch —
     // that caused gear open to flash "not pulled yet" then "Quota pending" forever.
@@ -4286,7 +4732,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       return;
     }
     if(!text.trim()){ if(msg) msg.textContent="Nothing to import."; return; }
-    if(conf) conf.disabled=true;
+    const prog=SubmitProgress.open({
+      btn:conf, anchor:msg, id:"sheetprog",
+      busyLabel:"Importing…", sendingLabel:"Importing tip sheet…",
+    });
     if(msg){ msg.style.color="var(--faint)"; msg.textContent="Importing…"; }
     const hash=PASTE_SHEET.sheetHash || await sheetHash(text);
     try{
@@ -4294,30 +4743,32 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         method:"POST",
         headers:{"Content-Type":"application/json","Idempotency-Key":"sheet-"+hash},
         body:JSON.stringify({text:text, dry_run:false, guild_id:String(guildId)}),
-        idempotent:true
+        idempotent:true, retries:4, onAttempt:prog.onAttempt
       });
       const raw=await r.text();
       let j=null; try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
       if(r.status===404){
         if(msg){ msg.style.color="var(--warn,#e0a04a)"; msg.textContent="API pending deploy — TipBot /api/owner/import-tips not live yet."; }
         toast("API pending deploy");
-        if(conf) conf.disabled=false;
+        prog.fail("API pending deploy");
         return;
       }
       if(r.ok && j && (j.ok!==false)){
         const q=j.queued!=null?j.queued:(j.count!=null?j.count:(j.tips_queued!=null?j.tips_queued:parsed.tipCount));
+        prog.ok("Queued "+q+" tip(s)");
         if(msg){ msg.style.color="#7ee0a6"; msg.textContent=(j.message||("Queued "+q+" tip(s)"))+(j.replayed?" (replayed)":""); }
         toast((q!=null?q+" tip(s) queued":"Import queued"));
         if(window.NDConfirmPop) NDConfirmPop.show({label:String(q)+" queued", color:"#2eaf62"});
         loadDetail(guildId);
         return;
       }
-      if(msg){ msg.style.color="#f0857f"; msg.textContent=(j&&(j.message||j.error||j.detail))||("Import failed (HTTP "+r.status+")"); }
-      if(conf) conf.disabled=false;
+      const im=(j&&(j.message||j.error||j.detail))||("Import failed (HTTP "+r.status+")");
+      if(msg){ msg.style.color="#f0857f"; msg.textContent=im; }
+      prog.fail(im);
     }catch(e){
       if(e&&e.unauth) return renderLogin("Session expired.");
       if(msg){ msg.style.color="#f0857f"; msg.textContent="Couldn't reach TipBot."; }
-      if(conf) conf.disabled=false;
+      prog.fail("Couldn't reach TipBot.");
     }
   }
 
@@ -6467,10 +6918,16 @@ async function loadPerms(gid){
   }
   async function doBatchSchedule(delay,trickle){
     const btn=$("batchgo");
-    if(btn){ if(btn.disabled||btn.dataset.busy==="1") return; btn.disabled=true; btn.dataset.busy="1"; }
+    if(btn){ if(btn.disabled||btn.dataset.busy==="1") return; }
     const errEl=$("scherr");
-    function setErr(msg){ if(errEl)errEl.textContent=msg||""; }
-    function unlockBtn(){ if(btn){ btn.disabled=false; delete btn.dataset.busy; } }
+    const nTips=BATCH.tips.length;
+    const prog=SubmitProgress.open({
+      btn:btn, anchor:errEl, id:"batchprog",
+      busyLabel:"Scheduling "+nTips+" tip"+(nTips===1?"":"s")+"…",
+      sendingLabel:"Sending "+nTips+" tip"+(nTips===1?"":"s")+" to TipBot…",
+    });
+    function setErr(msg){ if(errEl)errEl.textContent=msg||""; prog.fail(msg||""); }
+    function unlockBtn(){ /* SubmitProgress.fail() already unlocks */ }
     const batchRequestId=newClientRequestId();
     const guildId=BATCH.guildId||BUILD.guildId;
     const tips=BATCH.tips.map(t=>{
@@ -6481,7 +6938,6 @@ async function loadPerms(gid){
       if(t.start_date){ row.start_date=t.start_date; row.game_start=t.game_start||t.start_date; }
       return row;
     });
-    const tipLabels=BATCH.tips.map((t,i)=>batchTipLabel(t)||("Tip "+(i+1)));
     const payload={
       guild_id:guildId,
       delay_minutes:delay,
@@ -6504,171 +6960,94 @@ async function loadPerms(gid){
       if(r&&!r.ok) return "Couldn't schedule batch (HTTP "+r.status+")."+(raw&&raw.length<180?" "+raw:"");
       return "Couldn't schedule batch.";
     }
-    function isBusyBody(r, j){
-      if(!r) return false;
-      if(r.status!==502 && r.status!==503) return false;
-      if(!j) return true;
-      const err=String(j.error||j.code||"");
-      if(err==="db_busy"||err==="warming"||err==="timeout"||err==="DashboardBusy") return true;
-      if(j.warming===true || j.status==="warming") return true;
-      return true; // any 502/503 from queue is retryable (stable Idempotency-Key)
-    }
-    function parseFailedIndices(j, total){
-      const failed=[];
-      const seen={};
-      const errs=Array.isArray(j&&j.errors)?j.errors:[];
-      errs.forEach(function(e){
-        const m=String(e||"").match(/tip\s+(\d+)\s*:/i);
-        if(m){
-          const idx=+m[1];
-          if(idx>=0 && idx<total && !seen[idx]){ seen[idx]=1; failed.push(idx); }
-        }
-      });
-      if(failed.length) return failed;
-      const queued=j&&j.queued!=null?Number(j.queued):NaN;
-      if(Number.isFinite(queued) && queued>=0 && queued<total){
-        // Unknown which failed — retry from queued onward (earlier tips have per-tip idempotency).
-        for(let i=Math.max(0,Math.floor(queued)); i<total; i++) failed.push(i);
-        return failed;
-      }
-      return [];
-    }
-    function batchFullyQueued(j, total){
-      if(!(j&&j.ok)) return false;
-      const errs=Array.isArray(j.errors)?j.errors:[];
-      if(errs.length) return false;
-      if(j.queued!=null){
-        const q=Number(j.queued);
-        if(Number.isFinite(q) && q<total) return false;
-      }
-      if(j.total!=null){
-        const t=Number(j.total);
-        if(Number.isFinite(t) && j.queued!=null && Number(j.queued)<t) return false;
-      }
-      return true;
-    }
-    function finishAllOk(n, note){
-      clearBatch();
-      BUILD.legs=[]; BUILD.image=null;
-      clearMultiDraft(guildId);
-      if($("tray"))$("tray").hidden=true;
-      if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tip"+(n===1?"":"s")+" scheduled",color:"#2eaf62"});
-      toast(n+" tip"+(n===1?"":"s")+" scheduled"+(note||""));
-      loadDetail(guildId);
-    }
-    function keepFailedInBatch(okIdx){
-      // Drop successfully queued tips from Review tray; leave failures for retry.
-      const keep=[];
-      for(let i=0;i<BATCH.tips.length;i++){
-        if(!okIdx[i]) keep.push(BATCH.tips[i]);
-      }
-      BATCH.tips=keep;
-      if(!BATCH.tips.length) BATCH.guildId=null;
-      renderBatchTray();
-      if(BATCH.tips.length) renderBatchConfirm();
-    }
-    async function queueOneTip(i, tipRequestId, attemptNote){
-      const t=tips[i];
-      const one={
-        guild_id:guildId, legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
-        game_name:t.game_name, sport:t.sport, delay_minutes:delay, image_b64:t.image_b64||"",
-        client_request_id:tipRequestId
-      };
-      if(t.league) one.league=t.league;
-      if(t.espn_event_id){ one.espn_event_id=t.espn_event_id; one.event_id=t.espn_event_id; }
-      if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
-      // Stable Idempotency-Key: retries must not mint a new key (no duplicate Discord).
-      const maxTries=5;
-      let lastErr="Couldn't schedule tip "+(i+1)+".";
-      for(let attempt=1; attempt<=maxTries; attempt++){
-        if(attemptNote && attempt>1) setErr(attemptNote(i, attempt, maxTries));
+    async function sequentialFallback(){
+      // Trickle OFF + 404: post each tip via legacy /api/queue-tip with same delay.
+      let ok=0, lastErr="";
+      for(let i=0;i<tips.length;i++){
+        prog.set(10+Math.round(80*i/Math.max(1,tips.length)),
+                 "Posting tip "+(i+1)+" of "+tips.length+"…");
+        const t=tips[i];
+        const tipRequestId=batchRequestId+"-"+i;
+        const one={
+          guild_id:guildId, legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
+          game_name:t.game_name, sport:t.sport, delay_minutes:delay, image_b64:t.image_b64||"",
+          client_request_id:tipRequestId
+        };
+        if(t.league) one.league=t.league;
+        if(t.espn_event_id){ one.espn_event_id=t.espn_event_id; one.event_id=t.espn_event_id; }
+        if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
         try{
           const r=await api("/api/queue-tip",{
             method:"POST",
             headers:{"Content-Type":"application/json","Idempotency-Key":tipRequestId},
             body:JSON.stringify(one),
-            idempotent:true,
-            retries:1, // outer loop owns busy backoff so we can show progress + continue batch
-            timeoutMs:90000
+            idempotent:true, retries:3,
           });
           const {j,raw}=await readBody(r);
-          if(r.ok&&j&&j.ok) return {ok:true};
-          if(isBusyBody(r,j) && attempt<maxTries){
-            let waitMs=1500*Math.pow(2, attempt-1);
-            if(j&&j.retry_after!=null){
-              const ra=Number(j.retry_after);
-              if(Number.isFinite(ra)&&ra>=0) waitMs=(ra>0&&ra<120)?(ra*1000):ra;
-            }
-            waitMs=Math.min(Math.max(waitMs,400),15000);
-            lastErr=failMsg(r,j,raw);
-            setErr("Database busy — retrying tip "+(i+1)+"/"+tips.length+" in ~"+Math.ceil(waitMs/1000)+"s…");
-            await sleep(waitMs);
-            continue;
-          }
-          lastErr=failMsg(r,j,raw);
-          return {ok:false, err:lastErr, hard:true};
+          if(r.ok&&j&&j.ok){ ok++; }
+          else{ lastErr=failMsg(r,j,raw); break; }
         }catch(e){
-          if(e&&e.unauth) throw e;
-          if(attempt<maxTries){
-            const waitMs=Math.min(1500*Math.pow(2, attempt-1), 8000);
-            lastErr="Couldn't reach the bot.";
-            setErr("Network blip — retrying tip "+(i+1)+"/"+tips.length+"…");
-            await sleep(waitMs);
-            continue;
-          }
-          return {ok:false, err:"Couldn't reach the bot.", hard:true};
+          if(e&&e.unauth)throw e;
+          lastErr="Couldn't reach the bot.";
+          break;
         }
       }
-      return {ok:false, err:lastErr, hard:true};
-    }
-    async function sequentialQueue(indices, keyStyle){
-      // keyStyle "colon" matches TipBot batch per-tip keys `${batchId}:${i}` (safe after partial batch).
-      // keyStyle "dash" is legacy fallback when /api/queue-tips 404'd (nothing batch-keyed).
-      let ok=0;
-      const failed=[];
-      const okIdx={};
-      for(let n=0;n<indices.length;n++){
-        const i=indices[n];
-        const tipRequestId=keyStyle==="colon"?(batchRequestId+":"+i):(batchRequestId+"-"+i);
-        setErr("Scheduling tip "+(i+1)+"/"+tips.length+"…");
-        const res=await queueOneTip(i, tipRequestId, function(idx, attempt, maxAttempts){
-          return "Busy — retry tip "+(idx+1)+" (try "+attempt+"/"+maxAttempts+")…";
-        });
-        if(res.ok){ ok++; okIdx[i]=1; }
-        else{
-          failed.push({index:i, label:tipLabels[i]||("Tip "+(i+1)), err:res.err||"failed"});
-          // Continue remaining tips — never stop the batch after first 503/hard fail.
-        }
-      }
-      return {ok:ok, failed:failed, okIdx:okIdx};
-    }
-    function toastFailures(failed, okCount){
-      const names=failed.map(f=>f.label).slice(0,6);
-      const more=failed.length>6?(" +"+(failed.length-6)+" more"):"";
-      const head=okCount? (okCount+" queued, "+failed.length+" failed: ") : (failed.length+" tip"+(failed.length===1?"":"s")+" failed: ");
-      toast(head+names.join(", ")+more);
-      const detail=failed.map(f=>"#"+(f.index+1)+" "+f.label+(f.err?(" — "+f.err):"")).join(" · ");
-      setErr(detail.slice(0,420));
+      return {ok:ok, lastErr:lastErr};
     }
     payload.client_request_id=batchRequestId;
     try{
-      setErr("Scheduling "+tips.length+" tip"+(tips.length===1?"":"s")+"…");
+      // Idempotency-Key makes this safe to retry: TipBot replays the stored
+      // response rather than creating a second set of queue rows. Without it a
+      // transient `503 db_busy` was a dead end for the tipster.
       const r=await api("/api/queue-tips",{
         method:"POST",
         headers:{"Content-Type":"application/json","Idempotency-Key":batchRequestId},
         body:JSON.stringify(payload),
-        idempotent:true,
-        retries:5,
-        timeoutMs:120000,
-        onAttempt:function(attempt, maxAttempts, info){
-          if(!(info&&info.phase==="retry")) return;
-          const secs=info.waitMs?Math.ceil(info.waitMs/1000):2;
-          setErr("Database busy — retrying batch ("+attempt+"/"+maxAttempts+") in ~"+secs+"s…");
-        }
+        idempotent:true, retries:4, onAttempt:prog.onAttempt,
       });
       const {j,raw}=await readBody(r);
-      if(r.ok&&j&&batchFullyQueued(j, tips.length)){
-        finishAllOk(tips.length, trickle?" (trickle on)":"");
+      if(r.ok&&j&&j.ok){
+        prog.set(85,"TipBot accepted the batch…");
+        // Partial: some tips could not be written. Keep exactly those in the
+        // tray so a resubmit sends the shortfall and nothing double-posts.
+        const queuedN=(j.queued!=null)?j.queued:nTips;
+        if(j.busy||(j.errors&&j.errors.length)){
+          const failedIdx=[];
+          (j.errors||[]).forEach(function(e){
+            const m=/^tip\s+(\d+)\s*:/.exec(String(e||""));
+            if(m) failedIdx.push(parseInt(m[1],10));
+          });
+          if(failedIdx.length){
+            const keep=failedIdx.map(function(i){ return BATCH.tips[i]; }).filter(Boolean);
+            if(keep.length===failedIdx.length){
+              const note="Queued "+queuedN+"/"+nTips+". "+keep.length+" tip"+(keep.length===1?"":"s")
+                        +" couldn't be written (database busy) and "+(keep.length===1?"is":"are")
+                        +" still in the tray — press Schedule again.";
+              // Close the bar BEFORE re-rendering: renderBatchConfirm() rebuilds
+              // the panel, detaching #batchprog and #scherr.
+              prog.fail(note);
+              BATCH.tips=keep;
+              renderBatchConfirm();
+              const fresh=$("scherr");
+              if(fresh) fresh.textContent=note;
+              toast(queuedN+" of "+nTips+" scheduled — "+keep.length+" left in the tray");
+              loadDetail(guildId);
+              return;
+            }
+          }
+          setErr("Queued "+queuedN+"/"+nTips+": "+((j.errors||[]).join("; ")||"some tips failed"));
+          loadDetail(guildId);
+          return;
+        }
+        const n=BATCH.tips.length;
+        prog.ok(n+" tip"+(n===1?"":"s")+" scheduled");
+        clearBatch();
+        BUILD.legs=[]; BUILD.image=null;
+        clearMultiDraft(guildId);
+        if($("tray"))$("tray").hidden=true;
+        if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
+        toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""));
+        loadDetail(guildId);
         return;
       }
       if(r.status===404){
@@ -6679,59 +7058,24 @@ async function loadPerms(gid){
         }
         // Fallback: sequential queue-tip (same delay_minutes, no fake stagger).
         setErr("Trickle API not live — falling back to sequential schedule…");
-        const fb=await sequentialQueue(tips.map((_,i)=>i), "dash");
-        if(fb.failed.length===0){
-          finishAllOk(tips.length, " (legacy fallback)");
+        const fb=await sequentialFallback();
+        if(fb.ok===tips.length){
+          const n=tips.length;
+          prog.ok(n+" tip"+(n===1?"":"s")+" scheduled");
+          clearBatch();
+          BUILD.legs=[]; BUILD.image=null;
+          clearMultiDraft(guildId);
+          if($("tray"))$("tray").hidden=true;
+          if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
+          toast(n+" tip"+(n===1?"":"s")+" scheduled (legacy fallback)");
+          loadDetail(guildId);
           return;
         }
-        if(fb.ok) keepFailedInBatch(fb.okIdx);
-        toastFailures(fb.failed, fb.ok);
+        setErr(fb.lastErr||("Bot is updating — Trickle API not live yet. Try again in a minute."+(fb.ok?" ("+fb.ok+"/"+tips.length+" queued)":"")));
         unlockBtn();
         return;
       }
-      // Partial batch success (ok:true + errors / queued<total) OR exhausted 503 — finish remaining.
-      const partialOk=r.ok&&j&&j.ok;
-      const busy=isBusyBody(r,j);
-      let needIdx=[];
-      if(partialOk){
-        needIdx=parseFailedIndices(j, tips.length);
-        if(!needIdx.length && !batchFullyQueued(j, tips.length)){
-          // ok but incomplete without parseable errors — retry all via per-tip keys (idempotent).
-          needIdx=tips.map((_,i)=>i);
-        }
-      }else if(busy || !r.ok){
-        // Whole request failed after api() retries — try each tip with colon keys so any
-        // already-inserted rows from a mid-batch busy are replayed, not duplicated.
-        needIdx=tips.map((_,i)=>i);
-        setErr(busy
-          ? ("Database busy after retries — finishing "+tips.length+" tips one-by-one…")
-          : ("Batch failed — finishing remaining tips… ("+failMsg(r,j,raw)+")"));
-      }else{
-        setErr(failMsg(r,j,raw));
-        unlockBtn();
-        return;
-      }
-      if(partialOk && needIdx.length){
-        const q=j.queued!=null?Number(j.queued): (tips.length-needIdx.length);
-        setErr("Partial queue ("+(Number.isFinite(q)?q: "?")+"/"+tips.length+") — finishing remaining…");
-      }
-      const fb=await sequentialQueue(needIdx, "colon");
-      // Tips already counted in batch response success + sequential ok.
-      const alreadyOk={};
-      if(partialOk){
-        for(let i=0;i<tips.length;i++){
-          if(needIdx.indexOf(i)<0) alreadyOk[i]=1;
-        }
-      }
-      const okIdx=Object.assign({}, alreadyOk, fb.okIdx);
-      const okCount=Object.keys(okIdx).filter(k=>okIdx[k]).length;
-      if(fb.failed.length===0 && okCount===tips.length){
-        finishAllOk(tips.length, trickle?" (trickle on)":"");
-        return;
-      }
-      if(okCount) keepFailedInBatch(okIdx);
-      if(fb.failed.length) toastFailures(fb.failed, okCount);
-      else setErr(failMsg(r,j,raw));
+      setErr(failMsg(r,j,raw));
       unlockBtn();
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
@@ -6774,10 +7118,14 @@ async function loadPerms(gid){
   }
   async function doSchedule(odds,units){
     const btn=$("schedbtn");
-    if(btn){ if(btn.disabled||btn.dataset.busy==="1") return; btn.disabled=true; btn.dataset.busy="1"; }
+    if(btn){ if(btn.disabled||btn.dataset.busy==="1") return; }
+    const prog=SubmitProgress.open({
+      btn:btn, anchor:$("scherr"), id:"tipprog",
+      busyLabel:"Scheduling…", sendingLabel:"Sending tip to TipBot…",
+    });
     const clientRequestId=newClientRequestId();
     const tipFields=readTipForm();
-    if(tipFields.error){ $("scherr").textContent=tipFields.error; if(btn){btn.disabled=false; delete btn.dataset.busy;} return; }
+    if(tipFields.error){ $("scherr").textContent=tipFields.error; prog.fail(tipFields.error); return; }
     const payload={guild_id:BUILD.guildId,legs:tipFields.legs,odds:tipFields.odds,units:tipFields.units,bookmaker:tipFields.bookmaker,
       game_name:tipFields.game_name, sport:tipFields.sport,
       delay_minutes:parseInt($("f_delay").value||"0",10),
@@ -6787,28 +7135,24 @@ async function loadPerms(gid){
     if(tipFields.espn_event_id){ payload.espn_event_id=tipFields.espn_event_id; payload.event_id=tipFields.espn_event_id; }
     if(tipFields.start_date){ payload.start_date=tipFields.start_date; payload.game_start=tipFields.game_start||tipFields.start_date; }
     try{
+      // Safe to retry: the Idempotency-Key replays instead of double-posting.
       const r=await api("/api/queue-tip",{
         method:"POST",
         headers:{"Content-Type":"application/json","Idempotency-Key":clientRequestId},
         body:JSON.stringify(payload),
-        idempotent:true,
-        retries:5,
-        timeoutMs:90000,
-        onAttempt:function(attempt, maxAttempts, info){
-          if(!(info&&info.phase==="retry")) return;
-          const secs=info.waitMs?Math.ceil(info.waitMs/1000):2;
-          $("scherr").textContent="Database busy — retrying ("+attempt+"/"+maxAttempts+") in ~"+secs+"s…";
-        }
+        idempotent:true, retries:4, onAttempt:prog.onAttempt,
       });
-      const raw=await r.text();
-      let j=null; try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
-      if(r.ok&&j&&j.ok){ if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"}); BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId); }
-      else{
-        const msg=(j&&(j.message||j.error))||(r.status===503?"Database busy — try again.":"Couldn't schedule.");
-        $("scherr").textContent=(r.status&&!r.ok?("HTTP "+r.status+": "):"")+msg;
-        if(btn){btn.disabled=false; delete btn.dataset.busy;}
+      let j=null; try{ j=await r.json(); }catch(e){ j=null; }
+      if(r.ok&&j&&j.ok){
+        prog.ok("Tip scheduled");
+        if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
+        BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
       }
-    }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; if(btn){btn.disabled=false; delete btn.dataset.busy;} }
+      else{
+        const m=(j&&(j.message||j.error))||"Couldn't schedule.";
+        $("scherr").textContent=m; prog.fail(m);
+      }
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; prog.fail("Couldn't reach the bot."); }
   }
   function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
 
