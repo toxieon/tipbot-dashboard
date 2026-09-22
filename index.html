@@ -3946,9 +3946,42 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); body.innerHTML='<div class="empty">Couldn\'t load follower map.</div>'; }
   }
   let DETAIL_TIMER=null,LIVE_TIMER=null,GAMES_TIMER=null;
+  // Bandwidth cut A (rollback: tipdash-bw-2026-09-23 / checkpoint-pre-bw-2026-09-23):
+  // fixtures 60s->180s; pause games+live polls while tab hidden; live poll only for in-progress match.
+  const GAMES_POLL_MS=180000;
+  const LIVE_POLL_MS=30000;
+  let GAMES_POLL_ARMED=false, LIVE_POLL_GAME=null;
   function clearDetailTimers(){ if(DETAIL_TIMER){clearInterval(DETAIL_TIMER);DETAIL_TIMER=null;} }
-  function clearLiveTimer(){ if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;} }
-  function clearGamesTimer(){ if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;} }
+  function clearLiveTimer(){ if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;} LIVE_POLL_GAME=null; }
+  function clearGamesTimer(){ if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;} GAMES_POLL_ARMED=false; }
+  function pauseBwPolls(){
+    if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;}
+    if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;}
+  }
+  function startGamesPoll(){
+    GAMES_POLL_ARMED=true;
+    if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;}
+    if(document.hidden) return;
+    GAMES_TIMER=setInterval(async()=>{
+      if(document.hidden||BUILD.game)return;
+      try{ const fx=await (await api("/api/fixtures")).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
+    },GAMES_POLL_MS);
+  }
+  function startLivePoll(g){
+    LIVE_POLL_GAME=g;
+    if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;}
+    if(document.hidden) return;
+    LIVE_TIMER=setInterval(()=>{ if(document.hidden)return; refreshLive(g); },LIVE_POLL_MS);
+  }
+  function resumeBwPolls(){
+    if(document.hidden) return;
+    if(GAMES_POLL_ARMED && !GAMES_TIMER) startGamesPoll();
+    if(LIVE_POLL_GAME && !LIVE_TIMER) startLivePoll(LIVE_POLL_GAME);
+  }
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden) pauseBwPolls();
+    else resumeBwPolls();
+  });
   function sparkline(series){
     if(!series||series.length<2) return "";
     const w=560,h=56,pad=8,vals=series.map(p=>p.profit);
@@ -5688,13 +5721,11 @@ async function loadPerms(gid){
     try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
     renderGames(games);
     offerDraftResume(guildId, games);
-    // Auto-refresh the games list every 60s so live scores update and finished
-    // games drop off on their own. Pauses while you're inside a specific game.
+    // Auto-refresh the games list every 180s so live scores update and finished
+    // games drop off on their own. Pauses while you're inside a specific game
+    // and while the tab is hidden (see pauseBwPolls / resumeBwPolls).
     clearGamesTimer();
-    GAMES_TIMER=setInterval(async()=>{
-      if(BUILD.game)return;
-      try{ const fx=await (await api("/api/fixtures")).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
-    },60000);
+    startGamesPoll();
   }
 
   // ── ESPN sports (NFL week · NBA/WNBA date · NFL props) ─────────────────────
@@ -6348,10 +6379,11 @@ async function loadPerms(gid){
     }).catch(function(e){ if(e&&e.unauth) return renderLogin("Session expired."); })
      .finally(function(){ if(BUILD.game===g) paintAutoBarStatus(); });
     // If the game is in progress, pull live stats now and refresh them every 30s.
+    // Skip the timer entirely for pre-game / finished matches (bandwidth cut A).
     const c=Number(g.complete)||0;
     if(g.aflMatchId&&c>0&&c<100){
       await refreshLive(g);
-      LIVE_TIMER=setInterval(()=>refreshLive(g),30000);
+      startLivePoll(g);
     }
   }
   async function refreshLive(g){
