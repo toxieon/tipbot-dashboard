@@ -1083,6 +1083,23 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 </script>
 <script>
   const API="https://afl-tipster-bot.onrender.com";
+  // P1-3 (2026-09-26): player "Compare" button is TEMPORARILY HIDDEN.
+  // Compare will later find the exact line (and nearby alt lines) for a player
+  // prop across Sportsbet / PointsBet / Ladbrokes via The Odds API cache and
+  // highlight the best value. Hidden until that works; the code (compareHref,
+  // ./compare/ page, .compare-btn styles) is kept intact.
+  // Dev override: add ?compare=1 to the URL (persists via localStorage
+  // "tipdash_feature_compare"; ?compare=0 clears it).
+  const FEATURE_COMPARE=(function(){
+    const DEFAULT=false;
+    try{
+      const q=new URLSearchParams(location.search).get("compare");
+      if(q==="1"){ localStorage.setItem("tipdash_feature_compare","1"); return true; }
+      if(q==="0"){ localStorage.removeItem("tipdash_feature_compare"); return DEFAULT; }
+      if(localStorage.getItem("tipdash_feature_compare")==="1") return true;
+    }catch(e){}
+    return DEFAULT;
+  })();
   const TOGGLES=[["enabled","Bot Enabled"],["subscription_active","Subscription"],["results_graph_enabled","Results Graph"]];
   const STATS={Disposals:[10,40,20],Goals:[0,6,2],"Fantasy Points":[40,140,80],Hitouts:[0,50,20],Marks:[2,15,5],Tackles:[2,15,5],Kicks:[5,30,12],Handballs:[3,25,10],Clearances:[1,12,4]};
   // "First/last" milestone markets — no line, pick a player. `team:true` scopes it
@@ -6754,7 +6771,8 @@ async function loadPerms(gid){
         const rowDef=(seedLine!=null&&!isNaN(seedLine))?seedLine:def;
         const formHtml=isMarket?"":formChipsHTML(p, nm, oppNm, rowDef);
         const nameCell='<div class="pname-block"><div class="pname">'+esc(p.name)+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+esc(p.position)+'</small>':"")+liveChip+'</div>'+formHtml+'</div>';
-        const cmp='<a class="compare-btn" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>';
+        // Compare hidden behind FEATURE_COMPARE (see top of script). Empty string = no element, no gap.
+        const cmp=FEATURE_COMPARE?'<a class="compare-btn" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>':'';
         if(isMarket){
           html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
             +'<div class="prow-actions" style="margin-left:auto">'+cmp+'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
