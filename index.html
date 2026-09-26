@@ -181,6 +181,9 @@
     padding:8px 12px;font-size:13px;line-height:1.2;white-space:nowrap;
   }
   .dhead-actions .btn.sm{padding:8px 12px;font-size:13px}
+  .dhead-actions a.ghost{text-decoration:none}
+  .live-open-btn{color:var(--txt)!important;border-color:color-mix(in srgb,var(--loss) 55%,var(--line))!important}
+  .live-open-link{color:var(--accent);font-weight:700;white-space:nowrap;text-decoration:none}
   @media(max-width:640px){
     .wrap{padding:16px 14px 90px}
     .dhead{flex-direction:column;align-items:stretch}
@@ -5310,12 +5313,12 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button></div>'
       +'<div id="settings-body"></div></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div class="dhead-actions"><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div class="dhead-actions"><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +statsBlock
       +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself.</div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
+      +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="upcoming-panel" data-sec="upcoming" data-sec-sum="'+(tips.queued||[]).length+' queued"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+st.won+'–'+st.lost+'–'+st.push+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'

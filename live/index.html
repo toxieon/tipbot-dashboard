@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Live bets · Tipdash</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/logo.svg">
+<link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
+<script>
+/* Same theme pre-paint as the main dashboard (no flash). */
+(function(){
+  try {
+    var d=new Date(),day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
+    var valid=['navy','day','ochre'].indexOf(name)!==-1;
+    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(d.getHours()>=7&&d.getHours()<19?'day':'navy'):'navy';
+    var accent=localStorage.getItem('tipbot_theme_accent');
+    if(/^#[0-9a-f]{6}$/i.test(accent||''))document.documentElement.style.setProperty('--accent',accent);
+  }catch(e){document.documentElement.dataset.theme='navy';}
+}());
+</script>
+<style>
+:root,html[data-theme="navy"]{color-scheme:dark;--bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;--txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;--accent:#5b8cff;--accent2:#7b5bff;--on-accent:#0b0f1a;--win:#2eaf62;--loss:#e5595f;--push:#5c6785;--radius:16px;--win-ink:#65d38f;--loss-ink:#ff9a9e;--warn:#e0a04a;--warn-ink:#f0bf79}
+html[data-theme="day"]{color-scheme:light;--bg:#f5f7fb;--bg2:#eef2f8;--card:#ffffff;--card2:#eef2f9;--line:#dbe2ee;--txt:#0f1726;--muted:#5a6577;--faint:#626d7f;--accent:#245ad6;--accent2:#6844d9;--on-accent:#ffffff;--win:#2eaf62;--loss:#e5595f;--push:#5c6785;--win-ink:#166536;--loss-ink:#a8252d;--warn:#c9861f;--warn-ink:#775018}
+html[data-theme="ochre"]{color-scheme:dark;--bg:#17110c;--bg2:#1e160e;--card:#241a10;--card2:#2c2015;--line:#4a3927;--txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;--accent:#e0a04a;--accent2:#c8792f;--on-accent:#17110c;--win:#2eaf62;--loss:#e5595f;--push:#5c6785;--win-ink:#65d38f;--loss-ink:#ff9a9e;--warn:#e0a04a;--warn-ink:#f0bf79}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:0 12px calc(40px + env(safe-area-inset-bottom))}
+/* header */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
+.top-in{max-width:760px;margin:0 auto}
+.r1{display:flex;align-items:center;gap:10px}
+.back{color:var(--muted);font-size:14px;white-space:nowrap;padding:6px 2px}
+.ttl{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+h1{margin:0;font-size:18px;display:flex;align-items:center;gap:8px;min-width:0;line-height:1.2}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--loss);flex:none;box-shadow:0 0 0 0 color-mix(in srgb,var(--loss) 60%,transparent);animation:pulse 1.8s infinite}
+.dot.off{background:var(--faint);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--loss) 55%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.iconbtn{background:none;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--muted);cursor:pointer;min-height:34px}
+.iconbtn.spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.r2{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.r2 .seg{margin-left:auto}
+.ago{color:var(--faint);font-size:11.5px;white-space:nowrap;padding-left:17px;min-height:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{background:none;border:0;padding:6px 10px;font-size:13px;color:var(--muted);cursor:pointer;min-height:32px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
+select{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font:inherit;font-size:13px;max-width:52vw;min-height:32px}
+.banner{margin:10px 0 0;padding:9px 12px;border-radius:12px;font-size:13px;background:var(--card2);border:1px solid var(--line);color:var(--muted)}
+.banner.warn{border-color:color-mix(in srgb,var(--warn) 50%,var(--line));color:var(--warn-ink)}
+.banner.err{border-color:color-mix(in srgb,var(--loss) 50%,var(--line));color:var(--loss-ink)}
+.summary{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 2px;font-size:12px;color:var(--muted)}
+.summary span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.summary b{color:var(--txt)}
+/* game block */
+.game{margin-top:14px;min-width:0}
+.ghead{position:sticky;top:var(--hh,96px);z-index:10;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:9px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 14px -10px rgb(0 0 0 / 60%)}
+.teams{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:2px;column-gap:10px;align-items:center}
+.tm{display:flex;align-items:center;gap:7px;min-width:0;font-weight:700;font-size:14px}
+.tm img,.tm .lg{width:20px;height:20px;flex:none;border-radius:4px;object-fit:contain}
+.tm .lg{display:inline-flex;align-items:center;justify-content:center;background:var(--card2);font-size:9px;color:var(--muted)}
+.tm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc{font-weight:800;font-size:15px;text-align:right;white-space:nowrap}
+.sc small{color:var(--faint);font-weight:600;font-size:11px;margin-right:5px}
+.gname{font-weight:700;font-size:14px}
+.phase{flex:none;text-align:right;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.pchip{display:inline-flex;align-items:center;gap:5px;font-weight:800;color:var(--txt);font-size:13px;white-space:nowrap}
+.pchip .dot{width:7px;height:7px}
+.gmeta{font-size:11px;color:var(--faint);white-space:nowrap}
+.gnote{font-size:12px;color:var(--warn-ink);margin:6px 2px 0}
+/* bets + legs */
+.bet{min-width:0;margin-top:10px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--card) 55%,transparent);padding:8px}
+.bethead{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:2px 4px 8px;flex-wrap:wrap}
+.bethead b{color:var(--txt)}
+.bethead .bst{margin-left:auto}
+.legs{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+.leg{min-width:0;position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;transition:box-shadow .3s,border-color .3s,opacity .3s}
+.flat .leg{margin-top:10px}
+.st-hit{border-color:color-mix(in srgb,var(--win) 70%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--win) 35%,transparent),0 0 18px -4px color-mix(in srgb,var(--win) 55%,transparent)}
+.st-close{border-color:color-mix(in srgb,var(--warn) 70%,var(--line));box-shadow:0 0 0 1px color-mix(in srgb,var(--warn) 30%,transparent),0 0 18px -5px color-mix(in srgb,var(--warn) 55%,transparent)}
+.st-dead,.st-miss{border-color:color-mix(in srgb,var(--loss) 40%,var(--line));opacity:.62}
+.lhead{display:flex;align-items:center;gap:10px}
+.av{position:relative;width:44px;height:44px;flex:none;border-radius:50%;background:var(--card2);border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--muted)}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.who{flex:1;min-width:0}
+.nm{font-weight:750;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{flex:none;font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.hit{color:var(--win-ink);border-color:var(--win);background:color-mix(in srgb,var(--win) 14%,transparent)}
+.chip.close{color:var(--warn-ink);border-color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+.chip.dead,.chip.miss{color:var(--loss-ink);border-color:color-mix(in srgb,var(--loss) 60%,var(--line))}
+.lnum{display:flex;align-items:baseline;gap:6px;margin-top:9px;flex-wrap:wrap}
+.cur{font-size:26px;font-weight:850;line-height:1}
+.of{font-size:14px;color:var(--muted);font-weight:700}
+.pace{font-size:12.5px;color:var(--muted);margin-left:auto;text-align:right}
+.st-hit .pace{color:var(--win-ink)}.st-close .pace{color:var(--warn-ink)}.st-dead .pace,.st-miss .pace{color:var(--loss-ink)}
+.bar{position:relative;height:7px;border-radius:99px;background:color-mix(in srgb,var(--muted) 18%,transparent);margin-top:8px;overflow:visible}
+.bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease}
+.st-hit .bar>i{background:var(--win)}.st-close .bar>i{background:var(--warn)}.st-dead .bar>i,.st-miss .bar>i{background:var(--loss)}
+.bar>b{position:absolute;top:-3px;width:2px;height:13px;border-radius:2px;background:var(--txt);opacity:.45}
+.bar>em{position:absolute;top:-3px;width:2px;height:13px;background:var(--faint);opacity:.6}
+.lfoot{display:flex;align-items:flex-end;gap:14px;margin-top:9px;flex-wrap:wrap}
+.lfoot:empty{display:none}
+.spark{display:block}
+.spark text{font-size:8px;fill:var(--faint);font-weight:700}
+.spark .v{fill:var(--txt)}
+.spark rect.b{fill:var(--accent)}
+.spark rect.lv{fill:var(--accent2);animation:blink 1.6s ease-in-out infinite}
+.spark rect.f{fill:color-mix(in srgb,var(--muted) 25%,transparent)}
+@keyframes blink{50%{opacity:.55}}
+.tl{flex:1;min-width:150px}
+.track{position:relative;height:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.track>span{border-radius:99px;background:color-mix(in srgb,var(--muted) 16%,transparent);height:4px;margin-top:5px}
+.gd{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:var(--win);border:2px solid var(--card)}
+.gd.bh{width:7px;height:7px;margin-left:-3.5px;top:3.5px;background:none;border:1.5px solid var(--faint)}
+.tll{font-size:11.5px;color:var(--muted);margin-top:3px}
+.tll b{color:var(--txt);font-weight:700}
+.note{font-size:12px;color:var(--faint);margin-top:7px}
+.betline{font-size:12px;color:var(--faint);margin-top:8px;border-top:1px dashed var(--line);padding-top:7px;display:flex;gap:6px;flex-wrap:wrap}
+.betline b{color:var(--muted)}
+.gtag{font-size:11px;color:var(--faint);margin-bottom:6px;display:flex;gap:6px;align-items:center}
+.gtag b{color:var(--muted)}
+.flash{animation:flash 1.4s ease}
+@keyframes flash{0%{background:color-mix(in srgb,var(--accent) 45%,transparent);border-radius:6px}100%{background:transparent}}
+.empty{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px 18px;text-align:center;color:var(--muted)}
+.empty h2{margin:0 0 6px;font-size:17px;color:var(--txt)}
+.empty p{margin:6px 0;font-size:13.5px}
+.btn{display:inline-block;background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);border-radius:12px;padding:9px 16px;font-weight:700;margin-top:10px;cursor:pointer}
+.slist{display:grid;gap:8px;margin-top:14px;text-align:left}
+.slist button{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;font-weight:700}
+.sk{height:118px;border-radius:14px;background:var(--card);border:1px solid var(--line);margin-top:10px;position:relative;overflow:hidden}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--muted) 10%,transparent),transparent);animation:sh 1.3s infinite}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.foot{text-align:center;color:var(--faint);font-size:12px;margin-top:22px}
+@media(min-width:640px){.legs{grid-template-columns:repeat(2,minmax(0,1fr))}.bet .legs:has(> .leg:only-child){grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="top-in">
+    <div class="r1">
+      <a class="back" href="../">← Tipdash</a>
+      <div class="ttl"><h1><span class="dot off" id="livedot"></span><span>Live bets</span></h1><span class="ago" id="ago" aria-live="off"></span></div>
+      <button class="iconbtn" id="refresh" type="button" aria-label="Refresh now" title="Refresh now">↻</button>
+    </div>
+    <div class="r2">
+      <select id="guild" aria-label="Server" hidden></select>
+      <div class="seg" role="group" aria-label="Layout">
+        <button type="button" id="v-game" aria-pressed="true">By game</button>
+        <button type="button" id="v-flat" aria-pressed="false">Closest</button>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div id="banner"></div>
+  <div id="summary"></div>
+  <div id="content"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+  <div class="foot" id="foot"></div>
+</main>
+<script>
+(function(){
+  "use strict";
+  // Same TipBot origin + bearer token as the main dashboard. ?api= is honoured
+  // ONLY on localhost (headless tests against a mock) — never on tipdashhq.com.
+  var API=(function(){
+    var d="https://afl-tipster-bot.onrender.com";
+    try{
+      var q=new URLSearchParams(location.search).get("api");
+      if(q && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return q.replace(/\/$/,"");
+    }catch(e){}
+    return d;
+  })();
+  var POLL_MS=30000, CACHE_PREFIX="tipdash_live_v1:", VIEW_KEY="tipdash_live_view", GUILD_KEY="tipdash_live_guild";
+  var $=function(id){return document.getElementById(id);};
+  var S={guild:null, data:null, receivedAt:0, fromCache:false, busy:false, lastAttempt:0,
+         view:"game", prev:{}, failed:{}, banner:null, servers:[]};
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function safeUrl(u){u=String(u||"");return /^https:\/\//i.test(u)?u:"";}
+  function num(v){return (v===null||v===undefined||v===""||!isFinite(+v))?null:+v;}
+  function fmt(v){v=num(v);if(v===null)return "–";return Math.abs(v-Math.round(v))<1e-9?String(Math.round(v)):v.toFixed(1);}
+  function odds(v){v=num(v);return v===null?"":v.toFixed(2);}
+  function initials(n){var p=String(n||"?").trim().split(/\s+/);return ((p[0]||"?")[0]+(p.length>1?p[p.length-1][0]:"")).toUpperCase();}
+  function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function token(){return lsGet("tipbot_token");}
+
+  // ── servers / picker (same boot cache the main dashboard writes) ──────────
+  function bootServers(){
+    try{var b=JSON.parse(lsGet("tipdash_boot_v1")||"null");return (b&&b.servers)||[];}catch(e){return [];}
+  }
+  function chooseGuild(){
+    var q=new URLSearchParams(location.search).get("guild");
+    if(q&&/^\d+$/.test(q)) return q;
+    var saved=lsGet(GUILD_KEY);
+    var list=S.servers;
+    if(saved && (!list.length || list.some(function(s){return String(s.guild_id)===saved;}))) return saved;
+    if(list.length===1) return String(list[0].guild_id);
+    return null;
+  }
+  function paintPicker(){
+    var sel=$("guild"), list=S.servers;
+    if(list.length<2){sel.hidden=true;return;}
+    sel.innerHTML=list.map(function(s){var g=String(s.guild_id);return '<option value="'+esc(g)+'"'+(g===S.guild?" selected":"")+'>'+esc(s.display_name||("Server "+g))+'</option>';}).join("")
+      +(S.guild?"":'<option value="" selected disabled>Pick a server…</option>');
+    sel.hidden=false;
+  }
+  function setGuild(g){
+    S.guild=g; lsSet(GUILD_KEY,g);
+    try{var u=new URL(location.href);u.searchParams.set("guild",g);history.replaceState(null,"",u.pathname+u.search);}catch(e){}
+    S.data=null; S.prev={}; paintPicker();
+    if(!paintFromCache()) $("content").innerHTML='<div class="sk"></div><div class="sk"></div>';
+    refresh(true);
+  }
+
+  // ── API ───────────────────────────────────────────────────────────────────
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  async function api(path,opts){
+    opts=opts||{};
+    var tries=opts.retries||1, last=null;
+    for(var i=1;i<=tries;i++){
+      var ac=typeof AbortController!=="undefined"?new AbortController():null;
+      var t=ac?setTimeout(function(){try{ac.abort();}catch(e){}},opts.timeoutMs||45000):null;
+      try{
+        var r=await fetch(API+path,{headers:{Authorization:"Bearer "+token()},cache:"no-store",signal:ac?ac.signal:undefined});
+        if(t)clearTimeout(t);
+        if((r.status===502||r.status===503)&&i<tries){last=r;await sleep(1500*i);continue;}
+        return r;
+      }catch(e){if(t)clearTimeout(t);last=e;if(i<tries){await sleep(1500*i);continue;}throw e;}
+    }
+    if(last&&last.status)return last; throw last;
+  }
+
+  // ── cache-first paint ─────────────────────────────────────────────────────
+  function paintFromCache(){
+    if(!S.guild)return false;
+    try{
+      var c=JSON.parse(lsGet(CACHE_PREFIX+S.guild)||"null");
+      if(c&&c.data&&Array.isArray(c.data.games)){
+        S.data=c.data;S.receivedAt=c.saved_at||0;S.fromCache=true;render();return true;
+      }
+    }catch(e){}
+    return false;
+  }
+  function saveCache(data){
+    try{lsSet(CACHE_PREFIX+S.guild,JSON.stringify({data:data,saved_at:Date.now()}));}
+    catch(e){try{localStorage.removeItem(CACHE_PREFIX+S.guild);}catch(e2){}}
+  }
+
+  async function refresh(first){
+    if(!S.guild||S.busy)return;
+    S.busy=true;S.lastAttempt=Date.now();$("refresh").classList.add("spin");
+    try{
+      var r=await api("/api/live-bets?guild_id="+encodeURIComponent(S.guild),{retries:first?3:1,timeoutMs:first?60000:40000});
+      if(r.status===401){try{localStorage.removeItem("tipbot_token");}catch(e){}return renderSignIn("Your session expired.");}
+      if(r.status===404||r.status===501){S.banner=null;return renderMessage("Live bets isn't on the bot yet","TipBot needs its latest deploy to serve <code>/api/live-bets</code>. Once that's out, refresh this page. Live tips still show on the main dashboard.",true);}
+      if(r.status===403){S.banner=null;return renderMessage("No access to this server","Pick another server above, or open the main dashboard.",true);}
+      if(!r.ok){S.banner={cls:"warn",text:"Couldn't refresh (TipBot "+r.status+"). Showing the last update. Retrying…"};return render();}
+      var data=await r.json();
+      if(!data||!Array.isArray(data.games))throw new Error("bad payload");
+      S.data=data;S.receivedAt=Date.now();S.fromCache=false;
+      S.banner=data.partial?{cls:"warn",text:"One game's feed is slow. Showing what's in, with the rest to follow."}:null;
+      saveCache(data);render();
+    }catch(e){
+      S.banner={cls:"warn",text:S.data?"Couldn't reach TipBot. Showing the last update. Retrying…":"Couldn't reach TipBot (it may be waking up). Retrying…"};
+      if(S.data)render();else renderBannerOnly();
+    }finally{S.busy=false;$("refresh").classList.remove("spin");}
+  }
+
+  // ── rendering helpers ─────────────────────────────────────────────────────
+  var ORDER={pending:0,hit:1,no_stats:2,miss:3,dead:3};
+  function legClass(l){
+    if(l.status==="hit")return "st-hit";
+    if(l.status==="dead")return "st-dead";
+    if(l.status==="miss")return "st-miss";
+    if(l.status==="pending"&&isClose(l))return "st-close";
+    return l.status==="pending"?"st-pending":"st-none";
+  }
+  function isClose(l){
+    if(l.close)return true;
+    var over=String(l.side||"Over").toLowerCase()!=="under";
+    return l.status==="pending"&&(over?(num(l.needs)!==null&&l.needs<=1):(num(l.spare)!==null&&l.spare<=1));
+  }
+  function chip(l){
+    var m={hit:["hit","✓ Landed"],dead:["dead","✕ Dead"],miss:["miss","✕ Missed"],no_stats:["","No stats"]};
+    if(l.status==="pending")return isClose(l)?'<span class="chip close">So close</span>':'<span class="chip">Live</span>';
+    var c=m[l.status]||["",esc(l.status||"")];
+    return '<span class="chip '+c[0]+'">'+c[1]+'</span>';
+  }
+  function paceText(l,g){
+    var over=String(l.side||"Over").toLowerCase()!=="under";
+    var cur=num(l.current), line=num(l.line), proj=num(l.projected), fr=num(l.fraction);
+    var showPace=proj!==null&&fr!==null&&fr>0.04&&fr<1&&!g.concluded;
+    if(l.status==="no_stats"||cur===null||line===null)return esc(l.note||"");
+    if(over){
+      if(l.status==="hit"){var by=cur-line;return by>0.01?("cleared by "+fmt(Math.max(1,Math.ceil(by-1e-9)))+(Math.abs(line-Math.round(line))<1e-9?"":"")):"landed";}
+      if(l.status==="miss")return "finished "+fmt(l.needs)+" short";
+      return "needs "+fmt(l.needs)+" more"+(showPace?", on pace for "+Math.round(proj):"");
+    }
+    if(l.status==="dead")return "over by "+fmt(Math.max(0,cur-line));
+    if(l.status==="hit")return "held under";
+    return fmt(l.spare)+" to spare"+(showPace?", on pace for "+Math.round(proj):"");
+  }
+  function bar(l){
+    var cur=num(l.current), line=num(l.line);
+    if(cur===null||line===null||line<=0)return "";
+    var over=String(l.side||"Over").toLowerCase()!=="under";
+    var scale=Math.max(line*1.15,cur,1);
+    var w=Math.min(100,cur/scale*100), mark=Math.min(100,line/scale*100);
+    var proj=num(l.projected), p="";
+    if(proj!==null&&l.status==="pending"&&proj>cur)p='<b style="left:'+Math.min(99,proj/scale*100).toFixed(1)+'%" title="On pace for '+Math.round(proj)+'"></b>';
+    return '<div class="bar" role="img" aria-label="'+esc(fmt(cur)+" of "+fmt(line))+'"><i style="width:'+w.toFixed(1)+'%"></i><em style="left:'+mark.toFixed(1)+'%" title="'+(over?"Line":"Limit")+'"></em>'+p+'</div>';
+  }
+  function spark(pp,g){
+    if(!Array.isArray(pp)||pp.length!==4)return "";
+    var vals=pp.map(num), max=Math.max.apply(null,vals.map(function(v){return v||0;}).concat([1]));
+    var live=(g.phase&&g.phase.running)?g.phase.period:null;
+    var bw=15,gap=6,H=40,top=10,area=18,out=[];
+    for(var i=0;i<4;i++){
+      var x=i*(bw+gap), v=vals[i];
+      if(v===null){out.push('<rect class="f" x="'+x+'" y="'+(top+area-2)+'" width="'+bw+'" height="2" rx="1"/>');}
+      else{
+        var h=Math.max(2,v/max*area);
+        out.push('<rect class="'+((live===i+1)?"lv":"b")+'" x="'+x+'" y="'+(top+area-h).toFixed(1)+'" width="'+bw+'" height="'+h.toFixed(1)+'" rx="2"/>');
+        out.push('<text class="v" x="'+(x+bw/2)+'" y="'+(top+area-h-2).toFixed(1)+'" text-anchor="middle">'+fmt(v)+'</text>');
+      }
+      out.push('<text x="'+(x+bw/2)+'" y="'+H+'" text-anchor="middle">Q'+(i+1)+'</text>');
+    }
+    var W=4*bw+3*gap;
+    return '<svg class="spark" width="'+W+'" height="'+(H+1)+'" viewBox="0 -1 '+W+' '+(H+1)+'" role="img" aria-label="Per quarter: '+vals.map(function(v,i){return "Q"+(i+1)+" "+(v===null?"–":fmt(v));}).join(", ")+'">'+out.join("")+'</svg>';
+  }
+  var ESPN_REG={nfl:900,nba:720,wnba:600};
+  function timeline(evs,g){
+    if(!Array.isArray(evs))return "";
+    var afl=g.league==="afl", reg=ESPN_REG[g.league]||900;
+    var goals=evs.filter(function(e){return e.type!=="BEHIND";});
+    var dots=evs.map(function(e){
+      var p=num(e.period); if(!p)return "";
+      var s=num(e.clock_seconds), within=0.5;
+      if(s!==null)within=afl?Math.min(1,s/1800):Math.min(1,Math.max(0,(reg-s)/reg));
+      var left=((Math.min(p,4)-1)+within)/4*100;
+      var lbl="Q"+p+(e.clock_display?" "+e.clock_display:"");
+      return '<i class="gd'+(e.type==="BEHIND"?" bh":"")+'" style="left:'+left.toFixed(1)+'%" title="'+esc((e.type==="BEHIND"?"Behind ":"")+lbl)+'"></i>';
+    }).join("");
+    var labels=goals.length?goals.map(function(e){return '<b>Q'+esc(e.period||"?")+'</b>'+(e.clock_display?" "+esc(e.clock_display):"");}).join(" · "):"no goals yet";
+    if(!afl&&goals.length)labels=goals.map(function(e){return '<b>Q'+esc(e.period||"?")+'</b>'+(e.clock_display?" "+esc(e.clock_display)+" left":"");}).join(" · ");
+    return '<div class="tl"><div class="track"><span></span><span></span><span></span><span></span>'+dots+'</div><div class="tll">'+labels+'</div></div>';
+  }
+  function avatar(l){
+    var name=l.player||l.description||"?", url=safeUrl(l.photo_url);
+    var img=(url&&!S.failed[url])?'<img src="'+esc(url)+'" alt="" width="44" height="44" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-ph="1">':"";
+    return '<div class="av" aria-hidden="true"><span>'+esc(initials(name))+'</span>'+img+'</div>';
+  }
+  function betBits(b){
+    var bits=['<b>'+esc(b.display_id||"Tip")+'</b>'];
+    if(num(b.units)!==null)bits.push(fmt(b.units)+"u");
+    if(odds(b.odds))bits.push("@ "+odds(b.odds));
+    if(b.bookmaker)bits.push(esc(b.bookmaker));
+    if((b.legs||[]).length>1)bits.push((b.legs||[]).length+"-leg multi");
+    return bits.join(" · ");
+  }
+  function legCard(l,b,g,opts,idx){
+    var k=esc(b.tip_id+":"+(idx||0));
+    var sub=[l.team,l.market,l.line_display].filter(Boolean).map(esc).join(" · ");
+    var hasNum=num(l.current)!==null&&l.status!=="no_stats";
+    var numRow=hasNum
+      ?'<div class="lnum"><span class="cur" data-f="'+k+':cur">'+fmt(l.current)+'</span>'+(l.line_display?'<span class="of">/ '+esc(l.line_display)+'</span>':(l.stat_key==="goals"?'<span class="of">goal'+(num(l.current)===1?"":"s")+'</span>':''))+'<span class="pace" data-f="'+k+':pace">'+paceText(l,g)+'</span></div>'+bar(l)
+      :'';
+    var foot=(l.per_period?spark(l.per_period,g):"")+(l.events?timeline(l.events,g):"");
+    var note=!hasNum&&l.note?'<div class="note">'+esc(l.note)+'</div>':"";
+    var head=(opts.flat?'<div class="gtag">'+esc(g.sport||"")+' · <b>'+esc(shortGame(g))+'</b> · '+esc((g.phase&&g.phase.label)||"")+'</div>':"");
+    return '<div class="leg '+legClass(l)+'" data-k="'+k+'">'+head
+      +'<div class="lhead">'+avatar(l)+'<div class="who"><div class="nm">'+esc(l.player||l.description||"Selection")+'</div>'
+      +(sub?'<div class="sub">'+sub+'</div>':(l.player&&l.description?'<div class="sub">'+esc(l.description)+'</div>':""))+'</div>'+chip(l)+'</div>'
+      +numRow+(foot?'<div class="lfoot">'+foot+'</div>':"")+note
+      +(opts.betline?'<div class="betline">'+betBits(b)+'</div>':"")
+      +'</div>';
+  }
+  function shortGame(g){
+    if(g.home&&g.away&&(g.home.abbr||g.away.abbr))return (g.home.abbr||g.home.name)+" v "+(g.away.abbr||g.away.name);
+    return g.game_name||"Game";
+  }
+  function teamRow(t,g){
+    var url=safeUrl(t.logo);
+    var logo=(url&&!S.failed[url])?'<img src="'+esc(url)+'" alt="" width="20" height="20" loading="lazy" decoding="async" data-lg="1">':'<span class="lg">'+esc((t.abbr||t.name||"?").slice(0,3))+'</span>';
+    var sc=num(t.score)===null?"":((t.score_detail?'<small>'+esc(t.score_detail)+'</small>':"")+fmt(t.score));
+    return '<div class="tm">'+logo+'<span>'+esc(t.name||t.abbr||"")+'</span></div><div class="sc" data-f="'+esc(g.match_id)+':'+esc(t.name)+'">'+sc+'</div>';
+  }
+  function gameHead(g){
+    var ph=g.phase||{}, running=!!ph.running&&!g.concluded;
+    var label=g.concluded?"Full time":(ph.label||"Live");
+    var teams=(g.home&&g.away&&(g.home.name||g.away.name))
+      ?'<div class="teams">'+teamRow(g.home,g)+teamRow(g.away,g)+'</div>'
+      :'<div class="teams"><div class="gname">'+esc(g.game_name||"Game")+'</div><div></div></div>';
+    var meta=[g.sport, g.stale?"stale":"", g.bet_count+" bet"+(g.bet_count===1?"":"s")].filter(Boolean).map(esc).join(" · ");
+    return '<div class="ghead">'+teams+'<div class="phase"><span class="pchip" data-f="'+esc(g.match_id)+':phase">'+(running?'<span class="dot"></span>':"")+esc(label)+'</span><span class="gmeta">'+meta+'</span></div></div>'
+      +(g.error?'<div class="gnote">'+esc(g.error)+'</div>':"")
+      +(!g.stats_available&&g.league==="custom"?'<div class="gnote" style="color:var(--faint)">Custom game, so no live stats. Showing the bet.</div>':"");
+  }
+  function betOrder(b){return b.status==="dead"?2:(b.status==="hit"?1:0);}
+  function renderGame(g){
+    var bets=(g.bets||[]).slice().sort(function(a,b){return betOrder(a)-betOrder(b);});
+    var html=bets.map(function(b){
+      var legs=b.legs||[];
+      if(legs.length===1)return '<div class="legs" style="margin-top:10px">'+legCard(legs[0],b,g,{betline:true},0)+'</div>';
+      var st=b.status==="hit"?'<span class="chip hit bst">✓ All landed</span>':(b.status==="dead"?'<span class="chip dead bst">✕ Dead</span>':'<span class="chip bst">'+legs.filter(function(l){return l.status==="hit";}).length+'/'+legs.length+' landed</span>');
+      return '<div class="bet"><div class="bethead">'+betBits(b)+st+'</div><div class="legs">'+(legs.length?legs.map(function(l,i){return legCard(l,b,g,{},i);}).join(""):'<div class="note">No legs.</div>')+'</div></div>';
+    }).join("");
+    return '<section class="game">'+gameHead(g)+html+'</section>';
+  }
+  function closeness(l){
+    if(l.status!=="pending")return 0;
+    var over=String(l.side||"Over").toLowerCase()!=="under", line=num(l.line), fr=num(l.fraction);
+    if(over&&num(l.needs)!==null&&line)return l.needs/Math.max(line,1);
+    return fr===null?0.99:Math.max(0,1-fr);
+  }
+  function renderFlat(games){
+    var rows=[];
+    games.forEach(function(g){(g.bets||[]).forEach(function(b){(b.legs||[]).forEach(function(l,i){rows.push({l:l,b:b,g:g,i:i});});});});
+    rows.sort(function(a,b){
+      var oa=ORDER[a.l.status]!=null?ORDER[a.l.status]:2, ob=ORDER[b.l.status]!=null?ORDER[b.l.status]:2;
+      if(oa!==ob)return oa-ob;
+      return closeness(a.l)-closeness(b.l);
+    });
+    return '<div class="flat">'+rows.map(function(r){return legCard(r.l,r.b,r.g,{flat:true,betline:true},r.i);}).join("")+'</div>';
+  }
+  function renderSummary(games){
+    var legs=[],bets=0;
+    games.forEach(function(g){(g.bets||[]).forEach(function(b){bets++;(b.legs||[]).forEach(function(l){legs.push(l);});});});
+    if(!games.length){$("summary").innerHTML="";return;}
+    var hit=legs.filter(function(l){return l.status==="hit";}).length, dead=legs.filter(function(l){return l.status==="dead"||l.status==="miss";}).length;
+    var live=games.filter(function(g){return !g.concluded;}).length, ft=games.length-live;
+    $("summary").innerHTML='<div class="summary">'+((live||!ft)?'<span><b>'+live+'</b> live game'+(live===1?"":"s")+'</span>':'')+(ft?'<span><b>'+ft+'</b> at full time</span>':'')+'<span><b>'+bets+'</b> bet'+(bets===1?"":"s")+'</span><span><b>'+hit+'</b> leg'+(hit===1?"":"s")+' landed</span>'+(dead?'<span><b>'+dead+'</b> dead</span>':'')+'</div>';
+  }
+  function renderBannerOnly(){
+    $("banner").innerHTML=S.banner?'<div class="banner '+S.banner.cls+'">'+esc(S.banner.text)+'</div>':"";
+  }
+  function collectPrev(){
+    var m={};document.querySelectorAll("[data-f]").forEach(function(el){m[el.getAttribute("data-f")]=el.textContent;});return m;
+  }
+  function render(){
+    var prev=collectPrev(), hadPrev=Object.keys(prev).length>0;
+    var games=(S.data&&S.data.games)||[];
+    renderBannerOnly();
+    renderSummary(games);
+    $("livedot").className="dot"+(games.some(function(g){return !g.concluded;})?"":" off");
+    if(!games.length){
+      $("content").innerHTML='<div class="empty"><h2>Nothing live right now</h2><p>Bets show up here from the first bounce (or kick-off) until just after full time, player by player.</p><a class="btn" href="../">Back to the dashboard</a></div>';
+    }else{
+      $("content").innerHTML=S.view==="flat"?renderFlat(games):games.map(renderGame).join("");
+    }
+    if(hadPrev){
+      document.querySelectorAll("[data-f]").forEach(function(el){
+        var k=el.getAttribute("data-f");
+        if(k in prev&&prev[k]!==el.textContent){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash");}
+      });
+    }
+    $("foot").innerHTML='Refreshes every 30s while this tab is open · <a href="../">Main dashboard</a>';
+    tickAgo();measure();
+  }
+  function renderMessage(title,html,keepHeader){
+    $("summary").innerHTML="";renderBannerOnly();
+    $("content").innerHTML='<div class="empty"><h2>'+esc(title)+'</h2><p>'+html+'</p><a class="btn" href="../">Back to the dashboard</a></div>';
+    $("livedot").className="dot off";
+  }
+  function renderSignIn(msg){
+    S.guild=null;
+    $("summary").innerHTML="";$("banner").innerHTML="";$("guild").hidden=true;
+    $("content").innerHTML='<div class="empty"><h2>Sign in first</h2><p>'+esc(msg||"")+' Sign in with Discord on the main dashboard, then come back here.</p><a class="btn" href="../">Open Tipdash</a></div>';
+  }
+  function renderServerList(){
+    $("content").innerHTML='<div class="empty"><h2>Pick a server</h2><p>Which server\'s live bets?</p><div class="slist">'
+      +S.servers.map(function(s){return '<button type="button" data-g="'+esc(String(s.guild_id))+'">'+esc(s.display_name||("Server "+s.guild_id))+'</button>';}).join("")+'</div></div>';
+    $("content").querySelectorAll("[data-g]").forEach(function(b){b.onclick=function(){setGuild(b.getAttribute("data-g"));};});
+  }
+  function tickAgo(){
+    var el=$("ago");
+    if(!S.receivedAt){el.textContent=S.busy?"Loading…":"";return;}
+    var s=Math.max(0,Math.round((Date.now()-S.receivedAt)/1000));
+    var t=s<5?"just now":(s<60?s+"s ago":(s<3600?Math.floor(s/60)+"m ago":Math.floor(s/3600)+"h ago"));
+    el.textContent=(S.fromCache?"Cached ":"Updated ")+t+(S.busy?" · refreshing…":"");
+  }
+  function measure(){
+    var h=$("top").getBoundingClientRect().height;
+    document.documentElement.style.setProperty("--hh",Math.max(0,Math.floor(h)-1)+"px");
+  }
+
+  // ── events ────────────────────────────────────────────────────────────────
+  // Image 404s (unknown player photo, missing logo) → keep the initials badge.
+  document.addEventListener("error",function(e){
+    var t=e.target;
+    if(t&&t.tagName==="IMG"&&(t.hasAttribute("data-ph")||t.hasAttribute("data-lg"))){
+      S.failed[t.getAttribute("src")]=1;
+      if(t.hasAttribute("data-lg")){var s=document.createElement("span");s.className="lg";s.textContent="";t.replaceWith(s);}
+      else t.remove();
+    }
+  },true);
+  function setView(v){
+    S.view=v==="flat"?"flat":"game";lsSet(VIEW_KEY,S.view);
+    $("v-game").setAttribute("aria-pressed",String(S.view==="game"));
+    $("v-flat").setAttribute("aria-pressed",String(S.view==="flat"));
+    if(S.data)render();
+  }
+  $("v-game").onclick=function(){setView("game");};
+  $("v-flat").onclick=function(){setView("flat");};
+  $("refresh").onclick=function(){refresh(false);};
+  $("guild").onchange=function(){if(this.value)setGuild(this.value);};
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden&&S.guild&&Date.now()-S.lastAttempt>15000)refresh(false);
+  });
+  window.addEventListener("resize",measure);
+  setInterval(function(){
+    tickAgo();
+    if(document.hidden||!S.guild||S.busy)return;
+    if(Date.now()-S.lastAttempt>=POLL_MS)refresh(false);
+  },1000);
+
+  // ── boot ──────────────────────────────────────────────────────────────────
+  (async function boot(){
+    setView(lsGet(VIEW_KEY)||"game");
+    measure();
+    if(!token())return renderSignIn("");
+    S.servers=bootServers();
+    S.guild=chooseGuild();
+    paintPicker();
+    if(S.guild){
+      lsSet(GUILD_KEY,S.guild);
+      paintFromCache();
+      refresh(true);
+      return;
+    }
+    if(!S.servers.length){
+      // No boot cache on this device yet: ask TipBot for the server list.
+      try{
+        var r=await api("/api/servers?lite=1",{retries:3,timeoutMs:60000});
+        if(r.status===401){try{localStorage.removeItem("tipbot_token");}catch(e){}return renderSignIn("Your session expired.");}
+        var j=r.ok?await r.json():null;
+        S.servers=(j&&j.servers)||[];
+      }catch(e){}
+      S.guild=chooseGuild();paintPicker();
+      if(S.guild){refresh(true);return;}
+      if(!S.servers.length)return renderMessage("No servers yet","Live bets are per server. Open the main dashboard to set one up.");
+    }
+    renderServerList();
+  })();
+})();
+</script>
+</body>
+</html>
