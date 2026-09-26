@@ -195,10 +195,12 @@
   .tile .tv{font-weight:800;font-size:26px;line-height:1.1}.tile .tl{color:var(--faint);font-size:12px;text-transform:uppercase;margin-top:4px}
   .stats-wrap{margin-bottom:22px}
   .stats-wrap .tiles{margin-bottom:0}
-  .stats-toggle{display:none;width:100%;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--txt);font:inherit;cursor:pointer;margin-bottom:10px}
+  .stats-toggle{display:flex;width:100%;min-height:44px;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--txt);font:inherit;cursor:pointer;margin-bottom:10px}
   .stats-toggle .st-sum{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline;font-size:13px;color:var(--muted)}
   .stats-toggle .st-sum b{font-size:15px}
   .stats-toggle .st-caret{color:var(--muted);font-size:14px;flex:none}
+  .stats-wrap.is-collapsed .tiles{display:none}
+  .stats-wrap.is-collapsed .stats-toggle{margin-bottom:0}
   .cal-day{cursor:pointer;transition:outline-color .12s,transform .12s}
   .cal-day:hover,.cal-day:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .cal-day-empty{cursor:default}
@@ -212,8 +214,6 @@
     .day-sheet-card{border-radius:16px}
   }
   @media(max-width:640px){
-    .stats-toggle{display:flex}
-    .stats-wrap.is-collapsed .tiles{display:none}
     .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px}
     .tile{padding:10px 12px;border-radius:12px}
     .tile .tv{font-size:18px}.tile .tl{font-size:10px;margin-top:2px;letter-spacing:.04em}
@@ -226,6 +226,21 @@
   .panel.collapsible.is-collapsed > .panel-hd{margin-bottom:0}
   .panel.collapsible.is-collapsed > .panel-body{display:none}
   .panel.collapsible .panel-hd-sum{color:var(--faint);font-size:12px;font-weight:600;margin-left:8px}
+  /* P1-4: collapsible sections (TDSec). Header is a full-width tap target (>=48px);
+     collapsed = header only. Quick chevron turn + short fade, no height animation. */
+  .panel.collapsible > .panel-hd{margin:-18px -20px 0;padding:14px 20px;min-height:48px;box-sizing:border-box;border-radius:var(--radius);-webkit-tap-highlight-color:transparent}
+  .panel.collapsible:not(.is-collapsed) > .panel-hd{margin-bottom:4px}
+  .panel.collapsible.is-collapsed{padding-bottom:0}
+  .panel.collapsible.is-collapsed > :not(.panel-hd){display:none!important}
+  .panel.collapsible > .panel-hd .panel-hd-main{min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .panel.collapsible > .panel-hd .panel-hd-main .panel-hd-sum{margin-left:0}
+  .panel.collapsible > .panel-hd:hover h3{color:var(--txt)}
+  .panel.collapsible > .panel-hd:focus-visible,.stats-toggle:focus-visible,.tdsec-sub:focus-visible,.thdr:focus-visible,.reshdr:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .tdsec-caret{display:inline-block;transition:transform .15s ease}
+  [aria-expanded="true"] .tdsec-caret{transform:rotate(90deg)}
+  .panel.collapsible:not(.is-collapsed) > .panel-body{animation:tdsec-in .14s ease-out}
+  @keyframes tdsec-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.tdsec-caret{transition:none}.panel.collapsible > .panel-body{animation:none!important}}
   .wlbar{display:flex;height:14px;border-radius:8px;overflow:hidden;gap:2px;background:var(--bg2)}.wlbar>span{display:block}
   .wl-legend{display:flex;gap:18px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
   .lg{display:inline-flex;align-items:center;gap:7px}.sw{width:10px;height:10px;border-radius:3px}
@@ -3232,9 +3247,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
-      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
-      +'<div class="panel"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.staked_units+'u staked</span></div></div>'
-      +renderCalendar(d.cal_month,d.daily_series);
+      +'<div class="panel" data-sec="follower-tips" data-sec-sum="'+((d.feed||[]).length)+'"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
+      +'<div class="panel" data-sec="follower-wlp" data-sec-sum="'+(st.won||0)+'–'+(st.lost||0)+'–'+(st.push||0)+'"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.staked_units+'u staked</span></div></div>'
+      +renderCalendar(d.cal_month,d.daily_series,"","follower-calendar");
     if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
     { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
@@ -3242,7 +3257,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       openFollowerView(gid,nm,calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
     });
     wireCalendarDays($("follower"), d.feed||[], d.daily_series||{}, {follower:true,guildId:gid});
-    wireStatsCollapse($("follower"));
+    wireStatsCollapse($("follower"),"follower-stats");
     wirePanelCollapse($("follower"));
     mountFollowerPromoChip(gid,nm);
   }
@@ -3338,16 +3353,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +failNote
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
-      +'<div class="panel"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
-      +'<div class="panel"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+(st.staked_units||0)+'u staked</span></div></div>'
-      +renderCalendar(d.cal_month,d.daily_series,(d.follows&&d.follows.length)?'<div class="tb-comm-chips" style="margin-top:8px">'+d.follows.map(s=>'<span class="tb-comm-chip">'+esc(s.display_name||"Community")+'</span>').join("")+'</div>':'');
+      +'<div class="panel" data-sec="follower-tips" data-sec-sum="'+((d.feed||[]).length)+'"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
+      +'<div class="panel" data-sec="follower-wlp" data-sec-sum="'+(st.won||0)+'–'+(st.lost||0)+'–'+(st.push||0)+'"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+(st.staked_units||0)+'u staked</span></div></div>'
+      +renderCalendar(d.cal_month,d.daily_series,(d.follows&&d.follows.length)?'<div class="tb-comm-chips" style="margin-top:8px">'+d.follows.map(s=>'<span class="tb-comm-chip">'+esc(s.display_name||"Community")+'</span>').join("")+'</div>':'',"follower-calendar");
     { const b=$("flbx"); if(b)b.onclick=enterHome; }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerAllView(ms.value||null); }
     $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
       openFollowerAllView(calMonthShift(d.cal_month,b.dataset.cal==="next"?1:-1));
     });
     wireCalendarDays($("follower"), d.feed||[], d.daily_series||{}, {follower:true});
-    wireStatsCollapse($("follower"));
+    wireStatsCollapse($("follower"),"follower-stats");
     wirePanelCollapse($("follower"));
     const first=(d.follows&&d.follows[0])||null;
     mountFollowerPromoChip(first?first.guild_id:null, first?(first.display_name||"All communities"):"All communities");
@@ -3424,14 +3439,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div class="dhead"><h1 style="margin:0">My Tips</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:rgba(224,160,74,.18);color:#e0a04a;padding:2px 8px;border-radius:999px">FREE</span></div>'
       +'<p style="color:var(--muted);font-size:13px;margin:8px 0 16px;line-height:1.45">Personal tip log — settle tips to grow your month units. Pending tips stay out of the calendar.</p>'
       +'<div id="mt-cal"></div>'
-      +'<div class="panel"><h3>Add a tip</h3>'
+      +'<div class="panel" data-sec="mytips-add" data-sec-open="1"><h3>Add a tip</h3>'
       +'<div class="field"><label>Selection</label><input id="mt-sel" placeholder="e.g. Collingwood 1–12" style="width:100%"></div>'
       +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
       +'<div class="field" style="flex:1;min-width:100px"><label>Odds</label><input id="mt-odds" type="number" step="0.01" placeholder="2.10"></div>'
       +'<div class="field" style="flex:1;min-width:100px"><label>Units</label><input id="mt-units" type="number" step="0.1" placeholder="1"></div></div>'
       +'<div class="field"><label>Note (optional)</label><input id="mt-note" placeholder="Bookie / market" style="width:100%"></div>'
       +'<button class="btn sm" id="mt-add" type="button">Add tip</button> <span id="mt-msg" style="font-size:12px"></span></div>'
-      +'<div class="panel" style="margin-top:14px"><h3>Your log</h3><div id="mt-list"><div class="empty">Loading…</div></div></div>';
+      +'<div class="panel" data-sec="mytips-log" style="margin-top:14px"><h3>Your log</h3><div id="mt-list"><div class="empty">Loading…</div></div></div>';
+    TDSec.upgrade($("mytips"));
     $("mt-back").onclick=back;
     let STATE_MONTH=month||null;
     const paint=async()=>{
@@ -3447,7 +3463,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
             +'<span style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:'+(j.month_net>=0?"var(--win)":"var(--loss)")+'">'
             +(j.month_net>0?"+":"")+((Math.round((j.month_net||0)*100)/100).toFixed(2))+'u</span>'
             +'<span style="color:var(--faint);font-size:13px">settled this month</span></div>'
-            +renderCalendar(j.cal_month,j.daily_series||{});
+            +renderCalendar(j.cal_month,j.daily_series||{},"","mytips-calendar");
           cal.querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
             openMyTips(fromGid,fromName,calMonthShift(j.cal_month,b.dataset.cal==="next"?1:-1));
           });
@@ -3809,7 +3825,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           +'<div><div style="font-weight:800;font-size:18px">'+f.roi+'%</div><div style="color:var(--faint);font-size:11px">ROI</div></div>'
         +'</div></div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px">'
-        +'<button class="ghost fexp" data-uid="'+uid+'" style="padding:7px 12px">Followed bets ›</button>'
+        +'<button class="ghost fexp" data-uid="'+uid+'" aria-expanded="false" aria-controls="fbets_'+uid+'" style="padding:7px 12px">Followed bets <span class="tdsec-caret" aria-hidden="true">▸</span></button>'
         +'<span style="flex:1"></span>'+modButtons(f.user_id)
       +'</div>'
       +'<div class="fbets" id="fbets_'+uid+'" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px"></div>'
@@ -3821,8 +3837,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       b.onclick=async()=>{
         const uid=b.dataset.uid;
         const box=$("fbets_"+uid); if(!box)return;
-        if(!box.hidden){ box.hidden=true; return; }
-        box.hidden=false;
+        if(!box.hidden){ box.hidden=true; b.setAttribute("aria-expanded","false"); return; }
+        box.hidden=false; b.setAttribute("aria-expanded","true");
         const cachedBets=followerBetsCached(gid, uid);
         if(cachedBets){
           box.innerHTML=renderFollowerBetsHtml(gid, cachedBets);
@@ -4011,7 +4027,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const x=i=>pad+i*(w-2*pad)/(series.length-1), y=v=>h-pad-((v-min)/range)*(h-2*pad);
     const pts=series.map((p,i)=>x(i)+","+y(p.profit)).join(" ");
     const last=vals[vals.length-1],col=last>=0?"var(--win)":"var(--loss)",tot=Math.round(vals.reduce((a,b)=>a+b,0)*100)/100;
-    return '<div class="panel"><h3>Profit by month</h3><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
+    return '<div class="panel" data-sec="profit-month"><h3>Profit by month</h3><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
       +'<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" style="max-width:100%">'
       +'<line x1="'+pad+'" y1="'+y(0)+'" x2="'+(w-pad)+'" y2="'+y(0)+'" stroke="var(--line)" stroke-dasharray="3 3"/>'
       +'<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
@@ -4074,48 +4090,128 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       };
     });
   }
-  function wireStatsCollapse(root){
+  /* ---------- P1-4: collapsible sections (TDSec) ----------
+     Every section/card/menu header is a <button> or role=button with aria-expanded
+     and a chevron, toggled by click / Enter / Space. DEFAULT CLOSED.
+     Open/closed is remembered per device in localStorage under
+     "tipdash_sec_<stable id>" ("1@<ms>" open / "0@<ms>" closed). If storage is
+     unavailable or throws we silently fall back to the default (closed).
+     Markup: <div class="panel" data-sec="stable-id" [data-sec-open="1"]
+     [data-sec-sum="short summary"]><h3>Title</h3>…</div>, then TDSec.upgrade(root)
+     builds the header + body. Sections defer network work until first open with
+     TDSec.onFirstOpen(el, fn). Time-critical sections (live post-updates while a
+     game is in progress) call TDSec.autoOpen(el): opens unless the user closed it
+     in the last 4 h. Nothing here is match/round/sport specific. */
+  const TDSec=(function(){
+    const PREFIX="tipdash_sec_", SNOOZE_MS=4*3600e3;
+    let uid=0;
+    function readPref(id){
+      try{
+        const v=localStorage.getItem(PREFIX+id); if(v==null) return null;
+        const p=String(v).split("@"); if(p[0]!=="1"&&p[0]!=="0") return null;
+        return {open:p[0]==="1", at:Number(p[1])||0};
+      }catch(e){ return null; }
+    }
+    function writePref(id,open){ if(!id) return; try{ localStorage.setItem(PREFIX+id,(open?"1":"0")+"@"+Date.now()); }catch(e){} }
+    function apply(st,open){
+      st.open=!!open;
+      st.el.classList.toggle("is-collapsed",!st.open);
+      if(st.body&&st.hideBody) st.body.hidden=!st.open;
+      st.hd.setAttribute("aria-expanded",String(st.open));
+      if(st.open&&!st.opened){
+        st.opened=true;
+        st.first.splice(0).forEach(function(fn){ try{ fn(); }catch(e){ console.error(e); } });
+      }
+      if(st.onToggle){ try{ st.onToggle(st.open); }catch(e){ console.error(e); } }
+    }
+    // Low-level: el = container (gets .is-collapsed), hd = header, opts.body = region.
+    function bind(el,hd,opts){
+      opts=opts||{};
+      if(!el||!hd) return null;
+      if(el._tdsec) return el._tdsec;
+      const id=String(opts.id||(el.dataset&&el.dataset.sec)||"");
+      const body=opts.body||null;
+      const st={el:el,hd:hd,body:body,id:id,open:false,opened:false,first:(el._tdsecFirst||[]).slice(),hideBody:!!opts.hideBody,onToggle:null,autoDone:false};
+      el._tdsecFirst=null; el._tdsec=st;
+      if(body){ if(!body.id) body.id="tdsec-b-"+(++uid); hd.setAttribute("aria-controls",body.id); }
+      if(hd.tagName!=="BUTTON"){ hd.setAttribute("role","button"); if(!hd.hasAttribute("tabindex")) hd.setAttribute("tabindex","0"); }
+      const car=opts.caret||hd.querySelector(".tdsec-caret");
+      if(car){ car.classList.add("tdsec-caret"); car.setAttribute("aria-hidden","true"); car.textContent="\u25b8"; }
+      const pref=id?readPref(id):null;
+      apply(st, pref?pref.open:!!opts.defaultOpen);
+      st.onToggle=opts.onToggle||null;   // not fired for the initial state
+      if(st.open&&st.onToggle){ try{ st.onToggle(true); }catch(e){ console.error(e); } }
+      const toggle=function(){ apply(st,!st.open); writePref(id,st.open); };
+      const inner=function(t){ const c=t&&t.closest&&t.closest("button,a,input,select,textarea,label,[data-no-toggle]"); return !!(c&&c!==hd&&hd.contains(c)); };
+      hd.addEventListener("click",function(e){ if(inner(e.target)) return; toggle(); });
+      if(hd.tagName!=="BUTTON") hd.addEventListener("keydown",function(e){
+        if(e.target!==hd) return;
+        if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){ e.preventDefault(); toggle(); }
+      });
+      st.toggle=toggle;
+      return st;
+    }
+    // Upgrade every .panel[data-sec] under root into a collapsible section.
+    function upgrade(root){
+      (root||document).querySelectorAll(".panel[data-sec]").forEach(function(el){
+        if(el._tdsec) return;
+        el.classList.add("collapsible");
+        let hd=el.querySelector(":scope > .panel-hd");
+        if(!hd){
+          hd=document.createElement("div"); hd.className="panel-hd";
+          const main=document.createElement("div"); main.className="panel-hd-main";
+          let h=el.querySelector(":scope > h3");
+          if(!h){ h=document.createElement("h3"); h.textContent=el.dataset.secTitle||""; }
+          main.appendChild(h);
+          if(el.dataset.secSum){ const sm=document.createElement("span"); sm.className="panel-hd-sum"; sm.textContent=el.dataset.secSum; main.appendChild(sm); }
+          hd.appendChild(main);
+          el.insertBefore(hd, el.firstChild);
+        }
+        let car=hd.querySelector(".panel-caret");
+        if(!car){ car=document.createElement("span"); car.className="panel-caret"; hd.appendChild(car); }
+        let body=el.querySelector(":scope > .panel-body");
+        if(!body){
+          body=document.createElement("div"); body.className="panel-body";
+          while(hd.nextSibling) body.appendChild(hd.nextSibling);
+          el.appendChild(body);
+        }
+        bind(el,hd,{id:el.dataset.sec, body:body, caret:car, defaultOpen:el.dataset.secOpen==="1"});
+      });
+    }
+    function onFirstOpen(el,fn){
+      if(!el||typeof fn!=="function") return;
+      const st=el._tdsec;
+      if(st){ if(st.opened) fn(); else st.first.push(fn); }
+      else (el._tdsecFirst=el._tdsecFirst||[]).push(fn);
+    }
+    function autoOpen(el){
+      const st=el&&el._tdsec; if(!st||st.open||st.autoDone) return;
+      st.autoDone=true;   // once per render: closing it mid-game sticks until the next page render
+      const pref=st.id?readPref(st.id):null;
+      if(pref&&!pref.open&&Date.now()-pref.at<SNOOZE_MS) return;
+      apply(st,true);
+    }
+    function open(el){ const st=el&&el._tdsec; if(st&&!st.open){ apply(st,true); writePref(st.id,true); } }
+    function isOpen(el){ return !!(el&&el._tdsec&&el._tdsec.open); }
+    return {bind:bind, upgrade:upgrade, onFirstOpen:onFirstOpen, autoOpen:autoOpen, open:open, isOpen:isOpen};
+  })();
+  // Keyboard for plain role=button toggles that only wire onclick (team headers,
+  // result cards…): Enter/Space → click. Skipped when a handler already ran.
+  document.addEventListener("keydown",function(e){
+    if(e.defaultPrevented||(e.key!=="Enter"&&e.key!==" ")) return;
+    const t=e.target;
+    if(!t||!t.getAttribute||/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+    if(t.getAttribute("role")==="button"&&t.hasAttribute("tabindex")){ e.preventDefault(); t.click(); }
+  });
+  // Stats tiles ("Lifetime"/month stats): summary line stays visible, tiles collapse.
+  function wireStatsCollapse(root, id){
     const wrap=root && root.querySelector(".stats-wrap");
     const btn=root && root.querySelector("#stats-toggle");
     if(!wrap||!btn) return;
-    // Collapsed by default on narrow screens so tips are reachable faster.
-    const narrow=window.matchMedia && window.matchMedia("(max-width:640px)").matches;
-    wrap.classList.toggle("is-collapsed", !!narrow);
-    btn.setAttribute("aria-expanded", String(!narrow));
-    const caret=btn.querySelector(".st-caret");
-    if(caret) caret.textContent=narrow?"▸":"▾";
-    btn.onclick=()=>{
-      wrap.classList.toggle("is-collapsed");
-      const collapsed=wrap.classList.contains("is-collapsed");
-      btn.setAttribute("aria-expanded", String(!collapsed));
-      const c=btn.querySelector(".st-caret"); if(c) c.textContent=collapsed?"▸":"▾";
-    };
+    const tiles=wrap.querySelector(".tiles");
+    TDSec.bind(wrap, btn, {id:id||"stats", body:tiles, caret:btn.querySelector(".st-caret")});
   }
-  function wirePanelCollapse(root, opts){
-    opts=opts||{};
-    (root||document).querySelectorAll(".panel.collapsible").forEach(panel=>{
-      const hd=panel.querySelector(":scope > .panel-hd");
-      if(!hd||hd.dataset.wired==="1") return;
-      hd.dataset.wired="1";
-      const key=panel.dataset.collapseKey||"";
-      const defCollapsed=opts.defaultCollapsed!=null?!!opts.defaultCollapsed:false;
-      let collapsed=defCollapsed;
-      if(key){
-        try{ const v=localStorage.getItem("tipdash_collapse_"+key); if(v==="1") collapsed=true; if(v==="0") collapsed=false; }catch(e){}
-      }
-      panel.classList.toggle("is-collapsed", collapsed);
-      hd.setAttribute("aria-expanded", String(!collapsed));
-      const caret=hd.querySelector(".panel-caret"); if(caret) caret.textContent=collapsed?"▸":"▾";
-      hd.onclick=(ev)=>{
-        if(ev.target.closest("button.calnav,select,input,a")) return;
-        panel.classList.toggle("is-collapsed");
-        const now=panel.classList.contains("is-collapsed");
-        hd.setAttribute("aria-expanded", String(!now));
-        const c=hd.querySelector(".panel-caret"); if(c) c.textContent=now?"▸":"▾";
-        if(key){ try{ localStorage.setItem("tipdash_collapse_"+key, now?"1":"0"); }catch(e){} }
-      };
-    });
-  }
+  function wirePanelCollapse(root){ TDSec.upgrade(root||document); }
 
   // ── Units calendar (month heatmap) ───────────────────────────────────────
   // Win/loss/push are sacred + constant across themes, so tint straight from
@@ -4131,7 +4227,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const rgb=net>0?"46,175,98":"229,89,95";
     return {bg:"rgba("+rgb+","+a.toFixed(3)+")", fg:net>0?"#8ff0b6":"#ffb3b3"};
   }
-  function renderCalendar(month,daily,extraHtml){
+  function renderCalendar(month,daily,extraHtml,secId){
     daily=daily||{};
     const parts=(month||"").split("-"), y=+parts[0], mo=+parts[1];
     if(!y||!mo) return "";
@@ -4166,17 +4262,19 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:rgba(229,89,95,.55)"></span>Down day</span>'
       +'<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:var(--card2);border:1px solid var(--line)"></span>No tips</span>'
       +'<span style="margin-left:auto">'+days+' active day'+(days===1?"":"s")+' · '+tips+' tips</span></div>';
-    return '<div class="panel collapsible" data-collapse-key="calendar">'
-      +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="true">'
-      +'<div style="min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')
+    return '<div class="panel" data-sec="'+esc(secId||"calendar")+'">'
+      +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="false">'
+      +'<div class="panel-hd-main"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')
       +'<span class="panel-hd-sum">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span></div>'
       +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
       +'<div class="cal-nav-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%">'
       +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px;flex:none">‹</button>'
       +'<span style="min-width:112px;text-align:center;font-size:13px;font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
       +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px;flex:none">›</button>'
-      +'</div><span class="panel-caret">▾</span></div></div>'
-      +'<div class="panel-body">'+head+cells+'</div>'+legend+'</div>';
+      +'</div><span class="panel-caret">▸</span></div></div>'
+      // calgrid (opened in `head`) closes first, then panel-body, then the panel itself
+      // (the panel close was missing, so later panels nested inside the calendar).
+      +'<div class="panel-body">'+head+cells+'</div>'+legend+'</div></div>';
   }
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
@@ -4544,6 +4642,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       LIVE_TIPS.ui[mid]=Object.assign(LIVE_TIPS.ui[mid]||{}, {open:!!(prev&&!prev.hidden), q:sel?sel.value:(LIVE_TIPS.ui[mid]||{}).q});
     });
     panel.hidden=false;
+    // P1-4: time-critical — auto-open while a game is actually in progress (not FT grace),
+    // unless the user closed this panel in the last 4 h. Polling runs open or closed.
+    if(games.some(g=>g&&!g.concluded)) TDSec.autoOpen(panel);
     const QS=["Q1","Q2","Q3","Q4"];
     const qBtns=QS.map(q=>
       '<button type="button" class="btn sm live-q" data-q="'+q+'" title="Push live tips update for '+q+'">'+q+'</button>'
@@ -5034,9 +5135,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div id="featuresbody" hidden style="margin-top:10px">'
       +'<div style="color:var(--faint);font-size:12px;margin-bottom:10px">Platform-owner feature flags for this guild. Tipsters do not see this section.</div>'
       +'<div id="features-box"><div class="empty">Open to load…</div></div></div></div>';
-    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;user-select:none"><span id="admincaret">▸</span> 🔒 Admin Tools <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" hidden style="margin-top:14px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+inviteZone+pasteSheetZone+dangerZone+adminFeatures+'</div></div>'):'';
-    const settingsPanel='<div class="panel collapsible" id="settings-panel" data-collapse-key="settings">'
-      +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="true"><h3 style="margin:0">Settings</h3><span class="panel-caret">▾</span></div>'
+    const adminPanel=isAdmin?('<div class="panel" id="adminpanel" data-sec="admin" style="border-color:#7b5bff;box-shadow:0 0 0 1px rgba(123,91,255,.28)"><h3 id="admintoggle" style="color:#b9a5ff;display:flex;align-items:center;gap:8px;margin:0">🔒 Admin Tools <span style="font-size:10.5px;font-weight:700;letter-spacing:.03em;background:#2c2350;color:#c9b8ff;padding:2px 8px;border-radius:999px">VISIBLE TO YOU ONLY</span></h3><div id="adminbody" style="margin-top:10px"><div class="switches">'+sw+'</div>'+debugMenu+godZone+inviteZone+pasteSheetZone+dangerZone+adminFeatures+'</div></div>'):'';
+    const settingsPanel='<div class="panel" id="settings-panel" data-sec="settings">'
+      +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="false"><h3 style="margin:0">Settings</h3><span class="panel-caret">▸</span></div>'
       +'<div class="panel-body"><div class="tabs" style="margin-bottom:14px">'
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button></div>'
       +'<div id="settings-body"></div></div></div>';
@@ -5045,14 +5146,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +statsBlock
-      +'<div class="panel" id="finished-panel" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself.</div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
-      +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself.</div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
+      +'<div class="panel" id="upcoming-panel" data-sec="upcoming" data-sec-sum="'+(tips.queued||[]).length+' queued"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
-      +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
+      +'<div class="panel" data-sec="wlp" data-sec-sum="'+st.won+'–'+st.lost+'–'+st.push+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
       +settingsPanel
-      +'<div class="panel"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
+      +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
@@ -5067,28 +5168,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       loadDetail(s.guild_id,target);
     });
     wireCalendarDays($("detail"), tips.settled||[], d.daily_series||{}, {guildId:s.guild_id});
-    wireStatsCollapse($("detail"));
+    wireStatsCollapse($("detail"),"stats");
     wirePanelCollapse($("detail"));
-    { const at=$("admintoggle"); if(at)at.onclick=()=>{const b=$("adminbody"),c=$("admincaret"); if(b){b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";}}; }
-    { const pt=$("pastesheettoggle"); if(pt){
-      const togglePaste=()=>{
-        const b=$("pastesheetbody"),c=$("pastesheetcaret"); if(!b)return;
-        b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";
-      };
-      pt.onclick=togglePaste;
-      pt.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); togglePaste(); } };
-    } }
+    { const pt=$("pastesheettoggle"), b=$("pastesheetbody");
+      if(pt&&b){ pt.classList.add("tdsec-sub"); TDSec.bind(pt.parentNode, pt, {id:"admin-paste", body:b, hideBody:true, caret:$("pastesheetcaret")}); } }
     { const pb=$("paste-preview-btn"); if(pb)pb.onclick=()=>pasteSheetPreview(s.guild_id); }
     { const pc=$("paste-confirm"); if(pc)pc.onclick=()=>pasteSheetConfirm(s.guild_id); }
-    { const ft=$("featurestoggle"); if(ft){
-      const toggleFeat=()=>{
-        const b=$("featuresbody"),c=$("featurescaret"); if(!b)return;
-        b.hidden=!b.hidden; if(c)c.textContent=b.hidden?"▸":"▾";
-        if(!b.hidden) loadFeatures(s.guild_id);
-      };
-      ft.onclick=toggleFeat;
-      ft.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleFeat(); } };
-    } }
+    { const ft=$("featurestoggle"), b=$("featuresbody");
+      // Feature flags fetch only when the section is opened (as before), now remembered per device.
+      if(ft&&b){ ft.classList.add("tdsec-sub"); TDSec.bind(ft.parentNode, ft, {id:"admin-features", body:b, hideBody:true, caret:$("featurescaret"), onToggle:function(open){ if(open) loadFeatures(s.guild_id); }}); } }
     { const gt=$("godtoggle"); if(gt)gt.onclick=()=>{ STATE.god=!STATE.god; gt.classList.toggle("on",STATE.god);
       const on=godOn();
       const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — use grade controls on any tip to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
@@ -5256,14 +5344,18 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ci.onkeydown=(e)=>{ if(e.key==="Enter"&&armed())lb.click(); };
     }}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
-      if(a==="queued"){const up=$("finished-panel")||$("upcoming-panel"); if(up)up.scrollIntoView({behavior:"smooth",block:"start"});}
+      if(a==="queued"){const fp=$("finished-panel"); const up=(fp&&!fp.hidden)?fp:($("upcoming-panel")||fp); if(up){ TDSec.open(up); up.scrollIntoView({behavior:"smooth",block:"start"}); }}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
     $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle")return; b.onclick=()=>toggle(b); });
     wireTipRows($("recent-box"),s.guild_id);
-    hydrateTipCards($("recent-box"),s.guild_id,tips.settled);
+    // Lazy: Recent Results (previous tips) hydrate legs/odds/live over the network only once opened.
+    TDSec.onFirstOpen($("recent-panel"), ()=>hydrateTipCards($("recent-box"),s.guild_id,tips.settled));
     function setTab(t){ $("stab-general").classList.toggle("active",t==="general"); $("stab-channels").classList.toggle("active",t==="channels"); $("stab-perms").classList.toggle("active",t==="perms"); renderSettingsTab(s.guild_id,t,s); }
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
-    setTab("general");
+    // Lazy: Settings tab content (may fetch auto-push / channels / perms) renders on first open.
+    TDSec.onFirstOpen($("settings-panel"), ()=>setTab("general"));
+    // Upcoming Bets + Finished games + Live tips stay EAGER: Upcoming feeds the Finished
+    // games panel and its own SWR cache; the live panel polls (time-critical).
     loadUpcoming(s.guild_id,tips.queued);
     loadLiveTipsPanel(s.guild_id);
   }
@@ -6216,7 +6308,7 @@ async function loadPerms(gid){
       if(String(BUILD.search||"").trim()) list=list.filter(p=>nameMatchesSearch(p.name, p.number, BUILD.search)||nameMatchesSearch(p.position||"", "", BUILD.search));
       list=list.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
       const collapsed=!!BUILD.collapsed[slug];
-      html+='<div class="thdr" data-slug="'+slug+'"><span class="tcaret">'+(collapsed?"▹":"▾")+'</span>'+esc(nm)+' <small style="color:var(--muted);font-weight:400">· '+list.length+'</small></div>';
+      html+='<div class="thdr" data-slug="'+slug+'" role="button" tabindex="0" aria-expanded="'+(!collapsed)+'" aria-controls="tp_'+slug+'"><span class="tcaret" aria-hidden="true">'+(collapsed?"▹":"▾")+'</span>'+esc(nm)+' <small style="color:var(--muted);font-weight:400">· '+list.length+'</small></div>';
       html+='<div class="teamplayers" id="tp_'+slug+'"'+(collapsed?" hidden":"")+'>';
       if(!list.length){ html+='<div class="empty" style="margin:0 0 12px">No players match.</div>'; }
       list.forEach((p,idx)=>{
@@ -6232,7 +6324,7 @@ async function loadPerms(gid){
       html+='</div>';
     });
     box.innerHTML=html||'<div class="empty">No roster players yet — try Refresh closer to kickoff.</div>';
-    box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"▹":"▾";});
+    box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;h.setAttribute("aria-expanded",String(!c));const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"▹":"▾";});
     teams.forEach((team,ti)=>{
       const nm=team.name||team.abbreviation||("Team "+(ti+1));
       const slug=String(team.id||nm).replace(/\W/g,"");
@@ -6349,6 +6441,7 @@ async function loadPerms(gid){
     const hdr=body.previousElementSibling, car=hdr&&hdr.querySelector(".tcaret");
     const nowOpen=!RESULTS._open[mid]; RESULTS._open[mid]=nowOpen;
     if(car)car.textContent=nowOpen?"▾":"▸";
+    if(hdr&&hdr.setAttribute) hdr.setAttribute("aria-expanded",String(nowOpen));
     if(!nowOpen){ body.hidden=true; return; }
     body.hidden=false;
     if(RESULTS._stats[mid]){ body.innerHTML=RESULTS._stats[mid]; return; }
@@ -6380,7 +6473,7 @@ async function loadPerms(gid){
       const hw=g.hscore>g.ascore,aw=g.ascore>g.hscore;
       const compBadge=hasMulti?' <span class="compbadge'+((g.comp||"AFL")==="AFLW"?" aflw":"")+'">'+(g.comp||"AFL")+'</span>':'';
       return '<div class="panel" style="padding:0;overflow:hidden;margin-bottom:10px">'
-        +'<div class="reshdr" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
+        +'<div class="reshdr" role="button" tabindex="0" aria-expanded="'+open+'" aria-controls="resbody_'+i+'" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
           +'<div style="flex:1;min-width:0">'
             +'<div class="rd" style="margin-bottom:4px">'+esc(g.roundname||"")+' · '+fmtDate(g.date)+compBadge+'</div>'
             +'<div class="espn-teamrow" style="margin:4px 0;opacity:'+(hw?'1':'.65')+'">'+aflLogoHtml(g.hteam)+'<span class="espn-tname">'+esc(teamName(g.hteam))+'<small>Home</small></span><span class="espn-score">'+esc(String(g.hscore))+'</span></div>'
@@ -6753,7 +6846,7 @@ async function loadPerms(gid){
       const sideBadge=assumed
         ? '<span style="background:#5a4a1f;color:#f0d78a;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">\u25b3 ASSUMED \u00b7 FULL SQUAD</span>'
         : '<span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span>';
-      html+='<div class="thdr" data-slug="'+slug+'"><span class="tcaret">'+(collapsed?"\u25b8":"\u25be")+'</span>'+nm+' '+sideBadge+' <small style="color:var(--muted);font-weight:400">\u00b7 '+list.length+' player'+(list.length===1?"":"s")+(status?" \u00b7 "+status:"")+'</small></div>';
+      html+='<div class="thdr" data-slug="'+slug+'" role="button" tabindex="0" aria-expanded="'+(!collapsed)+'" aria-controls="tp_'+slug+'"><span class="tcaret" aria-hidden="true">'+(collapsed?"\u25b8":"\u25be")+'</span>'+nm+' '+sideBadge+' <small style="color:var(--muted);font-weight:400">\u00b7 '+list.length+' player'+(list.length===1?"":"s")+(status?" \u00b7 "+status:"")+'</small></div>';
       html+='<div class="teamplayers" id="tp_'+slug+'"'+(collapsed?' hidden':'')+'>';
       const ins=(team&&team.ins)||[],outs=(team&&team.outs)||[];
       if(ins.length||outs.length){
@@ -6790,7 +6883,7 @@ async function loadPerms(gid){
       html+='</div>';
     });
     box.innerHTML=html||'<div class="empty">No players listed for either team yet.</div>';
-    box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"\u25b8":"\u25be";});
+    box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;h.setAttribute("aria-expanded",String(!c));const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"\u25b8":"\u25be";});
     // wire each row
     const frac=(L&&L.available&&L.phase&&L.phase.fraction>0)?L.phase.fraction:0;
     sides.forEach(team=>{const nm=teamName(team),slug=nm.replace(/\W/g,""),teamAssumed=isAssumed(team);displayList(team).forEach((p,idx)=>{
