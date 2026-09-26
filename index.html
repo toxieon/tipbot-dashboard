@@ -1557,6 +1557,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ /* different server — leave batch alone until builder opens */ }
     renderBatchTray();
     const key=guildId+"|"+(month||"");
+    if(opts.force) sharedInvalidate();
     STATE._detailCache=STATE._detailCache||{};
     const mem=STATE._detailCache[key];
     const disk=(!mem && !opts.force)?readDetailDisk(key):null;
@@ -1942,12 +1943,56 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function legsHaveCurrent(legs){
     return !!(legs&&legs.some(l=>l&&pickNum(l.actual,l.actual_count,l.current,l.live_current)!=null));
   }
+  /* ---------- P0-1: shared GETs (dedupe identical panel fetches) ----------
+     renderDetail used to fire /api/live-tips 3-4x, /api/odds/for-tips 2-3x,
+     /api/finished-games 2x and one /api/tip per leg-less card all at once.
+     TipBot has ONE dash-db worker, so the duplicates 503 db_busy each other into
+     3 s client back-offs (x3 attempts). One in-flight request per path, parsed
+     body kept briefly; failures are never cached. */
+  const SHARED_GET={};
+  function sharedGet(path, ttlMs, opts){
+    const now=Date.now(), ent=SHARED_GET[path];
+    if(ent && (!ent.done || now-ent.at<ttlMs)) return ent.p;
+    const rec={at:now, done:false, p:null};
+    rec.p=(async()=>{
+      const r=await api(path, opts);
+      let data=null; try{ data=await r.json(); }catch(e){}
+      return {ok:r.ok, status:r.status, data:data};
+    })();
+    SHARED_GET[path]=rec;
+    rec.p.then(function(res){ rec.done=true; rec.at=Date.now(); if(!res.ok && SHARED_GET[path]===rec) delete SHARED_GET[path]; },
+               function(){ rec.done=true; if(SHARED_GET[path]===rec) delete SHARED_GET[path]; });
+    return rec.p;
+  }
+  const TIP_DETAIL={}, TIP_DETAIL_Q=[]; let TIP_DETAIL_ACTIVE=0;
+  function sharedInvalidate(){
+    Object.keys(SHARED_GET).forEach(function(k){ delete SHARED_GET[k]; });
+    Object.keys(TIP_DETAIL).forEach(function(k){ delete TIP_DETAIL[k]; });
+  }
+  function pumpTipDetail(){
+    while(TIP_DETAIL_ACTIVE<3 && TIP_DETAIL_Q.length){
+      const job=TIP_DETAIL_Q.shift(); TIP_DETAIL_ACTIVE++;
+      api("/api/tip?guild_id="+encodeURIComponent(job.gid)+"&tip_id="+encodeURIComponent(job.tipId),{timeoutMs:15000,retries:2})
+        .then(function(r){ return r.json(); })
+        .then(job.res, job.rej)
+        .finally(function(){ TIP_DETAIL_ACTIVE--; pumpTipDetail(); });
+    }
+  }
+  // /api/tip for leg-less cards (custom / non-AFL tips too): memoised 60 s, max 3 in flight.
+  function fetchTipDetail(gid, tipId){
+    const k=gid+"|"+tipId, hit=TIP_DETAIL[k];
+    if(hit && Date.now()-hit.at<60000) return hit.p;
+    const p=new Promise(function(res,rej){ TIP_DETAIL_Q.push({gid:gid,tipId:tipId,res:res,rej:rej}); pumpTipDetail(); });
+    TIP_DETAIL[k]={p:p, at:Date.now()};
+    p.catch(function(){ if(TIP_DETAIL[k]&&TIP_DETAIL[k].p===p) delete TIP_DETAIL[k]; });
+    return p;
+  }
   async function fetchFinishedTipsMap(gid){
     const map={};
     try{
-      const r=await api("/api/finished-games?guild_id="+encodeURIComponent(gid)+"&days=14");
-      if(!r.ok) return map;
-      const d=await r.json();
+      const res=await sharedGet("/api/finished-games?guild_id="+encodeURIComponent(gid)+"&days=14",20000,{timeoutMs:25000,retries:2});
+      if(!res.ok) return map;
+      const d=res.data||{};
       (d.games||[]).forEach(g=>{
         (g.tips||[]).forEach(t=>{
           if(t&&t.tip_id) map[String(t.tip_id)]=t;
@@ -2012,9 +2057,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   async function fetchOddsForTips(gid){
     if(STATE._oddsApi.forTips===false) return null;
     try{
-      const r=await api("/api/odds/for-tips?guild_id="+encodeURIComponent(gid),{timeoutMs:20000,retries:1});
-      let data=null;
-      try{ data=await r.json(); }catch(e){ data=null; }
+      const r=await sharedGet("/api/odds/for-tips?guild_id="+encodeURIComponent(gid),30000,{timeoutMs:20000,retries:1});
+      const data=r.data;
       if(r.status===404||r.status===403){
         STATE._oddsApi.forTips=false;
         return null;
@@ -2746,9 +2790,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
     try{
-      const r=await api("/api/live-tips?guild_id="+encodeURIComponent(gid));
+      const r=await sharedGet("/api/live-tips?guild_id="+encodeURIComponent(gid),10000);
       if(r.ok){
-        const d=await r.json();
+        const d=r.data||{};
         (d.games||[]).forEach(g=>{(g.tips||[]).forEach(t=>{
           if(t&&t.tip_id) liveMap[String(t.tip_id)]=t;
         });});
@@ -2782,7 +2826,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const needsDetailEnrich=!!legs&&legs.some(l=>l&&!l.description&&!l.text&&l.player);
       if(needsFetch||needsDetailEnrich){
         try{
-          const det=await (await api("/api/tip?guild_id="+encodeURIComponent(gid)+"&tip_id="+encodeURIComponent(tipId))).json();
+          const det=await fetchTipDetail(gid, tipId);
           if(det&&!det.error){
             full=Object.assign({},t,det);
             if(needsFetch){
@@ -3048,6 +3092,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       tipSnap.game_name=(gtitle&&gtitle.textContent)||"";
     }
     try{ const r=await api(useGod?"/api/god-settle":"/api/settle-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId,result:result})});
+      sharedInvalidate();
       const j=await r.json();
       if(j.ok){
         toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…");
@@ -3089,6 +3134,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!confirm(msg))return;
     if(btn)btn.disabled=true;
     try{ const r=await api("/api/delete-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId})});
+      sharedInvalidate();
       const j=await r.json();
       if(j.ok){ document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>row.remove());
         if(STATE._detailCache)STATE._detailCache={};
@@ -3131,6 +3177,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const gameName=btn&&btn.dataset? (btn.dataset.game||"") : "";
     try{
       const r=await api("/api/push-all",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:guildId,match_id:matchId})});
+      sharedInvalidate();
       if(r.status===404||r.status===501){
         toast("Deploy needed — TipBot /api/push-all isn't live yet.");
         return;
@@ -4424,8 +4471,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!t) return false;
     if(t.finished || t.game_finished || t.ft || t.full_time) return true;
     const g=t.game_name||"";
-    if(finished&&finished[g]) return true;
     const info=starts&&starts[g];
+    // A fixture that is live or still in the future wins over a same-named FT result
+    // (e.g. an earlier AFLW meeting of the same clubs inside the 14-day results window).
+    if(info && !info.finished && !info.concluded && (info.live || (info.ts && info.ts*1000>Date.now()))) return false;
+    if(finished&&finished[g]) return true;
     if(info && (info.finished || info.complete>=100 || info.concluded)) return true;
     // Wall-clock: started >4h ago and not marked live → treat as finished for grading glance
     if(info && info.ts && !info.live){
@@ -4456,7 +4506,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           right='<div class="fin-score" style="font-size:13px;color:var(--muted)">FT</div><div style="color:var(--faint);font-size:11px;margin-top:2px">score TBC</div>';
         }
       }else{
-        right='<span class="cd" data-ts="'+((info&&info.ts)||"")+'" data-live="'+(info&&info.live?1:0)+'"></span>';
+        // AFL start comes from fixtures; any sport (NFL/NBA/custom…) falls back to the tip's own game_start.
+        const ts=(info&&info.ts)||groupStartTs(list)||"";
+        right='<span class="cd" data-game="'+esc(game)+'" data-ts="'+ts+'" data-live="'+(info&&info.live?1:0)+'"></span>';
       }
       let footer="";
       if(mode==="finished"){
@@ -4488,6 +4540,113 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       });
     }
   }
+  /* ---------- Upcoming Bets (P0-1: paint instantly, refresh in background) ----------
+     The panel already has every queued tip (all sports) from /api/server, so it
+     paints immediately from those + the last known fixture/results context
+     (memory → localStorage). Fixture/FT context (/api/upcoming, falls back to
+     /api/fixtures + /api/results on older TipBot) and /api/finished-games run
+     in PARALLEL behind a small "updating…" hint; the panel only re-renders when
+     a game moves between Upcoming and Finished — otherwise countdowns update in
+     place. Previously it awaited /api/fixtures → /api/finished-games →
+     /api/results serially (each up to 3×60 s with db_busy back-offs). */
+  function tipStartTs(t){
+    const raw=t&&(t.game_start||t.start_date||t.commence_time);
+    if(!raw) return null;
+    let s=String(raw).trim();
+    if(/^\d{9,11}$/.test(s)) return +s;
+    if(/^\d{4}-\d{2}-\d{2} \d/.test(s)) s=s.replace(" ","T");
+    const ms=Date.parse(s);
+    return Number.isFinite(ms)?Math.floor(ms/1000):null;
+  }
+  function groupStartTs(list){
+    let best=null;
+    (list||[]).forEach(t=>{ const ts=tipStartTs(t); if(ts&&(best==null||ts<best)) best=ts; });
+    return best;
+  }
+  const UPC_CTX_KEY="tipdash_upctx_v1", UPC_CTX_MEM={};
+  let UPC_API=null; // null unknown · true live · false older TipBot without /api/upcoming
+  function readUpcCtx(gid){
+    if(UPC_CTX_MEM[gid]) return UPC_CTX_MEM[gid];
+    try{
+      const all=JSON.parse(localStorage.getItem(UPC_CTX_KEY)||"{}")||{};
+      const e=all[gid];
+      if(e && e.saved_at && Date.now()-e.saved_at<36*3600e3){ UPC_CTX_MEM[gid]=e; return e; }
+    }catch(e){}
+    return null;
+  }
+  function writeUpcCtx(gid, starts, finished){
+    const fin={};
+    Object.keys(finished||{}).forEach(k=>{ const f=finished[k]||{}; fin[k]={hscore:f.hscore, ascore:f.ascore, date:f.date||"", match_id:f.match_id||"", units_net:f.units_net!=null?f.units_net:null}; });
+    const ent={starts:starts||{}, finished:fin, saved_at:Date.now()};
+    UPC_CTX_MEM[gid]=ent;
+    try{
+      const all=JSON.parse(localStorage.getItem(UPC_CTX_KEY)||"{}")||{};
+      all[gid]=ent;
+      const keep={};
+      Object.keys(all).sort((a,b)=>((all[b]||{}).saved_at||0)-((all[a]||{}).saved_at||0)).slice(0,6).forEach(k=>{ keep[k]=all[k]; });
+      localStorage.setItem(UPC_CTX_KEY, JSON.stringify(keep));
+    }catch(e){ try{ localStorage.removeItem(UPC_CTX_KEY); }catch(e2){} }
+  }
+  function upcStartsFrom(games){
+    const out={};
+    (games||[]).forEach(g=>{
+      if(!g||!g.game_name) return;
+      out[g.game_name]={
+        ts:g.unixtime, live:!!g.live, complete:Number(g.complete||0),
+        hscore:g.hscore, ascore:g.ascore,
+        finished:!!g.finished||Number(g.complete||0)>=100,
+        concluded:!!g.concluded,
+        match_id:g.aflMatchId||g.match_id||g.id||""
+      };
+    });
+    return out;
+  }
+  function upcFinishedFrom(games){
+    const out={};
+    (games||[]).forEach(g=>{
+      if(!g) return;
+      const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
+      if(!name) return;
+      out[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||"", match_id:g.match_id||g.aflMatchId||g.id||"", units_net:g.units_net!=null?g.units_net:null};
+    });
+    return out;
+  }
+  async function fetchUpcomingCtx(gid){
+    if(UPC_API!==false){
+      try{
+        const res=await sharedGet("/api/upcoming?guild_id="+encodeURIComponent(gid),15000,{timeoutMs:8000,retries:2});
+        if(res.ok && res.data){ UPC_API=true; return {starts:upcStartsFrom(res.data.games), finished:upcFinishedFrom(res.data.finished), partial:!!res.data.partial}; }
+        if(res.status!==404) return null; // busy/5xx: keep what's painted, try next load
+        UPC_API=false;
+      }catch(e){
+        if(e&&e.unauth) throw e;
+        if(UPC_API===true) return null; // transient — endpoint exists
+        UPC_API=false; // older TipBot 404s without CORS → fetch TypeError
+      }
+    }
+    // Older TipBot: same data from the fat endpoints, in parallel, bounded.
+    const soft=p=>p.catch(e=>{ if(e&&e.unauth) throw e; return null; });
+    const [fx, rr]=await Promise.all([
+      soft(sharedGet("/api/fixtures",30000,{timeoutMs:45000,retries:1})),
+      soft(sharedGet("/api/results",60000,{timeoutMs:20000,retries:1}))
+    ]);
+    return {
+      starts:upcStartsFrom(fx&&fx.ok&&fx.data?fx.data.games:null),
+      finished:upcFinishedFrom(rr&&rr.ok&&rr.data?rr.data.games:null),
+      partial:!(fx&&fx.ok)||!(rr&&rr.ok)
+    };
+  }
+  function upcSetUpdating(on){
+    const h=document.querySelector("#upcoming-panel h3"); if(!h) return;
+    let hint=document.getElementById("upcoming-upd");
+    if(!hint){
+      hint=document.createElement("span"); hint.id="upcoming-upd";
+      hint.style.cssText="margin-left:8px;font-size:11px;font-weight:600;color:var(--faint);letter-spacing:.02em";
+      hint.textContent="updating…";
+      h.appendChild(hint);
+    }
+    hint.hidden=!on;
+  }
   async function loadUpcoming(gid,queued){
     const box=$("upcoming-box"); const finBox=$("finished-box");
     if(!box)return;
@@ -4497,84 +4656,92 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const fp=$("finished-panel"); if(fp)fp.hidden=true;
       return;
     }
-    let starts={}, finishedMap={};
-    try{
-      const fx=await (await api("/api/fixtures")).json();
-      (fx.games||[]).forEach(g=>{
-        if(!g.game_name) return;
-        starts[g.game_name]={
-          ts:g.unixtime, live:!!g.live, complete:Number(g.complete||0),
-          hscore:g.hscore, ascore:g.ascore,
-          finished:!!g.finished||Number(g.complete||0)>=100,
-          concluded:!!g.concluded,
-          match_id:g.aflMatchId||g.match_id||g.id||""
-        };
+    const seq=(STATE._upcSeq=(STATE._upcSeq||0)+1);
+    const alive=()=>seq===STATE._upcSeq && box.isConnected;
+    const cached=readUpcCtx(gid);
+    const ctx={starts:Object.assign({}, cached&&cached.starts), finished:Object.assign({}, cached&&cached.finished)};
+    let upSig=null, finSig=null;
+    const sigOf=g=>Object.keys(g).map(k=>k+":"+g[k].map(t=>t.tip_id).join(",")).join("|");
+    function paint(finDataChanged){
+      const starts=ctx.starts, finishedMap=ctx.finished;
+      const upGroups={}, finGroups={};
+      queued.forEach(t=>{
+        const k=t.game_name||"Other";
+        if(tipLooksFinished(t, starts, finishedMap)) (finGroups[k]=finGroups[k]||[]).push(t);
+        else (upGroups[k]=upGroups[k]||[]).push(t);
       });
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
-    // Prefer /api/finished-games (legs + current) when TipBot has it; fall back to /api/results.
-    try{
-      const fg=await api("/api/finished-games?guild_id="+encodeURIComponent(gid)+"&days=14");
-      if(fg.ok){
-        const data=await fg.json();
-        (data.games||[]).forEach(g=>{
-          const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
-          if(!name) return;
-          finishedMap[name]={
-            hscore:g.hscore, ascore:g.ascore, date:g.date||"", tips:g.tips||[],
-            match_id:g.match_id||g.aflMatchId||g.id||"",
-            units_net:g.units_net!=null?g.units_net:null
-          };
-          // Seed queued tips with finished legs/current when present so cards paint before hydrate.
-          (g.tips||[]).forEach(ft=>{
-            if(!ft||!ft.tip_id) return;
-            const q=queued.find(x=>String(x.tip_id)===String(ft.tip_id));
-            if(q){
-              if(usableLegs(ft.legs)){
-                q._fullLegs=(ft.legs||[]).map(l=>mergeLegFields(l,null));
-                if(legsHaveCurrent(ft.legs)||!usableLegs(q.legs)) q.legs=q._fullLegs;
-              }
-              // Preview auto-pick profit when TipBot sends it on finished-games tips.
-              if(ft.profit_units!=null && q.profit_units==null) q.profit_units=ft.profit_units;
-              if(ft.result && (!q.result || /pending/i.test(String(q.result)))) q._previewResult=ft.result;
-              if(ft.status && (!q.status || /pending/i.test(String(q.status)))) q.status=ft.status;
-              if(ft.actual!=null && q.actual==null) q.actual=ft.actual;
-              // Copy actual onto seeded legs when TipBot settle sync provides it
-              if(Array.isArray(ft.legs)&&Array.isArray(q._fullLegs)){
-                q._fullLegs=q._fullLegs.map((l,i)=>mergeLegFields(l, ft.legs[i]||{}));
-              }
-            }
-          });
+      const us=sigOf(upGroups), fs=sigOf(finGroups);
+      if(us!==upSig){
+        upSig=us;
+        renderGameGroups(box, gid, upGroups, starts, finishedMap, "upcoming");
+      }else{
+        box.querySelectorAll(".cd[data-game]").forEach(el=>{
+          const info=starts[el.dataset.game];
+          if(info){ if(info.ts) el.dataset.ts=info.ts; el.dataset.live=info.live?"1":"0"; }
         });
       }
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
-    if(!Object.keys(finishedMap).length){
-      try{
-        const rr=await api("/api/results");
-        if(rr.ok){
-          const data=await rr.json();
-          (data.games||[]).forEach(g=>{
-            const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
-            if(!name) return;
-            finishedMap[name]={hscore:g.hscore, ascore:g.ascore, date:g.date||"", match_id:g.match_id||g.aflMatchId||g.id||"", units_net:g.units_net!=null?g.units_net:null};
-          });
-        }
-      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+      if(finBox){
+        const hasFin=Object.keys(finGroups).length>0;
+        const fp=$("finished-panel"); if(fp)fp.hidden=!hasFin;
+        if(hasFin){ if(fs!==finSig||finDataChanged) renderGameGroups(finBox, gid, finGroups, starts, finishedMap, "finished"); }
+        else finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>';
+        finSig=fs;
+      }
+      tickCountdowns();
     }
-
-    const upGroups={}, finGroups={};
-    queued.forEach(t=>{
-      const k=t.game_name||"Other";
-      if(tipLooksFinished(t, starts, finishedMap)) (finGroups[k]=finGroups[k]||[]).push(t);
-      else (upGroups[k]=upGroups[k]||[]).push(t);
-    });
-    renderGameGroups(box, gid, upGroups, starts, finishedMap, "upcoming");
-    if(finBox){
-      const hasFin=Object.keys(finGroups).length>0;
-      const fp=$("finished-panel"); if(fp)fp.hidden=!hasFin;
-      if(hasFin) renderGameGroups(finBox, gid, finGroups, starts, finishedMap, "finished");
-      else finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>';
-    }
-    tickCountdowns(); DETAIL_TIMER=setInterval(tickCountdowns,1000);
+    // 1) Instant paint — no network.
+    paint(false);
+    if(DETAIL_TIMER) clearInterval(DETAIL_TIMER);
+    DETAIL_TIMER=setInterval(tickCountdowns,1000);
+    // 2) Background refresh, in parallel.
+    upcSetUpdating(true);
+    let unauth=false;
+    const ctxJob=fetchUpcomingCtx(gid).then(c=>{
+      if(!c||!alive()) return;
+      ctx.starts=c.partial?Object.assign({}, ctx.starts, c.starts):Object.assign({}, c.starts);
+      Object.assign(ctx.finished, c.finished);
+      paint(false);
+      writeUpcCtx(gid, ctx.starts, ctx.finished); // save now; finished-games may take longer
+    }).catch(e=>{ if(e&&e.unauth) unauth=true; });
+    const fgJob=sharedGet("/api/finished-games?guild_id="+encodeURIComponent(gid)+"&days=14",20000,{timeoutMs:25000,retries:2}).then(res=>{
+      if(!res||!res.ok||!alive()) return;
+      const data=res.data||{};
+      (data.games||[]).forEach(g=>{
+        const name=g.game_name||((g.hteam&&g.ateam)?(g.hteam+" v "+g.ateam):"");
+        if(!name) return;
+        ctx.finished[name]={
+          hscore:g.hscore, ascore:g.ascore, date:g.date||"", tips:g.tips||[],
+          match_id:g.match_id||g.aflMatchId||g.id||"",
+          units_net:g.units_net!=null?g.units_net:null
+        };
+        // Seed queued tips with finished legs/current when present so cards paint before hydrate.
+        (g.tips||[]).forEach(ft=>{
+          if(!ft||!ft.tip_id) return;
+          const q=queued.find(x=>String(x.tip_id)===String(ft.tip_id));
+          if(q){
+            if(usableLegs(ft.legs)){
+              q._fullLegs=(ft.legs||[]).map(l=>mergeLegFields(l,null));
+              if(legsHaveCurrent(ft.legs)||!usableLegs(q.legs)) q.legs=q._fullLegs;
+            }
+            // Preview auto-pick profit when TipBot sends it on finished-games tips.
+            if(ft.profit_units!=null && q.profit_units==null) q.profit_units=ft.profit_units;
+            if(ft.result && (!q.result || /pending/i.test(String(q.result)))) q._previewResult=ft.result;
+            if(ft.status && (!q.status || /pending/i.test(String(q.status)))) q.status=ft.status;
+            if(ft.actual!=null && q.actual==null) q.actual=ft.actual;
+            // Copy actual onto seeded legs when TipBot settle sync provides it
+            if(Array.isArray(ft.legs)&&Array.isArray(q._fullLegs)){
+              q._fullLegs=q._fullLegs.map((l,i)=>mergeLegFields(l, ft.legs[i]||{}));
+            }
+          }
+        });
+      });
+      paint(true);
+    }).catch(e=>{ if(e&&e.unauth) unauth=true; });
+    await Promise.all([ctxJob, fgJob]);
+    if(unauth) return renderLogin("Session expired.");
+    if(!alive()) return;
+    upcSetUpdating(false);
+    writeUpcCtx(gid, ctx.starts, ctx.finished);
   }
   function liveTipsPreviewHtml(g){
     const tips=g.tips||[];
@@ -4750,7 +4917,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     liveTipsStartPoll(guildId);
     LIVE_TIPS.busy=true;
     try{
-      const r=await api("/api/live-tips?guild_id="+encodeURIComponent(guildId),opts.silent?{retries:1,timeoutMs:45000}:undefined);
+      // P0-1: shared with the card hydrators (one in-flight /api/live-tips per 10 s).
+      const r=await sharedGet("/api/live-tips?guild_id="+encodeURIComponent(guildId),10000,opts.silent?{retries:1,timeoutMs:45000}:undefined);
       if(LIVE_TIPS.guildId!==guildId||!$("live-tips-panel")) return;
       if(r.status===404||r.status===501){
         panel.hidden=false;
@@ -4758,7 +4926,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return;
       }
       if(!r.ok){ if(!keepLast()) panel.hidden=true; return; }
-      const data=await r.json();
+      const data=r.data||{};
       const games=Array.isArray(data.games)?data.games:[];
       // Manual quarter pushes only — tipdash drives Q1–Q4 (no clock auto-send).
       if(!games.length){ LIVE_TIPS.last=null; panel.hidden=true; box.innerHTML=''; return; }
