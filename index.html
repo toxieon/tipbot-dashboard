@@ -361,6 +361,11 @@
   .live-tips-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .live-q-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .live-q-btns .btn[disabled]{opacity:.55;cursor:wait}
+  .live-copy-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .live-copy-lbl{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .live-copy-q{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:3px 6px;font:inherit;font-size:12.5px}
+  .live-copy-ok{font-size:12px;color:var(--win)}
+  .live-copy-text{margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;user-select:text;-webkit-user-select:text}
   @media(max-width:600px){
     .batchtray.above-legs{bottom:0}
     .batchtray-in{padding:10px 12px;gap:8px}
@@ -4469,69 +4474,182 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       return '<div class="tip-block"><div class="tip-head">'+esc(bits.join(" "))+'</div>'+legs+'</div>';
     }).join("");
   }
-  async function loadLiveTipsPanel(guildId){
+  // P0-2 (rollback: checkpoint-pre-p0-2-2026-09-26): the panel is driven ONLY by
+  // TipBot's /api/live-tips game list (first bounce → FT incl. breaks, + FT grace).
+  // No phase/status whitelist here. A transient error/timeout keeps the last good
+  // render instead of hiding the panel mid-game; it re-polls while the tab is visible.
+  const LIVE_TIPS_POLL_MS=90000;
+  const LIVE_TIPS={guildId:null, timer:null, busy:false, last:null, ui:{}};
+  function liveTipsStopPoll(){ if(LIVE_TIPS.timer){clearInterval(LIVE_TIPS.timer);LIVE_TIPS.timer=null;} }
+  function liveTipsStartPoll(guildId){
+    liveTipsStopPoll();
+    LIVE_TIPS.timer=setInterval(()=>{
+      const panel=$("live-tips-panel");
+      if(!panel||LIVE_TIPS.guildId!==guildId){ liveTipsStopPoll(); return; }
+      if(document.hidden||LIVE_TIPS.busy) return;
+      loadLiveTipsPanel(guildId,{silent:true});
+    },LIVE_TIPS_POLL_MS);
+  }
+  function copyTextToClipboard(text){
+    text=String(text==null?"":text);
+    const fallback=()=>new Promise((resolve,reject)=>{
+      // iOS Safari / non-secure contexts: hidden textarea + execCommand("copy").
+      const ta=document.createElement("textarea");
+      ta.value=text; ta.setAttribute("readonly","");
+      ta.style.cssText="position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px";
+      document.body.appendChild(ta);
+      const sel=document.getSelection(); const prev=sel&&sel.rangeCount?sel.getRangeAt(0):null;
+      ta.focus(); ta.select();
+      try{ ta.setSelectionRange(0,text.length); }catch(e){}
+      let ok=false; try{ ok=document.execCommand("copy"); }catch(e){ ok=false; }
+      document.body.removeChild(ta);
+      if(prev&&sel){ try{ sel.removeAllRanges(); sel.addRange(prev); }catch(e){} }
+      ok?resolve():reject(new Error("copy failed"));
+    });
+    if(navigator.clipboard&&window.isSecureContext&&navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text).catch(()=>fallback());
+    }
+    return fallback();
+  }
+  function liveTipsPreviewTextFor(g,q){
+    const texts=g&&g.preview_texts;
+    if(texts&&typeof texts==="object"&&typeof texts[q]==="string"&&texts[q]) return texts[q];
+    if(g&&typeof g.preview_text==="string"&&g.preview_text&&(!q||q===g.preview_quarter)) return g.preview_text;
+    return "";
+  }
+  function renderLiveTipsGames(guildId,games,note){
     const panel=$("live-tips-panel"), box=$("live-tips-box");
     if(!panel||!box)return;
-    panel.hidden=true;
-    box.innerHTML='<div class="empty">Checking live AFL games…</div>';
+    // Keep open previews / chosen quarter across re-polls.
+    box.querySelectorAll(".live-tips-row").forEach(row=>{
+      const mid=row.dataset.match||""; if(!mid)return;
+      const prev=row.querySelector(".live-tips-preview"), sel=row.querySelector(".live-copy-q");
+      LIVE_TIPS.ui[mid]=Object.assign(LIVE_TIPS.ui[mid]||{}, {open:!!(prev&&!prev.hidden), q:sel?sel.value:(LIVE_TIPS.ui[mid]||{}).q});
+    });
+    panel.hidden=false;
+    const QS=["Q1","Q2","Q3","Q4"];
+    const qBtns=QS.map(q=>
+      '<button type="button" class="btn sm live-q" data-q="'+q+'" title="Push live tips update for '+q+'">'+q+'</button>'
+    ).join("");
+    const html=games.map((g,gi)=>{
+        const midRaw=String(g.match_id||"");
+        const ui=LIVE_TIPS.ui[midRaw]||{};
+        const phase=g.concluded?"Full time":((g.phase&&g.phase.label)||"Live");
+        const n=g.tip_count||0;
+        const mid=esc(midRaw);
+        const score=(g.hscore!=null&&g.ascore!=null)?(" · "+g.hscore+"–"+g.ascore):"";
+        const venue=g.venue?(" · "+g.venue):"";
+        const pid="live-prev-"+gi;
+        const hasCopy=!!(g.preview_texts||g.preview_text);
+        const defQ=QS.indexOf(ui.q)>=0?ui.q:(QS.indexOf(g.preview_quarter)>=0?g.preview_quarter:"Q1");
+        const qOpts=QS.map(q=>'<option value="'+q+'"'+(q===defQ?' selected':'')+'>'+q+'</option>').join("");
+        const copyRow=hasCopy
+          ?('<div class="live-copy-row">'
+            +'<label class="live-copy-lbl">Discord post for <select class="live-copy-q" aria-label="Quarter to copy">'+qOpts+'</select></label>'
+            +'<button type="button" class="btn sm live-copy" data-gi="'+gi+'" title="Copy the exact Discord post text">Copy preview</button>'
+            +'<span class="live-copy-ok" aria-live="polite"></span>'
+            +'</div>'
+            +'<pre class="live-copy-text" data-gi="'+gi+'">'+esc(liveTipsPreviewTextFor(g,defQ)||"No preview text for this quarter.")+'</pre>')
+          :'<div class="leg" style="color:var(--faint);margin-top:8px">Copy preview needs the latest TipBot deploy.</div>';
+        return '<div class="live-tips-row" data-match="'+mid+'">'
+          +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
+          +'<div class="meta">'+esc(phase)+esc(score)+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
+          +'<div class="live-tips-actions">'
+          +'<button type="button" class="ghost sm live-toggle-prev" data-pid="'+pid+'">'+(ui.open?"Hide preview":"Preview")+'</button>'
+          +(hasCopy?'<button type="button" class="ghost sm live-copy-quick" data-gi="'+gi+'" title="Copy the exact Discord post text">Copy preview</button>':'')
+          +'<div class="live-q-btns" role="group" aria-label="Push quarter update">'+qBtns+'</div>'
+          +'</div>'
+          +'<div id="'+pid+'" class="live-tips-preview"'+(ui.open?'':' hidden')+'>'
+          +liveTipsPreviewHtml(g)
+          +copyRow
+          +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+          +'<button type="button" class="ghost sm live-collapse" data-pid="'+pid+'">Collapse</button>'
+          +'</div></div></div>';
+      }).join("");
+    box.innerHTML=(note?'<div class="live-tips-note" style="color:var(--faint);font-size:12px;margin-bottom:8px">'+esc(note)+'</div>':'')+html;
+    box.querySelectorAll(".live-toggle-prev").forEach(b=>b.onclick=()=>{
+      const el=$(b.dataset.pid); if(!el)return; el.hidden=!el.hidden;
+      b.textContent=el.hidden?"Preview":"Hide preview";
+    });
+    box.querySelectorAll(".live-collapse").forEach(b=>b.onclick=()=>{
+      const el=$(b.dataset.pid); if(el)el.hidden=true;
+      const tog=box.querySelector('.live-toggle-prev[data-pid="'+b.dataset.pid+'"]');
+      if(tog)tog.textContent="Preview";
+    });
+    box.querySelectorAll(".live-copy-q").forEach(sel=>sel.onchange=()=>{
+      const row=sel.closest(".live-tips-row"); if(!row)return;
+      const pre=row.querySelector(".live-copy-text"); const g=games[+(pre&&pre.dataset.gi)];
+      if(pre&&g) pre.textContent=liveTipsPreviewTextFor(g,sel.value)||"No preview text for this quarter.";
+      const mid=row.dataset.match||""; if(mid) LIVE_TIPS.ui[mid]=Object.assign(LIVE_TIPS.ui[mid]||{}, {q:sel.value});
+    });
+    box.querySelectorAll(".live-copy,.live-copy-quick").forEach(b=>b.onclick=async()=>{
+      const row=b.closest(".live-tips-row"); const g=games[+b.dataset.gi]; if(!row||!g)return;
+      const sel=row.querySelector(".live-copy-q");
+      const q=sel?sel.value:(g.preview_quarter||"Q1");
+      const text=liveTipsPreviewTextFor(g,q);
+      if(!text){ toast("No preview text for "+q+" yet."); return; }
+      const ok=row.querySelector(".live-copy-ok");
+      try{
+        await copyTextToClipboard(text);
+        const orig=b.textContent; b.textContent="Copied ✓";
+        if(ok) ok.textContent=q+" copied"+(text.length>2000?" · over Discord's 2000-char limit, split it":"");
+        toast("Copied "+q+" Discord post — paste it into your tips channel.");
+        setTimeout(()=>{ b.textContent=orig; if(ok) ok.textContent=""; },2500);
+      }catch(e){
+        // Last resort: open the preview and select the text so it can be copied by hand.
+        const prev=row.querySelector(".live-tips-preview"); if(prev) prev.hidden=false;
+        const pre=row.querySelector(".live-copy-text");
+        if(pre){ try{ const r=document.createRange(); r.selectNodeContents(pre); const s2=getSelection(); s2.removeAllRanges(); s2.addRange(r); }catch(e2){} }
+        toast("Couldn't copy automatically — text selected, use Copy from the menu.");
+      }
+    });
+    box.querySelectorAll(".live-q").forEach(b=>b.onclick=()=>{
+      const row=b.closest(".live-tips-row");
+      const mid=row&&row.dataset.match?row.dataset.match:"";
+      const q=b.dataset.q||"";
+      if(!mid||!q){ toast("Missing match or quarter."); return; }
+      pushLiveTipsUpdate(guildId, mid, b, q);
+    });
+  }
+  async function loadLiveTipsPanel(guildId,opts){
+    opts=opts||{};
+    const panel=$("live-tips-panel"), box=$("live-tips-box");
+    if(!panel||!box)return;
+    const sameGuild=LIVE_TIPS.guildId===guildId;
+    if(!sameGuild){ LIVE_TIPS.guildId=guildId; LIVE_TIPS.last=null; LIVE_TIPS.ui={}; }
+    const keepLast=()=>{
+      // Transient failure: keep the last good games visible rather than hiding mid-game.
+      if(sameGuild&&LIVE_TIPS.last&&LIVE_TIPS.last.length){
+        renderLiveTipsGames(guildId,LIVE_TIPS.last,"Couldn't refresh just now — showing the last update. Retrying…");
+        return true;
+      }
+      return false;
+    };
+    if(!opts.silent){
+      if(sameGuild&&LIVE_TIPS.last&&LIVE_TIPS.last.length) renderLiveTipsGames(guildId,LIVE_TIPS.last);
+      else{ panel.hidden=true; box.innerHTML='<div class="empty">Checking live AFL games…</div>'; }
+    }
+    liveTipsStartPoll(guildId);
+    LIVE_TIPS.busy=true;
     try{
-      const r=await api("/api/live-tips?guild_id="+encodeURIComponent(guildId));
+      const r=await api("/api/live-tips?guild_id="+encodeURIComponent(guildId),opts.silent?{retries:1,timeoutMs:45000}:undefined);
+      if(LIVE_TIPS.guildId!==guildId||!$("live-tips-panel")) return;
       if(r.status===404||r.status===501){
         panel.hidden=false;
         box.innerHTML='<div class="empty">Live tips API not on this bot yet — deploy TipBot with <code>/api/live-tips</code>, then refresh.</div>';
         return;
       }
-      if(!r.ok){ panel.hidden=true; return; }
+      if(!r.ok){ if(!keepLast()) panel.hidden=true; return; }
       const data=await r.json();
-      const games=data.games||[];
+      const games=Array.isArray(data.games)?data.games:[];
       // Manual quarter pushes only — tipdash drives Q1–Q4 (no clock auto-send).
-      if(!games.length){ panel.hidden=true; box.innerHTML=''; return; }
-      panel.hidden=false;
-      const qBtns=["Q1","Q2","Q3","Q4"].map(q=>
-        '<button type="button" class="btn sm live-q" data-q="'+q+'" title="Push live tips update for '+q+'">'+q+'</button>'
-      ).join("");
-      let html="";
-      html=games.map((g,gi)=>{
-          const phase=(g.phase&&g.phase.label)||"Live";
-          const n=g.tip_count||0;
-          const mid=esc(g.match_id||"");
-          const score=(g.hscore!=null&&g.ascore!=null)?(" · "+g.hscore+"–"+g.ascore):"";
-          const venue=g.venue?(" · "+g.venue):"";
-          const pid="live-prev-"+gi;
-          return '<div class="live-tips-row" data-match="'+mid+'">'
-            +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
-            +'<div class="meta">'+esc(phase)+score+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
-            +'<div class="live-tips-actions">'
-            +'<button type="button" class="ghost sm live-toggle-prev" data-pid="'+pid+'">Preview</button>'
-            +'<div class="live-q-btns" role="group" aria-label="Push quarter update">'+qBtns+'</div>'
-            +'</div>'
-            +'<div id="'+pid+'" class="live-tips-preview" hidden>'
-            +liveTipsPreviewHtml(g)
-            +'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
-            +'<button type="button" class="ghost sm live-collapse" data-pid="'+pid+'">Collapse</button>'
-            +'</div></div></div>';
-        }).join("");
-      box.innerHTML=html;
-      box.querySelectorAll(".live-toggle-prev").forEach(b=>b.onclick=()=>{
-        const el=$(b.dataset.pid); if(!el)return; el.hidden=!el.hidden;
-        b.textContent=el.hidden?"Preview":"Hide preview";
-      });
-      box.querySelectorAll(".live-collapse").forEach(b=>b.onclick=()=>{
-        const el=$(b.dataset.pid); if(el)el.hidden=true;
-        const tog=box.querySelector('.live-toggle-prev[data-pid="'+b.dataset.pid+'"]');
-        if(tog)tog.textContent="Preview";
-      });
-      box.querySelectorAll(".live-q").forEach(b=>b.onclick=()=>{
-        const row=b.closest(".live-tips-row");
-        const mid=row&&row.dataset.match?row.dataset.match:"";
-        const q=b.dataset.q||"";
-        if(!mid||!q){ toast("Missing match or quarter."); return; }
-        pushLiveTipsUpdate(guildId, mid, b, q);
-      });
+      if(!games.length){ LIVE_TIPS.last=null; panel.hidden=true; box.innerHTML=''; return; }
+      LIVE_TIPS.last=games;
+      renderLiveTipsGames(guildId,games);
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
-      panel.hidden=true;
-    }
+      if(!keepLast()) panel.hidden=true;
+    }finally{ LIVE_TIPS.busy=false; }
   }
   async function pushLiveTipsUpdate(guildId,matchId,btn,quarter){
     const q=String(quarter||"").toUpperCase();
@@ -4911,7 +5029,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +statsBlock
       +'<div class="panel" id="finished-panel" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send.</div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
+      +'<div class="panel" id="live-tips-panel" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself.</div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="upcoming-panel"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
