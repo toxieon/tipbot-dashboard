@@ -3082,6 +3082,29 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }
     });
   }
+  /* P0 (GF 2026-09-26): grade/settle POSTs retry on 503 db_busy, up to 3 times,
+     honouring retry_after (cap 4 s). Safe: TipBot settle is idempotent -- a replay
+     of a grade that already landed answers "already Settled", treated as success. */
+  async function settlePost(path, bodyObj, onRetry){
+    let j=null, status=0;
+    for(let attempt=0; attempt<4; attempt++){
+      const r=await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(bodyObj)});
+      status=r.status; j=null;
+      try{ j=await r.json(); }catch(e){}
+      const code=j&&j.error?String(j.error):"";
+      const busy=r.status===503 && (!code || code==="db_busy" || code==="warming");
+      if(busy && attempt<3){
+        let ra=Number(j&&j.retry_after); if(!Number.isFinite(ra)||ra<=0) ra=2;
+        if(typeof onRetry==="function"){ try{ onRetry(attempt+1, 3); }catch(e){} }
+        await sleep(Math.min(ra*1000, 4000));
+        continue;
+      }
+      if(attempt>0 && j && !j.ok && /already settled/i.test(String(j.message||""))) j=Object.assign({}, j, {ok:true, already_settled:true});
+      if(busy) j=Object.assign({}, j||{}, {ok:false, message:"Bot is busy (database) — try again in a few seconds."});
+      break;
+    }
+    return j || {ok:false, message:"HTTP "+status};
+  }
   async function gradeBet(gid,tipId,result,box,god){
     const useGod=!!god&&godOn();
     if(!confirm((useGod?"🔱 God-mode grade as ":"Grade this bet as ")+result+"? Followers will be notified and it will post to bet-results."))return;
@@ -3094,9 +3117,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const gtitle=box.closest(".game-group") && box.closest(".game-group").querySelector(".gtitle");
       tipSnap.game_name=(gtitle&&gtitle.textContent)||"";
     }
-    try{ const r=await api(useGod?"/api/god-settle":"/api/settle-tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,tip_id:tipId,result:result})});
+    try{ const j=await settlePost(useGod?"/api/god-settle":"/api/settle-tip",{guild_id:gid,tip_id:tipId,result:result},
+        function(n,max){ toast("Saving… (bot busy, retry "+n+"/"+max+")"); });
       sharedInvalidate();
-      const j=await r.json();
       if(j.ok){
         toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…");
         const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
@@ -3126,7 +3149,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           applyLocalSettle(gid, Object.assign({}, tipSnap, j.tip||{}), result, profit);
         }
       }
-      else { toast(j.message||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
+      else { toast(j.message||j.error||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
   async function deleteBet(gid,tipId,name,btn){
@@ -3547,9 +3570,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         box.querySelectorAll(".mt-settlebtn").forEach(b=>b.onclick=async()=>{
           b.disabled=true;
           try{
-            const r=await api("/api/my-tips/settle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:b.dataset.id,result:b.dataset.r})});
-            const j=await r.json();
-            if(!j.ok) toast(j.message||"Settle failed");
+            const j=await settlePost("/api/my-tips/settle",{id:b.dataset.id,result:b.dataset.r},
+              function(n,max){ toast("Saving… (bot busy, retry "+n+"/"+max+")"); });
+            if(!j.ok) toast(j.message||j.error||"Settle failed");
             await paint();
           }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't settle"); }
         });
