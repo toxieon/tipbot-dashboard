@@ -728,6 +728,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .leg-odds-note{font-weight:600;font-size:10.5px;color:var(--faint);letter-spacing:.02em}
 .betcard-leg .leg-odds{order:0}
 
+  .tb-gq-chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);background:var(--card2);color:var(--muted);transition:opacity .4s}
+  .tb-gq-chip[data-kind="ok"]{color:#7ee0a6;border-color:rgba(66,176,111,.45);background:rgba(66,176,111,.12)}
+  .tb-gq-chip[data-kind="warn"]{color:#e0a04a;border-color:rgba(224,160,74,.45);background:rgba(224,160,74,.1)}
+  .gradebtn.gq-armed{outline:2px solid currentColor;outline-offset:1px}
+  .gradebtn.gq-sugg{border:1px solid rgba(90,150,255,.5);background:rgba(90,150,255,.14);color:#9cc0ff;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
 </style>
 </head>
 <body>
@@ -1599,6 +1604,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function fmtMonth(m){try{const[y,mo]=m.split("-");return new Date(+y,+mo-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});}catch{return m;}}
   async function loadDetail(guildId,month,opts){
     opts=opts||{};
+    window.__tbDetailGid=String(guildId);
     clearLiveTimer();
     panel("detail");show("app");
     // Keep batch tray visible on server detail when tips are queued for this guild.
@@ -1970,8 +1976,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const tipId=b.dataset.tip;
       const card=b.closest(".betcard");
       const settled=card&&card.dataset.settled==="1";
-      gradeBet(gid,tipId,b.dataset.r,card,(settled||godOn()));
+      const god=(settled||godOn());
+      if(b.dataset.sugg==="1"){ if(!god) gradeBet(gid,tipId,b.dataset.r,card,false); return; } // one tap
+      if(!god && GQ.available!==false && !gqArm(b)) return;
+      gqDisarm(b);
+      gradeBet(gid,tipId,b.dataset.r,card,god);
     });
+    gqDecorate(box, gid);
   }
   function mergeLegFields(base, extra){
     const b=base||{}, e=extra||{};
@@ -3150,8 +3161,242 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }
     return j || {ok:false, message:"HTTP "+status};
   }
-  async function gradeBet(gid,tipId,result,box,god){
+  /* ---------- Instant grading (2026-09-26; rollback: checkpoint-pre-instant-grade-ui-2026-09-26) ----------
+     Tap -> the card settles locally at once (optimistic), then POST /api/grade
+     enqueues a durable TipBot grade job (settle + Discord post/edit run in the
+     bot's background worker). One light poller on /api/grade-jobs drives a
+     small status chip (Saving… / Posting… / Synced ✓ / Retrying…). Only a
+     failed/conflicting job or an enqueue that finally fails rolls the card back;
+     a Discord-only failure keeps the grade ("Saved · Discord pending").
+     Falls back to the old /api/settle-tip when TipBot has no /api/grade (404).
+     God-mode grading stays on the old path. Tip results: Win / Loss / Push. */
+  const GQ={available:null, jobs:{}, byTip:{}, timer:null, busy:false, sugg:{}, suggAt:{}, suggBusy:{}};
+  window.__tbGradeTimings=window.__tbGradeTimings||[];
+  const GQ_TERMINAL={synced:1, sync_failed:1, failed:1};
+  function gqChip(tipId, text, kind){
+    document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>{
+      const meta=row.querySelector(".betcard-meta")||row;
+      let c=meta.querySelector(".tb-gq-chip");
+      if(!text){ if(c) c.remove(); return; }
+      if(!c){ c=document.createElement("span"); c.className="tb-gq-chip"; meta.insertBefore(c, meta.firstChild); }
+      c.dataset.kind=kind||"busy";
+      c.textContent=text;
+      clearTimeout(c._h);
+      if(kind==="ok") c._h=setTimeout(()=>{ c.style.opacity="0"; setTimeout(()=>c.remove(),400); }, 4000);
+    });
+  }
+  function gqTiming(rec){
+    const arr=window.__tbGradeTimings; arr.push(rec); if(arr.length>50) arr.shift();
+  }
+  function gqRollback(gid, tipId, msg){
+    delete GQ.byTip[tipId];
+    gqChip(tipId, null);
+    // The server is the source of truth: drop the optimistic card and repaint from TipBot.
+    document.querySelectorAll('#recent-box .betrow[data-tip="'+tipId+'"]').forEach(r=>r.remove());
+    if(STATE._tipGrades&&STATE._tipGrades[String(gid)]) delete STATE._tipGrades[String(gid)][String(tipId)];
+    if(STATE._detailCache) Object.keys(STATE._detailCache).forEach(k=>{ if(String(k).startsWith(String(gid)+"|")) delete STATE._detailCache[k]; });
+    sharedInvalidate();
+    toast(msg||"Couldn't save that grade — the bet is back in the list.");
+    const det=$("detail");
+    if(det && !det.hidden && window.__tbDetailGid===String(gid)) setTimeout(()=>loadDetail(gid,null,{force:true}),150);
+  }
+  function gqSchedule(ms){
+    clearTimeout(GQ.timer); GQ.timer=null;
+    if(!Object.keys(GQ.jobs).length) return;
+    GQ.timer=setTimeout(gqPoll, Math.max(600, ms||1200));
+  }
+  async function gqPoll(){
+    GQ.timer=null;
+    const ids=Object.keys(GQ.jobs);
+    if(!ids.length) return;
+    if(document.hidden){ return; } // resumed by visibilitychange
+    if(GQ.busy) return gqSchedule(1000);
+    GQ.busy=true;
+    let next=3000;
+    try{
+      const r=await api("/api/grade-jobs?ids="+encodeURIComponent(ids.slice(0,20).join(",")),{timeoutMs:8000,retries:1});
+      let j=null; try{ j=await r.json(); }catch(e){}
+      if(r.ok && j && j.jobs){
+        ids.forEach(id=>{ if(j.jobs[id]) gqApply(GQ.jobs[id], j.jobs[id]); });
+        if(j.poll_after_ms) next=Number(j.poll_after_ms)||next;
+      }else if(r.status===503){ next=2000; }
+    }catch(e){ if(e&&e.unauth){ GQ.busy=false; return; } next=4000; }
+    GQ.busy=false;
+    gqSchedule(next);
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && Object.keys(GQ.jobs).length && !GQ.timer) gqSchedule(300); });
+  function gqApply(rec, job){
+    if(!rec||!job) return;
+    rec.status=job.status;
+    const st=job.status;
+    if(st==="queued") gqChip(rec.tipId,"Saving…","busy");
+    else if(st==="settled"||st==="posting") gqChip(rec.tipId,"Saved · posting to Discord…","busy");
+    else if(st==="retrying") gqChip(rec.tipId, job.profit_units!=null||job.timings&&job.timings.settled_ms?"Saved · Discord retrying…":"Retrying…","warn");
+    if(st==="settled"||st==="posting"||st==="synced"||st==="sync_failed"){
+      if(job.profit_units!=null && !rec.profitSet){
+        rec.profitSet=true;
+        rememberTipGrade(rec.gid, rec.tipId, {status:"Settled", result:job.result||rec.result, profit_units:job.profit_units, settle_source:"manual"});
+      }
+      if(!rec.savedAt){ rec.savedAt=performance.now(); }
+    }
+    if(!GQ_TERMINAL[st]) return;
+    delete GQ.jobs[rec.jobId];
+    if(GQ.byTip[rec.tipId]===rec.jobId) delete GQ.byTip[rec.tipId];
+    const now=performance.now();
+    if(st==="synced"){
+      gqChip(rec.tipId,"Synced ✓","ok");
+      gqTiming({tip_id:rec.tipId, result:rec.result, tap_to_ui_ms:rec.uiMs, tap_to_saved_ms:rec.savedAt?Math.round(rec.savedAt-rec.t0):null,
+        tap_to_synced_ms:Math.round(now-rec.t0), server:job.timings||null});
+    }else if(st==="sync_failed"){
+      gqChip(rec.tipId,"Saved · Discord pending","warn");
+      toast("Graded "+rec.result+" — saved. Discord post is delayed; the bot will catch it up.");
+    }else{
+      gqRollback(rec.gid, rec.tipId, "Couldn't grade "+(rec.display||"that bet")+": "+(job.error||"the bot rejected it")+".");
+    }
+  }
+  function gqTrack(gid, tipId, job, rec){
+    if(!job||!job.id) return;
+    Object.assign(rec, {jobId:job.id, gid:gid, tipId:tipId});
+    GQ.jobs[job.id]=rec; GQ.byTip[tipId]=job.id;
+    gqApply(rec, job);
+    if(GQ.jobs[job.id]) gqSchedule(job.status==="queued"?700:1000);
+  }
+  async function gqPost(body, tipId){
+    // /api/grade is idempotent per tip (one active job; same result dedupes), so 503/network retries are safe.
+    const waits=[500,1000,2000,3000,4000];
+    for(let attempt=0;;attempt++){
+      let r=null, j=null;
+      try{
+        r=await api("/api/grade",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),timeoutMs:12000});
+        try{ j=await r.json(); }catch(e){}
+      }catch(e){
+        if(e&&e.unauth) throw e;
+        r=null;
+      }
+      if(r && r.status!==503 && r.status!==502) return {status:r.status, j:j||{}};
+      if(attempt>=waits.length) return {status:r?r.status:0, j:j||{ok:false, message:r?"Bot is busy":"Couldn't reach the bot"}};
+      gqChip(tipId,"Retrying…","warn");
+      let ra=Number(j&&j.retry_after); ra=Number.isFinite(ra)&&ra>0?Math.min(ra*1000,4000):waits[attempt];
+      await sleep(ra);
+    }
+  }
+  function gqSnapshot(box, tipId){
+    const tipSnap={tip_id:tipId};
+    if(box){
+      tipSnap.display_id=(box.querySelector(".betcard-id")||{}).textContent||"";
+      tipSnap.bet_type=((box.querySelector(".betcard-type")||{}).textContent||"").split("·")[0].trim();
+      const gtitle=box.closest(".game-group") && box.closest(".game-group").querySelector(".gtitle");
+      tipSnap.game_name=(gtitle&&gtitle.textContent)||"";
+    }
+    return tipSnap;
+  }
+  async function instantGrade(gid, tipId, result, box){
+    const t0=performance.now();
+    if(GQ.byTip[tipId]){ toast("Already grading that bet…"); return; }
+    const tipSnap=gqSnapshot(box, tipId);
+    const sg=(GQ.sugg[String(gid)]||{})[tipId];
+    if(sg && sg.result===result && Array.isArray(sg.leg_results) && sg.leg_results.length){
+      // Per-tip leg chips from the suggestion that was confirmed.
+      let legs=null;
+      Object.keys(STATE._detailCache||{}).forEach(k=>{
+        if(legs||!String(k).startsWith(String(gid)+"|")) return;
+        const q=(((STATE._detailCache[k]||{}).tips||{}).queued||[]).find(t=>String(t.tip_id)===String(tipId));
+        if(q) legs=q._fullLegs||q.legs||null;
+      });
+      if(Array.isArray(legs) && legs.length===sg.leg_results.length){
+        tipSnap._fullLegs=legs.map((l,i)=>Object.assign({}, l, {leg_result:sg.leg_results[i]||l.leg_result||null}));
+        tipSnap.legs=tipSnap._fullLegs;
+      }
+    }
+    const profitGuess=(sg&&sg.result===result&&sg.profit_units!=null)?sg.profit_units:null;
+    const local=applyLocalSettle(gid, tipSnap, result, profitGuess);
+    rememberTipGrade(gid, tipId, {status:"Settled", result:result, profit_units:local?local.profit_units:profitGuess, settle_source:"manual"});
+    const rec={t0:t0, result:result, display:tipSnap.display_id||"", uiMs:Math.round(performance.now()-t0)};
+    gqChip(tipId,"Saving…","busy");
+    GQ.byTip[tipId]="pending";
+    requestAnimationFrame(()=>{ rec.paintMs=Math.round(performance.now()-t0); });
+    let out;
+    try{ out=await gqPost({guild_id:gid, tip_id:tipId, result:result}, tipId); }
+    catch(e){
+      delete GQ.byTip[tipId];
+      if(e&&e.unauth){ gqRollback(gid, tipId, "Session expired — sign in again, then re-grade (not saved)."); return renderLogin("Session expired — sign in again to grade (your grade was not saved)."); }
+      return gqRollback(gid, tipId, "Couldn't reach the bot — grade not saved.");
+    }
+    sharedInvalidate();
+    const j=out.j||{};
+    if(GQ.byTip[tipId]==="pending") delete GQ.byTip[tipId];
+    if(out.status===404 && j.error!=="not_found"){
+      // Older TipBot without /api/grade: use the synchronous settle path.
+      GQ.available=false;
+      return legacySettleAfterOptimistic(gid, tipId, result, rec);
+    }
+    if(j.ok && j.job){ gqTrack(gid, tipId, j.job, rec); return; }
+    if(j.ok && j.already_settled){
+      gqChip(tipId,"Synced ✓","ok");
+      if(j.tip) rememberTipGrade(gid, tipId, {status:"Settled", result:j.tip.result, profit_units:j.tip.profit_units});
+      return;
+    }
+    gqRollback(gid, tipId, j.message||("Couldn't grade that bet ("+(j.error||("HTTP "+out.status))+")."));
+  }
+  async function legacySettleAfterOptimistic(gid, tipId, result, rec){
+    gqChip(tipId,"Saving…","busy");
+    let j;
+    try{ j=await settlePost("/api/settle-tip",{guild_id:gid,tip_id:tipId,result:result}, ()=>gqChip(tipId,"Retrying…","warn")); }
+    catch(e){ if(e&&e.unauth){ gqRollback(gid, tipId, "Session expired — grade not saved."); return renderLogin("Session expired."); } return gqRollback(gid, tipId, "Couldn't reach the bot — grade not saved."); }
+    sharedInvalidate();
+    if(!j.ok) return gqRollback(gid, tipId, j.message||j.error||"Couldn't grade that bet.");
+    const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
+    rememberTipGrade(gid, tipId, {status:"Settled", result:result, profit_units:profit, settle_source:"manual"});
+    gqChip(tipId,"Saved ✓ · Discord updating","ok");
+    gqTiming({tip_id:tipId, result:result, tap_to_ui_ms:rec.uiMs, tap_to_saved_ms:Math.round(performance.now()-rec.t0), legacy:true});
+  }
+  /* One-tap suggestions (read-only; TipBot /api/grade-suggestions). */
+  async function gqLoadSuggestions(gid, force){
+    const k=String(gid);
+    if(GQ.available===false || GQ.suggBusy[k]) return;
+    if(!force && GQ.suggAt[k] && Date.now()-GQ.suggAt[k]<45000){ gqDecorate(document, gid); return; }
+    GQ.suggBusy[k]=true;
+    try{
+      const r=await api("/api/grade-suggestions?guild_id="+encodeURIComponent(k),{timeoutMs:15000,retries:1});
+      if(r.status===404){ GQ.suggAt[k]=Date.now(); return; }
+      let j=null; try{ j=await r.json(); }catch(e){}
+      if(r.ok && j && j.suggestions){ GQ.sugg[k]=j.suggestions; GQ.suggAt[k]=Date.now(); gqDecorate(document, gid); }
+    }catch(e){}
+    finally{ GQ.suggBusy[k]=false; }
+  }
+  function gqDecorate(root, gid){
+    const map=GQ.sugg[String(gid)]; if(!map||!root||godOn()) return;
+    root.querySelectorAll('.betrow[data-settled="0"] .graderow').forEach(row=>{
+      const btn=row.querySelector(".gradebtn"); if(!btn) return;
+      const tipId=btn.dataset.tip; const s=map[tipId];
+      if(!s||!s.result||row.querySelector(".gq-sugg")||GQ.byTip[tipId]) return;
+      const b=document.createElement("button");
+      b.type="button"; b.className="gradebtn gq-sugg"; b.dataset.tip=tipId; b.dataset.r=s.result; b.dataset.sugg="1";
+      b.title="Suggested from "+(s.source||"the final stats")+(s.profit_units!=null?(" · "+(fmtUnitsNet(s.profit_units)||"")):"");
+      b.textContent="✓ Confirm "+s.result;
+      row.appendChild(b);
+      b.onclick=(e)=>{ e.stopPropagation(); gradeBet(gid, tipId, s.result, b.closest(".betcard"), false); };
+    });
+  }
+  /* Inline two-tap arm (replaces the blocking confirm dialog on the instant path). */
+  function gqArm(btn){
+    if(btn.dataset.armed==="1") return true;
+    const row=btn.closest(".graderow");
+    if(row) row.querySelectorAll('.gradebtn[data-armed="1"]').forEach(b=>gqDisarm(b));
+    btn.dataset.armed="1"; btn.dataset.label=btn.textContent;
+    btn.textContent="Tap again: "+btn.dataset.r;
+    btn.classList.add("gq-armed");
+    btn._armT=setTimeout(()=>gqDisarm(btn), 3500);
+    return false;
+  }
+  function gqDisarm(btn){
+    clearTimeout(btn._armT);
+    if(btn.dataset.armed!=="1") return;
+    btn.dataset.armed="0"; btn.textContent=btn.dataset.label||btn.dataset.r; btn.classList.remove("gq-armed");
+  }
+  async function gradeBet(gid,tipId,result,box,god,opts){
     const useGod=!!god&&godOn();
+    if(!useGod && GQ.available!==false) return instantGrade(gid, tipId, result, box);
     if(!confirm((useGod?"🔱 God-mode grade as ":"Grade this bet as ")+result+"? Followers will be notified and it will post to bet-results."))return;
     if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=true);
     // Snapshot tip fields from the card before the DOM moves.
@@ -4807,6 +5052,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         });
       });
       paint(true);
+      if(Object.keys(ctx.finished).length) gqLoadSuggestions(gid);
     }).catch(e=>{ if(e&&e.unauth) unauth=true; });
     await Promise.all([ctxJob, fgJob]);
     if(unauth) return renderLogin("Session expired.");
