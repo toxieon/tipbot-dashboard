@@ -3150,7 +3150,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         }
       }
       else { toast(j.message||j.error||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
+    }catch(e){ if(e&&e.unauth){ toast("Session expired — sign in again, then re-grade."); return renderLogin("Session expired — sign in again to grade (your grade was not saved)."); } toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
   async function deleteBet(gid,tipId,name,btn){
     const settled=!!(btn&&btn.dataset&&btn.dataset.settled==="1");
@@ -3574,7 +3574,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
               function(n,max){ toast("Saving… (bot busy, retry "+n+"/"+max+")"); });
             if(!j.ok) toast(j.message||j.error||"Settle failed");
             await paint();
-          }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't settle"); }
+          }catch(e){ if(e&&e.unauth){ toast("Session expired — sign in again, then re-settle."); return renderLogin("Session expired — sign in again to settle (not saved)."); } toast("Couldn't settle"); }
         });
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
         box.innerHTML='<div class="empty">Couldn\'t load My Tips.</div>'; if(cal)cal.innerHTML=""; }
