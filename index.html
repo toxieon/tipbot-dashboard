@@ -5112,8 +5112,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function liveTipsPreviewTextFor(g,q){
     const texts=g&&g.preview_texts;
-    if(texts&&typeof texts==="object"&&typeof texts[q]==="string"&&texts[q]) return texts[q];
-    if(g&&typeof g.preview_text==="string"&&g.preview_text&&(!q||q===g.preview_quarter)) return g.preview_text;
+    if(texts&&typeof texts==="object"){
+      if(typeof texts[q]==="string"&&texts[q]) return texts[q];
+      // Q4↔FT alias while TipBot / tipdash roll across deploys.
+      if(q==="FT"&&typeof texts.Q4==="string"&&texts.Q4) return texts.Q4;
+      if(q==="Q4"&&typeof texts.FT==="string"&&texts.FT) return texts.FT;
+    }
+    if(g&&typeof g.preview_text==="string"&&g.preview_text&&(!q||q===g.preview_quarter||(q==="FT"&&g.preview_quarter==="Q4")||(q==="Q4"&&g.preview_quarter==="FT"))) return g.preview_text;
     return "";
   }
   function renderLiveTipsGames(guildId,games,note){
@@ -5129,7 +5134,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     // P1-4: time-critical — auto-open while a game is actually in progress (not FT grace),
     // unless the user closed this panel in the last 4 h. Polling runs open or closed.
     if(games.some(g=>g&&!g.concluded)) TDSec.autoOpen(panel);
-    const QS=["Q1","Q2","Q3","Q4"];
+    const QS=["Q1","Q2","Q3","FT"];
     const qBtns=QS.map(q=>
       '<button type="button" class="btn sm live-q" data-q="'+q+'" title="Push live tips update for '+q+'">'+q+'</button>'
     ).join("");
@@ -5143,7 +5148,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const venue=g.venue?(" · "+g.venue):"";
         const pid="live-prev-"+gi;
         const hasCopy=!!(g.preview_texts||g.preview_text);
-        const defQ=QS.indexOf(ui.q)>=0?ui.q:(QS.indexOf(g.preview_quarter)>=0?g.preview_quarter:"Q1");
+        const rawQ=(ui.q==="Q4"?"FT":ui.q)||(g.preview_quarter==="Q4"?"FT":g.preview_quarter);const defQ=QS.indexOf(rawQ)>=0?rawQ:"Q1";
         const qOpts=QS.map(q=>'<option value="'+q+'"'+(q===defQ?' selected':'')+'>'+q+'</option>').join("");
         const copyRow=hasCopy
           ?('<div class="live-copy-row">'
@@ -5245,7 +5250,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(!r.ok){ if(!keepLast()) panel.hidden=true; return; }
       const data=r.data||{};
       const games=Array.isArray(data.games)?data.games:[];
-      // Manual quarter pushes only — tipdash drives Q1–Q4 (no clock auto-send).
+      // Manual quarter pushes only — tipdash drives Q1–Q3/FT (no clock auto-send).
       if(!games.length){ LIVE_TIPS.last=null; panel.hidden=true; box.innerHTML=''; return; }
       LIVE_TIPS.last=games;
       renderLiveTipsGames(guildId,games);
@@ -5263,7 +5268,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     try{
       const body={guild_id:guildId};
       if(matchId)body.match_id=matchId;
-      if(q==="Q1"||q==="Q2"||q==="Q3"||q==="Q4") body.quarter=q;
+      if(q==="Q1"||q==="Q2"||q==="Q3"||q==="FT"||q==="Q4") body.quarter=(q==="Q4"?"FT":q);
       const r=await api("/api/live-tips/update",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
       if(r.status===404||r.status===501){
         toast("Deploy needed — TipBot live-tips update API isn't live yet.");
@@ -5632,7 +5637,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' stats</span></div>'
       +statsBlock
       +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q4) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
+      +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q3 / FT) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="upcoming-panel" data-sec="upcoming" data-sec-sum="'+(tips.queued||[]).length+' queued"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+st.won+'–'+st.lost+'–'+st.push+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
