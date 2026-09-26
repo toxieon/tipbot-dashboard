@@ -221,6 +221,18 @@ select{background:var(--card);color:var(--txt);border:1px solid var(--line);bord
 
   // ── API ───────────────────────────────────────────────────────────────────
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+  // P1: one silent token refresh on 401 (same TipBot endpoint as the main app).
+  var REFRESHING=null;
+  function refreshToken(){
+    if(REFRESHING)return REFRESHING;
+    var t=token(); if(!t)return Promise.resolve(false);
+    REFRESHING=fetch(API+"/api/auth/refresh",{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:"{}"})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(j){ if(j&&j.token){ try{ if(localStorage.getItem("tipbot_token")===t) localStorage.setItem("tipbot_token",j.token); }catch(e){} return true; } return false; })
+      .catch(function(){return false;})
+      .finally(function(){ setTimeout(function(){REFRESHING=null;},0); });
+    return REFRESHING;
+  }
   async function api(path,opts){
     opts=opts||{};
     var tries=opts.retries||1, last=null;
@@ -230,6 +242,7 @@ select{background:var(--card);color:var(--txt);border:1px solid var(--line);bord
       try{
         var r=await fetch(API+path,{headers:{Authorization:"Bearer "+token()},cache:"no-store",signal:ac?ac.signal:undefined});
         if(t)clearTimeout(t);
+        if(r.status===401&&!opts._refreshed&&token()&&await refreshToken()){ return api(path,Object.assign({},opts,{_refreshed:true})); }
         if((r.status===502||r.status===503)&&i<tries){last=r;await sleep(1500*i);continue;}
         return r;
       }catch(e){if(t)clearTimeout(t);last=e;if(i<tries){await sleep(1500*i);continue;}throw e;}

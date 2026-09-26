@@ -1426,8 +1426,49 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const r=Math.random()*16|0; return (c==="x"?r:(r&0x3|0x8)).toString(16);
     });
   }
+  /* ---------- P1 (2026-09-26): silent session refresh ----------
+     TipBot tokens live 8 h. Past half-life we swap for a fresh one in the
+     background (POST /api/auth/refresh re-resolves access server-side); an
+     expired token is refreshed before the request; a 401 gets ONE refresh +
+     retry (TipBot rejects before doing any work, so retrying a POST is safe)
+     before 'Session expired'. Server caps: <=24 h past expiry, <=7 d since
+     Discord login. */
+  const TOKEN_TTL_S=8*3600;
+  let REFRESH_INFLIGHT=null, REFRESH_LAST=0;
+  function tokenExp(t){
+    try{
+      let p=String(t||"").split(".")[0].replace(/-/g,"+").replace(/_/g,"/");
+      p+="=".repeat((4-p.length%4)%4);
+      return Number(JSON.parse(atob(p)).exp)||0;
+    }catch(e){ return 0; }
+  }
+  function refreshToken(){
+    if(REFRESH_INFLIGHT) return REFRESH_INFLIGHT;
+    const t=getToken(); if(!t) return Promise.resolve(false);
+    REFRESH_LAST=Date.now();
+    REFRESH_INFLIGHT=(async()=>{
+      try{
+        const r=await fetch(API+"/api/auth/refresh",{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:"{}"});
+        if(!r.ok) return false;
+        const j=await r.json();
+        if(!j||!j.token) return false;
+        if(getToken()===t) setToken(j.token);
+        return true;
+      }catch(e){ return false; }
+      finally{ setTimeout(function(){ REFRESH_INFLIGHT=null; },0); }
+    })();
+    return REFRESH_INFLIGHT;
+  }
+  async function ensureFreshToken(){
+    const t=getToken(); if(!t) return;
+    const exp=tokenExp(t); if(!exp) return;
+    const left=exp-Date.now()/1000;
+    if(left<=30){ await refreshToken(); return; }
+    if(left<TOKEN_TTL_S*0.5 && Date.now()-REFRESH_LAST>60000) refreshToken();
+  }
   async function api(path,opts){
     opts=opts||{};
+    await ensureFreshToken();
     const method=String(opts.method||"GET").toUpperCase();
     const isMutation=method==="POST"||method==="PUT"||method==="PATCH"||method==="DELETE";
     // Cold Render GETs: 60s/attempt, 3 tries with backoff on network / 502 / 503 warming.
@@ -1442,9 +1483,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const timeoutMs=opts.timeoutMs!=null?opts.timeoutMs:60000;
     const onAttempt=opts.onAttempt;
     const fetchOpts=Object.assign({}, opts);
-    delete fetchOpts.retries; delete fetchOpts.timeoutMs; delete fetchOpts.onAttempt; delete fetchOpts.idempotent;
+    delete fetchOpts.retries; delete fetchOpts.timeoutMs; delete fetchOpts.onAttempt; delete fetchOpts.idempotent; delete fetchOpts._refreshed;
 
-    let lastResponse=null, lastError=null;
+    let lastResponse=null, lastError=null, got401=false;
     for(let attempt=1; attempt<=maxAttempts; attempt++){
       const headers=Object.assign({Authorization:"Bearer "+getToken()}, fetchOpts.headers||{});
       const attemptOpts=Object.assign({}, fetchOpts, {headers:headers});
@@ -1461,7 +1502,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         }
         const r=await fetch(API+path, attemptOpts);
         if(timer) clearTimeout(timer);
-        if(r.status===401){ clearToken(); throw{unauth:true}; }
+        if(r.status===401){ got401=true; break; }
 
         if((r.status===502 || r.status===503) && attempt<maxAttempts){
           let body=null;
@@ -1499,6 +1540,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         }
         throw e;
       }
+    }
+    if(got401){
+      if(!opts._refreshed && getToken() && await refreshToken()) return api(path, Object.assign({}, opts, {_refreshed:true}));
+      clearToken(); throw{unauth:true};
     }
     if(lastResponse) return lastResponse;
     throw lastError||new Error("unreachable");
