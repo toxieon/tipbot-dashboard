@@ -8,6 +8,7 @@
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
 <script src="../assets/tbtime.js"></script>
+<script src="../assets/master-access.js"></script>
 <script>
 (function(){
   try {
@@ -19,7 +20,7 @@
 }());
 </script>
 <style>
-/* Plain build on existing tokens; Codex restyles later. */
+/* Existing theme tokens; visual redesign remains parked. */
 :root,html[data-theme="navy"]{color-scheme:dark;--bg:#0b0f1a;--card:#151b2b;--card2:#1a2133;--line:#26304a;--txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;--accent:#5b8cff;--on-accent:#0b0f1a;--win:#2eaf62;--loss:#e5595f;--win-ink:#65d38f;--loss-ink:#ff9a9e;--warn:#e0a04a;--warn-ink:#f0bf79;--radius:16px}
 html[data-theme="day"]{color-scheme:light;--bg:#f5f7fb;--card:#fff;--card2:#eef2f9;--line:#dbe2ee;--txt:#0f1726;--muted:#5a6577;--faint:#626d7f;--accent:#245ad6;--on-accent:#fff;--win:#2eaf62;--loss:#e5595f;--win-ink:#166536;--loss-ink:#a8252d;--warn:#c9861f;--warn-ink:#775018}
 html[data-theme="ochre"]{color-scheme:dark;--bg:#17110c;--card:#241a10;--card2:#2c2015;--line:#4a3927;--txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;--accent:#e0a04a;--on-accent:#17110c;--win:#2eaf62;--loss:#e5595f;--win-ink:#65d38f;--loss-ink:#ff9a9e;--warn:#e0a04a;--warn-ink:#f0bf79}
@@ -75,6 +76,18 @@ h1{margin:8px 0 2px;font-size:22px}
 .banner.err{border-color:var(--loss);color:var(--loss-ink)}
 .banner.ok{border-color:var(--win);color:var(--win-ink)}
 .empty{text-align:center;color:var(--muted);padding:24px 8px}
+.access-actions{margin-top:12px}
+.access-form{display:grid;gap:12px}
+.access-form label{display:grid;gap:4px}
+.access-form .switch{display:flex}
+.access-form input:not([type=checkbox]),select,#event-name{width:100%;min-width:0;padding:9px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;font:inherit}
+.access-table{overflow-x:auto;margin-top:16px}
+.access-table table{width:100%;border-collapse:collapse;font-size:13px}
+.access-table th,.access-table td{padding:8px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.access-diff{padding:8px 0;border-bottom:1px solid var(--line)}
+.access-diff summary{cursor:pointer;overflow-wrap:anywhere}
+.access-diff pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+@media(max-width:560px){.access-table thead{display:none}.access-table tr{display:block;padding:12px 0;border-bottom:1px solid var(--line)}.access-table td{display:block;border:0;padding:4px 0}.access-table code{white-space:nowrap}}
 </style>
 </head>
 <body>
@@ -94,15 +107,18 @@ h1{margin:8px 0 2px;font-size:22px}
   })();
   var $=function(id){return document.getElementById(id);};
   var S={tab:"overview",cfg:null,cands:null,picked:null,report:null,msg:null,busy:false};
-  var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access","1B"],["forwarding","Forwarding","1C"],["consensus","Consensus","3"],["audit","Audit log","later"]];
+  var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access",""],["forwarding","Forwarding","1C"],["consensus","Consensus","3"],["audit","Audit log",""]];
+  var access=MasterAccess.create({call:call,paint:paint,config:function(){return S.cfg||{};}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
   function token(){try{return localStorage.getItem("tipbot_token");}catch(e){return null;}}
-  async function call(path,body){
+  async function call(path,body,method){
     var opt={headers:{Authorization:"Bearer "+token()},cache:"no-store"};
-    if(body!==undefined){opt.method="POST";opt.headers["Content-Type"]="application/json";opt.body=JSON.stringify(body);}
+    if(body!==undefined){opt.method=method||"POST";opt.headers["Content-Type"]="application/json";opt.body=JSON.stringify(body);}
+    try {
     var r=await fetch(API+path,opt);
     var j=await r.json().catch(function(){return {};});
     j._status=r.status;return j;
+    } catch(e) { return {ok:false,error:"Could not reach TipBot. Please retry."}; }
   }
   async function load(){
     if(!token())return render('<div class="card empty"><b>Sign in first.</b><p><a class="btn" href="../">Open Tipdash</a></p></div>');
@@ -159,10 +175,12 @@ h1{margin:8px 0 2px;font-size:22px}
     return '<section class="card empty"><b>Not built yet.</b><p>'+esc(t)+'</p><p class="note">See REMAINING.md for the plan and cost.</p></section>';
   }
   function paint(){
-    var body=S.tab==="overview"?overview():(S.tab==="master"?master():later(S.tab));
+    var body=S.tab==="overview"?overview():(S.tab==="master"?master():S.tab==="lockdown"?access.lockdown():S.tab==="audit"?access.audit():later(S.tab));
     render(tabs()+body);
-    document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.msg=null;if(S.tab==="master"&&S.cands===null)loadCands();paint();};});
+    document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.msg=null;if(S.tab==="master"&&S.cands===null)loadCands();paint();access.enter(S.tab);};});
+    access.bind(S.tab);
     var beta=$("beta"); if(beta)beta.onchange=async function(){
+      if(!confirm("Turn master beta "+(beta.checked?"on":"off")+"? This changes master behavior; existing Discord permissions stay in place.")){paint();return;}
       beta.disabled=true;
       var r=await call("/api/master/config",{beta_enabled:beta.checked});
       S.msg=r.ok?{cls:"ok",text:"Beta "+(beta.checked?"on":"off")+"."}:{cls:"err",text:r.error||"Couldn't save"};
