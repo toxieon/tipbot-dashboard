@@ -1,5 +1,13 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 2026-09-28 · `p2-dash-request-pool` · Fewer overlapping requests (Husker, P2b)
+
+- **All communities** now loads at most 4 communities at a time (`ROLLUP_CONCURRENCY`) instead of firing `/api/follower` for every follow at once. Results keep their order, so the merged rollup is unchanged.
+- **In-flight GET dedupe** in `api()`: identical plain GETs (same path, token, retries and timeout) already in flight share one request, and each caller gets its own `Response.clone()`. Mutations, custom headers and signals, and `onAttempt` callers are never shared. Finished requests are not cached, so the next call hits the network as before.
+- **Builder live refresh** no longer stacks. A 30 s poll tick or a ↻ tap while the previous refresh for the same game is still running waits on that one instead of starting another.
+- The helpers live in `assets/req-pool.js` (`mapLimit`, `createDedupe`, `singleFlight`). `index.html` falls back to the old behaviour if the file fails to load.
+- Tests: `node --test tests/*.test.js` **13 passing** (+5 in `tests/req_pool.test.js`). Local mocked browser smoke at 375 and 1280 px: 7 follows → 7 requests, peak 4 in flight, rollup rendered, 0 page errors.
+
 ## 2026-09-27 · `b2-landing` · Landing (Husker)
 
 Landed Claude's feature-pass UI and Codex's Master access/audit tabs on top of `f98decb`. There are no tipdash code changes of my own. What I checked:

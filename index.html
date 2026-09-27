@@ -8,6 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%230f1420%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%279.5%27%20fill%3D%27none%27%20stroke%3D%27%237b5bff%27%20stroke-width%3D%272.6%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%274%27%20fill%3D%27%235b8cff%27/%3E%3C/svg%3E">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
+<script src="./assets/req-pool.js"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -1621,7 +1622,20 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(left<=30){ await refreshToken(); return; }
     if(left<TOKEN_TTL_S*0.5 && Date.now()-REFRESH_LAST>60000) refreshToken();
   }
-  async function api(path,opts){
+  // P2b: identical plain GETs that are already in flight share one request; every
+  // caller gets its own Response clone so each can read the body. Mutations, custom
+  // headers/signals and onAttempt callers always get their own request.
+  const API_DEDUPE=(window.ReqPool&&window.ReqPool.createDedupe)?window.ReqPool.createDedupe():null;
+  function api(path,opts){
+    const o=opts||{};
+    const method=String(o.method||"GET").toUpperCase();
+    if(API_DEDUPE && method==="GET" && !o.body && !o.headers && !o.signal && !o.onAttempt && !o._refreshed){
+      const key=(getToken()||"")+" "+path+" "+(o.retries==null?"":o.retries)+" "+(o.timeoutMs==null?"":o.timeoutMs);
+      return API_DEDUPE.run(key, function(){ return apiRequest(path,o); }, function(r){ return (r&&typeof r.clone==="function")?r.clone():r; });
+    }
+    return apiRequest(path,o);
+  }
+  async function apiRequest(path,opts){
     opts=opts||{};
     await ensureFreshToken();
     const method=String(opts.method||"GET").toUpperCase();
@@ -3780,6 +3794,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
 
   /* ---------- ALL COMMUNITIES ROLLUP (client-side merge of /api/follower) ---------- */
+  const ROLLUP_CONCURRENCY=4;
   function tipTimeMs(t){
     const v=t&& (t.settled_at||t.created_at||t.timestamp||t.created||t.ts||null);
     if(v==null||v==="") return null;
@@ -3797,13 +3812,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("follower").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","28px")+'</div>'+NDSkeleton.grid(4,{cols:2,tile:"70px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
     let unauth=false;
     const q=month?"&month="+encodeURIComponent(month):"";
-    const results=await Promise.all(follows.map(async s=>{
+    // P2b: at most 4 communities in flight at once (was every follow in parallel).
+    const loadOne=async s=>{
       try{
         const r=await api("/api/follower?guild_id="+encodeURIComponent(s.guild_id)+q);
         if(!r.ok) return {ok:false,s};
         return {ok:true,s,d:await r.json()};
       }catch(e){ if(e&&e.unauth){unauth=true;} return {ok:false,s}; }
-    }));
+    };
+    const results=(window.ReqPool&&window.ReqPool.mapLimit)
+      ? await window.ReqPool.mapLimit(follows, ROLLUP_CONCURRENCY, loadOne)
+      : await Promise.all(follows.map(loadOne));
     if(unauth) return renderLogin("Session expired.");
     const ok=results.filter(r=>r.ok);
     const failed=results.filter(r=>!r.ok).map(r=>r.s.display_name||String(r.s.guild_id));
@@ -7296,11 +7315,21 @@ async function loadPerms(gid){
       startLivePoll(g);
     }
   }
-  async function refreshLive(g){
-    const c=Number(g.complete)||0;
-    try{ const data=await (await api("/api/live-stats?match="+encodeURIComponent(g.aflMatchId)+"&complete="+c)).json();
-      if(BUILD.game===g){ BUILD.live=data; renderPlayers(); } }
-    catch(e){ /* keep the last snapshot on a hiccup */ }
+  // P2b: never stack builder live refreshes — a poll tick or ↻ tap while the previous
+  // refresh for the same game is still running just waits on that one.
+  let LIVE_REFRESH=null;
+  function refreshLive(g){
+    if(LIVE_REFRESH && LIVE_REFRESH.g===g) return LIVE_REFRESH.p;
+    const job={g:g,p:null};
+    job.p=(async()=>{
+      const c=Number(g.complete)||0;
+      try{ const data=await (await api("/api/live-stats?match="+encodeURIComponent(g.aflMatchId)+"&complete="+c)).json();
+        if(BUILD.game===g){ BUILD.live=data; renderPlayers(); } }
+      catch(e){ /* keep the last snapshot on a hiccup */ }
+      finally{ if(LIVE_REFRESH===job) LIVE_REFRESH=null; }
+    })();
+    LIVE_REFRESH=job;
+    return job.p;
   }
   function renderGame(){
     const g=BUILD.game;
