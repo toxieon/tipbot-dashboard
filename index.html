@@ -1672,7 +1672,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function parseLineFromText(s){
     if(!s) return null;
-    const m=String(s).match(/(?:over|under|o\/u|ou)?\s*(\d+(?:\.\d+)?)/i);
+    const t=String(s);
+    // NFL/custom often posts "+57.5 Receiving Yards" or "25+ Disposals".
+    let m=t.match(/(?:^|\s)[+]\s*(\d+(?:\.\d+)?)/);
+    if(m) return Number(m[1]);
+    m=t.match(/(\d+(?:\.\d+)?)\s*[+]/);
+    if(m) return Number(m[1]);
+    m=t.match(/(?:over|under|o\/u|ou)?\s*(\d+(?:\.\d+)?)/i);
     return m?Number(m[1]):null;
   }
   function parseSideFromText(s){
@@ -1938,7 +1944,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function tipCard(t,settled,opts){
     opts=opts||{};
-    const oc=tipOutcome(t, settled);
+    const statusSettled=/^settled$/i.test(String((t&&t.status)||""))||!!(t&&t.result&&/^(win|loss|push|void)$/i.test(String(t.result).trim()));
+    const oc=tipOutcome(t, settled||statusSettled);
     const isSettled=oc.settled;
     const result=oc.result;
     const right=TB.chips.render(result)+(isSettled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!isSettled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
@@ -4778,13 +4785,26 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(live){ el.innerHTML='<span style="color:#e5484d;font-weight:800">● LIVE</span>'; return; }
       if(!ts){ el.innerHTML='<span style="color:var(--faint)">time TBC</span>'; return; }
       const diff=ts*1000-Date.now();
-      if(diff<=0){ el.innerHTML='<span style="color:#e5484d;font-weight:800">● in progress</span>'; return; }
+      if(diff<=0){
+        const live=el.dataset.live==="1";
+        const ageMs=-diff;
+        if(!live && ageMs>4*3600*1000){
+          el.innerHTML='<span style="color:var(--muted);font-weight:800">FT</span>';
+          return;
+        }
+        el.innerHTML='<span style="color:#e5484d;font-weight:800">● in progress</span>';
+        return;
+      }
       const d=Math.floor(diff/864e5),h=Math.floor(diff%864e5/36e5),m=Math.floor(diff%36e5/6e4),sc=Math.floor(diff%6e4/1e3);
       el.innerHTML='<span style="color:var(--faint)">starts in </span><b>'+(d?d+"d ":"")+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(sc).padStart(2,"0")+'</b>';
     });
   }
   function tipLooksFinished(t, starts, finished){
     if(!t) return false;
+    // Settled/deleted tips never belong in Upcoming (defense if a stale cache leaks them).
+    const st=String(t.status||"").trim().toLowerCase();
+    if(st==="settled"||st==="deleted") return true;
+    if(t.result && /^(win|loss|push|void|won|lost)$/i.test(String(t.result).trim())) return true;
     if(t.finished || t.game_finished || t.ft || t.full_time) return true;
     const g=t.game_name||"";
     const info=starts&&starts[g];
@@ -4793,9 +4813,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(info && !info.finished && !info.concluded && (info.live || (info.ts && info.ts*1000>Date.now()))) return false;
     if(finished&&finished[g]) return true;
     if(info && (info.finished || info.complete>=100 || info.concluded)) return true;
-    // Wall-clock: started >4h ago and not marked live → treat as finished for grading glance
+    // Wall-clock from AFL fixture row…
     if(info && info.ts && !info.live){
       const age=Date.now()-(info.ts*1000);
+      if(age>4*3600*1000) return true;
+    }
+    // …or from the tip's own kickoff (NFL/NBA/custom — /api/upcoming is AFL-only).
+    const tipTs=tipStartTs(t);
+    if(tipTs && !(info&&info.live)){
+      const age=Date.now()-(tipTs*1000);
       if(age>4*3600*1000) return true;
     }
     return false;
@@ -4844,7 +4870,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle">'+esc(game)+'</div>'
         +'<div class="gsub">'+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
         +'<div class="gright">'+right+'</div></div>'
-        +'<div class="game-group-bd">'+list.map(t=>tipCard(t,false,{hideGame:true,finished:mode==="finished"})).join("")+'</div>'
+        +'<div class="game-group-bd">'+list.map(t=>{
+          const tipSettled=/^settled$/i.test(String(t.status||""))||!!(t.result&&/^(win|loss|push|void)$/i.test(String(t.result).trim()));
+          return tipCard(t, tipSettled, {hideGame:true, finished:mode==="finished"||tipSettled});
+        }).join("")+'</div>'
         +footer+'</div>';
     });
     box.innerHTML=html;
@@ -4967,6 +4996,19 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const box=$("upcoming-box"); const finBox=$("finished-box");
     if(!box)return;
     if(!queued||!queued.length){
+      box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
+      if(finBox){ finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>'; }
+      const fp=$("finished-panel"); if(fp)fp.hidden=true;
+      return;
+    }
+    // Never keep Settled tips in Upcoming (stale /api/server cache or optimistic misses).
+    queued=(queued||[]).filter(t=>{
+      const st=String((t&&t.status)||"").trim().toLowerCase();
+      if(st==="settled"||st==="deleted") return false;
+      if(t&&t.result && /^(win|loss|push|void|won|lost)$/i.test(String(t.result).trim())) return false;
+      return true;
+    });
+    if(!queued.length){
       box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
       if(finBox){ finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>'; }
       const fp=$("finished-panel"); if(fp)fp.hidden=true;
