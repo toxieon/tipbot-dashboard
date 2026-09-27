@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 2026-09-28 · `p3-dash-notes` · Phase 3 assessment + remaining list (Husker)
+
+- **#5 (split the builder/admin JS): assessed, not done.** `index.html` is 510 KB raw but **139 KB gzip on the wire** (Pages sends `content-encoding: gzip`, `max-age=600`). The 431 KB main script is one closure: 347 top-level functions, and the builder alone references `BUILD` 436×, interleaved with shared `STATE`, `api`, `$` and `esc`. Moving it to on-demand assets safely means first exposing that shared state through a small module boundary, then a browser pass over every builder/admin flow with an owner token. That is a ~1–1.5M block, not a small safe change for an unattended night, so it is scoped in REMAINING.md.
+- `REMAINING.md` updated after phases 2/3.
+- No code changes; tests still **13 passing**.
+
 ## 2026-09-28 · `p2-dash-request-pool` · Fewer overlapping requests (Husker, P2b)
 
 - **All communities** now loads at most 4 communities at a time (`ROLLUP_CONCURRENCY`) instead of firing `/api/follower` for every follow at once. Results keep their order, so the merged rollup is unchanged.
