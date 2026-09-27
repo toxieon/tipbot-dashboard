@@ -7,14 +7,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%230f1420%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%279.5%27%20fill%3D%27none%27%20stroke%3D%27%237b5bff%27%20stroke-width%3D%272.6%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%274%27%20fill%3D%27%235b8cff%27/%3E%3C/svg%3E">
 <title>TipBot Dashboard</title>
+<script src="./assets/tbtime.js"></script>
 <script>
-/* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1). */
+/* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
+   Day/night and "today" are Sydney time (assets/tbtime.js). */
 (function(){
   try {
-    var d=new Date(),day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    var day=TBTime.dayKey(Date.now());
     var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
     var valid=['navy','day','ochre'].indexOf(name)!==-1;
-    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(d.getHours()>=7&&d.getHours()<19?'day':'navy'):'navy';
+    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(TBTime.isDaytime(Date.now())?'day':'navy'):'navy';
     var accent=localStorage.getItem('tipbot_theme_accent');
     if(/^#[0-9a-f]{6}$/i.test(accent||''))document.documentElement.style.setProperty('--accent',accent);
   }catch(e){document.documentElement.dataset.theme='navy';}
@@ -733,6 +735,31 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   .tb-gq-chip[data-kind="warn"]{color:#e0a04a;border-color:rgba(224,160,74,.45);background:rgba(224,160,74,.1)}
   .gradebtn.gq-armed{outline:2px solid currentColor;outline-offset:1px}
   .gradebtn.gq-sugg{border:1px solid rgba(90,150,255,.5);background:rgba(90,150,255,.14);color:#9cc0ff;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
+/* Feature G trial mode */
+.badge.trial,.badge.trial-expired{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.04em;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px;border:1px solid var(--line);color:var(--muted)}
+.trial-banner{margin:0 0 14px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:13px}
+.badge.trial-expired{border-color:var(--warn,#e0a04a);color:var(--warn,#e0a04a)}
+.trial-opts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted);margin:4px 0 8px}
+.trial-opts input,.trial-opts select{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:12.5px}
+/* AU sign-up gate (login screen + owner Settings row) */
+.signup-au{margin-top:14px;display:grid;gap:10px;justify-items:center;text-align:center;max-width:340px;margin-left:auto;margin-right:auto}
+.signup-au-lead{margin:0;color:var(--muted);font-size:14px}
+.signup-au-check{display:flex;gap:8px;align-items:center;font-weight:700}
+.signup-au-msg{margin:0;font-size:13px;color:var(--muted);min-height:18px}
+.signup-au-msg.err{color:var(--loss)}
+.dd-gate{padding:8px 12px;border-top:1px solid var(--line);display:grid;gap:6px;font-size:13px}
+.dd-gate-toggle{display:flex;gap:8px;align-items:center;font-weight:700}
+.dd-gate-note{color:var(--faint);font-size:12px}
+.dd-gate-override{display:flex;gap:4px;flex-wrap:wrap}
+.dd-gate-override input{flex:1;min-width:120px;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:12px}
+.dd-gate-override button{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 8px;color:var(--muted);font-size:12px;cursor:pointer}
+@keyframes cmpFlash{0%{box-shadow:0 0 0 2px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+.prow.cmp-flash{animation:cmpFlash 1.6s ease}
+/* Main nav → standalone /live page (Codex restyles; tokens only). */
+.topnav{margin-left:auto;margin-right:8px;display:flex;align-items:center}
+.topnav a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:10px}
+.topnav a:hover{color:var(--txt)}
+.topnav-dot{width:7px;height:7px;border-radius:50%;background:var(--loss)}
 </style>
 </head>
 <body>
@@ -740,7 +767,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   <div id="login" class="center" hidden>
     <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;font-size:22px">🎯</div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
-    <a class="btn" id="loginbtn" href="#">Log in with Discord</a></div>
+    <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
+    <form id="signupform" class="signup-au" hidden>
+      <p class="signup-au-lead">One quick check before you start. Tipdash is only open to people in Australia right now.</p>
+      <label class="signup-au-check"><input type="checkbox" id="signup-au-box"> I'm in Australia</label>
+      <button class="btn" type="submit" id="signup-au-go" disabled>Continue</button>
+      <p class="signup-au-msg" id="signup-au-msg" role="status"></p>
+    </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
     <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;font-size:22px">🎯</div>
@@ -753,10 +786,12 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   <div id="app" hidden>
     <div class="top">
       <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer" title="Home">🎯</span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <nav class="topnav" aria-label="Main"><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player"><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
+          <a class="dd-item" id="dd-master" href="./master/" hidden>Master server (beta) <span style="color:var(--faint)">›</span></a>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
           <div class="dd-quota" id="dd-odds-quota" hidden title="The Odds API monthly quota (TipBot cache)">
             <span class="dq-main" id="dd-odds-quota-main">Odds API · —</span>
@@ -768,6 +803,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
               <span>Odds API markets</span><span class="caret">▸</span>
             </div>
             <div class="dd-mk-body" id="dd-mk-body" hidden></div>
+          </div>
+          <div class="dd-gate" id="dd-signup-gate" hidden>
+            <label class="dd-gate-toggle"><input type="checkbox" id="dd-signup-gate-on"> Australia-only sign-ups</label>
+            <div class="dd-gate-note" id="dd-signup-gate-note">Soft gate for new sign-ups. Existing users aren't affected.</div>
+            <form class="dd-gate-override" id="dd-signup-override">
+              <input id="dd-signup-uid" inputmode="numeric" placeholder="Discord user ID" aria-label="Discord user ID to override">
+              <button type="submit" value="allowed">Allow</button><button type="submit" value="declined">Block</button><button type="submit" value="clear">Clear</button>
+            </form>
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
@@ -1138,7 +1181,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   };
   const $=id=>document.getElementById(id);
   const u=n=>(n>0?"+":"")+n+"u";
-  const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server."};
+  const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server.",region_declined:"Sorry, Tipdash is only open to people in Australia right now. If you are in Australia and think this is wrong, ask the server owner to let you in."};
   let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false};
   const godOn=()=>STATE.god&&STATE.role==="owner"&&!STATE.viewAs;   // #32: owner only, not in preview
   let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[],autoLines:false};
@@ -1348,6 +1391,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     else if(opts.armTheme) hydrateTheme(null);
     $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
     $("dd-viewas").style.display=STATE.role==="owner"?"":"none";
+    { const dm=$("dd-master"); if(dm) dm.hidden=STATE.role!=="owner"; }
     paintOddsQuotaRow();
     buildViewAsMenu();
   }
@@ -1406,7 +1450,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("dropdown").hidden=!$("dropdown").hidden;
     $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
     $("viewas-list").hidden=true;
-    if(opening){ refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); }
+    if(opening){ refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow(); }
   };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
@@ -1424,7 +1468,113 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     renderOverview();
   }
 
+  /* Feature G: per-server trial mode (follower tracking off). Owner only;
+     TipBot re-checks the owner gate. Badges: .badge.trial / .badge.trial-expired. */
+  function trialBadge(s){
+    if(!s||!s.trial_status) return "";
+    if(s.trial_status==="trial_expired") return ' <span class="badge trial-expired" title="Trial expired: follower tracking still off">TRIAL EXPIRED</span>';
+    const exp=s.trial_expires_at?" · expires "+TBTime.fmt(s.trial_expires_at,{day:"numeric",month:"short"}):"";
+    return ' <span class="badge trial" title="Trial: follower reactions are not tracked">TRIAL'+esc(exp)+'</span>';
+  }
+  function trialControlsHTML(s){
+    if(STATE.role!=="owner"||STATE.viewAs) return "";
+    const on=!!s.trial_mode, exp=s.trial_expires_at?TBTime.dayKey(Date.parse(s.trial_expires_at)-1000):"", oe=s.trial_on_expiry||"stay_trial";
+    const opt=(v,l)=>'<option value="'+v+'"'+(oe===v?" selected":"")+'>'+l+'</option>';
+    return '<div class="switch trial-switch"><button class="toggle '+(on?"on":"")+'" id="trialtoggle" aria-label="Trial mode"></button><span>Trial mode (follower tracking off)'+trialBadge(s)+'</span></div>'
+      +'<div class="trial-opts" id="trialopts"'+(on?"":" hidden")+'><label>Expires <input type="date" id="trialexp" value="'+esc(exp)+'"></label>'
+      +'<label>On expiry <select id="trialoe">'+opt("stay_trial","Stay on trial + alert me")+opt("convert_paid","Switch tracking on")+opt("disable_bot","Disable the bot")+'</select></label>'
+      +'<button class="ghost sm" id="trialsave" type="button">Save</button></div>';
+  }
+  function wireTrialControls(s){
+    const t=$("trialtoggle"); if(!t) return;
+    async function send(on){
+      const expDay=($("trialexp")&&$("trialexp").value)||"";
+      // The date picker is a Sydney day: the trial ends at the END of that day (Sydney).
+      let exp=null;
+      if(on&&expDay){ const [y,m,d]=expDay.split("-").map(Number); exp=new Date(TBTime.fromLocal(y,m,d+1,0,0)).toISOString(); }
+      try{
+        const r=await api("/api/server/trial",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({guild_id:s.guild_id,trial_mode:on,trial_expires_at:exp,on_expiry:($("trialoe")&&$("trialoe").value)||"stay_trial"})});
+        const j=await r.json().catch(()=>({}));
+        if(!r.ok||!j.ok){ toast(j.error||("Couldn't change trial mode ("+r.status+")")); return false; }
+        Object.assign(s,j); toast(on?"Trial mode on: new reactions aren't tracked. Existing follows are kept.":"Tracking is on from now (no backfill of trial reactions).");
+        return true;
+      }catch(e){ toast("Couldn't reach TipBot"); return false; }
+    }
+    t.onclick=async()=>{
+      const turningOn=!t.classList.contains("on");
+      const msg=turningOn
+        ?"Turn trial mode ON?\n\nNew reactions won't be tracked (no follows, no stats). Existing follows are kept and still settle. Nothing is deleted."
+        :"Turn trial mode OFF?\n\nFollower tracking starts now. Reactions made during the trial are not imported.";
+      if(!confirm(msg)) return;
+      if(await send(turningOn)){ t.classList.toggle("on",turningOn); $("trialopts").hidden=!turningOn; }
+    };
+    const sv=$("trialsave"); if(sv) sv.onclick=()=>send(true);
+  }
   function renderLogin(msg){clearDetailTimers();clearLiveTimer();clearGamesTimer();if(msg)$("loginmsg").innerHTML='<span class="err">'+msg+'</span>';show("login");}
+  /* Optional AU-only sign-up gate (TipBot §5.4, owner toggle, default off).
+     OAuth sends NEW users here with a short-lived #signup= token instead of a
+     session. Soft gate: self-declaration + the browser's timezone. */
+  function renderSignupAU(signupToken){
+    renderLogin();
+    $("loginbtn").hidden=true;
+    $("loginmsg").textContent="Welcome to Tipdash.";
+    const form=$("signupform"), box=$("signup-au-box"), go=$("signup-au-go"), msg=$("signup-au-msg");
+    form.hidden=false;
+    box.onchange=()=>{go.disabled=!box.checked;};
+    form.onsubmit=async(e)=>{
+      e.preventDefault();
+      go.disabled=true; msg.textContent="Checking…"; msg.className="signup-au-msg";
+      let tz="";
+      try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"";}catch(err){}
+      try{
+        const r=await fetch(API+"/api/signup/region",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({signup_token:signupToken,declared_au:box.checked,tz:tz})});
+        const j=await r.json().catch(()=>({}));
+        if(r.ok&&j.ok&&j.token){ setToken(j.token); form.hidden=true; $("loginbtn").hidden=false; load(); return; }
+        if(r.status===401){ form.hidden=true; $("loginbtn").hidden=false; return renderLogin(esc(j.message||"That sign-up link expired. Please log in again.")); }
+        form.hidden=true; $("loginbtn").hidden=false;
+        renderLogin(esc(j.message||ERR.region_declined));
+      }catch(err){ msg.textContent="Couldn't reach TipBot. Try again in a moment."; msg.className="signup-au-msg err"; go.disabled=!box.checked; }
+    };
+  }
+  async function paintSignupGateRow(){
+    const row=$("dd-signup-gate"); if(!row) return;
+    const show=STATE.role==="owner"&&!STATE.viewAs;
+    row.hidden=!show; if(!show) return;
+    const chk=$("dd-signup-gate-on"), note=$("dd-signup-gate-note");
+    try{
+      const r=await api("/api/owner/signup-gate",{retries:1,timeoutMs:20000});
+      if(!r.ok){ note.textContent="Couldn't load ("+r.status+")"; return; }
+      const j=await r.json();
+      chk.checked=!!j.enabled;
+      const n=(j.decisions||[]).length;
+      note.textContent=(j.enabled?"On: new sign-ups must be in Australia":"Off: anyone can sign up")+(n?" · "+n+" recent decision"+(n===1?"":"s"):"");
+    }catch(e){ note.textContent="Couldn't reach TipBot"; }
+  }
+  function wireSignupGateRow(){
+    const chk=$("dd-signup-gate-on"); if(!chk||chk._wired) return; chk._wired=true;
+    chk.onchange=async()=>{
+      const want=chk.checked; chk.disabled=true;
+      try{
+        const r=await api("/api/owner/signup-gate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled:want})});
+        if(!r.ok) chk.checked=!want;
+      }catch(e){ chk.checked=!want; }
+      chk.disabled=false; paintSignupGateRow();
+    };
+    const form=$("dd-signup-override");
+    form.onsubmit=async(e)=>{
+      e.preventDefault();
+      const uid=$("dd-signup-uid").value.trim(), dec=e.submitter&&e.submitter.value||"allowed", out=$("dd-signup-gate-note");
+      if(!/^\d{5,25}$/.test(uid)){ out.textContent="Enter a Discord user ID (digits)."; return; }
+      try{
+        const r=await api("/api/owner/signup-override",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:uid,decision:dec})});
+        const j=await r.json().catch(()=>({}));
+        out.textContent=r.ok&&j.ok?("User "+uid+": "+(j.decision||"cleared")):(j.error||("Failed ("+r.status+")"));
+        if(r.ok) $("dd-signup-uid").value="";
+      }catch(err){ out.textContent="Couldn't reach TipBot"; }
+    };
+  }
   function newClientRequestId(){
     try{ if(typeof crypto!=="undefined"&&typeof crypto.randomUUID==="function") return crypto.randomUUID(); }catch(e){}
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,function(c){
@@ -1568,7 +1718,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
       const grid=document.createElement("div");grid.className="grid";
       list.forEach(s=>{const p=s.profit_units||0;const c=document.createElement("div");c.className="scard";
-        c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+esc(s.plan_name||"starter")+'</span></div>'
+        c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+esc(s.plan_name||"starter")+'</span>'+trialBadge(s)+'</div>'
         +'<div class="mini"><div class="m"><span class="mv">'+(s.queued||0)+'</span><span class="ml">Queued</span></div>'
         +'<div class="m"><span class="mv"><span class="pos">'+(s.won||0)+'</span>–<span class="neg">'+(s.lost||0)+'</span></span><span class="ml">W – L</span></div>'
         +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
@@ -2385,7 +2535,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     try{
       const d=(ts instanceof Date)?ts:new Date(ts);
       if(isNaN(d.getTime())) return "";
-      return d.toLocaleString(undefined,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+      return TBTime.fmt(d,{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
     }catch(e){ return ""; }
   }
   function oddsQuotaLabel(pack){
@@ -2962,12 +3112,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function tipDayKey(t){
     const v=t&& (t.settled_at||t.created_at||null);
     if(!v) return "";
-    const s=String(v);
-    if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
-    const n=Date.parse(s);
-    if(!Number.isFinite(n)) return "";
-    const d=new Date(n);
-    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    // Sydney day on settle time (TipBot stores UTC) — matches the units calendar tiles.
+    return TBTime.dayKey(v);
   }
   function patchDetailCacheSettle(gid, tipPatch, opts){
     opts=opts||{};
@@ -3613,6 +3759,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const feed=(d.feed&&d.feed.length)?d.feed.map(t=>followerFeedRow(t,{tipGrade:t&&t.tip_id!=null?fgrades[String(t.tip_id)]:null})).join(""):
       '<div class="empty">No tracked bets yet. In Discord, react to a tip with the follow emoji and it\'ll appear here.</div>';
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
+      +(d.trial_mode?'<div class="trial-banner" role="status">Tracking is off during this server\'s trial. Reactions aren\'t recorded yet; existing tracked bets still settle.</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
       +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:11px;font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:13px">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:12px">'+period+' · your results</span></div>'
@@ -3693,8 +3840,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const months=[...monthsSet].sort().reverse();
     const anyTs=feed.some(t=>tipTimeMs(t)!=null);
     if(anyTs) feed.sort((a,b)=>(tipTimeMs(b)||0)-(tipTimeMs(a)||0));
-    const now=new Date();
-    const curCal=(month && /^\d{4}-\d{2}$/.test(month))?month:(calPick||months[0]||(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")));
+    const curCal=(month && /^\d{4}-\d{2}$/.test(month))?month:(calPick||months[0]||TBTime.monthKey(Date.now()));
     renderFollowerAllView({
       stats, months, month:month||"", cal_month:curCal, daily_series:daily, feed,
       failed, communityCount:follows.length, follows
@@ -5592,7 +5738,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<span>Queued <b>'+esc(String(st.queued))+'</b></span></div>'
       +'<span class="st-caret">▾</span></button>'
       +'<div class="tiles">'+tiles+'</div></div>';
-    const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("");
+    const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("")+trialControlsHTML(s);
     const se=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>';
     const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
     const dbgBtn=(kind,label,hint)=>'<button class="dbgbtn" data-k="'+kind+'" title="'+hint+'" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">'+label+'</button>';
@@ -5878,7 +6024,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const fp=$("finished-panel"); const up=(fp&&!fp.hidden)?fp:($("upcoming-panel")||fp); if(up){ TDSec.open(up); up.scrollIntoView({behavior:"smooth",block:"start"}); }}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
-    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle")return; b.onclick=()=>toggle(b); });
+    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle"||b.id==="trialtoggle")return; b.onclick=()=>toggle(b); });
+    wireTrialControls(s);
     wireTipRows($("recent-box"),s.guild_id);
     // Lazy: Recent Results (previous tips) hydrate legs/odds/live over the network only once opened.
     TDSec.onFirstOpen($("recent-panel"), ()=>hydrateTipCards($("recent-box"),s.guild_id,tips.settled));
@@ -5906,13 +6053,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   var memory = Object.create(null), hosts = [], listening = false, timer;
   function read(key) { try {var value=localStorage.getItem(key);if(value!==null)return value;} catch(e) {} return memory[key] || null; }
   function write(key,value) {memory[key]=value;try {if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);} catch(e) {}}
-  function today(d) {return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function today(d) {return TBTime.dayKey(d);}  // Sydney day
   function valid(name) {return names.indexOf(name)!==-1;}
   function auto() {return read('tipbot_theme_auto')==='true';}
   function resolve(d) {
     var saved=read('tipbot_theme');
     if(valid(saved)&&(!auto()||read('tipbot_theme_manual_date')===today(d)))return saved;
-    return auto()?(d.getHours()>=7&&d.getHours()<19?'day':'navy'):(valid(saved)?saved:'navy');
+    return auto()?(TBTime.isDaytime(d)?'day':'navy'):(valid(saved)?saved:'navy');
   }
   function luminance(rgb) {return rgb.map(function(v){v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);}).reduce(function(s,v,i){return s+v*[.2126,.7152,.0722][i];},0);}
   function ink(rgb) {return luminance(rgb)>.179?'#000000':'#ffffff';}
@@ -5933,18 +6080,18 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       host.querySelector('[data-tb-accent]').value=read('tipbot_theme_accent')||defaults[root.dataset.theme];
       host.querySelector('[data-tb-reset]').disabled=!read('tipbot_theme_accent');
       var manual=read('tipbot_theme_manual_date')===today(new Date())&&valid(read('tipbot_theme'));
-      host.querySelector('[data-tb-note]').textContent=auto()?(manual?'Your choice stays until midnight. Auto resumes tomorrow.':'Day from 7 am to 7 pm. Navy overnight, using your local time.'):'Your selected theme stays on until you change it.';
+      host.querySelector('[data-tb-note]').textContent=auto()?(manual?'Your choice stays until midnight. Auto resumes tomorrow.':'Day from 7 am to 7 pm. Navy overnight, on Sydney time.'):'Your selected theme stays on until you change it.';
     });
   }
   function refresh() {root.dataset.theme=resolve(new Date());accent();sync();}
   function schedule() {
     clearTimeout(timer);
     if(!auto())return;
-    var now=new Date(),next=new Date(now);
-    var h=now.getHours();
-    if(h<7)next.setHours(7,0,0,0);else if(h<19)next.setHours(19,0,0,0);else next.setHours(24,0,0,0);
-    if(read('tipbot_theme_manual_date')===today(now)){next=new Date(now);next.setHours(24,0,0,0);}
-    timer=setTimeout(function(){refresh();schedule();},Math.max(1000,next-now+50));
+    // Next Sydney 7 am / 7 pm / midnight (DST-safe via TBTime).
+    var now=Date.now(), h=TBTime.hour(now), wait;
+    if(read('tipbot_theme_manual_date')===today(now)) wait=TBTime.msUntilHour(0,now);
+    else wait=h<7?TBTime.msUntilHour(7,now):(h<19?TBTime.msUntilHour(19,now):TBTime.msUntilHour(0,now));
+    timer=setTimeout(function(){refresh();schedule();},Math.max(1000,wait+50));
   }
   TB.theme = {
     set:function(name) {
@@ -6362,7 +6509,7 @@ async function loadPerms(gid){
   }
   function draftBannerHTML(d){
     const n=(d.legs||[]).length;
-    const when=d.ts?new Date(d.ts).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+    const when=d.ts?TBTime.fmt(d.ts,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
     const label=n? (n+" leg"+(n===1?"":"s")) : "custom draft";
     return '<div class="draft-banner" id="draftbanner" role="status">'
       +'<div class="db-msg">You have an unfinished multi (<b>'+esc(label)+'</b>)'+(when?(" · saved "+esc(when)):"")+'. Continue?</div>'
@@ -6504,8 +6651,8 @@ async function loadPerms(gid){
     return ev.short_name||ev.name||"";
   }
   function espnFmtWhen(iso){
-    try{const d=new Date(iso); if(Number.isNaN(+d))return "";
-      return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return "";}
+    // US games shown in Sydney time (AEST/AEDT) like everything else.
+    try{return TBTime.fmtWhen(iso);}catch{return "";}
   }
   function easternYmd(value){
     const parts=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value||Date.now()));
@@ -7007,7 +7154,7 @@ async function loadPerms(gid){
       return '<div class="panel" style="padding:0;overflow:hidden;margin-bottom:10px">'
         +'<div class="reshdr" role="button" tabindex="0" aria-expanded="'+open+'" aria-controls="resbody_'+i+'" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
           +'<div style="flex:1;min-width:0">'
-            +'<div class="rd" style="margin-bottom:4px">'+esc(g.roundname||"")+' · '+fmtDate(g.date)+compBadge+'</div>'
+            +'<div class="rd" style="margin-bottom:4px">'+esc(g.roundname||"")+' · '+fmtGameWhen(g)+compBadge+'</div>'
             +'<div class="espn-teamrow" style="margin:4px 0;opacity:'+(hw?'1':'.65')+'">'+aflLogoHtml(g.hteam)+'<span class="espn-tname">'+esc(teamName(g.hteam))+'<small>Home</small></span><span class="espn-score">'+esc(String(g.hscore))+'</span></div>'
             +'<div class="espn-teamrow" style="margin:4px 0;opacity:'+(aw?'1':'.65')+'">'+aflLogoHtml(g.ateam)+'<span class="espn-tname">'+esc(teamName(g.ateam))+'</span><span class="espn-score">'+esc(String(g.ascore))+'</span></div>'
             +'<div class="vn" style="margin-top:2px">'+esc(g.venue||"")+(g.winner?' · '+esc(g.winner)+' won':' · draw')+'</div>'
@@ -7111,7 +7258,7 @@ async function loadPerms(gid){
       const compBadge=hasMulti?' <span class="compbadge'+(gameComp(g)==="AFLW"?" aflw":"")+'">'+gameComp(g)+'</span>':'';
       const ht=g.hteam, at=g.ateam;
       return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'>'
-        +'<div class="rd">'+(g.roundname||"")+' · '+fmtDate(g.date)+liveBadge+compBadge+'</div>'
+        +'<div class="rd">'+(g.roundname||"")+' · '+fmtGameWhen(g)+liveBadge+compBadge+'</div>'
         +'<div class="espn-teamrow">'+aflLogoHtml(ht)+'<span class="espn-tname">'+esc(teamName(ht)||"Home")+'<small>Home</small></span></div>'
         +'<div class="espn-teamrow">'+aflLogoHtml(at)+'<span class="espn-tname">'+esc(teamName(at)||"Away")+'</span></div>'
         +'<div class="vn">'+(g.venue||"")+'</div></div>';
@@ -7125,7 +7272,10 @@ async function loadPerms(gid){
     $("builder").querySelectorAll(".espnsport").forEach(b=>b.onclick=()=>openEspnBuilder(BUILD.guildId,BUILD.serverName,b.dataset.league));
     $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openGame(shown[+c.dataset.i]));
   }
-  function fmtDate(s){try{const d=new Date(s.replace(" ","T"));return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}catch{return s;}}
+  // Game start in Sydney time. Prefer unixtime (exact); a zone-less "date" is UTC
+  // from TipBot (results_recent) — was read as device-local, showing AFL starts ~10h early.
+  function fmtDate(s){try{return TBTime.fmtWhen(s)||String(s||"");}catch{return s;}}
+  function fmtGameWhen(g){ return (g&&g.unixtime)?TBTime.fmtWhen(g.unixtime):fmtDate(g&&g.date); }
 
   async function openGame(g){
     clearLiveTimer();clearGamesTimer();
@@ -7343,17 +7493,59 @@ async function loadPerms(gid){
       +'<div class="pform-row"><span class="pform-lab">vs</span>'+formChipCells(form.vsOpp,5)+'</div>'
       +meta+'</div>';
   }
-  function compareHref(playerName, stat, game){
+  function compareHref(playerName, stat, game, line, side){
     const q=new URLSearchParams();
     q.set("player", playerName||"");
     q.set("stat", stat||BUILD.tab||"");
     if(game){
+      // The odds cache resolves games by NAME (Odds API ids differ from AFL ids);
+      // the AFL id rides along so a pick can come back to the right game.
+      q.set("game", teamName(game.hteam)+" v "+teamName(game.ateam));
       const gid=TB.gameId({game:game})||"";
-      if(gid)q.set("game", String(gid));
-      else q.set("game", teamName(game.hteam)+" v "+teamName(game.ateam));
+      if(gid)q.set("game_id", String(gid));
     }
+    if(line!=null&&line!=="")q.set("line", String(line));
+    if(side)q.set("side", side);
+    if(BUILD&&BUILD.guildId)q.set("guild", String(BUILD.guildId));
     return "./compare/?"+q.toString();
   }
+  // Compare → builder hand-off. /compare writes the chosen book/line/side to
+  // localStorage; this tab hears the storage event and applies it to that
+  // player's row (and remembers the book for the confirm screen).
+  const COMPARE_PICK_KEY="tipdash_compare_pick";
+  function applyComparePick(pick){
+    if(!pick||!pick.player||!BUILD||!BUILD.game)return false;
+    if(Date.now()-(+pick.ts||0)>10*60*1000)return false;
+    const gid=TB.gameId({game:BUILD.game})||"";
+    if(pick.game_id&&gid&&String(pick.game_id)!==String(gid))return false;
+    const sameStat=String(pick.stat||"").toLowerCase().replace(/s$/,"")===String(BUILD.tab||"").toLowerCase().replace(/s$/,"");
+    if(!sameStat){ toast("Compare pick for "+pick.stat+": open the "+pick.stat+" tab to use it."); BUILD.pendingComparePick=pick; return false; }
+    const row=[...document.querySelectorAll("#players .prow[data-player]")].find(r=>r.dataset.player===pick.player);
+    if(!row)return false;
+    const vv=row.querySelector('input[type="number"]'), sl=row.querySelector('input[type="range"]');
+    if(vv){ vv.value=pick.line; vv.dispatchEvent(new Event("input",{bubbles:true})); }
+    if(sl&&+sl.max<+pick.line){ sl.max=Math.ceil(+pick.line)+5; }
+    if(sl){ sl.value=pick.line; }
+    const ob=row.querySelector('.ou button[data-s="'+(pick.side==="Under"?"Under":"Over")+'"]'); if(ob)ob.click();
+    BUILD.compareBook=pick.book||null;
+    BUILD.pendingComparePick=null;
+    try{ row.scrollIntoView({block:"center",behavior:"smooth"}); row.classList.remove("cmp-flash"); void row.offsetWidth; row.classList.add("cmp-flash"); }catch(e){}
+    toast("From Compare: "+pick.player+" "+pick.side+" "+pick.line+(pick.price?" @ "+Number(pick.price).toFixed(2):"")+(pick.book?" · "+pick.book:""));
+    return true;
+  }
+  window.addEventListener("storage",e=>{
+    if(e.key!==COMPARE_PICK_KEY||!e.newValue)return;
+    try{ applyComparePick(JSON.parse(e.newValue)); }catch(err){}
+  });
+  document.addEventListener("click",e=>{
+    const a=e.target&&e.target.closest&&e.target.closest("a.compare-btn[data-player]");
+    if(!a)return;
+    // Send the row's CURRENT line/side, not the one it was rendered with.
+    const row=a.closest(".prow");
+    const vv=row&&row.querySelector('input[type="number"]');
+    const on=row&&row.querySelector(".ou button.on");
+    a.href=compareHref(a.dataset.player, BUILD.tab, BUILD.game, vv?vv.value:"", on?on.dataset.s:"");
+  },true);
   function renderPlayers(){
     const g=BUILD.game;const box=$("players");let html="";
     const mkt=MARKETS[BUILD.tab];const isMarket=!!mkt;
@@ -7397,7 +7589,7 @@ async function loadPerms(gid){
         const formHtml=isMarket?"":formChipsHTML(p, nm, oppNm, rowDef);
         const nameCell='<div class="pname-block"><div class="pname">'+esc(p.name)+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+esc(p.position)+'</small>':"")+liveChip+'</div>'+formHtml+'</div>';
         // Compare hidden behind FEATURE_COMPARE (see top of script). Empty string = no element, no gap.
-        const cmp=FEATURE_COMPARE?'<a class="compare-btn" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>':'';
+        const cmp=FEATURE_COMPARE?'<a class="compare-btn" data-player="'+esc(p.name)+'" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>':'';
         if(isMarket){
           html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
             +'<div class="prow-actions" style="margin-left:auto">'+cmp+'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
@@ -7434,6 +7626,7 @@ async function loadPerms(gid){
       ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");tint();});
       $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side,assumed:teamAssumed});
     });});
+    if(BUILD.pendingComparePick) applyComparePick(BUILD.pendingComparePick);
   }
   /** Whole-number player-prop lines → N−0.5 (Over/Under). .5 lines unchanged. */
   function applyHalfPointLine(leg){
@@ -7596,6 +7789,11 @@ async function loadPerms(gid){
       +'<div style="color:var(--faint);font-size:12px;margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
     $("bc").onclick=()=>{ if(BUILD.espn && BUILD.espnEvent && BUILD.espnLeague==="nfl"){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} };
     wireStakeField();
+    if(BUILD.compareBook&&$("f_book")&&!$("f_book").value){
+      const want=String(BUILD.compareBook).toLowerCase();
+      const opt=[...$("f_book").options].find(o=>o.value&&o.value.toLowerCase().replace(/\s/g,"").startsWith(want.replace(/\s/g,"")));
+      if(opt)$("f_book").value=opt.value;
+    }
     TB.bookie.wireSelect($("f_book"),$("f_book_preview"));
     $("schedbtn").onclick=scheduleTip;
     $("batchaddbtn").onclick=addCurrentTipToBatch;
@@ -7953,6 +8151,7 @@ async function loadPerms(gid){
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.get("error")){history.replaceState(null,"",location.pathname);return renderLogin(ERR[hash.get("error")]||"Login error.");}
     if(hash.get("token")){setToken(hash.get("token"));history.replaceState(null,"",location.pathname);}
+    if(hash.get("signup")){history.replaceState(null,"",location.pathname);return renderSignupAU(hash.get("signup"));}
     if(!getToken())return renderLogin();
     try{ setLoadPanel("Starting…", 2); }catch(e){}
     warmTipBot();
