@@ -1,51 +1,207 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Player compare — Tipdash</title>
-  <link rel="icon" href="../assets/favicon.svg">
-  <style>
-    :root{--bg:#0b1020;--card:#141a2e;--line:#243052;--txt:#e8eefc;--muted:#9aa8c7;--accent:#5b8cff;--faint:#6b7a9b}
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
-    .wrap{max-width:720px;margin:0 auto;padding:28px 18px 60px;min-width:0}
-    a{color:var(--accent);text-decoration:none}
-    a:hover{text-decoration:underline}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px;margin-top:18px}
-    h1{margin:0 0 8px;font-size:22px}
-    .muted{color:var(--muted)}
-    .faint{color:var(--faint);font-size:13px}
-    .pill{display:inline-block;background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);color:#9db8ff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;margin:4px 6px 0 0}
-    .back{display:inline-block;margin-bottom:14px;color:var(--muted);font-size:14px}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Compare · Tipdash</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
+<script src="../assets/tbtime.js"></script>
+<script>
+/* Same theme pre-paint as the dashboard (Sydney clock). */
+(function(){
+  try {
+    var day=TBTime.dayKey(Date.now());
+    var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
+    var valid=['navy','day','ochre'].indexOf(name)!==-1;
+    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(TBTime.isDaytime(Date.now())?'day':'navy'):'navy';
+    var accent=localStorage.getItem('tipbot_theme_accent');
+    if(/^#[0-9a-f]{6}$/i.test(accent||''))document.documentElement.style.setProperty('--accent',accent);
+  }catch(e){document.documentElement.dataset.theme='navy';}
+}());
+</script>
+<style>
+/* Tokens only — Codex restyles from here. */
+:root,html[data-theme="navy"]{color-scheme:dark;--bg:#0b0f1a;--card:#151b2b;--card2:#1a2133;--line:#26304a;--txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;--accent:#5b8cff;--on-accent:#0b0f1a;--win:#2eaf62;--loss:#e5595f;--win-ink:#65d38f;--warn:#e0a04a;--warn-ink:#f0bf79;--radius:16px}
+html[data-theme="day"]{color-scheme:light;--bg:#f5f7fb;--card:#ffffff;--card2:#eef2f9;--line:#dbe2ee;--txt:#0f1726;--muted:#5a6577;--faint:#626d7f;--accent:#245ad6;--on-accent:#ffffff;--win:#2eaf62;--loss:#e5595f;--win-ink:#166536;--warn:#c9861f;--warn-ink:#775018}
+html[data-theme="ochre"]{color-scheme:dark;--bg:#17110c;--card:#241a10;--card2:#2c2015;--line:#4a3927;--txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;--accent:#e0a04a;--on-accent:#17110c;--win:#2eaf62;--loss:#e5595f;--win-ink:#65d38f;--warn:#e0a04a;--warn-ink:#f0bf79}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.wrap{max-width:760px;margin:0 auto;padding:16px 12px 48px;min-width:0}
+.back{display:inline-block;color:var(--muted);font-size:14px;margin-bottom:10px}
+.cmp-head h1{margin:0;font-size:22px}
+.cmp-sub{margin:4px 0 0;color:var(--muted);font-size:13px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:14px;min-width:0}
+.card h2{margin:0 0 10px;font-size:14px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.picks{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.pick{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card2);min-width:0}
+.pick-k{font-size:11px;color:var(--faint);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.pick-v{font-size:18px;font-weight:850;margin-top:2px}
+.pick-b{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pick .use{margin-top:8px;background:var(--accent);color:var(--on-accent);border:0;border-radius:9px;padding:6px 10px;font-weight:700;font-size:12.5px;cursor:pointer}
+.pick--empty .pick-v{color:var(--faint);font-size:14px}
+.stepper{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.stepper button{background:none;border:1px solid var(--line);border-radius:9px;min-width:36px;min-height:34px;cursor:pointer;color:var(--muted)}
+.stepper button:disabled{opacity:.4;cursor:default}
+.stepper .cur{font-weight:800}
+.lines{width:100%;border-collapse:separate;border-spacing:0 4px;table-layout:fixed}
+.lines th{font-size:11.5px;color:var(--faint);font-weight:800;text-align:center;padding:2px 4px}
+.lines th:first-child{text-align:left;width:64px}
+.lines td{background:var(--card2);padding:6px 4px;text-align:center;vertical-align:middle}
+.lines td:first-child{border-radius:10px 0 0 10px;text-align:left;padding-left:10px;font-weight:800}
+.lines td:last-child{border-radius:0 10px 10px 0}
+.lines tr.exact td{background:color-mix(in srgb,var(--accent) 16%,var(--card2))}
+.lines .off{display:block;font-size:10.5px;color:var(--faint);font-weight:600}
+.px{display:flex;flex-direction:column;gap:2px;align-items:center}
+.px button{background:none;border:1px solid transparent;border-radius:7px;padding:1px 6px;cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap}
+.px button:hover{border-color:var(--line)}
+.px .o::before{content:"O ";color:var(--faint);font-weight:600;font-size:11px}
+.px .u::before{content:"U ";color:var(--faint);font-weight:600;font-size:11px}
+.px .best_price{color:var(--win-ink);border-color:color-mix(in srgb,var(--win) 60%,var(--line))}
+.px .best_line{box-shadow:inset 0 0 0 1px var(--warn)}
+.px .na{color:var(--faint);font-size:12px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--faint);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.legend .lp{border:1px solid var(--win)}
+.legend .ll{box-shadow:inset 0 0 0 1px var(--warn)}
+.note{font-size:12.5px;color:var(--faint);margin-top:8px}
+.empty{text-align:center;color:var(--muted);padding:18px 8px}
+.empty h3{margin:0 0 6px;color:var(--txt);font-size:16px}
+.plist{display:grid;gap:6px;margin-top:10px;text-align:left}
+.plist a{display:flex;justify-content:space-between;gap:8px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--txt);font-weight:650}
+.plist a span{color:var(--faint);font-weight:500;font-size:12.5px}
+.btn{display:inline-block;background:var(--accent);color:var(--on-accent);border-radius:12px;padding:9px 16px;font-weight:700;margin-top:10px}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13.5px;box-shadow:0 10px 30px -10px rgb(0 0 0 / 60%);max-width:calc(100vw - 24px)}
+.sk{height:120px;border-radius:14px;background:var(--card);border:1px solid var(--line);margin-top:14px}
+@media(max-width:420px){.picks{grid-template-columns:minmax(0,1fr)}.lines th:first-child{width:52px}.px button{font-size:12px;padding:1px 3px}}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <a class="back" href="../">← Tipdash</a>
-    <h1>Player compare</h1>
-    <p class="muted" id="sub">Coming soon</p>
-    <div class="card">
-      <div id="who" style="font-weight:800;font-size:18px">—</div>
-      <div id="meta" class="faint" style="margin-top:8px"></div>
-      <p class="muted" style="margin:16px 0 0">Full head-to-head stats (form, season averages, vs opponent) will land here. This page is a placeholder so Compare links from the tip builder work today.</p>
-    </div>
-  </div>
-  <script>
-    (function(){
-      var q=new URLSearchParams(location.search);
-      var player=q.get("player")||"";
-      var stat=q.get("stat")||"";
-      var game=q.get("game")||"";
-      document.getElementById("who").textContent=player||"No player selected";
-      document.title=(player?player+" — ":"")+"Player compare — Tipdash";
-      var meta=[];
-      if(stat) meta.push('<span class="pill">'+esc(stat)+'</span>');
-      if(game) meta.push('<span class="pill">'+esc(game)+'</span>');
-      document.getElementById("meta").innerHTML=meta.join("")||'<span class="faint">No query params</span>';
-      document.getElementById("sub").textContent=player?("Compare · "+player):"Player compare — coming soon";
-      function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
-    })();
-  </script>
+<main class="wrap">
+  <a class="back" href="../">← Tipdash</a>
+  <header class="cmp-head"><h1 id="title">Compare</h1><p class="cmp-sub" id="sub"></p></header>
+  <div id="content"><div class="sk"></div><div class="sk"></div></div>
+</main>
+<script>
+(function(){
+  "use strict";
+  var API=(function(){
+    var d="https://afl-tipster-bot.onrender.com";
+    try{var q=new URLSearchParams(location.search).get("api");if(q&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname))return q.replace(/\/$/,"");}catch(e){}
+    return d;
+  })();
+  var PICK_KEY="tipdash_compare_pick";
+  var $=function(id){return document.getElementById(id);};
+  var qs=new URLSearchParams(location.search);
+  var S={player:qs.get("player")||"",stat:qs.get("stat")||"",game:qs.get("game")||"",gameId:qs.get("game_id")||"",
+         eventId:qs.get("event_id")||"",line:qs.get("line")||"",side:qs.get("side")||"",guild:qs.get("guild")||"",data:null};
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  function token(){try{return localStorage.getItem("tipbot_token");}catch(e){return null;}}
+  function num(v){return v==null||v===""||!isFinite(+v)?null:+v;}
+  function ln(v){v=num(v);return v==null?"–":(Math.abs(v-Math.round(v))<1e-9?String(Math.round(v)):String(v));}
+  function px(v){v=num(v);return v==null?"":v.toFixed(2);}
+  function toast(m){var t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=m;document.body.appendChild(t);setTimeout(function(){t.remove();},3500);}
+
+  function head(){
+    var d=S.data||{};
+    var name=d.player||S.player;
+    $("title").textContent=name?name:"Compare";
+    document.title=(name?name+" · ":"")+"Compare · Tipdash";
+    var bits=[];
+    if(d.stat||S.stat)bits.push('<span class="pill">'+esc(d.stat||S.stat)+'</span>');
+    if(S.game)bits.push('<span class="pill">'+esc(S.game)+'</span>');
+    bits.push('<span>Sportsbet · PointsBet · Ladbrokes</span>');
+    $("sub").innerHTML=bits.join("");
+  }
+  async function load(){
+    head();
+    if(!token()){$("content").innerHTML='<div class="card empty"><h3>Sign in first</h3><p>Compare uses your Tipdash session.</p><a class="btn" href="../">Open Tipdash</a></div>';return;}
+    var q=new URLSearchParams();
+    if(S.game)q.set("game",S.game);
+    if(S.eventId)q.set("event_id",S.eventId);
+    if(S.player)q.set("player",S.player);
+    if(S.stat)q.set("stat",S.stat);
+    if(S.line)q.set("line",S.line);
+    if(S.guild)q.set("guild_id",S.guild);
+    try{
+      var r=await fetch(API+"/api/compare?"+q.toString(),{headers:{Authorization:"Bearer "+token()},cache:"no-store"});
+      if(r.status===401)return render({ok:false,message:"Your session expired. Open Tipdash to sign in again."});
+      if(r.status===404)return render({ok:false,message:"Compare isn't on the bot yet (needs TipBot's latest deploy)."});
+      var j=await r.json().catch(function(){return {ok:false,message:"Bad response from TipBot."};});
+      S.data=j;render(j);
+    }catch(e){render({ok:false,message:"Couldn't reach TipBot (it may be waking up). Refresh in a moment."});}
+  }
+  function pickCard(label,p,side){
+    if(!p)return '<div class="pick pick--empty"><div class="pick-k">'+esc(label)+'</div><div class="pick-v">Not offered</div></div>';
+    return '<div class="pick" data-side="'+side+'"><div class="pick-k">'+esc(label)+'</div><div class="pick-v">'+(side==="over"?"Over ":"Under ")+esc(ln(p.line))+' @ '+esc(px(p.price))+'</div><div class="pick-b">'+esc(p.label)+'</div>'
+      +'<button class="use" type="button" data-line="'+esc(p.line)+'" data-side="'+side+'" data-book="'+esc(p.label)+'" data-price="'+esc(p.price)+'">Use in builder</button></div>';
+  }
+  function cell(c,line,bookLabel){
+    if(!c)return '<td><div class="px"><span class="na">—</span></div></td>';
+    function b(side,price,flags){
+      if(price==null)return '<span class="na">—</span>';
+      return '<button type="button" class="'+(side==="over"?"o":"u")+' '+(flags||[]).join(" ")+'" data-line="'+esc(line)+'" data-side="'+side+'" data-book="'+esc(bookLabel)+'" data-price="'+esc(price)+'" title="'+(side==="over"?"Over ":"Under ")+esc(ln(line))+' @ '+esc(px(price))+' · '+esc(bookLabel)+'">'+esc(px(price))+'</button>';
+    }
+    return '<td><div class="px">'+b("over",c.over,c.over_flags)+b("under",c.under,c.under_flags)+'</div></td>';
+  }
+  function render(d){
+    head();
+    var box=$("content");
+    if(!d||d.ok===false){box.innerHTML='<div class="card empty"><h3>Can\'t compare right now</h3><p>'+esc((d&&d.message)||"Something went wrong.")+'</p></div>';return;}
+    if(!d.available){
+      var list=(d.players||[]);
+      var html='<div class="card empty"><h3>'+esc(d.cached===false?"No odds cached for this game yet":(S.player?"No lines for "+S.player+(S.stat?" ("+S.stat+")":""):"Pick a player"))+'</h3>'
+        +(d.hint?'<p>'+esc(d.hint)+'</p>':'')
+        +(list.length?'<div class="plist">'+list.map(function(p){var u=new URLSearchParams(location.search);u.set("player",p.player);u.set("stat",p.stat);u.delete("line");return '<a href="?'+esc(u.toString())+'">'+esc(p.player)+'<span>'+esc(p.stat)+' · '+p.books+' book'+(p.books===1?"":"s")+'</span></a>';}).join("")+'</div>':'')
+        +'</div>';
+      box.innerHTML=html;return;
+    }
+    var books=d.books||[], idx=(d.lines||[]).indexOf(d.exact_line), best=d.best||{};
+    var html='<section class="card"><h2>Best value</h2><div class="picks">'
+      +pickCard("Best over at "+ln(d.exact_line),best.over_price,"over")
+      +pickCard("Best under at "+ln(d.exact_line),best.under_price,"under")
+      +pickCard("Easiest over (lowest line)",best.over_line,"over")
+      +pickCard("Most cushion under (highest line)",best.under_line,"under")
+      +'</div>'+(d.requested_quoted===false?'<p class="note">'+esc(ln(d.requested_line))+' isn\'t quoted; showing the nearest line.</p>':'')+'</section>'
+      +'<section class="card"><h2>Lines</h2>'
+      +'<div class="stepper"><button type="button" id="prevl" aria-label="Lower line"'+(idx<=0?" disabled":"")+'>−</button><span>Exact line <span class="cur">'+esc(ln(d.exact_line))+'</span></span><button type="button" id="nextl" aria-label="Higher line"'+(idx>=(d.lines||[]).length-1?" disabled":"")+'>+</button></div>'
+      +'<table class="lines"><thead><tr><th>Line</th>'+books.map(function(b){return '<th>'+esc(b.label)+'</th>';}).join("")+'</tr></thead><tbody>'
+      +(d.table||[]).map(function(row){
+        var off=row.offset?'<span class="off">'+(row.offset>0?"+":"")+row.offset+'</span>':'<span class="off">exact</span>';
+        return '<tr class="'+(row.exact?"exact":"")+'"><td>'+esc(ln(row.line))+off+'</td>'+books.map(function(b){return cell(row.cells[b.key],row.line,b.label);}).join("")+'</tr>';
+      }).join("")+'</tbody></table>'
+      +'<div class="legend"><span><i class="lp"></i>Best price at the exact line</span><span><i class="ll"></i>Best line (easiest over / most cushion under)</span></div>'
+      +'<p class="note">Tap any price to use it in the builder. From the TipBot odds cache'+(d.scraped_at?", as of "+esc(TBTime.fmtWhen(d.scraped_at)):"")+'. No live odds calls from this page.</p></section>'
+      +'<section class="card"><h2>Form</h2><p class="note">Last 5, season average and vs this opponent will show here once TipBot stores per-game player history.</p></section>';
+    box.innerHTML=html;
+    var lines=d.lines||[];
+    if($("prevl"))$("prevl").onclick=function(){go(lines[idx-1]);};
+    if($("nextl"))$("nextl").onclick=function(){go(lines[idx+1]);};
+    box.querySelectorAll("[data-line][data-side]").forEach(function(b){b.onclick=function(){usePick(b.dataset);};});
+  }
+  function go(line){
+    if(line==null)return;
+    S.line=String(line);
+    try{var u=new URL(location.href);u.searchParams.set("line",S.line);history.replaceState(null,"",u.pathname+u.search);}catch(e){}
+    load();
+  }
+  // Hand the choice back to the builder tab (it listens for this key), then
+  // return to it when this tab was opened from the builder.
+  function usePick(ds){
+    var d=S.data||{};
+    var pick={player:d.player||S.player,stat:d.stat||S.stat,line:+ds.line,side:ds.side==="under"?"Under":"Over",
+              book:ds.book,price:+ds.price,game:S.game,game_id:S.gameId,ts:Date.now()};
+    try{localStorage.setItem(PICK_KEY,JSON.stringify(pick));}catch(e){}
+    toast("Sent to the builder: "+pick.side+" "+ln(pick.line)+" @ "+px(pick.price)+" · "+pick.book);
+    try{if(window.opener&&!window.opener.closed){window.opener.focus();setTimeout(function(){window.close();},400);}}catch(e){}
+  }
+  load();
+})();
+</script>
 </body>
 </html>
