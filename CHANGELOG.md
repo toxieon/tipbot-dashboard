@@ -1,5 +1,39 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 2026-09-27 · `b2-landing` · Landing (Husker)
+
+Landed Claude's feature-pass UI and Codex's Master access/audit tabs on top of `f98decb`. There are no tipdash code changes of my own. What I checked:
+- `FEATURE_COMPARE` and `FEATURE_HEATMAPS` still default to `false`. They can only be turned on per browser with `?compare=1` / `?heatmaps=1`.
+- The master beta switch, "Set as master", lockdown apply and whitelist removal each ask for a `confirm()`.
+- The Master page's `?api=` override only works on localhost.
+- Codex's CRLF line endings were converted back to LF in CHANGELOG/REMAINING.
+- `node --test tests/*.test.js`: **8 passing**. TipBot backend lands first (828 passing on Linux with libsql).
+
+## 2026-09-27 · `master-access-ui` · Phase 1B companion (Codex)
+
+The Master page now has functional Lockdown & access and Audit log tabs, using the existing theme tokens and owner-only backend.
+
+**Changes**
+- Separate default-role checkbox, per-channel human-readable permission diff, explicit apply confirmation and expiring review token. Changing the choice or whitelist invalidates the shown review.
+- Whitelist add/edit/remove, default read-only, channel/category/source scope IDs kept as strings, queued-action status refresh and pause-repair control.
+- Administrator bypass warning, member count, audit-event filter and pagination. Missing endpoints show a deploy-needed message; network failures are handled.
+- Beta switch confirmation added; mobile whitelist entries stack without page overflow. No existing theme was redesigned.
+
+**Validation**
+- `node --test "tests/*.test.js"`: **8 passing** (5 inherited + 3 new); tests cover exact ID parsing and escaping.
+- Headless Chrome 375px/1280px: preview/confirm/apply, queue status, whitelist DELETE, audit, missing endpoint; clean console on normal flows and no page overflow. All API responses mocked locally.
+- Companion TipBot suite: 819 passing.
+
+**Unplanned / extra**
+- Brandon authorized local snapshot + Claude overlay as the base. No GitHub main merge was assumed.
+- These two tabs were brought forward from block 3 to make block 1B usable. Beta confirmation covers one of Husker's planned landing fixes.
+
+**Skipped / deferred**
+- Forwarding and Consensus tabs remain placeholders for their corresponding backend blocks.
+- No PR/deployment, live flag changes, domain edits or visual redesign. Real Discord behavior needs Ray's M3–M7 test-guild script.
+- Source scopes take effect when phase 1C creates forwarding mappings. Whitelist expiry remains an unapproved proposal.
+
+
 ## Summary of this build (2026-09-27 AEST, Claude)
 
 - **Base:** `f98decb` (PR #84). **Tests:** `node --test` 5 passing (new harness for the clock helper). Browser-checked at 375 px, 1200 px and in all three themes.
@@ -40,3 +74,8 @@
 - **`signup-gate`:** the "I'm in Australia" declaration screen (`#signup=`), the `region_declined` message, and the owner Settings row (toggle plus per-user Allow / Block / Clear).
 - **`compare`:** `compare/index.html` rebuilt (best value across SB / PB / Ladbrokes, line table, Use in builder); the builder's Compare link sends the game name, line and side; the builder receives picks through localStorage.
 - **Unplanned / extra:** the Scores time bug fix; the builder Compare link fix (it was sending an id the odds cache can't resolve).
+
+
+## Summary of this build (Codex continuation)
+
+Lockdown & access and Audit log are usable with the phase 1B backend. Eight unit tests and desktop/mobile browser checks pass. All feature defaults are unchanged.
