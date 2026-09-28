@@ -106,8 +106,8 @@ h1{margin:8px 0 2px;font-size:22px}
     return d;
   })();
   var $=function(id){return document.getElementById(id);};
-  var S={tab:"overview",cfg:null,cands:null,picked:null,report:null,msg:null,busy:false};
-  var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access",""],["forwarding","Forwarding","1C"],["consensus","Consensus","3"],["audit","Audit log",""]];
+  var S={tab:"overview",cfg:null,cands:null,picked:null,report:null,msg:null,busy:false,fwd:null};
+  var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access",""],["forwarding","Forwarding",""],["consensus","Consensus","3"],["audit","Audit log",""]];
   var access=MasterAccess.create({call:call,paint:paint,config:function(){return S.cfg||{};}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
   function token(){try{return localStorage.getItem("tipbot_token");}catch(e){return null;}}
@@ -138,7 +138,7 @@ h1{margin:8px 0 2px;font-size:22px}
   function overview(){
     var c=(S.cfg&&S.cfg.config)||{}, b=(S.cfg&&S.cfg.built)||{};
     return '<section class="card"><h2>Beta</h2><label class="switch"><input type="checkbox" id="beta"'+(c.beta_enabled?" checked":"")+(S.cfg.kill_switch_env?" disabled":"")+'> Master beta on</label>'
-      +'<p class="note">Off = TipBot behaves exactly as today. On = the master picked below replaces the old MASTER_GUILD_ID setting and the old mirror posts stop (forwarding replaces them once built).'+(S.cfg.kill_switch_env?' <b>MASTER_BETA_DISABLE is set on TipBot, so everything is forced off.</b>':'')+'</p></section>'
+      +'<p class="note">Off = TipBot behaves exactly as today. On = the master picked below replaces the old MASTER_GUILD_ID setting and the old mirror posts stop (forwarding replaces them once you switch it on).'+(S.cfg.kill_switch_env?' <b>MASTER_BETA_DISABLE is set on TipBot, so everything is forced off.</b>':'')+'</p></section>'
       +'<section class="card"><h2>Status</h2><div class="pills">'+pill("Master chosen",!!c.master_guild_id)+pill("Lockdown",c.lockdown_enabled,!b.lockdown)+pill("Forwarding",c.forwarding_enabled,!b.forwarding)+pill("Consensus",false,!b.consensus)+'</div>'
       +'<div class="stats" style="margin-top:12px"><div><div class="stat">'+esc(S.cfg.sources)+'</div><div class="stat-l">servers TipBot is in</div></div>'
       +'<div><div class="stat">'+esc(c.master_guild_id?"Set":"None")+'</div><div class="stat-l">master server'+(c.verified_at?" · verified "+esc(TBTime.fmtWhen(c.verified_at)):"")+'</div></div></div></section>'
@@ -170,15 +170,76 @@ h1{margin:8px 0 2px;font-size:22px}
   }
   function later(which){
     var t={lockdown:"Lock every master channel to you + TipBot + whitelisted users, auto-repair drift, alert on unknown joins.",
-           forwarding:"Forward every posted bet from every server into its own channel here, kept in sync with results and edits.",
            consensus:"Spot the same bets across servers and post a consensus bet.",audit:"Searchable master event log."}[which];
     return '<section class="card empty"><b>Not built yet.</b><p>'+esc(t)+'</p><p class="note">See REMAINING.md for the plan and cost.</p></section>';
   }
+  // ── Forwarding (1C) ─────────────────────────────────────────────────────
+  function when(ts){try{return ts?TBTime.fmtWhen(ts):"never";}catch(e){return esc(ts||"never");}}
+  function forwarding(){
+    var f=S.fwd;
+    if(f===null)return '<section class="card empty">Loading forwarding status…</section>';
+    if(f.missing)return '<section class="card empty"><b>Forwarding status isn\'t available.</b><p>'+esc(f.missing)+'</p><p><button class="btn ghost" id="fwd-refresh">Retry</button></p></section>';
+    var c=f.config||{}, n=f.counts||{}, blocked=c.kill_switch||!c.beta_enabled||!c.master_guild_id||!c.verified;
+    var why=c.kill_switch?"MASTER_BETA_DISABLE is set on TipBot, so forwarding is forced off.":(!c.beta_enabled?"Turn the master beta on first.":(!c.verified?"Pick and verify a master first.":""));
+    var h='<section class="card"><h2>Global</h2>'
+      +'<label class="switch"><input type="checkbox" id="fwd-on"'+(c.forwarding_enabled?" checked":"")+(blocked||S.busy?" disabled":"")+'> Forwarding on</label>'
+      +'<label class="switch" style="margin-top:8px"><input type="checkbox" id="fwd-pause"'+(c.forwarding_paused?" checked":"")+(blocked||S.busy?" disabled":"")+'> Paused (queue only, nothing is sent)</label>'
+      +'<p class="note">'+(why?'<b>'+esc(why)+'</b> ':'')+'Only tips posted after forwarding (and the server below) are switched on are forwarded. Nothing older is back-filled.'
+      +(c.forwarding_enabled_at?' Last switched on '+esc(when(c.forwarding_enabled_at))+'.':'')+'</p></section>';
+    h+='<section class="card"><h2>Status</h2><div class="stats">'
+      +[["posted","forwarded"],["queued","queued"],["failed","retrying"],["dead","gave up"]].map(function(k){return '<div><div class="stat">'+esc(n[k[0]]||0)+'</div><div class="stat-l">'+esc(k[1])+'</div></div>';}).join("")
+      +'<div><div class="stat">'+esc(f.queue_depth||0)+'</div><div class="stat-l">queue depth</div></div>'
+      +'<div><div class="stat">'+esc(f.duplicates_found||0)+'</div><div class="stat-l">duplicates found</div></div></div>'
+      +(f.last_error&&f.last_error.last_error?'<p class="note">Last error'+(f.last_error.source_tip_id?' ('+esc(f.last_error.source_tip_id)+')':'')+': '+esc(f.last_error.last_error)+'</p>':'')
+      +'<p class="note"><button class="btn ghost" id="fwd-refresh">Refresh</button></p></section>';
+    var src=f.sources||[];
+    h+='<section class="card"><h2>Servers</h2>'+(!src.length?'<div class="empty">No mirror channels yet. They appear once the master server is set and the mirror has run.</div>':
+      '<div class="access-table"><table><thead><tr><th>Server</th><th>Channel</th><th>State</th><th>Forward</th><th>Last forward</th><th>Posted / queued</th></tr></thead><tbody>'
+      +src.map(function(r){
+        var active=r.status==="active", cn=r.counts||{};
+        return '<tr><td>'+esc(r.name||r.source_guild_id)+'</td><td><code>#'+esc(r.channel_name||"?")+'</code></td>'
+          +'<td>'+(active?"Active":"No Longer Active")+'</td>'
+          +'<td><label class="switch"><input type="checkbox" class="fwd-src" data-src="'+esc(r.source_guild_id)+'"'+(r.forward_enabled?" checked":"")+(S.busy||c.kill_switch?" disabled":"")+'> '+(r.forward_enabled?"on":"off")+'</label></td>'
+          +'<td>'+esc(when(r.last_forward_at))+'</td><td>'+esc((cn.posted||0)+" / "+((cn.queued||0)+(cn.failed||0)))+'</td></tr>';
+      }).join("")+'</tbody></table></div>')
+      +'<p class="note">Turning a server on forwards its new tips into its mirror channel. Servers under No Longer Active never get posts or edits; their queue catches up if they come back.</p></section>';
+    return h+(S.msg?'<div class="banner '+S.msg.cls+'">'+esc(S.msg.text)+'</div>':'');
+  }
+  async function loadFwd(){
+    var r=await call("/api/master/forward/status");
+    if(r._status===404)S.fwd={missing:"This needs TipBot's latest deploy."};
+    else if(!r.ok)S.fwd={missing:r.error==="bot_not_ready"?"TipBot is still starting. Retry in a few seconds.":(r.error||"Couldn't load forwarding status.")};
+    else S.fwd=r;
+    if(S.tab==="forwarding")paint();
+  }
+  async function saveFwd(body,label){
+    S.busy=true;S.msg=null;paint();
+    var r=await call(body.source_guild_id?"/api/master/forward/source":"/api/master/config",body);
+    S.busy=false;
+    S.msg=r.ok?{cls:"ok",text:label}:{cls:"err",text:r._status===404?"This needs TipBot's latest deploy.":(r.error||"Couldn't save")};
+    if(r.ok&&r.config&&S.cfg)S.cfg.config=r.config;
+    await loadFwd();paint();
+  }
+  function bindFwd(){
+    var rf=$("fwd-refresh"); if(rf)rf.onclick=function(){S.fwd=null;S.msg=null;paint();loadFwd();};
+    var on=$("fwd-on"); if(on)on.onchange=function(){
+      if(!confirm("Turn forwarding "+(on.checked?"ON? Tips from servers switched on below will be posted into their mirror channels.":"OFF? Nothing more is forwarded until you turn it back on."))){paint();return;}
+      saveFwd({forwarding_enabled:on.checked},"Forwarding "+(on.checked?"on":"off")+".");
+    };
+    var pz=$("fwd-pause"); if(pz)pz.onchange=function(){
+      saveFwd({forwarding_paused:pz.checked},pz.checked?"Paused: changes queue up, nothing is sent.":"Resumed: queued changes will send now.");
+    };
+    document.querySelectorAll(".fwd-src").forEach(function(b){b.onchange=function(){
+      if(!confirm("Turn forwarding "+(b.checked?"on":"off")+" for this server?")){paint();return;}
+      saveFwd({source_guild_id:b.dataset.src,enabled:b.checked},"Server forwarding "+(b.checked?"on":"off")+".");
+    };});
+  }
   function paint(){
-    var body=S.tab==="overview"?overview():(S.tab==="master"?master():S.tab==="lockdown"?access.lockdown():S.tab==="audit"?access.audit():later(S.tab));
+    var body=S.tab==="overview"?overview():(S.tab==="master"?master():S.tab==="lockdown"?access.lockdown():S.tab==="audit"?access.audit():S.tab==="forwarding"?forwarding():later(S.tab));
     render(tabs()+body);
-    document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.msg=null;if(S.tab==="master"&&S.cands===null)loadCands();paint();access.enter(S.tab);};});
+    document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.msg=null;if(S.tab==="master"&&S.cands===null)loadCands();if(S.tab==="forwarding"){S.fwd=null;loadFwd();}paint();access.enter(S.tab);};});
     access.bind(S.tab);
+    if(S.tab==="forwarding")bindFwd();
     var beta=$("beta"); if(beta)beta.onchange=async function(){
       if(!confirm("Turn master beta "+(beta.checked?"on":"off")+"? This changes master behavior; existing Discord permissions stay in place.")){paint();return;}
       beta.disabled=true;

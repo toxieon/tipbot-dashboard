@@ -1,5 +1,12 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 2026-09-28 · `forwarding-1c` · Forwarding tab (Claude, Block 1C)
+
+- `master/index.html`: the placeholder **Forwarding** tab (previously labelled "phase 1C") now shows the global **Forwarding on** and **Paused** switches (`POST /api/master/config`, each with a confirm), a status panel (forwarded / queued / retrying / gave up / queue depth / duplicates found / last error) and a per-server table (channel, Active or No Longer Active, per-server toggle via `POST /api/master/forward/source`, last forward, counts).
+- If `/api/master/forward/status` is missing (TipBot not deployed yet) or errors, the tab shows "This needs TipBot's latest deploy." with a Retry button. The switches are disabled while `MASTER_BETA_DISABLE` is set, beta is off or no master is verified.
+- No theme or design changes; it reuses the existing card, stats and access-table styles.
+- Tests: `node --test tests/*.test.js` **13 passing** (unchanged). Local mocked browser smoke at 375 and 1280 px (normal, toggles, 404): no horizontal scroll, 0 page errors, and the two POST bodies were as expected.
+
 ## 2026-09-28 · `p3-dash-notes` · Phase 3 assessment + remaining list (Husker)
 
 - **#5 (split the builder/admin JS): assessed, not done.** `index.html` is 510 KB raw but **139 KB gzip on the wire** (Pages sends `content-encoding: gzip`, `max-age=600`). The 431 KB main script is one closure: 347 top-level functions, and the builder alone references `BUILD` 436×, interleaved with shared `STATE`, `api`, `$` and `esc`. Moving it to on-demand assets safely means first exposing that shared state through a small module boundary, then a browser pass over every builder/admin flow with an owner token. That is a ~1–1.5M block, not a small safe change for an unattended night, so it is scoped in REMAINING.md.
