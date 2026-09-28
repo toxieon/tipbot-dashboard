@@ -18,9 +18,9 @@ The estimates are the original handoff's **unverified effective-token estimates*
 |---|---|---|
 | 1B deployment validation | Ray's test-guild M1/M2 then M3–M7 on disposable guilds | External validation |
 | **1C forwarding: merged OFF in 0.36.1** (2026-09-28, `forwarding-1c`) | Brandon: run the §4 manual test plan in Discord (Tip2 only first). Not built, by design: backfill posting and the optional backfill dry-run count | Done; follow-ups are small |
-| Master UI | Consensus tab with block 5 (the Forwarding tab is done, 1C) | Part of 1.5–2M |
+| Master UI | Done: Forwarding (1C) and Consensus (1.2) tabs | Done |
 | **Sport routing: built OFF in 0.37.1** (`sport-routing`, handoff Phase 1.1) | Brandon: turn on `feat.sport_routing` on a test server and run the Phase 1 routing checks. Later proposal: auto-suggest tags from channel names | Done |
-| Phase 3 consensus | Leg normalization, clusters, thresholds, preview, durable post/edit, freeze/settle, target selection | 6–8M |
+| **Consensus: built OFF in 0.38.1** (`consensus`, handoff Phase 1.2) | Brandon: use the tab's dry-run preview first. Not built by design: combo (whole-multi) consensus, per-sport consensus channels | Done |
 | NBA grading | NBA/WNBA legs are free text today. Needs structured NBA props in the builder plus a box-score extractor, then the same path as NFL | ~0.5–1M |
 | Faster first reconcile | Startup ledger replay handles 750 records per guild one at a time (about 9.5 min after boot). Replay only the newest snapshot per tip, or skip records older than the DB row; needs a real-guild replay test | ~0.3–0.6M |
 | tipdash split (#5) | Lazy-load builder/admin JS. The 431 KB main block is one closure (the builder alone references `BUILD` 436×, 347 top-level functions), so a safe split means exposing shared state first. Wire size today is 139 KB gzip | ~1–1.5M |

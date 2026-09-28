@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
 <script src="../assets/tbtime.js"></script>
 <script src="../assets/master-access.js"></script>
+<script src="../assets/consensus-ui.js"></script>
 <script>
 (function(){
   try {
@@ -107,8 +108,9 @@ h1{margin:8px 0 2px;font-size:22px}
   })();
   var $=function(id){return document.getElementById(id);};
   var S={tab:"overview",cfg:null,cands:null,picked:null,report:null,msg:null,busy:false,fwd:null};
-  var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access",""],["forwarding","Forwarding",""],["consensus","Consensus","3"],["audit","Audit log",""]];
+  var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access",""],["forwarding","Forwarding",""],["consensus","Consensus",""],["audit","Audit log",""]];
   var access=MasterAccess.create({call:call,paint:paint,config:function(){return S.cfg||{};}});
+  var cons=ConsensusUI.create({call:call,paint:function(){paint();},when:function(t){try{return TBTime.fmtWhen(t);}catch(e){return t;}}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
   function token(){try{return localStorage.getItem("tipbot_token");}catch(e){return null;}}
   async function call(path,body,method){
@@ -128,6 +130,7 @@ h1{margin:8px 0 2px;font-size:22px}
       if(c._status===401)return render('<div class="card empty"><b>Session expired.</b> <a href="../">Sign in again</a>.</div>');
       if(c._status===404)return render('<div class="card empty">This needs TipBot\'s latest deploy.</div>');
       S.cfg=c;paint();
+      if(c.built&&c.built.consensus)cons.load();
     }catch(e){render('<div class="card empty">Couldn\'t reach TipBot (it may be waking up). Refresh in a moment.</div>');}
   }
   function render(h){$("app").innerHTML=h;}
@@ -139,7 +142,7 @@ h1{margin:8px 0 2px;font-size:22px}
     var c=(S.cfg&&S.cfg.config)||{}, b=(S.cfg&&S.cfg.built)||{};
     return '<section class="card"><h2>Beta</h2><label class="switch"><input type="checkbox" id="beta"'+(c.beta_enabled?" checked":"")+(S.cfg.kill_switch_env?" disabled":"")+'> Master beta on</label>'
       +'<p class="note">Off = TipBot behaves exactly as today. On = the master picked below replaces the old MASTER_GUILD_ID setting and the old mirror posts stop (forwarding replaces them once you switch it on).'+(S.cfg.kill_switch_env?' <b>MASTER_BETA_DISABLE is set on TipBot, so everything is forced off.</b>':'')+'</p></section>'
-      +'<section class="card"><h2>Status</h2><div class="pills">'+pill("Master chosen",!!c.master_guild_id)+pill("Lockdown",c.lockdown_enabled,!b.lockdown)+pill("Forwarding",c.forwarding_enabled,!b.forwarding)+pill("Consensus",false,!b.consensus)+'</div>'
+      +'<section class="card"><h2>Status</h2><div class="pills">'+pill("Master chosen",!!c.master_guild_id)+pill("Lockdown",c.lockdown_enabled,!b.lockdown)+pill("Forwarding",c.forwarding_enabled,!b.forwarding)+pill("Consensus",!!(cons.state().data&&cons.state().data.settings.enabled&&!cons.state().data.settings.dry_run),!b.consensus)+'</div>'
       +'<div class="stats" style="margin-top:12px"><div><div class="stat">'+esc(S.cfg.sources)+'</div><div class="stat-l">servers TipBot is in</div></div>'
       +'<div><div class="stat">'+esc(c.master_guild_id?"Set":"None")+'</div><div class="stat-l">master server'+(c.verified_at?" · verified "+esc(TBTime.fmtWhen(c.verified_at)):"")+'</div></div></div></section>'
       +(S.msg?'<div class="banner '+S.msg.cls+'">'+esc(S.msg.text)+'</div>':'');
@@ -235,11 +238,12 @@ h1{margin:8px 0 2px;font-size:22px}
     };});
   }
   function paint(){
-    var body=S.tab==="overview"?overview():(S.tab==="master"?master():S.tab==="lockdown"?access.lockdown():S.tab==="audit"?access.audit():S.tab==="forwarding"?forwarding():later(S.tab));
+    var body=S.tab==="overview"?overview():(S.tab==="master"?master():S.tab==="lockdown"?access.lockdown():S.tab==="audit"?access.audit():S.tab==="forwarding"?forwarding():S.tab==="consensus"?cons.view():later(S.tab));
     render(tabs()+body);
-    document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.msg=null;if(S.tab==="master"&&S.cands===null)loadCands();if(S.tab==="forwarding"){S.fwd=null;loadFwd();}paint();access.enter(S.tab);};});
+    document.querySelectorAll(".tab").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;S.msg=null;if(S.tab==="master"&&S.cands===null)loadCands();if(S.tab==="forwarding"){S.fwd=null;loadFwd();}if(S.tab==="consensus"&&!cons.state().data)cons.load();paint();access.enter(S.tab);};});
     access.bind(S.tab);
     if(S.tab==="forwarding")bindFwd();
+    if(S.tab==="consensus")cons.bind();
     var beta=$("beta"); if(beta)beta.onchange=async function(){
       if(!confirm("Turn master beta "+(beta.checked?"on":"off")+"? This changes master behavior; existing Discord permissions stay in place.")){paint();return;}
       beta.disabled=true;
