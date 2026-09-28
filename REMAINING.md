@@ -17,8 +17,8 @@ The estimates are the original handoff's **unverified effective-token estimates*
 | Block | Work remaining | Inherited estimate |
 |---|---|---|
 | 1B deployment validation | Ray's test-guild M1/M2 then M3–M7 on disposable guilds | External validation |
-| **1C forwarding (next)** | Durable claim before send; UNIQUE tip/master; footer marker + history adoption; hooks, channel maps, edit sync, reconciler, backfill preview, rate limits, duplicate counter. Must log `forward_saved/forward_removed` master_events (the lockdown policy version reads them) | 5–7M |
-| Master UI | Forwarding tab and status details; Consensus tab with block 5 | Part of 1.5–2M |
+| **1C forwarding: merged OFF in 0.36.1** (2026-09-28, `forwarding-1c`) | Brandon: run the §4 manual test plan in Discord (Tip2 only first). Not built, by design: backfill posting and the optional backfill dry-run count | Done; follow-ups are small |
+| Master UI | Consensus tab with block 5 (the Forwarding tab is done, 1C) | Part of 1.5–2M |
 | Phase 2 routing | Sport classifier + JS vectors, per-channel tracking, publish/reactions/updates/replay, settings and post-time decisions | 7–10M |
 | Phase 3 consensus | Leg normalization, clusters, thresholds, preview, durable post/edit, freeze/settle, target selection | 6–8M |
 | NBA grading | NBA/WNBA legs are free text today. Needs structured NBA props in the builder plus a box-score extractor, then the same path as NFL | ~0.5–1M |
@@ -35,7 +35,7 @@ The estimates are the original handoff's **unverified effective-token estimates*
 - The legacy picker `locate_master()` suggestion and the cleanup resolver patch are merged (TipBot #90).
 - Run real Discord M3–M7 on disposable test guilds, including whitelisting an absent member, forum/thread and voice read-only behavior, permission failures, owner transfer and restart during partial apply.
 - The suites run on Linux with the prod libsql driver (0.0.55) against a local libsql file; there are no Turso credentials on the box.
-- Audit notifications are at-most-once: ambiguous sends produce `notice_uncertain` and are not resent. DB events remain authoritative. Phase 1C still needs its full history-adoption/retry design.
+- Audit notifications are at-most-once: ambiguous sends produce `notice_uncertain` and are not resent. DB events remain authoritative. Phase 1C forwards use their own claim + footer-marker history adoption (see CHANGELOG `forwarding-1c`); the audit/alert notices stay at-most-once.
 - If an apply crashes after enabling lockdown, startup audit repairs remaining channels. Its old queue row may still show processing; inspect audit events and run a fresh dry run for an explicit action result.
 
 ## Decisions / assumptions
