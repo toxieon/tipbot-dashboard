@@ -1,11 +1,12 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
-## 2026-09-28 · `forwarding-1c` · Forwarding tab (Claude, Block 1C)
+## 0.36.1 · 2026-09-28 · `forwarding-1c` · Forwarding tab (Claude, Block 1C)
 
 - `master/index.html`: the placeholder **Forwarding** tab (previously labelled "phase 1C") now shows the global **Forwarding on** and **Paused** switches (`POST /api/master/config`, each with a confirm), a status panel (forwarded / queued / retrying / gave up / queue depth / duplicates found / last error) and a per-server table (channel, Active or No Longer Active, per-server toggle via `POST /api/master/forward/source`, last forward, counts).
 - If `/api/master/forward/status` is missing (TipBot not deployed yet) or errors, the tab shows "This needs TipBot's latest deploy." with a Retry button. The switches are disabled while `MASTER_BETA_DISABLE` is set, beta is off or no master is verified.
 - No theme or design changes; it reuses the existing card, stats and access-table styles.
-- Tests: `node --test tests/*.test.js` **13 passing** (unchanged). Local mocked browser smoke at 375 and 1280 px (normal, toggles, 404): no horizontal scroll, 0 page errors, and the two POST bodies were as expected.
+- **Versioning (new).** `VERSION` file (`0.36.1`) and `VERSIONING.md` (the bump rule for every merge to `main`). The version shows at the bottom of the ⚙ Settings menu (`tipdash v0.36.1`). History replay put `main` at 0.35.3 after #88, so this merge is 0.36.1.
+- Tests: `node --test tests/*.test.js` **13 → 15 passing** (+2 in `tests/version.test.js`: VERSION format, and the Settings-menu label and CHANGELOG match it). Local mocked browser smoke at 375 and 1280 px (normal, toggles, 404): no horizontal scroll, 0 page errors, and the two POST bodies were as expected.
 
 ## 2026-09-28 · `p3-dash-notes` · Phase 3 assessment + remaining list (Husker)
 
