@@ -1,5 +1,13 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.38.1 · 2026-09-28 · `consensus` · Consensus tab + shared half-point helper (Claude, Phase 1.2)
+
+Needs TipBot 0.38.1. Consensus ships OFF (on = false, dry run = true).
+- **Master → Consensus tab** (`assets/consensus-ui.js`) replaces the placeholder: the Consensus on / Dry run / Paused switches (each with a confirm; turning dry run off needs the beta on and a verified master), the settings form (minimum servers, minimum % of active servers, window, line tolerance, before-start rule, multi legs, sports, what the post shows) and a **live "what would qualify right now" preview** (`GET /api/consensus/preview` with the unsaved values). A missing endpoint shows "This needs TipBot’s latest deploy." with Retry. The Overview status pill shows Consensus on only when it is on with dry run off.
+- **Half-point rule moved to `assets/lines.js`** unchanged (`applyHalfPointLine`, `normalizePropLines`, `lineAdjustNote`); `index.html` calls it, so builder behaviour is identical. TipBot now has a Python twin, checked by the shared `tests/fixtures/half_point_vectors.json` (same bytes in both repos).
+- No theme or design work: existing master card, switch, pill, stats and table styles.
+- Tests: **28 → 38 passing** (+4 `lines.test.js`: shared vectors + wiring; +6 `consensus_ui.test.js`: form validation, preview query, missing endpoint, rendering, tab wiring). Mocked browser check of the Consensus tab at 390 and 1280 px: 0 page errors, no horizontal scroll.
+
 ## 0.37.1 · 2026-09-28 · `sport-routing` · Sport routing popups + settings (Claude, Phase 1.1)
 
 Needs TipBot 0.37.1. **Nothing changes until a server turns on sport routing** (`feat.sport_routing`, default off).

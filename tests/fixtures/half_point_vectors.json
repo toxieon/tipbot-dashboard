@@ -1,0 +1,22 @@
+{
+  "about": "Brandon's half-point rule parity vectors (Phase 1.2/1.3). Identical bytes in TipBot tests/fixtures and tipdash tests/fixtures. Python: services/lines.apply_half_point. JS: assets/lines.js applyHalfPointLine.",
+  "cases": [
+    {"name": "whole Over", "in": {"player": "Erone Fitzpatrick", "stat": "Disposals", "line": 20, "side": "Over"}, "out": {"player": "Erone Fitzpatrick", "stat": "Disposals", "line": 19.5, "side": "Over", "line_adjusted_from": 20}},
+    {"name": "whole Under", "in": {"player": "X", "stat": "Disposals", "line": 20, "side": "Under"}, "out": {"player": "X", "stat": "Disposals", "line": 19.5, "side": "Under", "line_adjusted_from": 20}},
+    {"name": "15+ as text", "in": {"player": "X", "stat": "Disposals", "line": "15+", "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": 14.5, "side": "Over", "line_adjusted_from": 15}},
+    {"name": "whole as text", "in": {"player": "X", "stat": "Marks", "line": "6", "side": "Over"}, "out": {"player": "X", "stat": "Marks", "line": 5.5, "side": "Over", "line_adjusted_from": 6}},
+    {"name": "1+ goal", "in": {"player": "Poppy Scholz", "stat": "Goals", "line": 1, "side": "Over"}, "out": {"player": "Poppy Scholz", "stat": "Goals", "line": 0.5, "side": "Over", "line_adjusted_from": 1}},
+    {"name": "25.0", "in": {"player": "X", "stat": "Disposals", "line": 25.0, "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": 24.5, "side": "Over", "line_adjusted_from": 25}},
+    {"name": "half line unchanged", "in": {"player": "X", "stat": "Disposals", "line": 19.5, "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": 19.5, "side": "Over"}},
+    {"name": "already adjusted", "in": {"player": "X", "stat": "Disposals", "line": 19.5, "side": "Over", "line_adjusted_from": 20}, "out": {"player": "X", "stat": "Disposals", "line": 19.5, "side": "Over", "line_adjusted_from": 20}},
+    {"name": "zero unchanged", "in": {"player": "X", "stat": "Goals", "line": 0, "side": "Over"}, "out": {"player": "X", "stat": "Goals", "line": 0, "side": "Over"}},
+    {"name": "negative unchanged", "in": {"player": "X", "stat": "Disposals", "line": -2, "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": -2, "side": "Over"}},
+    {"name": "market leg unchanged", "in": {"player": "X", "market": "First Goal", "desc": "X to kick the first goal", "line": 1}, "out": {"player": "X", "market": "First Goal", "desc": "X to kick the first goal", "line": 1}},
+    {"name": "custom leg unchanged", "in": {"custom": true, "desc": "X 20+ disposals", "line": 20}, "out": {"custom": true, "desc": "X 20+ disposals", "line": 20}},
+    {"name": "desc without stat unchanged", "in": {"desc": "Carlton H2H", "line": 3}, "out": {"desc": "Carlton H2H", "line": 3}},
+    {"name": "no line", "in": {"player": "X", "stat": "Disposals", "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "side": "Over"}},
+    {"name": "empty line", "in": {"player": "X", "stat": "Disposals", "line": "", "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": "", "side": "Over"}},
+    {"name": "null line", "in": {"player": "X", "stat": "Disposals", "line": null, "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": null, "side": "Over"}},
+    {"name": "garbage line", "in": {"player": "X", "stat": "Disposals", "line": "abc", "side": "Over"}, "out": {"player": "X", "stat": "Disposals", "line": "abc", "side": "Over"}}
+  ]
+}
