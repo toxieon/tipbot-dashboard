@@ -26,6 +26,7 @@ The estimates are the original handoff's **unverified effective-token estimates*
 | tipdash split (#5) | Lazy-load builder/admin JS. The 431 KB main block is one closure (the builder alone references `BUILD` 436×, 347 top-level functions), so a safe split means exposing shared state first. Wire size today is 139 KB gzip | ~1–1.5M |
 | Player history | Additive per-game stats, forward fill, L5/VS and Compare form | 3–4.5M |
 | TipSheet polish | Needs a real sheet from Brandon | 1–1.5M |
+| **Slip import card: 0.39.1** (`slip-import`, handoff Phase 1.3) | Brandon: set the vision key/model on TipBot, then the #slips channel and target here | Done |
 | Optional proposals | None approved; each separately flagged | 0.5–2M each |
 
 ## Integration and validation
