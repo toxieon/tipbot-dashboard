@@ -1,5 +1,9 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.39.2 · 2026-09-29 · `hide-master-home` · TipBot Master Server hidden from the home servers list
+
+- The home servers list (and the one-server auto-open) skips the configured master guild. The id comes from the owner's `/api/master/config` (`config.master_guild_id`), with the known id `1553952007923040309` covering the first paint; never matched by name. View-as, the ⚙ menu and the Master pages (`/master/`) are unchanged, so the master server is still reachable there.
+
 ## 0.39.1 · 2026-09-28 · `slip-import` · Slip import card (Claude, Phase 1.3)
 
 Needs TipBot 0.39.1. Off by default.

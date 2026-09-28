@@ -818,7 +818,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.39.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.39.2</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1466,7 +1466,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){
-    const admin=visibleServers();
+    const admin=homeServers();
     const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
     if(admin.length===1 && !follows.length){ return loadDetail(admin[0].guild_id); }
     if(!admin.length && follows.length===1){ return openFollowerView(follows[0].guild_id, follows[0].display_name); }
@@ -1727,10 +1727,26 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
     box.appendChild(it);});}
   const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
+  // The TipBot Master Server is reached via the Master pages, not the home servers list.
+  // Identified by the configured master guild id (owner /api/master/config); the known id covers the first paint.
+  STATE.masterGuildId="1553952007923040309";
+  let masterCfgAsked=false;
+  function loadMasterGuildId(){
+    if(STATE.role!=="owner"||masterCfgAsked) return;
+    masterCfgAsked=true;
+    api("/api/master/config").then(r=>r&&r.ok?r.json():null).then(c=>{
+      if(!c||!c.config||!("master_guild_id" in c.config)) return;
+      const id=c.config.master_guild_id?String(c.config.master_guild_id):null;
+      if(id===STATE.masterGuildId) return;
+      STATE.masterGuildId=id;
+      if(!$("overview").hidden) try{ renderOverview(); }catch(e){}
+    }).catch(()=>{});
+  }
+  const homeServers=()=>STATE.viewAs?visibleServers():visibleServers().filter(s=>!STATE.masterGuildId||String(s.guild_id)!==STATE.masterGuildId);
 
   function renderOverview(){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    panel("overview");const ov=$("overview");ov.innerHTML="";const list=visibleServers();
+    panel("overview");const ov=$("overview");ov.innerHTML="";loadMasterGuildId();const list=homeServers();
     const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
     if(list.length){
       ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
