@@ -1,5 +1,15 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.37.1 · 2026-09-28 · `sport-routing` · Sport routing popups + settings (Claude, Phase 1.1)
+
+Needs TipBot 0.37.1. **Nothing changes until a server turns on sport routing** (`feat.sport_routing`, default off).
+- **Post-time decisions** (`assets/routing.js`). Before the confirm step of Review/Schedule, custom tips and batches, tipdash asks `POST /api/routing/preview` where each tip goes. One channel: no popup, just a chip on the confirm (“→ #afl-plays”). Rules clash (several tags/channels, not “post to all”): a popup lists each candidate channel with why it matched, checkboxes, and “Remember this choice” (admins). More than one channel in the end (including a “post to all” rule): a confirm popup lists the channels. Nothing matched: “Post to #tips (default) / pick a channel / cancel”. The choice travels with the tip as `route`; TipBot re-checks it. Batches ask per tip, only where needed.
+- If routing is off, the endpoint is missing (older TipBot) or the preview fails, the tip is sent exactly as before (no `route`, TipBot decides).
+- **Settings → Channels → Sport routing (beta)**, below the existing routing list: the “Enable sport routing (beta)” switch (existing feature-flags endpoint), the default channel (the Tips picker), a tag table (on/off, channels, keywords, priority, “Ask” / “Post to all”), add/delete custom tags, the multi-sport mode, the non-interactive rule, remembered choices with Delete, and a test box. Saves to `POST /api/routing` (server admins). A missing endpoint shows “This needs TipBot’s latest deploy.” with Retry.
+- `assets/sport-keywords.js`: the keyword matcher, identical to TipBot’s (shared vectors in `tests/fixtures/sport_keywords_vectors.json`), used for live keyword validation (50 terms, 60 characters).
+- No theme or design work: the popups reuse the countdown-confirm sheet styles (`NDCountdownConfirm.injectStyles` is now exported), and the settings reuse the existing panel/feature-row/select styles.
+- Tests: `node --test tests/*.test.js` **15 → 28 passing** (+4 `sport_keywords.test.js`, +9 `routing.test.js`: single, conflict, multi-confirm, none, cancel, batch, and missing endpoint / routing off / network error). Local mocked browser check at 390 and 1280 px: 0 page errors.
+
 ## 0.36.1 · 2026-09-28 · `forwarding-1c` · Forwarding tab (Claude, Block 1C)
 
 - `master/index.html`: the placeholder **Forwarding** tab (previously labelled "phase 1C") now shows the global **Forwarding on** and **Paused** switches (`POST /api/master/config`, each with a confirm), a status panel (forwarded / queued / retrying / gave up / queue depth / duplicates found / last error) and a per-server table (channel, Active or No Longer Active, per-server toggle via `POST /api/master/forward/source`, last forward, counts).
