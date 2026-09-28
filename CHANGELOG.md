@@ -1,5 +1,12 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.39.1 · 2026-09-28 · `slip-import` · Slip import card (Claude, Phase 1.3)
+
+Needs TipBot 0.39.1. Off by default.
+- **Master → Overview → Slip import** card (`assets/slip-ui.js`): the Slip import on/off switch, the #slips channel picker (master server channels), the default target server (with its unit size), and status: vision key set yes/no, model, drafts today and approximate spend (today and this month). Saves to `POST /api/owner/slip-import/settings`. A missing endpoint shows "This needs TipBot’s latest deploy." with Retry.
+- No theme or design work: existing master card, switch, select and stats styles.
+- Tests: **38 → 42 passing** (+4 `slip_ui.test.js`). Mocked browser check of the Overview tab at 390 and 1280 px: 0 page errors, no horizontal scroll.
+
 ## 0.38.1 · 2026-09-28 · `consensus` · Consensus tab + shared half-point helper (Claude, Phase 1.2)
 
 Needs TipBot 0.38.1. Consensus ships OFF (on = false, dry run = true).

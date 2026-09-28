@@ -10,6 +10,7 @@
 <script src="../assets/tbtime.js"></script>
 <script src="../assets/master-access.js"></script>
 <script src="../assets/consensus-ui.js"></script>
+<script src="../assets/slip-ui.js"></script>
 <script>
 (function(){
   try {
@@ -110,6 +111,7 @@ h1{margin:8px 0 2px;font-size:22px}
   var S={tab:"overview",cfg:null,cands:null,picked:null,report:null,msg:null,busy:false,fwd:null};
   var TABS=[["overview","Overview",""],["master","Master server",""],["lockdown","Lockdown & access",""],["forwarding","Forwarding",""],["consensus","Consensus",""],["audit","Audit log",""]];
   var access=MasterAccess.create({call:call,paint:paint,config:function(){return S.cfg||{};}});
+  var slip=SlipUI.create({call:call,paint:function(){if(S.tab==="overview")paint();}});
   var cons=ConsensusUI.create({call:call,paint:function(){paint();},when:function(t){try{return TBTime.fmtWhen(t);}catch(e){return t;}}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
   function token(){try{return localStorage.getItem("tipbot_token");}catch(e){return null;}}
@@ -131,6 +133,7 @@ h1{margin:8px 0 2px;font-size:22px}
       if(c._status===404)return render('<div class="card empty">This needs TipBot\'s latest deploy.</div>');
       S.cfg=c;paint();
       if(c.built&&c.built.consensus)cons.load();
+      slip.load();
     }catch(e){render('<div class="card empty">Couldn\'t reach TipBot (it may be waking up). Refresh in a moment.</div>');}
   }
   function render(h){$("app").innerHTML=h;}
@@ -145,7 +148,8 @@ h1{margin:8px 0 2px;font-size:22px}
       +'<section class="card"><h2>Status</h2><div class="pills">'+pill("Master chosen",!!c.master_guild_id)+pill("Lockdown",c.lockdown_enabled,!b.lockdown)+pill("Forwarding",c.forwarding_enabled,!b.forwarding)+pill("Consensus",!!(cons.state().data&&cons.state().data.settings.enabled&&!cons.state().data.settings.dry_run),!b.consensus)+'</div>'
       +'<div class="stats" style="margin-top:12px"><div><div class="stat">'+esc(S.cfg.sources)+'</div><div class="stat-l">servers TipBot is in</div></div>'
       +'<div><div class="stat">'+esc(c.master_guild_id?"Set":"None")+'</div><div class="stat-l">master server'+(c.verified_at?" · verified "+esc(TBTime.fmtWhen(c.verified_at)):"")+'</div></div></div></section>'
-      +(S.msg?'<div class="banner '+S.msg.cls+'">'+esc(S.msg.text)+'</div>':'');
+      +(S.msg?'<div class="banner '+S.msg.cls+'">'+esc(S.msg.text)+'</div>':'')
+      +slip.view();
   }
   function checks(rep){
     if(!rep)return "";
@@ -244,6 +248,7 @@ h1{margin:8px 0 2px;font-size:22px}
     access.bind(S.tab);
     if(S.tab==="forwarding")bindFwd();
     if(S.tab==="consensus")cons.bind();
+    if(S.tab==="overview")slip.bind();
     var beta=$("beta"); if(beta)beta.onchange=async function(){
       if(!confirm("Turn master beta "+(beta.checked?"on":"off")+"? This changes master behavior; existing Discord permissions stay in place.")){paint();return;}
       beta.disabled=true;
