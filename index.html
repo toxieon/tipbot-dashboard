@@ -9,6 +9,8 @@
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
 <script src="./assets/req-pool.js"></script>
+<script src="./assets/sport-keywords.js"></script>
+<script src="./assets/routing.js"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -815,7 +817,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.36.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.37.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1083,7 +1085,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     return { close: function (fireCancel) { finish(fireCancel ? "cancel" : "confirm"); } };
   }
 
-  var API = { open: open };
+  var API = { open: open, injectStyles: injectStyles };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.NDCountdownConfirm = API;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -4814,7 +4816,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
-    if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div>'; loadRouting(gid); return; }
+    if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div><div id="sport-routing-box"></div>'; loadRouting(gid);
+      if(window.TBRouting)TBRouting.mountSettings($("sport-routing-box"),{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")}); return; }
     if(tab==="features"){ body.innerHTML='<div class="empty">Features moved to Admin Tools (platform owner only).</div>'; return; }
     if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
     body.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
@@ -7930,14 +7933,22 @@ async function loadPerms(gid){
     const delay=parseInt(($("f_delay")||{}).value||"0",10)||0;
     const trickle=!!(($("f_trickle")||{}).checked);
     $("scherr").textContent="";
-    NDCountdownConfirm.open({
-      title:"Schedule "+n+" tip"+(n===1?"":"s")+"?",
-      message:n+" tip"+(n===1?"":"s")+" · delay <b>"+delay+"m</b> · Trickle <b>"+(trickle?"on (~30s stagger)":"off (same time)")+"</b> — posts to Discord.",
-      seconds:5,confirmLabel:"Schedule batch",secondaryLabel:"Cancel",accent:"#5b8cff",
-      onConfirm:()=>doBatchSchedule(delay,trickle),
+    if(go){ go.disabled=true; }
+    routeBeforePost(BATCH.guildId||BUILD.guildId,BATCH.tips).then(rt=>{
+      if(go){ go.disabled=false; }
+      if(!rt||rt.cancelled){ return; }
+      const chips=(rt.chips||[]).map((c,i)=>c?("Tip "+(i+1)+" "+c):"").filter(Boolean);
+      NDCountdownConfirm.open({
+        title:"Schedule "+n+" tip"+(n===1?"":"s")+"?",
+        message:n+" tip"+(n===1?"":"s")+" · delay <b>"+delay+"m</b> · Trickle <b>"+(trickle?"on (~30s stagger)":"off (same time)")+"</b> — posts to Discord."
+          +(chips.length?'<br>'+chips.map(c=>'<span class="chip">'+esc(c)+'</span>').join(" "):'')
+          +(rt.note?'<br><span style="color:var(--faint)">'+esc(rt.note)+'</span>':''),
+        seconds:5,confirmLabel:"Schedule batch",secondaryLabel:"Cancel",accent:"#5b8cff",
+        onConfirm:()=>doBatchSchedule(delay,trickle,rt.routes),
+      });
     });
   }
-  async function doBatchSchedule(delay,trickle){
+  async function doBatchSchedule(delay,trickle,routes){
     const btn=$("batchgo");
     if(btn){ if(btn.disabled||btn.dataset.busy==="1") return; }
     const errEl=$("scherr");
@@ -7951,9 +7962,10 @@ async function loadPerms(gid){
     function unlockBtn(){ /* SubmitProgress.fail() already unlocks */ }
     const batchRequestId=newClientRequestId();
     const guildId=BATCH.guildId||BUILD.guildId;
-    const tips=BATCH.tips.map(t=>{
+    const tips=BATCH.tips.map((t,ti)=>{
       const row={legs:t.legs, odds:t.odds, units:t.units, bookmaker:t.bookmaker,
         game_name:t.game_name, sport:t.sport, image_b64:t.image_b64||""};
+      if(routes&&routes[ti]) row.route=routes[ti];
       if(t.league) row.league=t.league;
       if(t.espn_event_id){ row.espn_event_id=t.espn_event_id; row.event_id=t.espn_event_id; }
       if(t.start_date){ row.start_date=t.start_date; row.game_start=t.game_start||t.start_date; }
@@ -7997,6 +8009,7 @@ async function loadPerms(gid){
         if(t.league) one.league=t.league;
         if(t.espn_event_id){ one.espn_event_id=t.espn_event_id; one.event_id=t.espn_event_id; }
         if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
+        if(t.route) one.route=t.route;
         try{
           const r=await api("/api/queue-tip",{
             method:"POST",
@@ -8130,14 +8143,29 @@ async function loadPerms(gid){
     $("scherr").textContent="";
     const dollarNote=(BUILD.unitSize>0 && (BUILD.stakeMode||"units")==="dollars")
       ? " ($"+parseFloat($("f_dollars").value)+")" : "";
-    NDCountdownConfirm.open({
-      title:"Schedule this tip?",
-      message:BUILD.legs.length+"-leg "+(BUILD.custom?"custom tip":"multi")+" @ <b>"+odds+"</b> for <b>"+units+"u</b>"+dollarNote+" — posts to Discord.",
-      seconds:5,confirmLabel:"Schedule now",secondaryLabel:"Cancel",accent:"#5b8cff",
-      onConfirm:()=>doSchedule(odds,units),
+    const fields=readTipForm();
+    if(fields.error){$("scherr").textContent=fields.error;return;}
+    if(go){ go.disabled=true; }
+    routeBeforePost(BUILD.guildId,[fields]).then(rt=>{
+      if(go){ go.disabled=false; }
+      if(!rt||rt.cancelled){ return; }
+      const chipTxt=(rt.chips&&rt.chips[0])?' <span class="chip">'+esc(rt.chips[0])+'</span>':'';
+      NDCountdownConfirm.open({
+        title:"Schedule this tip?",
+        message:BUILD.legs.length+"-leg "+(BUILD.custom?"custom tip":"multi")+" @ <b>"+odds+"</b> for <b>"+units+"u</b>"+dollarNote+" — posts to Discord."+chipTxt+(rt.note?'<br><span style="color:var(--faint)">'+esc(rt.note)+'</span>':''),
+        seconds:5,confirmLabel:"Schedule now",secondaryLabel:"Cancel",accent:"#5b8cff",
+        onConfirm:()=>doSchedule(odds,units,rt.routes?rt.routes[0]:null),
+      });
     });
   }
-  async function doSchedule(odds,units){
+  // Sport routing (Phase 1.1): ask TipBot where each tip goes before the confirm step.
+  // Routing off / older TipBot → {routes:null} and the post is exactly as before.
+  async function routeBeforePost(guildId,tips){
+    if(!window.TBRouting) return {routes:null,chips:[]};
+    try{ return await TBRouting.beforePost({api:api,guildId:guildId,tips:tips}); }
+    catch(e){ if(e&&e.unauth){ renderLogin("Session expired."); return {cancelled:true}; } return {routes:null,chips:[]}; }
+  }
+  async function doSchedule(odds,units,route){
     const btn=$("schedbtn");
     if(btn){ if(btn.disabled||btn.dataset.busy==="1") return; }
     const prog=SubmitProgress.open({
@@ -8155,6 +8183,7 @@ async function loadPerms(gid){
     if(tipFields.league) payload.league=tipFields.league;
     if(tipFields.espn_event_id){ payload.espn_event_id=tipFields.espn_event_id; payload.event_id=tipFields.espn_event_id; }
     if(tipFields.start_date){ payload.start_date=tipFields.start_date; payload.game_start=tipFields.game_start||tipFields.start_date; }
+    if(route) payload.route=route;
     try{
       // Safe to retry: the Idempotency-Key replays instead of double-posting.
       const r=await api("/api/queue-tip",{

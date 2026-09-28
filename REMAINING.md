@@ -19,7 +19,7 @@ The estimates are the original handoff's **unverified effective-token estimates*
 | 1B deployment validation | Ray's test-guild M1/M2 then M3–M7 on disposable guilds | External validation |
 | **1C forwarding: merged OFF in 0.36.1** (2026-09-28, `forwarding-1c`) | Brandon: run the §4 manual test plan in Discord (Tip2 only first). Not built, by design: backfill posting and the optional backfill dry-run count | Done; follow-ups are small |
 | Master UI | Consensus tab with block 5 (the Forwarding tab is done, 1C) | Part of 1.5–2M |
-| Phase 2 routing | Sport classifier + JS vectors, per-channel tracking, publish/reactions/updates/replay, settings and post-time decisions | 7–10M |
+| **Sport routing: built OFF in 0.37.1** (`sport-routing`, handoff Phase 1.1) | Brandon: turn on `feat.sport_routing` on a test server and run the Phase 1 routing checks. Later proposal: auto-suggest tags from channel names | Done |
 | Phase 3 consensus | Leg normalization, clusters, thresholds, preview, durable post/edit, freeze/settle, target selection | 6–8M |
 | NBA grading | NBA/WNBA legs are free text today. Needs structured NBA props in the builder plus a box-score extractor, then the same path as NFL | ~0.5–1M |
 | Faster first reconcile | Startup ledger replay handles 750 records per guild one at a time (about 9.5 min after boot). Replay only the newest snapshot per tip, or skip records older than the DB row; needs a real-guild replay test | ~0.3–0.6M |
