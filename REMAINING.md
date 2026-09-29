@@ -1,4 +1,4 @@
-# Remaining work (updated 2026-09-29, 0.40.1)
+# Remaining work (updated 2026-09-29, 0.40.2)
 
 Everything from Claude's feature pass, Codex phase 1B and Husker's phase 2/3 run is merged and deployed. All of it is inert in prod: master beta, lockdown, forwarding, trial mode, the AU sign-up gate, `FEATURE_HEATMAPS` and `FEATURE_COMPARE` are off, no master is selected, and NFL auto-push needs `ESPN_AUTO_PUSH_FT=1` plus a guild flag. Tests: TipBot 863 passing (Linux, libsql 0.0.55); tipdash 13 passing.
 
@@ -23,7 +23,7 @@ The estimates are the original handoff's **unverified effective-token estimates*
 | **Consensus: built OFF in 0.38.1** (`consensus`, handoff Phase 1.2) | Brandon: use the tab's dry-run preview first. Not built by design: combo (whole-multi) consensus, per-sport consensus channels | Done |
 | **NBA grading: built OFF in 0.40.1** (`nba-props`, handoff Phase 2.1) | NBA/WNBA player props in the builder (TipBot 0.40.1 grades them behind `ESPN_AUTO_PUSH_FT_NBA` + `feat.auto_push_ft`). Brandon: post a structured NBA prop on a test server | Done |
 | Faster first reconcile | Startup ledger replay handles 750 records per guild one at a time (about 9.5 min after boot). Replay only the newest snapshot per tip, or skip records older than the DB row; needs a real-guild replay test | ~0.3–0.6M |
-| tipdash split (#5) | Lazy-load builder/admin JS. The 431 KB main block is one closure (the builder alone references `BUILD` 436×, 347 top-level functions), so a safe split means exposing shared state first. Wire size today is 139 KB gzip | ~1–1.5M |
+| **tipdash split: 0.40.2** (`lazy-builder`, handoff Phase 2.2b) | Builder → `assets/builder.js`, Paste sheet → `assets/admin.js`, loaded on first open (first load 137 → 109 KB gzip). God mode stays in index.html (part of `renderDetail` and shared grading). Later, if wanted: the Followers/Discover/My Tips views are the next biggest candidates | Done |
 | Player history | Additive per-game stats, forward fill, L5/VS and Compare form | 3–4.5M |
 | TipSheet polish | Needs a real sheet from Brandon | 1–1.5M |
 | **Slip import card: 0.39.1** (`slip-import`, handoff Phase 1.3) | Brandon: set the vision key/model on TipBot, then the #slips channel and target here | Done |
