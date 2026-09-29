@@ -7,6 +7,8 @@ const vm = require("node:vm");
 const P = require("../assets/espn-props.js");
 
 const HTML = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+// 0.40.2: the builder code lives in the lazy assets/builder.js (same global scope as index.html).
+const APP = HTML + "\n" + fs.readFileSync(path.join(__dirname, "..", "assets", "builder.js"), "utf8");
 
 test("prop tables: NFL unchanged, NBA/WNBA share the five markets TipBot grades", () => {
   assert.deepEqual(P.NFL_PROP_TABS.map(t => t.key), ["passing_yards", "passing_tds", "completions", "interceptions",
@@ -55,23 +57,23 @@ test("TipBot's market labels win when the roster carries them", () => {
 test("index.html loads the helper and routes basketball events to the prop picker", () => {
   assert.match(HTML, /<script src="\.\/assets\/espn-props\.js"><\/script>/);
   assert.ok(HTML.indexOf("espn-props.js") < HTML.indexOf("<script>\n"), "helper loads before the app script");
-  assert.match(HTML, /const NFL_PROP_TABS=TBEspnProps\.NFL_PROP_TABS;/);
-  assert.match(HTML, /if\(TBEspnProps\.hasProps\(BUILD\.espnLeague\)\)\{/);
-  assert.match(HTML, /api\(TBEspnProps\.playersUrl\(league, ev\.id\)\)/);
+  assert.match(APP, /const NFL_PROP_TABS=TBEspnProps\.NFL_PROP_TABS;/);
+  assert.match(APP, /if\(TBEspnProps\.hasProps\(BUILD\.espnLeague\)\)\{/);
+  assert.match(APP, /api\(TBEspnProps\.playersUrl\(league, ev\.id\)\)/);
   // Older TipBot (no /api/espn/players): fall back to the free-text pick, with a Retry.
-  assert.match(HTML, /r\.status===404 && TBEspnProps\.isBasketball\(league\)/);
-  assert.match(HTML, /player props need TipBot\\'s latest deploy\. <button class="ghost" id="espnpropretry">Retry<\/button>/);
-  assert.doesNotMatch(HTML, /league:"nfl",\n\s*espn_event_id/);
+  assert.match(APP, /r\.status===404 && TBEspnProps\.isBasketball\(league\)/);
+  assert.match(APP, /player props need TipBot\\'s latest deploy\. <button class="ghost" id="espnpropretry">Retry<\/button>/);
+  assert.doesNotMatch(APP, /league:"nfl",\n\s*espn_event_id/);
 });
 
 // Run the real paintEspnNflPlayers from index.html against a tiny fake DOM: render, then
 // press Add on a row. Before 0.40.1 the wiring loop read an undeclared `q` and threw, so no
 // Add button (NFL included) was ever wired.
 function paintHarness(build) {
-  const start = HTML.indexOf("  function paintEspnNflPlayers(){");
-  const end = HTML.indexOf("\n  // ── Custom (non-AFL) tips", start);
+  const start = APP.indexOf("  function paintEspnNflPlayers(){");
+  const end = APP.indexOf("\n  // ── Custom (non-AFL) tips", start);
   assert.ok(start > 0 && end > start, "found paintEspnNflPlayers");
-  const src = HTML.slice(start, end);
+  const src = APP.slice(start, end);
   const els = {};
   const el = (id) => els[id] || (els[id] = {id, value: id.endsWith("_s") || id.endsWith("_v") ? "30.5" : "", max: "60",
     innerHTML: "", hidden: false, querySelectorAll: () => [], setAttribute() {}, querySelector: () => null});
