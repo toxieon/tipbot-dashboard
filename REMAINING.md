@@ -1,4 +1,4 @@
-# Remaining work (updated 2026-09-28 after the overnight phase 2/3 run)
+# Remaining work (updated 2026-09-29, 0.40.1)
 
 Everything from Claude's feature pass, Codex phase 1B and Husker's phase 2/3 run is merged and deployed. All of it is inert in prod: master beta, lockdown, forwarding, trial mode, the AU sign-up gate, `FEATURE_HEATMAPS` and `FEATURE_COMPARE` are off, no master is selected, and NFL auto-push needs `ESPN_AUTO_PUSH_FT=1` plus a guild flag. Tests: TipBot 863 passing (Linux, libsql 0.0.55); tipdash 13 passing.
 
@@ -21,7 +21,7 @@ The estimates are the original handoff's **unverified effective-token estimates*
 | Master UI | Done: Forwarding (1C) and Consensus (1.2) tabs | Done |
 | **Sport routing: built OFF in 0.37.1** (`sport-routing`, handoff Phase 1.1) | Brandon: turn on `feat.sport_routing` on a test server and run the Phase 1 routing checks. Later proposal: auto-suggest tags from channel names | Done |
 | **Consensus: built OFF in 0.38.1** (`consensus`, handoff Phase 1.2) | Brandon: use the tab's dry-run preview first. Not built by design: combo (whole-multi) consensus, per-sport consensus channels | Done |
-| NBA grading | NBA/WNBA legs are free text today. Needs structured NBA props in the builder plus a box-score extractor, then the same path as NFL | ~0.5–1M |
+| **NBA grading: built OFF in 0.40.1** (`nba-props`, handoff Phase 2.1) | NBA/WNBA player props in the builder (TipBot 0.40.1 grades them behind `ESPN_AUTO_PUSH_FT_NBA` + `feat.auto_push_ft`). Brandon: post a structured NBA prop on a test server | Done |
 | Faster first reconcile | Startup ledger replay handles 750 records per guild one at a time (about 9.5 min after boot). Replay only the newest snapshot per tip, or skip records older than the DB row; needs a real-guild replay test | ~0.3–0.6M |
 | tipdash split (#5) | Lazy-load builder/admin JS. The 431 KB main block is one closure (the builder alone references `BUILD` 436×, 347 top-level functions), so a safe split means exposing shared state first. Wire size today is 139 KB gzip | ~1–1.5M |
 | Player history | Additive per-game stats, forward fill, L5/VS and Compare form | 3–4.5M |
