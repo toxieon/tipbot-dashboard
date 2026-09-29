@@ -1,5 +1,14 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.40.1 · 2026-09-29 · `nba-props` · NBA/WNBA player props in the builder (Claude, Phase 2.1)
+
+Needs TipBot 0.40.1 for the props; older TipBot keeps working (see below). Grading is TipBot's and ships OFF there.
+- **The NFL prop picker is reused for NBA and WNBA.** Opening an NBA/WNBA game now loads the roster from TipBot `GET /api/espn/players?league=…&event=…` and shows the same tabs, sliders, Over/Under and Add row as NFL, with the five markets TipBot grades: Points, Rebounds, Assists, Threes Made, Points + Rebounds + Assists. Legs carry `player_id`, `prop`, `line`, `side`, `league`, `espn_event_id` and `game_id`, the same shape as NFL legs, and get the half-point rule like every player prop. "＋ Free text" still opens the match-pick box for free-text selections on the same game.
+- **Older TipBot:** if `/api/espn/players` isn't there (404), the game opens the free-text pick as before, with "player props need TipBot's latest deploy" and Retry.
+- **Fixed (NFL too):** the prop picker's Add buttons were never wired. Since `f5a94cf` the wiring loop read an undeclared `q` and threw right after the rows were drawn. The render and the wiring now share one player list (`visiblePlayers`), so search can't shift which row a button belongs to.
+- League differences live in `assets/espn-props.js` (`TBEspnProps`): prop tables (NFL values unchanged), roster URL, the NFL-only skill-position filter, and the leg builder. No theme or design work.
+- Tests: **42 → 50 passing** (+8 `espn_props.test.js`: prop tables, roster URLs, player lists, leg shape, market labels, index wiring and the missing-endpoint fallback, plus the real `paintEspnNflPlayers` run against a fake DOM for NBA and NFL; the NFL case throws "q is not defined" on 0.39.2).
+
 ## 0.39.2 · 2026-09-29 · `hide-master-home` · TipBot Master Server hidden from the home servers list
 
 - The home servers list (and the one-server auto-open) skips the configured master guild. The id comes from the owner's `/api/master/config` (`config.master_guild_id`), with the known id `1553952007923040309` covering the first paint; never matched by name. View-as, the ⚙ menu and the Master pages (`/master/`) are unchanged, so the master server is still reachable there.

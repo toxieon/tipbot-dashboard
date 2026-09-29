@@ -12,6 +12,7 @@
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
+<script src="./assets/espn-props.js"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -818,7 +819,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.39.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.40.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -6573,14 +6574,14 @@ async function loadPerms(gid){
       BUILD.espn=true;
       BUILD.espnLeague=d.espnLeague;
       BUILD.espnEvent=d.espnEvent||null;
-      BUILD.espnPropKey=d.espnPropKey||NFL_PROP_TABS[0].key;
+      BUILD.espnPropKey=d.espnPropKey||TBEspnProps.propTabs(d.espnLeague)[0].key;
       BUILD.espnDate=d.espnDate||easternYmd();
       BUILD.espnWeekIndex=(d.espnWeekIndex!=null)?d.espnWeekIndex:-1;
       BUILD.espnSeasonYear=d.espnSeasonYear||null;
       BUILD.espnEvents=[]; BUILD.espnWeeks=[]; BUILD.espnPlayers=[]; BUILD.espnTeams=[];
       BUILD.game=null;
       renderTray();
-      if(BUILD.espnEvent && BUILD.espnLeague==="nfl"){
+      if(BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague)){
         panel("builder");
         $("builder").innerHTML='<div class="back" id="bg">← Games</div><h1 style="margin:0 0 16px">'+esc(espnEventName(BUILD.espnEvent))+'</h1>'+NDSkeleton.lines(6);
         loadEspnNflPlayers();
@@ -6674,9 +6675,10 @@ async function loadPerms(gid){
     startGamesPoll();
   }
 
-  // ── ESPN sports (NFL week · NBA/WNBA date · NFL props) ─────────────────────
+  // ── ESPN sports (NFL week · NBA/WNBA date · player props) ──────────────────
   // Scoreboard/week list: ESPN site API in-browser (fast, logos, calendar snap).
-  // TipBot /api/espn/nfl-players only on match click (props roster).
+  // TipBot roster only on match click: /api/espn/nfl-players (NFL), /api/espn/players
+  // (NBA/WNBA, 0.40.1). League differences live in assets/espn-props.js.
   const ESPN_SITE='https://site.api.espn.com/apis/site/v2/sports';
   const ESPN_PATH={nfl:'football/nfl',nba:'basketball/nba',wnba:'basketball/wnba'};
   function espnLeagueLabel(league){
@@ -6756,8 +6758,8 @@ async function loadPerms(gid){
     return r.json();
   }
   function resetEspnBuild(guildId,name,league){
-    BUILD={guildId,serverName:name,game:null,tab:NFL_PROP_TABS[0].stat,legs:[],search:"",sort:"name",collapsed:{},compFilter:"All",custom:false,customEvent:"",customSport:"",customStartDay:"",unitSize:guildUnitSize(guildId),
-      espn:true,espnLeague:league,espnEvent:null,espnEvents:[],espnWeeks:[],espnWeekIndex:-1,espnSeasonYear:null,espnDate:easternYmd(),espnPlayers:[],espnTeams:[],espnPropKey:NFL_PROP_TABS[0].key,espnErr:""};
+    BUILD={guildId,serverName:name,game:null,tab:TBEspnProps.propTabs(league)[0].stat,legs:[],search:"",sort:"name",collapsed:{},compFilter:"All",custom:false,customEvent:"",customSport:"",customStartDay:"",unitSize:guildUnitSize(guildId),
+      espn:true,espnLeague:league,espnEvent:null,espnEvents:[],espnWeeks:[],espnWeekIndex:-1,espnSeasonYear:null,espnDate:easternYmd(),espnPlayers:[],espnTeams:[],espnPropKey:TBEspnProps.propTabs(league)[0].key,espnErr:"",espnPropsMissing:false};
   }
   async function openEspnBuilder(guildId,name,league){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
@@ -6857,7 +6859,7 @@ async function loadPerms(gid){
     const label=espnLeagueLabel(league);
     let html='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
       +'<div class="dhead"><h1 style="margin:0">Build a tip · '+esc(label)+'</h1><div style="display:flex;gap:8px"><button class="ghost" id="espnbackafl">🏉 AFL</button><button class="ghost" id="espnrefresh">↻ Refresh</button></div></div>'
-      +'<p style="color:var(--muted);margin:0 0 12px">'+(league==="nfl"?"Pick an NFL game, then add player props (yards / TDs / completions / INTs / receptions).":"Pick a "+label+" game — match tip only (no player props yet). Add free-text selections after.")+'</p>';
+      +'<p style="color:var(--muted);margin:0 0 12px">'+(league==="nfl"?"Pick an NFL game, then add player props (yards / TDs / completions / INTs / receptions).":"Pick a "+label+" game, then add player props (points / rebounds / assists / threes / PRA) or free-text selections.")+'</p>';
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
       +'<button class="compchip" id="espnaflchip">🏉 AFL</button>'
       +ESPN_SPORTS.map(s=>'<button class="compchip espnsport'+(s.league===league?" on":"")+'" data-league="'+esc(s.league)+'">'+esc(s.k)+'</button>').join("")
@@ -6921,37 +6923,41 @@ async function loadPerms(gid){
     BUILD.espnEvent=ev;
     BUILD.search="";
     BUILD.collapsed={};
-    BUILD.espnPropKey=NFL_PROP_TABS[0].key;
-    BUILD.tab=NFL_PROP_TABS[0].stat;
+    BUILD.espnPropKey=TBEspnProps.propTabs(BUILD.espnLeague)[0].key;
+    BUILD.tab=TBEspnProps.propTabs(BUILD.espnLeague)[0].stat;
+    BUILD.espnPropsMissing=false;
     saveMultiDraft();
-    if(BUILD.espnLeague==="nfl"){
+    if(TBEspnProps.hasProps(BUILD.espnLeague)){
       $("builder").innerHTML='<div class="back" id="bg">← Games</div><h1 style="margin:0 0 16px">'+esc(espnEventName(ev))+'</h1>'+NDSkeleton.lines(6);
       await loadEspnNflPlayers();
     }else{
       renderEspnBasketballPick();
     }
   }
+  // Prop roster for the open ESPN event (NFL, NBA, WNBA). Name kept from the NFL-only days.
   async function loadEspnNflPlayers(){
     const ev=BUILD.espnEvent; if(!ev)return;
+    const league=BUILD.espnLeague, label=espnLeagueLabel(league);
     try{
-      const r=await api("/api/espn/nfl-players?event="+encodeURIComponent(ev.id));
+      const r=await api(TBEspnProps.playersUrl(league, ev.id));
+      if(r.status===404 && TBEspnProps.isBasketball(league)){
+        // Older TipBot deploy: no basketball props yet. Keep the free-text pick working.
+        BUILD.espnPropsMissing=true; BUILD.espnPlayers=[]; BUILD.espnTeams=[];
+        return renderEspnBasketballPick();
+      }
       const d=await r.json();
-      if(!r.ok||d.ok===false){ BUILD.espnErr=(d&&(d.message||d.error))||"Couldn't load NFL players"; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; }
+      BUILD.espnPropsMissing=false;
+      if(!r.ok||d.ok===false){ BUILD.espnErr=(d&&(d.message||d.error))||("Couldn't load "+label+" players"); BUILD.espnPlayers=[]; BUILD.espnTeams=[]; }
       else{
         BUILD.espnErr="";
         BUILD.espnPlayers=d.players||[];
         BUILD.espnTeams=d.teams||[];
-        if((d.prop_markets||[]).length && typeof d.prop_markets[0]==="object"){
-          // Prefer TipBot labels when provided.
-          d.prop_markets.forEach(m=>{
-            const hit=NFL_PROP_TABS.find(t=>t.key===m.key);
-            if(hit&&m.stat) hit.stat=m.stat;
-          });
-        }
+        // Prefer TipBot labels when provided.
+        TBEspnProps.applyMarketLabels(league, d.prop_markets);
       }
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
-      BUILD.espnErr="Couldn't reach TipBot NFL players.";
+      BUILD.espnErr="Couldn't reach TipBot "+label+" players.";
       BUILD.espnPlayers=[]; BUILD.espnTeams=[];
     }
     renderEspnNflProps();
@@ -6965,13 +6971,18 @@ async function loadPerms(gid){
     if(ev&&ev.date){ try{ BUILD.customStartDay=String(ev.date).slice(0,10);}catch(e){} }
     $("builder").innerHTML='<div class="back" id="bg">← Games</div>'
       +'<div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><span class="plan">'+esc(label)+'</span></div>'
-      +'<p style="color:var(--muted);margin:0 0 14px">Match pick only — add free-text selections for this '+esc(label)+' game. Player props are not available yet.</p>'
+      +(BUILD.espnPropsMissing
+        ?'<div class="panel"><div class="empty">'+esc(label)+' player props need TipBot\'s latest deploy. <button class="ghost" id="espnpropretry">Retry</button></div></div>'
+        :'')
+      +'<p style="color:var(--muted);margin:0 0 14px">'+(BUILD.espnPropsMissing?'Match pick only — add free-text selections for this '+esc(label)+' game.':'Free-text selections for this '+esc(label)+' game. <button class="ghost" id="espnpropsback">Player props</button>')+'</p>'
       +'<div class="panel">'
       +'<div class="field"><label>Event</label><input id="c_event" value="'+esc(BUILD.customEvent||"")+'"></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. Lakers -4.5 · Over 224.5" style="flex:1"><button class="btn sm" id="c_add">Add</button></div></div>'
       +'<div style="color:var(--faint);font-size:12px">Tip payload includes <code>espn_event_id</code> '+esc(String(ev.id||""))+'.</div>'
       +'</div>';
     $("bg").onclick=()=>{ BUILD.custom=false; BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); };
+    const rt=$("espnpropretry"); if(rt)rt.onclick=()=>{ BUILD.custom=false; openEspnEvent(ev); };
+    const pb=$("espnpropsback"); if(pb)pb.onclick=()=>{ BUILD.custom=false; openEspnEvent(ev); };
     const evEl=$("c_event"); if(evEl)evEl.oninput=()=>{BUILD.customEvent=evEl.value;saveMultiDraft();};
     const add=()=>{ const inp=$("c_leg"); const v=(inp.value||"").trim(); if(!v)return;
       addLeg({custom:true,desc:v,espn_event_id:String(ev.id),game_id:String(ev.id),league:BUILD.espnLeague});
@@ -6980,34 +6991,38 @@ async function loadPerms(gid){
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
   }
   function espnSkillPlayers(list){
-    // Prefer skill positions for props; fall back to full roster if filter empties.
-    const allow=new Set(["QB","RB","FB","WR","TE","HB"]);
-    const filtered=(list||[]).filter(p=>allow.has(String(p.position||"").toUpperCase()));
-    return filtered.length?filtered:(list||[]);
+    // NFL: skill positions for props (full roster if that empties). Basketball: everyone.
+    return TBEspnProps.propPlayers(list, BUILD.espnLeague);
   }
+  // Prop picker for any prop league (NFL, NBA, WNBA). Name kept from the NFL-only days.
   function renderEspnNflProps(){
     const ev=BUILD.espnEvent;
-    const prop=NFL_PROP_TABS.find(t=>t.key===BUILD.espnPropKey)||NFL_PROP_TABS[0];
+    const TABS=TBEspnProps.propTabs(BUILD.espnLeague);
+    const bball=TBEspnProps.isBasketball(BUILD.espnLeague);
+    const prop=TABS.find(t=>t.key===BUILD.espnPropKey)||TABS[0];
     BUILD.tab=prop.stat;
     BUILD.espnPropKey=prop.key;
-    const tabs=NFL_PROP_TABS.map(t=>'<div class="tab '+(t.key===prop.key?"active":"")+'" data-pk="'+t.key+'">'+esc(t.stat)+'</div>').join("");
-    let html='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><button class="ghost" id="espnplayref">↻ Players</button></div>'
+    const tabs=TABS.map(t=>'<div class="tab '+(t.key===prop.key?"active":"")+'" data-pk="'+t.key+'">'+esc(t.stat)+'</div>').join("");
+    let html='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><div style="display:flex;gap:8px">'+(bball?'<button class="ghost" id="espnfreetext">＋ Free text</button>':'')+'<button class="ghost" id="espnplayref">↻ Players</button></div></div>'
       +'<div class="tabs" style="flex-wrap:wrap">'+tabs+'</div>'
       +'<div class="builder-tools">'
-      +'<input id="psearch" placeholder="Search players… e.g. Hill, Tyreek" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;flex:1">'
+      +'<input id="psearch" placeholder="Search players… e.g. '+(bball?'Gilgeous-Alexander, Shai':'Hill, Tyreek')+'" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;flex:1">'
       +'</div>';
     if(BUILD.espnErr) html+='<div class="empty" style="margin-bottom:12px">'+esc(BUILD.espnErr)+'</div>';
     html+='<div id="players"></div>';
     $("builder").innerHTML=html;
     $("bg").onclick=()=>{ BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); };
     const pr=$("espnplayref"); if(pr)pr.onclick=()=>loadEspnNflPlayers();
-    $("builder").querySelectorAll(".tab[data-pk]").forEach(t=>t.onclick=()=>{BUILD.espnPropKey=t.dataset.pk;BUILD.tab=(NFL_PROP_TABS.find(x=>x.key===t.dataset.pk)||prop).stat;saveMultiDraft();renderEspnNflProps();});
+    const ft=$("espnfreetext"); if(ft)ft.onclick=()=>renderEspnBasketballPick();
+    $("builder").querySelectorAll(".tab[data-pk]").forEach(t=>t.onclick=()=>{BUILD.espnPropKey=t.dataset.pk;BUILD.tab=(TABS.find(x=>x.key===t.dataset.pk)||prop).stat;saveMultiDraft();renderEspnNflProps();});
     const pq=$("psearch"); if(pq){ pq.oninput=()=>{BUILD.search=pq.value;paintEspnNflPlayers();}; }
     paintEspnNflPlayers();
   }
   function paintEspnNflPlayers(){
     const box=$("players"); if(!box)return;
-    const prop=NFL_PROP_TABS.find(t=>t.key===BUILD.espnPropKey)||NFL_PROP_TABS[0];
+    const TABS=TBEspnProps.propTabs(BUILD.espnLeague);
+    const prop=TABS.find(t=>t.key===BUILD.espnPropKey)||TABS[0];
+    const shown=list=>TBEspnProps.visiblePlayers(list, BUILD.espnLeague, BUILD.search, nameMatchesSearch);
     const teams=BUILD.espnTeams&&BUILD.espnTeams.length?BUILD.espnTeams:(()=>{
       // Fallback: group flat players list.
       const map=new Map();
@@ -7023,9 +7038,7 @@ async function loadPerms(gid){
     teams.forEach((team,ti)=>{
       const nm=team.name||team.abbreviation||("Team "+(ti+1));
       const slug=String(team.id||nm).replace(/\W/g,"");
-      let list=espnSkillPlayers(team.players||[]);
-      if(String(BUILD.search||"").trim()) list=list.filter(p=>nameMatchesSearch(p.name, p.number, BUILD.search)||nameMatchesSearch(p.position||"", "", BUILD.search));
-      list=list.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+      const list=shown(team.players||[]);
       const collapsed=!!BUILD.collapsed[slug];
       html+='<div class="thdr" data-slug="'+slug+'" role="button" tabindex="0" aria-expanded="'+(!collapsed)+'" aria-controls="tp_'+slug+'"><span class="tcaret" aria-hidden="true">'+(collapsed?"▹":"▾")+'</span>'+esc(nm)+' <small style="color:var(--muted);font-weight:400">· '+list.length+'</small></div>';
       html+='<div class="teamplayers" id="tp_'+slug+'"'+(collapsed?" hidden":"")+'>';
@@ -7047,9 +7060,9 @@ async function loadPerms(gid){
     teams.forEach((team,ti)=>{
       const nm=team.name||team.abbreviation||("Team "+(ti+1));
       const slug=String(team.id||nm).replace(/\W/g,"");
-      let list=espnSkillPlayers(team.players||[]);
-      if(q) list=list.filter(p=>String(p.name||"").toLowerCase().includes(q)||String(p.number||"").includes(q)||String(p.position||"").toLowerCase().includes(q));
-      list=list.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+      // Same list as the render above, so row ids line up (this loop used an undeclared
+      // `q` from f5a94cf on, which threw before any Add button was wired).
+      const list=shown(team.players||[]);
       list.forEach((p,idx)=>{
         const rid="er_"+slug+"_"+idx;
         const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou"); let side="Over";
@@ -7060,23 +7073,8 @@ async function loadPerms(gid){
         ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
         $(rid+"_a").onclick=()=>{
           const oddsRaw=parseFloat(($(rid+"_odds")||{}).value);
-          const leg={
-            player:p.name,
-            player_id:String(p.player_id||p.id||""),
-            number:p.number||null,
-            team:nm,
-            position:p.position||"",
-            prop:prop.key,
-            prop_key:prop.key,
-            stat:prop.stat,
-            line:curLine(),
-            side:side,
-            league:"nfl",
-            espn_event_id:String(BUILD.espnEvent.id),
-            game_id:String(BUILD.espnEvent.id)
-          };
-          if(oddsRaw>1) leg.odds=oddsRaw;
-          addLeg(leg);
+          addLeg(TBEspnProps.buildLeg({player:p, team:nm, prop:prop, line:curLine(), side:side,
+            league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw}));
         };
       });
     });
@@ -7085,20 +7083,11 @@ async function loadPerms(gid){
   // ── Custom (non-AFL) tips ────────────────────────────────────────────────
   // Skips the AFL game/player picker: type the event + your selections, add odds/
   // units/bookmaker + an optional screenshot, and it posts through the same queue.
-  // ESPN sports: scoreboard via ESPN site API; NFL props via TipBot /api/espn/nfl-players. Stubs → Custom.
-  const ESPN_SPORTS=[{k:"NFL",league:"nfl",hint:"NFL · week picker + player props"},{k:"NBA",league:"nba",hint:"NBA · date picker"},{k:"WNBA",league:"wnba",hint:"WNBA · date picker"}];
+  // ESPN sports: scoreboard via ESPN site API; player props via TipBot (/api/espn/nfl-players,
+  // /api/espn/players for NBA/WNBA). Stubs → Custom.
+  const ESPN_SPORTS=[{k:"NFL",league:"nfl",hint:"NFL · week picker + player props"},{k:"NBA",league:"nba",hint:"NBA · date picker + player props"},{k:"WNBA",league:"wnba",hint:"WNBA · date picker + player props"}];
   const SPORT_STUBS=[{k:"Soccer",hint:"EPL · A-League"},{k:"NRL",hint:"NRL"}];
-  const NFL_PROP_TABS=[
-    {key:"passing_yards",stat:"Passing Yards",def:249.5,max:450},
-    {key:"passing_tds",stat:"Passing TDs",def:1.5,max:6},
-    {key:"completions",stat:"Completions",def:22.5,max:50},
-    {key:"interceptions",stat:"Interceptions",def:0.5,max:5},
-    {key:"rushing_yards",stat:"Rushing Yards",def:64.5,max:200},
-    {key:"rushing_tds",stat:"Rushing TDs",def:0.5,max:4},
-    {key:"receiving_yards",stat:"Receiving Yards",def:54.5,max:200},
-    {key:"receptions",stat:"Receptions",def:4.5,max:15},
-    {key:"receiving_tds",stat:"Receiving TDs",def:0.5,max:4}
-  ];
+  const NFL_PROP_TABS=TBEspnProps.NFL_PROP_TABS;   // assets/espn-props.js (values unchanged)
   function openCustom(guildId,name,presetSport){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
@@ -7822,7 +7811,7 @@ async function loadPerms(gid){
       +'<button class="btn" id="schedbtn" type="button">Schedule tip →</button></div>'
       +'<div id="scherr" class="err" style="margin-top:10px"></div>'
       +'<div style="color:var(--faint);font-size:12px;margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
-    $("bc").onclick=()=>{ if(BUILD.espn && BUILD.espnEvent && BUILD.espnLeague==="nfl"){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} };
+    $("bc").onclick=()=>{ if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} };
     wireStakeField();
     if(BUILD.compareBook&&$("f_book")&&!$("f_book").value){
       const want=String(BUILD.compareBook).toLowerCase();
@@ -7879,7 +7868,7 @@ async function loadPerms(gid){
     renderBatchTray();
     toast("Added to batch ("+BATCH.tips.length+")");
     // Keep building the next tip on the same game / custom / ESPN form.
-    if(BUILD.espn && BUILD.espnEvent && BUILD.espnLeague==="nfl"){ renderEspnNflProps(); }
+    if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){ renderEspnNflProps(); }
     else if(BUILD.espn && BUILD.espnEvent){ renderEspnBasketballPick(); }
     else if(BUILD.espn){ renderEspnGames(); }
     else if(BUILD.custom){ BUILD.customEvent=BUILD.customEvent||""; renderCustom(); }
@@ -7919,7 +7908,7 @@ async function loadPerms(gid){
       +'<div style="color:var(--faint);font-size:12px;margin:12px 0 0">Off → all tips share the same delay. On → tip i posts at base delay + i×30s.</div>'
       +'<div class="sched-actions" style="margin-top:16px"><button class="btn" id="batchgo" type="button">Schedule '+n+' tips →</button></div>'
       +'<div id="scherr" class="err" style="margin-top:10px"></div></div>';
-    $("bcb").onclick=()=>{ renderBatchTray(); if(BUILD.espn && BUILD.espnEvent && BUILD.espnLeague==="nfl"){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} };
+    $("bcb").onclick=()=>{ renderBatchTray(); if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} };
     $("builder").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{
       BATCH.tips.splice(+b.dataset.rm,1);
       if(!BATCH.tips.length){ BATCH.guildId=null; renderBatchTray(); if(BUILD.custom)renderCustom(); else if(BUILD.game)renderGame(); else openBuilder(BUILD.guildId,BUILD.serverName); return; }
