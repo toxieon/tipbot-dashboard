@@ -12,6 +12,7 @@
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
+<script src="./assets/scheduled-tips.js"></script>
 <script src="./assets/espn-props.js"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
@@ -820,7 +821,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.40.3</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.41.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1201,7 +1202,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.40.3";
+  TD.version="0.41.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -5709,6 +5710,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +statsBlock
       +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q3 / FT) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
+      +'<div class="panel" id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips</h3><div style="color:var(--faint);font-size:12px;margin:-6px 0 10px;line-height:1.4">Queued tips that haven\'t posted yet. Cancel, adjust the odds or edit before they post.</div><div id="scheduled-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="upcoming-panel" data-sec="upcoming" data-sec-sum="'+(tips.queued||[]).length+' queued"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+st.won+'–'+st.lost+'–'+st.push+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
@@ -5920,6 +5922,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     // games panel and its own SWR cache; the live panel polls (time-critical).
     loadUpcoming(s.guild_id,tips.queued);
     loadLiveTipsPanel(s.guild_id);
+    mountScheduled(s.guild_id);
+  }
+  // 0.41.1: Scheduled Tips (assets/scheduled-tips.js). One live instance; it stops
+  // itself when the server page is re-rendered or left.
+  let SCHED_UI=null;
+  function mountScheduled(gid){
+    if(SCHED_UI) try{ SCHED_UI.stop(); }catch(e){}
+    SCHED_UI=null;
+    const box=$("scheduled-box");
+    if(!box || !window.TBScheduled) return;
+    SCHED_UI=TBScheduled.mount(box,{api:api,gid:String(gid),when:fmtDate,onUnauth:()=>renderLogin("Session expired.")});
   }
   async function toggle(btn){btn.disabled=true;try{const r=await api("/api/toggle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.dataset.g,column:btn.dataset.c})});if(r.ok)btn.classList.toggle("on");}catch(e){if(e.unauth)return renderLogin("Session expired.");}finally{btn.disabled=false;}}
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}

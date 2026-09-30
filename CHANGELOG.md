@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.41.1 · 2026-09-30 · `scheduled-tips` · Server page: Scheduled Tips (cancel, adjust odds, edit before posting)
+
+- New **Scheduled Tips** section on the server page (open by default): the server's queued / scheduled tips that haven't posted yet, with when each posts ("⏰ Posts Wed 10:30 pm (in 9 min)"), legs, odds, stake, bookmaker, an image badge and "↗ forwarded" when the master already has the scheduled copy. Refreshes every 30 s.
+- Actions (same sign-in as the builder): **Cancel tip** (confirm), **Adjust odds**, **Edit** (leg text, odds, stake, bookmaker). They go through TipBot `POST /api/scheduled-tip` (list: `GET /api/scheduled-tips`), which updates the queued tip and the forwarded master copy. A tip that already posted comes back with TipBot's clear "already posted" message and drops off the list.
+- `assets/scheduled-tips.js` (browser `TBScheduled` + node export). Tests: `tests/scheduled_tips.test.js` (9). Needs TipBot 0.41.1; older TipBot shows "needs TipBot's latest deploy".
+
 ## 0.40.3 · 2026-09-30 · `stats-flicker` · Server stats stop flashing to 0; the builder loads its data in parallel (perf deep dive quick fixes)
 
 - Home: the fast `lite=1` server list has no stats, so it now keeps the stats already shown (saved boot copy / current state) and saves those, instead of overwriting them with nothing. Cards with no stats yet show "…" instead of 0.
