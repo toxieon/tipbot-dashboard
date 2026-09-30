@@ -208,6 +208,7 @@
   .stats-toggle{display:flex;width:100%;min-height:44px;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--txt);font:inherit;cursor:pointer;margin-bottom:10px}
   .stats-toggle .st-sum{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline;font-size:13px;color:var(--muted)}
   .stats-toggle .st-sum b{font-size:15px}
+  .st-updating{font-size:13px;font-weight:600;color:var(--muted)}
   .stats-toggle .st-caret{color:var(--muted);font-size:14px;flex:none}
   .stats-wrap.is-collapsed .tiles{display:none}
   .stats-wrap.is-collapsed .stats-toggle{margin-bottom:0}
@@ -819,7 +820,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.40.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.40.3</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1200,7 +1201,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.40.2";
+  TD.version="0.40.3";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1422,6 +1423,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }));
     }catch(e){}
   }
+  const SERVER_STAT_KEYS=["queued","won","lost","profit_units","roi"];
+  function keepServerStats(data, prev){
+    if(!data || data.lite===false || !Array.isArray(data.servers)) return data;
+    const by={}; (prev||[]).forEach(function(s){ if(s&&s.guild_id!=null) by[String(s.guild_id)]=s; });
+    data.servers.forEach(function(s){
+      const o=s&&by[String(s.guild_id)]; if(!o) return;
+      SERVER_STAT_KEYS.forEach(function(k){ if(s[k]==null && o[k]!=null) s[k]=o[k]; });
+    });
+    return data;
+  }
   function applyBootPayload(data, opts){
     opts=opts||{};
     STATE.role=data.role;
@@ -1463,10 +1474,16 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       return (j && typeof j==="object" && !Array.isArray(j)) ? j : {};
     }catch(e){ return {}; }
   }
+  // 0.40.3: a saved server copy older than this is not painted at all (skeleton
+  // instead); a younger one paints as stale ("Updating…" queued) until /api/server lands.
+  const DETAIL_DISK_MAX_AGE_MS=10*60*1000;
+  const DETAIL_STALE=new WeakSet();
   function readDetailDisk(key){
     try{
       const ent=readDetailStore()[key];
-      return ent && ent.data ? ent.data : null;
+      if(!ent || !ent.data) return null;
+      if(!(Date.now()-(ent.saved_at||0) < DETAIL_DISK_MAX_AGE_MS)) return null;
+      return ent.data;
     }catch(e){ return null; }
   }
   function writeDetailDisk(key, data){
@@ -1787,11 +1804,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       ov.innerHTML='<p style="color:var(--muted);margin:0 0 16px">'+list.length+(list.length===1?" server":" servers")+' · tap one to manage it</p>';
       const grid=document.createElement("div");grid.className="grid";
       list.forEach(s=>{const p=s.profit_units||0;const c=document.createElement("div");c.className="scard";
+        // 0.40.3: no stats yet (lite list, nothing saved) → "…", never a fake 0.
+        const noSt=s.queued==null&&s.won==null&&s.profit_units==null;
         c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+esc(s.plan_name||"starter")+'</span>'+trialBadge(s)+'</div>'
-        +'<div class="mini"><div class="m"><span class="mv">'+(s.queued||0)+'</span><span class="ml">Queued</span></div>'
+        +(noSt?'<div class="mini st-pending"><div class="m"><span class="mv">…</span><span class="ml">Queued</span></div>'
+        +'<div class="m"><span class="mv">…</span><span class="ml">W – L</span></div>'
+        +'<div class="m"><span class="mv">…</span><span class="ml">Profit</span></div>'
+        +'<div class="m"><span class="mv">…</span><span class="ml">ROI</span></div></div>'
+        :'<div class="mini"><div class="m"><span class="mv">'+(s.queued||0)+'</span><span class="ml">Queued</span></div>'
         +'<div class="m"><span class="mv"><span class="pos">'+(s.won||0)+'</span>–<span class="neg">'+(s.lost||0)+'</span></span><span class="ml">W – L</span></div>'
         +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
-        +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>'
+        +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>')
         +'<div style="margin-top:14px;color:var(--muted);font-size:13px"><span class="dot '+(s.enabled?"on":"off")+'"></span>'+(s.enabled?"Bot enabled":"Bot disabled")+'</div>';
         c.onclick=()=>loadDetail(s.guild_id);grid.appendChild(c);});
       ov.appendChild(grid);
@@ -1838,6 +1861,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     // Cache-first: paint last good detail (memory or localStorage), refresh behind it.
     if(cached && !opts.force){
       STATE._detailCache[key]=cached;
+      DETAIL_STALE.add(cached); // saved copy: queued shows "Updating…" until fresh data
       renderDetail(cached);
     }else{
       $("detail").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("240px","30px")+'</div>'+NDSkeleton.grid(6,{cols:3,tile:"78px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
@@ -1856,7 +1880,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         }
       });
       if(!r.ok){
-        if(cached) return; // keep last good detail
+        if(cached){ unstaleDetail(cached, guildId); return; } // keep last good detail
         if(r.status===502||r.status===503) $("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';
         else $("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';
         return;
@@ -1865,11 +1889,17 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       STATE._detailCache[key]=data;
       writeDetailDisk(key, data);
       if(!$("detail").hidden) renderDetail(data);
+      // Warm the tip builder's data after the server page itself has loaded.
+      if(STATE.role!=="follower") prefetchBuilderData().catch(function(){});
     }catch(e){
       if(e.unauth)return renderLogin("Session expired.");
-      if(cached) return; // offline/cold — keep cached detail
+      if(cached){ unstaleDetail(cached, guildId); return; } // offline/cold — keep cached detail
       $("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';
     }
+  }
+  function unstaleDetail(d, gid){
+    DETAIL_STALE.delete(d);
+    if(!$("detail").hidden && String(window.__tbDetailGid)===String(gid)) try{ refreshStatsTilesFromCache(gid); }catch(e){}
   }
   function fmtProg(cur, line){
     const c=(cur===0||cur)?cur:null, l=(line===0||line)?line:null;
@@ -2247,6 +2277,25 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     SHARED_GET[path]=rec;
     rec.p.then(function(res){ rec.done=true; rec.at=Date.now(); if(!res.ok && SHARED_GET[path]===rec) delete SHARED_GET[path]; },
                function(){ rec.done=true; if(SHARED_GET[path]===rec) delete SHARED_GET[path]; });
+    return rec.p;
+  }
+  // 0.40.3: tip-builder data (players.json, bookies.json, /api/fixtures) loads in
+  // parallel, and is warmed when a server page opens so the builder opens fast.
+  let BUILDER_PRE=null;
+  function prefetchBuilderData(){
+    if(BUILDER_PRE && Date.now()-BUILDER_PRE.at<30000) return BUILDER_PRE.p;
+    const players=Object.keys(STATE.players||{}).length?Promise.resolve(STATE.players)
+      :fetch("./players.json").then(function(r){ return r.json(); }).then(function(j){
+        if(!Object.keys(STATE.players||{}).length) STATE.players=j||{}; return STATE.players;
+      }).catch(function(){ return {}; });
+    const bookies=(STATE.bookies&&STATE.bookies.length)?Promise.resolve(STATE.bookies)
+      :Promise.resolve().then(function(){ return TB.bookie.load(); }).then(function(b){
+        if(!(STATE.bookies&&STATE.bookies.length)) STATE.bookies=b; return STATE.bookies;
+      }).catch(function(){ return null; });
+    const rec={at:Date.now(), p:null};
+    rec.p=Promise.all([players, bookies, sharedGet("/api/fixtures",30000)]);
+    rec.p.catch(function(){ if(BUILDER_PRE===rec) BUILDER_PRE=null; });
+    BUILDER_PRE=rec;
     return rec.p;
   }
   const TIP_DETAIL={}, TIP_DETAIL_Q=[]; let TIP_DETAIL_ACTIVE=0;
@@ -3243,8 +3292,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     // Prefer lifetime key, else any.
     const d=cache[gid+"|"]||cache[keys[0]];
     const st=d&&d.stats; if(!st) return;
+    const qStale=DETAIL_STALE.has(d);
     const map={
-      "Tips Queued":st.queued,
+      "Tips Queued":qStale?null:st.queued,
       "Won":st.won,
       "Lost":st.lost,
       "Success Rate":(st.strike_rate!=null?st.strike_rate+"%":null),
@@ -3269,7 +3319,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const pCls=Number(st.profit_units||0)>=0?"pos":"neg";
       sum.innerHTML='<span>Profit <b class="'+pCls+'">'+esc(u(st.profit_units))+'</b></span>'
         +'<span>ROI <b class="'+(Number(st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi))+'%</b></span>'
-        +'<span>Queued <b>'+esc(String(st.queued||0))+'</b></span>';
+        +'<span>Queued <b>'+(qStale?'<span class="st-updating">Updating…</span>':esc(String(st.queued||0)))+'</b></span>';
     }
   }
   function appendSettledToRecent(tip, gid){
@@ -5558,7 +5608,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const months=d.months||[],curMonth=d.month||"";
     const period=curMonth?fmtMonth(curMonth):"Lifetime";
     const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
-    const tileDefs=[["Tips Queued",st.queued,"","queued"],["Won",st.won,"pos",""],["Lost",st.lost,"neg",""],["Success Rate",st.strike_rate+"%","",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg",""],["ROI",st.roi+"%",st.roi>=0?"pos":"neg",""],["Followers",st.followers,"","followers"]];
+    const qStale=DETAIL_STALE.has(d);
+    const qTxt=qStale?'<span class="st-updating">Updating…</span>':st.queued;
+    const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won,"pos",""],["Lost",st.lost,"neg",""],["Success Rate",st.strike_rate+"%","",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg",""],["ROI",st.roi+"%",st.roi>=0?"pos":"neg",""],["Followers",st.followers,"","followers"]];
     const tiles=tileDefs.map(t=>'<div class="tile'+(t[3]?" clk":"")+'"'+(t[3]?' data-act="'+t[3]+'"':'')+'><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+(t[3]?' <span style="color:var(--accent)">›</span>':'')+'</div></div>').join("");
     const pCls=st.profit_units>=0?"pos":"neg";
     const rCls=st.roi>=0?"pos":"neg";
@@ -5566,7 +5618,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'<button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true">'
       +'<div class="st-sum" id="stats-sum"><span>Profit <b class="'+pCls+'">'+esc(u(st.profit_units))+'</b></span>'
       +'<span>ROI <b class="'+rCls+'">'+esc(String(st.roi))+'%</b></span>'
-      +'<span>Queued <b>'+esc(String(st.queued))+'</b></span></div>'
+      +'<span>Queued <b>'+(qStale?'<span class="st-updating">Updating…</span>':esc(String(st.queued)))+'</b></span></div>'
       +'<span class="st-caret">▾</span></button>'
       +'<div class="tiles">'+tiles+'</div></div>';
     const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("")+trialControlsHTML(s);
@@ -6513,14 +6565,18 @@ async function loadPerms(gid){
         return renderLogin();
       }
       const data=await r.json();
+      // 0.40.3: lite=1 has no stats — keep the ones we already have (cache/state)
+      // so home cards never flash to 0 and the saved stats aren't overwritten.
+      keepServerStats(data, (STATE.servers&&STATE.servers.length)?STATE.servers:((cached&&cached.servers)||[]));
       writeBootCache(data);
       applyBootPayload(data);
       if(!paintedFromCache){
         TopBar.set(92, "Almost ready…");
         show("app");
         enterHome();
-      }else if(!$("overview").hidden || !$("detail").hidden){
-        // Re-render home cards with fresh lite payload (stats may fill next).
+      }else if(!$("overview").hidden){
+        // Re-render home cards only when home is showing — never pull a user
+        // off a server page back to home (stats may fill next).
         try{ enterHome(); }catch(e){}
       }
       TopBar.done(true);
