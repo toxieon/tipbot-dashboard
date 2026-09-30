@@ -1,5 +1,12 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.40.3 · 2026-09-30 · `stats-flicker` · Server stats stop flashing to 0; the builder loads its data in parallel (perf deep dive quick fixes)
+
+- Home: the fast `lite=1` server list has no stats, so it now keeps the stats already shown (saved boot copy / current state) and saves those, instead of overwriting them with nothing. Cards with no stats yet show "…" instead of 0.
+- The lite list only re-renders home when home is showing. It no longer pulls you off a server page back to home.
+- Server page: a saved copy (memory or disk) paints with "Updating…" for Tips Queued (tile and summary) until fresh `/api/server` data arrives. Disk copies older than 10 min aren't painted at all. If the refresh fails, the last known count shows again.
+- Builder: `players.json`, `bookies.json` and `/api/fixtures` load in parallel (`prefetchBuilderData`), and are warmed once a server page has loaded, so opening the builder reuses them.
+
 ## 0.40.2 · 2026-09-29 · `lazy-builder` · The tip builder and Paste sheet load on first open (Claude, Phase 2.2b)
 
 No visual or behaviour changes. The first page load no longer downloads or parses the tip builder or Admin Tools' Paste tip sheet.

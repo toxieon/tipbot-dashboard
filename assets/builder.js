@@ -205,10 +205,16 @@
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(guildId);};
     // players now come live from the AFL API (attached to each game); players.json
     // is only a silent fallback for a team the roster feed couldn't match.
-    if(!Object.keys(STATE.players).length){ try{STATE.players=await (await fetch("./players.json")).json();}catch{STATE.players={};} }
-    if(!STATE.bookies.length)STATE.bookies=await TB.bookie.load();
+    // 0.40.3: players.json, bookies.json and /api/fixtures load in parallel
+    // (prefetchBuilderData, index.html — warmed when the server page opened).
     let games=[];
-    try{ const fx=await (await api("/api/fixtures")).json(); games=fx.games||[]; STATE.playerMeta=fx.players||{}; }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+    try{
+      const res=await prefetchBuilderData();
+      const fx=res[2];
+      if(fx&&fx.data){ games=fx.data.games||[]; STATE.playerMeta=fx.data.players||{}; }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
+    if(!Object.keys(STATE.players||{}).length) STATE.players={};
+    if(!(STATE.bookies&&STATE.bookies.length)){ try{ STATE.bookies=await TB.bookie.load(); }catch(e){} }
     renderGames(games);
     offerDraftResume(guildId, games);
     // Auto-refresh the games list every 180s so live scores update and finished
