@@ -12,7 +12,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const HTML = read("index.html");
 const VERSION = read("VERSION").trim();
 const FILES = {builder: read("assets/builder.js"), admin: read("assets/admin.js")};
-const ENTRY = {builder: ["openBuilder", "openCustom"], admin: ["pasteSheetPreview", "pasteSheetConfirm"]};
+const ENTRY = {builder: ["openBuilder", "openCustom"], admin: ["pasteSheetPreview", "pasteSheetConfirm", "pasteSheetTemplate"]};
 
 // Top-level declarations: every file here indents its top level by two spaces.
 function topNames(src) {

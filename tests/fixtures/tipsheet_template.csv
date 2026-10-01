@@ -1,0 +1,10 @@
+# TipBot TipSheet template. Lines starting with # are notes and are ignored. One row per leg.
+# kind: SINGLE or MULTI. A MULTI is 2 or more rows with the same group label (for example M1).
+# game: the match (for example Sydney Swans v Fremantle). player: the player's name.
+# stat: for example Disposals / Goals / Marks / Tackles / Kicks / Handballs / Hitouts / Clearances / Fantasy Points.
+# line: a number (for example 24.5). side: Over or Under (O and U also work).
+# odds: decimal odds above 1 (for example 1.85). units: stake in units above 0 (for example 1).
+# MULTI rows: put the tip's total odds and units on every row of the group.
+# group: leave blank for SINGLE.
+kind,game,player,stat,line,side,odds,units,group
+SINGLE,Sydney Swans v Fremantle,Chad Warner,Disposals,24.5,Over,1.85,1,
