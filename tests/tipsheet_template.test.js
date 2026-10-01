@@ -8,6 +8,10 @@ const vm = require("node:vm");
 const ROOT = path.join(__dirname, "..");
 const TEMPLATE = fs.readFileSync(path.join(__dirname, "fixtures", "tipsheet_template.csv"), "utf8");
 
+// Values built inside the vm context have that realm's Object/Array prototypes, which
+// strict deepEqual rejects; copy them into this realm before comparing.
+const plain = (v) => JSON.parse(JSON.stringify(v));
+
 function admin() {
   const ctx = { TD: { loaded: {} }, console };
   vm.createContext(ctx);
@@ -23,7 +27,7 @@ test("the template's example row parses cleanly", () => {
   const t = p.singles[0];
   assert.equal(t.game_name, "Sydney Swans v Fremantle");
   assert.deepEqual([t.odds, t.units], [1.85, 1]);
-  assert.deepEqual(t.legs[0], { player: "Chad Warner", stat: "Disposals", line: 24.5, side: "Over", game: "Sydney Swans v Fremantle" });
+  assert.deepEqual(plain(t.legs[0]), { player: "Chad Warner", stat: "Disposals", line: 24.5, side: "Over", game: "Sydney Swans v Fremantle" });
 });
 
 test("a filled CSV with quotes and a multi", () => {
@@ -32,7 +36,7 @@ test("a filled CSV with quotes and a multi", () => {
     + "MULTI,Carlton v Hawthorn,Cripps,Disposals,29.5,Under,3.2,0.5,M1\n";
   const p = admin().parseTipSheet(sheet);
   assert.equal(p.ok, true);
-  assert.deepEqual(p.multis[0].legs.map((l) => l.player), ["Smith, J", "Cripps"]);
+  assert.deepEqual(plain(p.multis[0].legs.map((l) => l.player)), ["Smith, J", "Cripps"]);
 });
 
 test("TSV sheets are read as before", () => {

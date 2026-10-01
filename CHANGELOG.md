@@ -1,6 +1,6 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
-## 0.42.1 · 2026-10-01 · `csv-template` · Paste tip sheet: owner-only "Download CSV template" (needs TipBot 0.45.1)
+## 0.42.1 · 2026-10-01 · `csv-template` · Paste tip sheet: owner-only "Download CSV template" (needs TipBot 0.43.1)
 
 - Admin Tools → Paste tip sheet (owner-only panel) gains **Download CSV template**. It fetches TipBot's `GET /api/owner/tipsheet-template` (owner-only) and saves `tipsheet-template.csv`: notes lines (`#`, allowed values), the header with exactly the columns the importer reads, and one example row. Older TipBot: "This needs TipBot's latest deploy" (press the button again once it's live).
 - The Paste sheet now also reads that CSV: a sheet whose first line starts `kind,` (no tab) is read as CSV (quoted cells allowed); `#` lines are notes. TSV / two-space sheets are read exactly as before. Same rule as TipBot's parser.
