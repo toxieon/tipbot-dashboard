@@ -822,7 +822,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.41.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.42.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1203,7 +1203,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.41.2";
+  TD.version="0.42.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -5615,6 +5615,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // Admin Tools · Paste tip sheet: assets/admin.js, loaded on first use (2.2b).
   function pasteSheetPreview(){ return TD.call("admin", "pasteSheetPreview", this, arguments); }
   function pasteSheetConfirm(){ return TD.call("admin", "pasteSheetConfirm", this, arguments); }
+  function pasteSheetTemplate(){ return TD.call("admin", "pasteSheetTemplate", this, arguments); }
 
 
   function renderDetail(d){
@@ -5694,13 +5695,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const pasteSheetZone='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'
       +'<div id="pastesheettoggle" role="button" tabindex="0" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none">'
       +'<div><div style="color:#b9a5ff;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700">Paste tip sheet</div>'
-      +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Owner-only TipSheet import (TSV + YAML). Collapsed so Admin Tools stays short.</div></div>'
+      +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Owner-only TipSheet import (TSV or CSV + YAML). Collapsed so Admin Tools stays short.</div></div>'
       +'<span id="pastesheetcaret" style="color:#b9a5ff;font-size:14px;flex:none">▸</span></div>'
       +'<div id="pastesheetbody" hidden style="margin-top:10px">'
       +'<textarea id="paste-sheet-ta" class="paste-sheet-ta" spellcheck="false" placeholder="---\nguild: …\nchannel: tips\nmemo: Optional sheet note\ntrickle_seconds: 8\n---\nkind\tgame\tplayer\tstat\tline\tside\todds\tunits\tgroup\nSINGLE\tSydney Swans v Fremantle\tChad Warner\tDisposals\t24.5\tOver\t1.85\t1\t"></textarea>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">'
       +'<button type="button" id="paste-preview-btn" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Preview</button>'
       +'<button type="button" id="paste-confirm" disabled style="border:1px solid rgba(46,175,98,.45);background:rgba(46,175,98,.12);color:#7ee0a6;border-radius:9px;padding:8px 12px;cursor:not-allowed;font:inherit;font-size:12.5px;font-weight:600;opacity:.45">Confirm import</button>'
+      +'<button type="button" id="paste-template" style="border:1px solid #5a3a7a;background:#241b3a;color:#c9a5ff;border-radius:9px;padding:8px 12px;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600">Download CSV template</button>'
       +'<span id="paste-summary" style="font-size:12px;color:var(--faint)"></span></div>'
       +'<div id="paste-preview" class="paste-preview"></div>'
       +'<div id="paste-sheet-msg" style="font-size:12px;color:var(--faint);margin-top:8px"></div>'
@@ -5753,6 +5755,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(pt&&b){ pt.classList.add("tdsec-sub"); TDSec.bind(pt.parentNode, pt, {id:"admin-paste", body:b, hideBody:true, caret:$("pastesheetcaret")}); } }
     { const pb=$("paste-preview-btn"); if(pb)pb.onclick=()=>pasteSheetPreview(s.guild_id); }
     { const pc=$("paste-confirm"); if(pc)pc.onclick=()=>pasteSheetConfirm(s.guild_id); }
+    { const pt=$("paste-template"); if(pt)pt.onclick=()=>pasteSheetTemplate(); }  // 6.5 (owner-only panel)
     { const ft=$("featurestoggle"), b=$("featuresbody");
       // Feature flags fetch only when the section is opened (as before), now remembered per device.
       if(ft&&b){ ft.classList.add("tdsec-sub"); TDSec.bind(ft.parentNode, ft, {id:"admin-features", body:b, hideBody:true, caret:$("featurescaret"), onToggle:function(open){ if(open) loadFeatures(s.guild_id); }}); } }

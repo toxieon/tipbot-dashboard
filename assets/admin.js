@@ -31,10 +31,30 @@
     if(line.indexOf("\t")>=0) return line.split("\t").map(function(c){ return c.trim(); });
     return line.split(/ {2,}|\t/).map(function(c){ return c.trim(); });
   }
+  // 6.5: a sheet whose first line starts "kind," (no tab) is the CSV template, filled in.
+  // Same detection as TipBot's parse_tipsheet; TSV / two-space sheets are read as before.
+  function splitCsvRow(line){
+    const out=[]; let cur="", q=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(q){
+        if(ch==='"'){ if(line[i+1]==='"'){ cur+='"'; i++; } else q=false; }
+        else cur+=ch;
+      }else if(ch==='"') q=true;
+      else if(ch===","){ out.push(cur.trim()); cur=""; }
+      else cur+=ch;
+    }
+    out.push(cur.trim());
+    return out;
+  }
   function parseTipSheet(raw){
     const parsedFm=parseTipSheetYamlFrontmatter(raw);
     const meta=parsedFm.meta, body=parsedFm.body;
     const lines=body.split(/\r?\n/).map(function(l){ return l.trimEnd(); }).filter(function(l){ return l.trim() && !l.trim().startsWith("#"); });
+    const csvMode=lines.length>0 && lines[0].indexOf("\t")<0 && /^kind,/i.test(lines[0].trim());
+    if(csvMode){
+      for(let i=0;i<lines.length;i++) lines[i]=splitCsvRow(lines[i]).join("\t");
+    }
     const errors=[];
     const rows=[];
     let header=null;
@@ -251,6 +271,30 @@
       if(e&&e.unauth) return renderLogin("Session expired.");
       if(msg){ msg.style.color="#f0857f"; msg.textContent="Couldn't reach TipBot."; }
       prog.fail("Couldn't reach TipBot.");
+    }
+  }
+  async function pasteSheetTemplate(){
+    const msg=$("paste-sheet-msg");
+    try{
+      const r=await api("/api/owner/tipsheet-template");
+      if(r.status===404){
+        if(msg){ msg.style.color="var(--warn,#e0a04a)"; msg.textContent="This needs TipBot's latest deploy. Retry with the button once it's live."; }
+        return;
+      }
+      if(!r.ok){
+        if(msg){ msg.style.color="#f0857f"; msg.textContent=r.status===403?"Owner only.":"Couldn't get the template (HTTP "+r.status+")."; }
+        return;
+      }
+      const text=await r.text();
+      const url=URL.createObjectURL(new Blob([text],{type:"text/csv"}));
+      const a=document.createElement("a");
+      a.href=url; a.download="tipsheet-template.csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      if(msg){ msg.style.color="var(--faint)"; msg.textContent="Template downloaded. Fill it in, then paste the rows (or the whole file) above."; }
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      if(msg){ msg.style.color="#f0857f"; msg.textContent="Couldn't reach TipBot."; }
     }
   }
   TD.loaded.admin=true;
