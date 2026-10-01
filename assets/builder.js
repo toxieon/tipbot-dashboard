@@ -145,7 +145,7 @@
     let list=games||[];
     if(!list.length){
       try{
-        const fx=await (await api("/api/fixtures")).json();
+        const fx=await (await api(TBLight.FIXTURES_LEAN)).json();
         list=fx.games||[];
         STATE.playerMeta=fx.players||{};
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
@@ -720,6 +720,14 @@
     clearLiveTimer();clearGamesTimer();
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     saveMultiDraft();
+    // 6.1c: the games list has no players; fetch only this game's (cached per game).
+    if(TBLight.needsRoster(g)){
+      $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="panel"><div class="empty">Loading players…</div></div>';
+      const bg=$("bg"); if(bg) bg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+      try{ await TBLight.loadRoster(g, function(p){ return sharedGet(p,120000); }); }
+      catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); }
+      if(BUILD.game!==g) return;
+    }
     renderGame();
     // Prefetch TipBot player-lines cache for Auto (session-cached; no spam).
     // Always paint in finally so "Loading book lines…" cannot stick (esp. Auto OFF).

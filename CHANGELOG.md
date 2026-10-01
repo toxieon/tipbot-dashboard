@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.41.2 · 2026-10-01 · `light-server-rosters` · Server page and builder load less (needs TipBot 0.42.3 for the full gain)
+
+- **Server page:** `/api/server` no longer carries live/FT prop counts (TipBot 0.42.3). They load right after the page paints from `GET /api/server/prop-counts` and are merged into the tip legs (`current`, `emoji`, `status`, `line`, `side`), then the page repaints once. An older TipBot has no such endpoint, but its `/api/server` still includes the counts, so the miss is ignored.
+- **Builder:** the games list asks for `/api/fixtures?rosters=0` (no players: a few KB instead of a few hundred). Picking a game fetches only that game's players from `/api/fixtures/roster?game=` (cached 2 min per game) and shows "Loading players…" meanwhile. Older TipBot: it ignores `?rosters=0` (players already present, nothing extra fetched) or 404s the roster endpoint, and the builder falls back to the full `/api/fixtures` payload. Also used for the 3-min games poll and the old-TipBot upcoming fallback.
+- `assets/light-data.js` (browser `TBLight` + node export). Tests: `tests/light_data.test.js` (6). No visual changes.
+
 ## 0.41.1 · 2026-09-30 · `scheduled-tips` · Server page: Scheduled Tips (cancel, adjust odds, edit before posting)
 
 - New **Scheduled Tips** section on the server page (open by default): the server's queued / scheduled tips that haven't posted yet, with when each posts ("⏰ Posts Wed 10:30 pm (in 9 min)"), legs, odds, stake, bookmaker, an image badge and "↗ forwarded" when the master already has the scheduled copy. Refreshes every 30 s.

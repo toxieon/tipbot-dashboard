@@ -9,6 +9,7 @@
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
 <script src="./assets/req-pool.js"></script>
+<script src="./assets/light-data.js"></script>
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
@@ -821,7 +822,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.41.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.41.2</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1202,7 +1203,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.41.1";
+  TD.version="0.41.2";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1890,6 +1891,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       STATE._detailCache[key]=data;
       writeDetailDisk(key, data);
       if(!$("detail").hidden) renderDetail(data);
+      loadPropCounts(guildId, month, key, data);
       // Warm the tip builder's data after the server page itself has loaded.
       if(STATE.role!=="follower") prefetchBuilderData().catch(function(){});
     }catch(e){
@@ -1897,6 +1899,20 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       if(cached){ unstaleDetail(cached, guildId); return; } // offline/cold — keep cached detail
       $("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';
     }
+  }
+  // 6.1c: /api/server comes back without live/FT prop counts (faster); they load
+  // here after the page has painted. An older TipBot has no such endpoint, but its
+  // /api/server already included the counts, so a miss is silently ignored.
+  function loadPropCounts(guildId, month, key, data){
+    api("/api/server/prop-counts?guild_id="+encodeURIComponent(guildId)+(month?"&month="+encodeURIComponent(month):""),{retries:0})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(counts){
+        if(!counts || STATE._detailCache[key]!==data) return;
+        if(!TBLight.mergePropCounts(data, counts)) return;
+        writeDetailDisk(key, data);
+        if(!$("detail").hidden && String(window.__tbDetailGid)===String(guildId)) renderDetail(data);
+      })
+      .catch(function(){});
   }
   function unstaleDetail(d, gid){
     DETAIL_STALE.delete(d);
@@ -2294,7 +2310,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         if(!(STATE.bookies&&STATE.bookies.length)) STATE.bookies=b; return STATE.bookies;
       }).catch(function(){ return null; });
     const rec={at:Date.now(), p:null};
-    rec.p=Promise.all([players, bookies, sharedGet("/api/fixtures",30000)]);
+    rec.p=Promise.all([players, bookies, sharedGet(TBLight.FIXTURES_LEAN,30000)]);  // 6.1c: no rosters; the picked game loads its own
     rec.p.catch(function(){ if(BUILDER_PRE===rec) BUILDER_PRE=null; });
     BUILDER_PRE=rec;
     return rec.p;
@@ -4643,7 +4659,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(document.hidden) return;
     GAMES_TIMER=setInterval(async()=>{
       if(document.hidden||BUILD.game)return;
-      try{ const fx=await (await api("/api/fixtures")).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
+      try{ const fx=await (await api(TBLight.FIXTURES_LEAN)).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
     },GAMES_POLL_MS);
   }
   function startLivePoll(g){
@@ -5244,7 +5260,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     // Older TipBot: same data from the fat endpoints, in parallel, bounded.
     const soft=p=>p.catch(e=>{ if(e&&e.unauth) throw e; return null; });
     const [fx, rr]=await Promise.all([
-      soft(sharedGet("/api/fixtures",30000,{timeoutMs:45000,retries:1})),
+      soft(sharedGet(TBLight.FIXTURES_LEAN,30000,{timeoutMs:45000,retries:1})),
       soft(sharedGet("/api/results",60000,{timeoutMs:20000,retries:1}))
     ]);
     return {
