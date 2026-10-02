@@ -1192,7 +1192,15 @@
     if(espnId){ out.espn_event_id=String(espnId); out.event_id=String(espnId); }
     // TipBot may accept start_date / game_start; ignore-unknown on lagging deploys.
     if(start_date){ out.start_date=start_date; out.game_start=start_date; }
+    // 0.42.2: AFL fixture games carry their real start (Squiggle unixtime) as game_start,
+    // so Upcoming Bets shows the time even when /api/upcoming can't be reached.
+    else if(!BUILD.espn && !BUILD.custom){ const gs=aflGameStartIso(BUILD.game); if(gs) out.game_start=gs; }
     return out;
+  }
+  function aflGameStartIso(g){
+    const u=g&&Number(g.unixtime);
+    if(!u||!isFinite(u)||u<=0) return "";
+    try{ return new Date(u*1000).toISOString().replace(".000Z","Z"); }catch(e){ return ""; }
   }
   function addCurrentTipToBatch(){
     const tip=readTipForm();
@@ -1304,6 +1312,7 @@
       if(t.league) row.league=t.league;
       if(t.espn_event_id){ row.espn_event_id=t.espn_event_id; row.event_id=t.espn_event_id; }
       if(t.start_date){ row.start_date=t.start_date; row.game_start=t.game_start||t.start_date; }
+      else if(t.game_start){ row.game_start=t.game_start; }
       return row;
     });
     const payload={
@@ -1344,6 +1353,7 @@
         if(t.league) one.league=t.league;
         if(t.espn_event_id){ one.espn_event_id=t.espn_event_id; one.event_id=t.espn_event_id; }
         if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
+        else if(t.game_start){ one.game_start=t.game_start; }
         if(t.route) one.route=t.route;
         try{
           const r=await api("/api/queue-tip",{
@@ -1518,6 +1528,7 @@
     if(tipFields.league) payload.league=tipFields.league;
     if(tipFields.espn_event_id){ payload.espn_event_id=tipFields.espn_event_id; payload.event_id=tipFields.espn_event_id; }
     if(tipFields.start_date){ payload.start_date=tipFields.start_date; payload.game_start=tipFields.game_start||tipFields.start_date; }
+    else if(tipFields.game_start){ payload.game_start=tipFields.game_start; }
     if(route) payload.route=route;
     try{
       // Safe to retry: the Idempotency-Key replays instead of double-posting.
