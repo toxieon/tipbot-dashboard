@@ -1,5 +1,12 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.42.2 · 2026-10-02 · `busy-recovery` · Scheduled Tips no longer sticks on "warming"; AFL Upcoming Bets keeps its start times (works with TipBot 0.44.1 or older)
+
+- **Scheduled Tips panel:** when TipBot answered 503 (`{"error":"warming"}` or `{"error":"db_busy"}`, which happens during a restart or a busy DB), the panel showed the raw word "warming" until the next 30 s poll, and every remount whose first load got a 503 showed it again. Brandon hit this on 2 Oct around 19:38–19:47, when TipBot logs show `/api/scheduled-tips` 503s and two health-check restarts. Now a 503 shows "TipBot is busy or starting up. Retrying…", keeps any list already loaded, and retries after `retry_after` (2–10 s, default 4 s), up to 6 times, before it waits for the normal poll.
+- **Upcoming Bets "time TBC":** `fetchUpcomingCtx` switched `/api/upcoming` off for the whole session after a single network error. That only happens when TipBot restarts mid-request (19:42:01 on 2 Oct), and the fallback fetches failed during the restart too, so AFL tips such as GWS v Essendon (AFL-2026-036) showed "time TBC" until the page was reloaded. Now a network error falls back for that load only, and only a real 404 marks an older TipBot.
+- **AFL tips carry their start:** the builder now sends `game_start`, the fixture's start (Squiggle `unixtime`) as ISO UTC, for AFL fixture games on the single, batch and queue payloads, so a tip's start no longer depends on `/api/upcoming` alone. TipBot already accepts `game_start` (ISO datetime). ESPN and custom games are unchanged.
+- Tests: `tests/busy_recovery.test.js` (new).
+
 ## 0.42.1 · 2026-10-01 · `csv-template` · Paste tip sheet: owner-only "Download CSV template" (needs TipBot 0.43.1)
 
 - Admin Tools → Paste tip sheet (owner-only panel) gains **Download CSV template**. It fetches TipBot's `GET /api/owner/tipsheet-template` (owner-only) and saves `tipsheet-template.csv`: notes lines (`#`, allowed values), the header with exactly the columns the importer reads, and one example row. Older TipBot: "This needs TipBot's latest deploy" (press the button again once it's live).

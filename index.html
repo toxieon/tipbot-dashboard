@@ -822,7 +822,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.42.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.42.2</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1203,7 +1203,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.42.1";
+  TD.version="0.42.2";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -5254,7 +5254,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       }catch(e){
         if(e&&e.unauth) throw e;
         if(UPC_API===true) return null; // transient — endpoint exists
-        UPC_API=false; // older TipBot 404s without CORS → fetch TypeError
+        // 0.42.2: a network error (e.g. TipBot restarting) is NOT proof of an older TipBot.
+        // Use the fallback for this load only; the next load tries /api/upcoming again
+        // (before, one failed GET during a restart left every AFL start as "time TBC").
       }
     }
     // Older TipBot: same data from the fat endpoints, in parallel, bounded.

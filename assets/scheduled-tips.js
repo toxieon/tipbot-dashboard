@@ -8,6 +8,13 @@
   "use strict";
   var UNAVAILABLE = "Scheduled tips need TipBot’s latest deploy.";
   var POLL_MS = 30000;
+  // 0.42.2: TipBot answers 503 {"error":"warming"|"db_busy"} while it starts or is busy.
+  // Show a plain message, keep any list already loaded, and retry soon (a few times).
+  var BUSY_TEXT = "TipBot is busy or starting up. Retrying…";
+  var BUSY_RETRIES = 6;
+  function isBusy(r) {
+    return r && (r._status === 503 || r.error === "warming" || r.error === "db_busy");
+  }
 
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
@@ -64,6 +71,9 @@
   function create(ctx) {
     var S = {tips: null, missing: null, err: null, busy: null, open: {}, msg: null};
     var when = ctx.when || function (t) { return t || ""; };
+    var later = ctx.later || function (fn, ms) { return setTimeout(fn, ms); };
+    var alive = ctx.alive || function () { return true; };
+    var busyTries = 0;
     var paint = ctx.paint || function () {};
     async function call(path, body) {
       var r = await ctx.api(path, body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : undefined);
@@ -77,8 +87,18 @@
       try {
         var r = await call("/api/scheduled-tips?guild_id=" + encodeURIComponent(ctx.gid));
         if ([404, 405, 501].indexOf(r._status) !== -1) { S.missing = UNAVAILABLE; S.tips = null; }
+        else if (isBusy(r)) {
+          S.err = BUSY_TEXT;
+          if (busyTries < BUSY_RETRIES) {
+            busyTries += 1;
+            var wait = Math.min(10, Math.max(2, Number(r.retry_after) || 4)) * 1000;
+            later(function () { return alive() ? load() : null; }, wait);
+          } else {
+            S.err = "TipBot is busy. Scheduled tips will refresh on the next check.";
+          }
+        }
         else if (!r.ok) { S.err = r.message || r.error || "Couldn’t load scheduled tips."; }
-        else { S.missing = null; S.err = null; S.tips = r.tips || []; }
+        else { S.missing = null; S.err = null; S.tips = r.tips || []; busyTries = 0; }
       } catch (e) {
         if (e && e.unauth) { if (ctx.onUnauth) ctx.onUnauth(); return; }
         S.err = "Couldn’t reach the bot.";
@@ -152,10 +172,12 @@
       return h + '</div>';
     }
     function view() {
+      var top0 = "";
       if (S.missing) return '<div class="empty">' + esc(S.missing) + '</div>';
       if (S.tips === null) return S.err ? '<div class="empty">' + esc(S.err) + '</div>' : '<div class="empty">Loading scheduled tips…</div>';
+      if (S.err === BUSY_TEXT) top0 = '<div class="sched-msg" style="font-size:12.5px;margin-bottom:8px;color:var(--faint)">' + esc(BUSY_TEXT) + '</div>';
       var orphan = S.msg && (!S.msg.tip || !S.tips.some(function (t) { return t.tip_id === S.msg.tip; }));
-      var top = orphan ? '<div class="sched-msg" style="font-size:12.5px;margin-bottom:8px;color:' + (S.msg.cls === "err" ? "var(--loss)" : "var(--win)") + '">' + esc(S.msg.text) + '</div>' : "";
+      var top = top0 + (orphan ? '<div class="sched-msg" style="font-size:12.5px;margin-bottom:8px;color:' + (S.msg.cls === "err" ? "var(--loss)" : "var(--win)") + '">' + esc(S.msg.text) + '</div>' : "");
       if (!S.tips.length) return top + '<div class="empty">No scheduled tips. Tips you queue for later show here until they post.</div>';
       return top + S.tips.map(tipHTML).join("");
     }
@@ -166,7 +188,7 @@
   /** DOM host: paints into box, binds buttons, refreshes every 30 s while the box is on the page. */
   function mount(box, ctx) {
     var timer = null;
-    var ui = create(Object.assign({}, ctx, {paint: paint}));
+    var ui = create(Object.assign({alive: function () { return box.isConnected !== false; }}, ctx, {paint: paint}));
     function formOf(tipId) {
       var el = box.querySelector('.sched-tip[data-tip="' + (root.CSS && CSS.escape ? CSS.escape(tipId) : tipId) + '"]');
       if (!el) return {};
@@ -202,7 +224,7 @@
     return {reload: ui.load, ui: ui, stop: function () { if (timer) clearInterval(timer); timer = null; }};
   }
 
-  var API = {create: create, mount: mount, editBody: editBody, rel: rel, UNAVAILABLE: UNAVAILABLE};
+  var API = {create: create, mount: mount, editBody: editBody, rel: rel, UNAVAILABLE: UNAVAILABLE, BUSY_TEXT: BUSY_TEXT};
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBScheduled = API;
 })(typeof window !== "undefined" ? window : globalThis);
