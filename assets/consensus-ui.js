@@ -4,6 +4,12 @@
  */
 (function (root) {
   "use strict";
+  // Action sheet when tb-motion.js is loaded (0.43.1); plain confirm() otherwise.
+  function ask(o) {
+    var W = typeof window !== "undefined" ? window : {};
+    if (W.TBSheet && W.TBSheet.confirm) return W.TBSheet.confirm(o);
+    return Promise.resolve(typeof W.confirm === "function" ? W.confirm(o.title + (o.message ? "\n\n" + o.message : "")) : false);
+  }
   var UNAVAILABLE = "This needs TipBot’s latest deploy.";
   var NUMS = [["min_servers", "Minimum servers", 1, 100, 1], ["min_pct", "Minimum % of active servers (0 = off)", 0, 100, 1],
               ["window_hours", "Window (hours, first to last bet)", 1, 168, 1], ["line_tolerance", "Line tolerance (stat units)", 0, 20, 0.5]];
@@ -146,12 +152,14 @@
         save(body, "Consensus settings saved.");
       };
       document.querySelectorAll(".cons-sport").forEach(function (i) { i.onchange = function () { collect(); paint(); }; });
-      var on = q("cons-on"); if (on) on.onchange = function () {
-        if (!confirm("Turn consensus " + (on.checked ? "ON? With dry run on, it only previews." : "OFF?"))) { paint(); return; }
+      var on = q("cons-on"); if (on) on.onchange = async function () {
+        if (!(await ask({title: "Turn consensus " + (on.checked ? "on" : "off") + "?", message: on.checked ? "With dry run on, it only previews." : "",
+          confirmLabel: on.checked ? "Turn on" : "Turn off"}))) { paint(); return; }
         save({enabled: on.checked}, "Consensus " + (on.checked ? "on" : "off") + ".");
       };
-      var dry = q("cons-dry"); if (dry) dry.onchange = function () {
-        if (!dry.checked && !confirm("Turn dry run OFF? TipBot will create #consensus in the master and post bets that qualify.")) { paint(); return; }
+      var dry = q("cons-dry"); if (dry) dry.onchange = async function () {
+        if (!dry.checked && !(await ask({title: "Turn dry run off?", message: "TipBot will create #consensus in the master and post bets that qualify.",
+          confirmLabel: "Go live"}))) { paint(); return; }
         save({dry_run: dry.checked}, dry.checked ? "Dry run on: preview only." : "Dry run off: qualifying bets will post.");
       };
       var pz = q("cons-pause"); if (pz) pz.onchange = function () {

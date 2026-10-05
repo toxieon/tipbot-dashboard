@@ -1,6 +1,12 @@
 {
   "name": "TipBot Dashboard",
   "short_name": "TipBot",
+  "description": "Build, schedule and grade tips for your TipBot Discord servers.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F1420",
+  "theme_color": "#0F1420",
   "icons": [
     {
       "src": "assets/icon-192.png",
@@ -12,7 +18,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#0F1420",
-  "background_color": "#0F1420"
+  ]
 }

@@ -14,6 +14,7 @@
 <script src="../assets/master-access.js"></script>
 <script src="../assets/consensus-ui.js"></script>
 <script src="../assets/slip-ui.js"></script>
+<script src="../assets/tb-motion.js?v=0.43.1"></script>
 <script>
 (function(){
   try {
@@ -117,6 +118,15 @@ h1{margin:8px 0 2px;font-size:22px}
   var slip=SlipUI.create({call:call,paint:function(){if(S.tab==="overview")paint();}});
   var cons=ConsensusUI.create({call:call,paint:function(){paint();},when:function(t){try{return TBTime.fmtWhen(t);}catch(e){return t;}}});
   function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+  // Action sheet when tb-motion.js loaded; native confirm if that script failed.
+  function tbConfirm(o){
+    o=o||{};
+    if(window.TBSheet && typeof window.TBSheet.confirm==="function") return window.TBSheet.confirm(o);
+    var msg=String(o.title||"Are you sure?")+(o.message?"\n\n"+o.message:"");
+    var ok=false;
+    try{ ok=typeof window.confirm==="function" && window.confirm(msg); }catch(e){}
+    return Promise.resolve(!!ok);
+  }
   function token(){try{return localStorage.getItem("tipbot_token");}catch(e){return null;}}
   async function call(path,body,method){
     var opt={headers:{Authorization:"Bearer "+token()},cache:"no-store"};
@@ -232,15 +242,17 @@ h1{margin:8px 0 2px;font-size:22px}
   }
   function bindFwd(){
     var rf=$("fwd-refresh"); if(rf)rf.onclick=function(){S.fwd=null;S.msg=null;paint();loadFwd();};
-    var on=$("fwd-on"); if(on)on.onchange=function(){
-      if(!confirm("Turn forwarding "+(on.checked?"ON? Tips from servers switched on below will be posted into their mirror channels.":"OFF? Nothing more is forwarded until you turn it back on."))){paint();return;}
+    var on=$("fwd-on"); if(on)on.onchange=async function(){
+      if(!(await tbConfirm({title:"Turn forwarding "+(on.checked?"on":"off")+"?",
+        message:on.checked?"Tips from servers switched on below will be posted into their mirror channels.":"Nothing more is forwarded until you turn it back on.",
+        confirmLabel:on.checked?"Turn on":"Turn off", destructive:!on.checked}))){paint();return;}
       saveFwd({forwarding_enabled:on.checked},"Forwarding "+(on.checked?"on":"off")+".");
     };
     var pz=$("fwd-pause"); if(pz)pz.onchange=function(){
       saveFwd({forwarding_paused:pz.checked},pz.checked?"Paused: changes queue up, nothing is sent.":"Resumed: queued changes will send now.");
     };
-    document.querySelectorAll(".fwd-src").forEach(function(b){b.onchange=function(){
-      if(!confirm("Turn forwarding "+(b.checked?"on":"off")+" for this server?")){paint();return;}
+    document.querySelectorAll(".fwd-src").forEach(function(b){b.onchange=async function(){
+      if(!(await tbConfirm({title:"Turn forwarding "+(b.checked?"on":"off")+" for this server?",confirmLabel:b.checked?"Turn on":"Turn off"}))){paint();return;}
       saveFwd({source_guild_id:b.dataset.src,enabled:b.checked},"Server forwarding "+(b.checked?"on":"off")+".");
     };});
   }
@@ -253,7 +265,7 @@ h1{margin:8px 0 2px;font-size:22px}
     if(S.tab==="consensus")cons.bind();
     if(S.tab==="overview")slip.bind();
     var beta=$("beta"); if(beta)beta.onchange=async function(){
-      if(!confirm("Turn master beta "+(beta.checked?"on":"off")+"? This changes master behavior; existing Discord permissions stay in place.")){paint();return;}
+      if(!(await tbConfirm({title:"Turn master beta "+(beta.checked?"on":"off")+"?",message:"This changes master behaviour; existing Discord permissions stay in place.",confirmLabel:beta.checked?"Turn on":"Turn off"}))){paint();return;}
       beta.disabled=true;
       var r=await call("/api/master/config",{beta_enabled:beta.checked});
       S.msg=r.ok?{cls:"ok",text:"Beta "+(beta.checked?"on":"off")+"."}:{cls:"err",text:r.error||"Couldn't save"};
@@ -269,7 +281,7 @@ h1{margin:8px 0 2px;font-size:22px}
       paint();
     };
     var sm=$("setmaster"); if(sm)sm.onclick=async function(){
-      if(!confirm("Set this server as the master?\n\nTipBot re-checks it, then creates a locked 'TipBot Master Control' category with #master-audit and #master-alerts."))return;
+      if(!(await tbConfirm({title:"Set this server as the master?",message:"TipBot re-checks it, then creates a locked 'TipBot Master Control' category with #master-audit and #master-alerts.",confirmLabel:"Set as master"})))return;
       S.busy=true;paint();
       var r=await call("/api/master/config",{master_guild_id:S.picked});
       S.busy=false;

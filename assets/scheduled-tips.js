@@ -6,6 +6,12 @@
  */
 (function (root) {
   "use strict";
+  // Action sheet when tb-motion.js is loaded (0.43.1); plain confirm() otherwise.
+  function ask(o) {
+    var W = typeof window !== "undefined" ? window : {};
+    if (W.TBSheet && W.TBSheet.confirm) return W.TBSheet.confirm(o);
+    return Promise.resolve(typeof W.confirm === "function" ? W.confirm(o.title + (o.message ? "\n\n" + o.message : "")) : false);
+  }
   var UNAVAILABLE = "Scheduled tips need TipBot’s latest deploy.";
   var POLL_MS = 30000;
   // 0.42.2: TipBot answers 503 {"error":"warming"|"db_busy"} while it starts or is busy.
@@ -210,8 +216,8 @@
       on(".sched-save", function (id) { ui.save(id, formOf(id)); });
       on(".sched-cancel-btn", function (id) {
         var t = (ui.state().tips || []).find(function (x) { return x.tip_id === id; });
-        if (!confirm("Cancel " + ((t && t.display_id) || "this tip") + "? It won’t post, and the forwarded master copy is removed.")) return;
-        ui.cancel(id);
+        ask({title: "Cancel " + ((t && t.display_id) || "this tip") + "?", message: "It won’t post, and the forwarded master copy is removed.",
+          confirmLabel: "Cancel tip", cancelLabel: "Keep it", destructive: true}).then(function (ok) { if (ok) ui.cancel(id); });
       });
     }
     paint();

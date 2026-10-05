@@ -1,5 +1,17 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.1 · 2026-10-06 · `apple-design` · Press feedback, sheets and undo, in-app Back, and the design system
+
+One feature release on top of 0.42.3 (the simple TipBot tile stays the mark).
+
+- **Bug fixes:** one `toast(msg, kind, {action})` (error / success / warn), Day-theme ink tokens, safe areas, hover only on fine pointers, promo chip pulses twice, day-sheet focus trap, toggle uses `transform`.
+- **Press feel:** controls and cards react on pointer-down; the gear menu grows from the gear; trays enter and leave along one path; the switch has a physical overshoot; adding a leg bumps the tray count (and a short haptic tick on Android). Reduced motion drops movement and keeps fades.
+- **Sheets and undo:** `assets/tb-motion.js` (`TBMotion` spring + `TBSheet`, drag to dismiss). Native `confirm()` is gone: trial mode and clearing a batch undo from a toast; destructive actions use a sheet; God-delete of a settled tip is a 1.2 s hold. Grade undo is on by default (4 s, ⚙ to turn off).
+- **Back stays in the app:** views and sheets push history, so Back / swipe-back steps through TipDash and closes a sheet first. Deep links `#/s/<id>`, `#/settings`, and the other view hashes. One sticky header (Dashboard · Live) shared with `/live`. Owner settings is its own view. Sticky headers stick (`overflow-x: clip`). Restoring a builder draft no longer throws when the title sits in `.dhead`. The builder search box is no longer ~160 px tall on a phone.
+- **Design system:** 8-step rem type scale, radius tokens (nested corners concentric), frosted trays / menu / toast with reduced-transparency and high-contrast fallbacks, theme changes cross-fade, switches expose `role="switch"`. Home screen: `display: standalone` on the existing manifest, using the 0.42.3 tile icons.
+- **Review fixes:** `tb-motion.js` is cache-busted with `?v=` like the other modules. If that script fails to load, confirms fall back to the browser dialog (dashboard and Master) and the day sheet falls back to an alert. A grade waiting out the 4 s undo window is sent immediately on `pagehide` or when the tab is hidden (`fetch` keepalive, same bearer token); a second toast cannot drop or double-post that grade.
+- Tests: `tests/toast_single.test.js`, `tests/day_theme_tokens.test.js`, `tests/apple_design.test.js`.
+
 ## 0.42.3 · 2026-10-06 · `logo-simple` · Cinna's simple TipBot tile is the default mark
 
 - Favicon is the TB monogram (`assets/favicon.svg`, the 16/32 mark). The header slot is 30 px and the Live brand mark is 18 px, so they use that monogram. Login and the loading panel are 46 px, so they use the TipBot wordmark tile (`assets/logo.svg`).

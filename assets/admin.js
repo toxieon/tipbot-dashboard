@@ -142,13 +142,13 @@
     if(parsed.meta.memo) metaBits.push(parsed.meta.memo);
     if(parsed.meta.trickle_seconds!=null && parsed.meta.trickle_seconds!=="") metaBits.push("trickle "+parsed.meta.trickle_seconds+"s");
     let html="";
-    if(metaBits.length) html+='<div style="font-size:12px;color:var(--faint);margin-bottom:4px">'+esc(metaBits.join(" · "))+'</div>';
+    if(metaBits.length) html+='<div style="font-size:var(--t-foot);color:var(--faint);margin-bottom:4px">'+esc(metaBits.join(" · "))+'</div>';
     if(parsed.hardErrors.length){
       html+='<div class="tbwarn" style="margin-bottom:8px">'+parsed.hardErrors.length+' row error'+(parsed.hardErrors.length===1?"":"s")+' — fix before confirm.</div>';
     }
     parsed.singles.forEach(function(t){
       html+='<div class="paste-card'+(t.hard?' paste-card--err':'')+'"><div class="paste-card-hd"><span class="paste-card-kind">SINGLE</span><span class="paste-card-meta">'+esc(String(t.units))+'u @ '+esc(String(t.odds))+'</span></div>';
-      html+='<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+esc(t.game_name||"")+'</div>';
+      html+='<div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">'+esc(t.game_name||"")+'</div>';
       (t.legs||[]).forEach(function(l){
         html+='<div class="paste-leg">'+esc(l.player)+' · '+esc(l.stat)+' '+esc(String(l.side))+' '+esc(String(l.line))+'</div>';
       });
@@ -157,7 +157,7 @@
     });
     parsed.multis.forEach(function(t){
       html+='<div class="paste-card paste-card--multi'+(t.hard?' paste-card--err':'')+'"><div class="paste-card-hd"><span class="paste-card-kind">MULTI · '+esc(t.group||"")+'</span><span class="paste-card-meta">'+(t.legs||[]).length+' legs · '+esc(String(t.units))+'u @ ~'+esc(String(t.odds))+'</span></div>';
-      html+='<div style="font-weight:700;font-size:13px;margin-bottom:4px">'+esc(t.game_name||"")+'</div>';
+      html+='<div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">'+esc(t.game_name||"")+'</div>';
       (t.legs||[]).forEach(function(l){
         html+='<div class="paste-leg">'+esc(l.player)+' · '+esc(l.stat)+' '+esc(String(l.side))+' '+esc(String(l.line))+(l.game&&l.game!==t.game_name?' <span style="color:var(--faint)">('+esc(l.game)+')</span>':'')+'</div>';
       });
@@ -258,8 +258,8 @@
       if(r.ok && j && (j.ok!==false)){
         const q=j.queued!=null?j.queued:(j.count!=null?j.count:(j.tips_queued!=null?j.tips_queued:parsed.tipCount));
         prog.ok("Queued "+q+" tip(s)");
-        if(msg){ msg.style.color="#7ee0a6"; msg.textContent=(j.message||("Queued "+q+" tip(s)"))+(j.replayed?" (replayed)":""); }
-        toast((q!=null?q+" tip(s) queued":"Import queued"));
+        if(msg){ msg.style.color="var(--win-ink)"; msg.textContent=(j.message||("Queued "+q+" tip(s)"))+(j.replayed?" (replayed)":""); }
+        toast((q!=null?q+" tip(s) queued":"Import queued"),"success");
         if(window.NDConfirmPop) NDConfirmPop.show({label:String(q)+" queued", color:"#2eaf62"});
         loadDetail(guildId);
         return;
