@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.42.3 · 2026-10-06 · `logo-simple` · Cinna's simple TipBot tile is the default mark
+
+- Favicon is the TB monogram (`assets/favicon.svg`, the 16/32 mark). The header slot is 30 px and the Live brand mark is 18 px, so they use that monogram. Login and the loading panel are 46 px, so they use the TipBot wordmark tile (`assets/logo.svg`).
+- Apple touch icon is a 180 px raster of the solid tile. `assets/favicon.ico` (16/32/48/256) and the solid PWA icons (192 and 512) are linked from the dashboard, Live, Master and Compare. `manifest.webmanifest` carries the name and the tile colour `#0F1420`.
+- Bookie marks stay as they are.
+
 ## 0.42.2 · 2026-10-02 · `busy-recovery` · Scheduled Tips no longer sticks on "warming"; AFL Upcoming Bets keeps its start times (works with TipBot 0.44.1 or older)
 
 - **Scheduled Tips panel:** when TipBot answered 503 (`{"error":"warming"}` or `{"error":"db_busy"}`, which happens during a restart or a busy DB), the panel showed the raw word "warming" until the next 30 s poll, and every remount whose first load got a 503 showed it again. Brandon hit this on 2 Oct around 19:38–19:47, when TipBot logs show `/api/scheduled-tips` 503s and two health-check restarts. Now a 503 shows "TipBot is busy or starting up. Retrying…", keeps any list already loaded, and retries after `retry_after` (2–10 s, default 4 s), up to 6 times, before it waits for the normal poll.

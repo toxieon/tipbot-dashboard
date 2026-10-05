@@ -1,11 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" href="./assets/favicon.ico" sizes="any">
 <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/logo.svg">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%230f1420%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%279.5%27%20fill%3D%27none%27%20stroke%3D%27%237b5bff%27%20stroke-width%3D%272.6%27/%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2716%27%20r%3D%274%27%20fill%3D%27%235b8cff%27/%3E%3C/svg%3E">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
 <script src="./assets/req-pool.js"></script>
@@ -773,7 +774,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 <body>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;font-size:22px">🎯</div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -784,7 +785,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;font-size:22px">🎯</div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -793,7 +794,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer" title="Home">🎯</span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home"><img src="./assets/favicon.svg" alt="" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player"><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -822,7 +823,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.42.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.42.3</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1203,7 +1204,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.42.2";
+  TD.version="0.42.3";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
