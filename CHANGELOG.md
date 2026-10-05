@@ -1,5 +1,18 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.1 · 2026-10-06 · `press-feel` · Every control answers the moment you press it; menus and trays move with purpose
+
+Apple-design pass, phase 1 of 4 (`APPLE_DESIGN_UPGRADE_HANDOFF.md`). CSS plus a small helper (`assets/tb-motion.js`); no external libraries.
+
+- **Press feedback:** buttons, chips, tabs, grade/delete buttons and cards respond on pointer-down (scale 0.96 for controls, 0.985 for cards), with `touch-action: manipulation` so phones don't add a tap delay. Segmented and list rows darken instead of shrinking.
+- **Gear menu** grows out of the gear (top-right origin) and shrinks back into it. It stays `[hidden]` for state and a11y; while hidden it is `visibility:hidden` + `pointer-events:none`, so it can't catch taps.
+- **Trays** (multi legs, batch) rise from the bottom edge and leave the same way; the batch tray glides when it stacks above the legs tray (and now clears the iPhone home bar).
+- **Toggle** knob has a slight physical overshoot and stretches while pressed (iOS-style). The whole `.switch` row is now the tap target.
+- **Causal feedback:** adding a leg bumps "Review multi", adding to a batch bumps the batch label, and both plus grading give a 10 ms haptic tick on Android (iOS Safari has no Vibration API).
+- **Reduced motion** no longer disables *all* transitions: movement stops, but opacity/colour fades (toast, progress, theme) still run, and presses use a brightness change. The indeterminate load bar becomes a static bar.
+- `prefers-contrast: more` strengthens control borders.
+- Tests: `tests/apple_design.test.js`.
+
 ## 0.42.3 · 2026-10-06 · `logo-simple` · Cinna's simple TipBot tile is the default mark
 
 - Favicon is the TB monogram (`assets/favicon.svg`, the 16/32 mark). The header slot is 30 px and the Live brand mark is 18 px, so they use that monogram. Login and the loading panel are 46 px, so they use the TipBot wordmark tile (`assets/logo.svg`).

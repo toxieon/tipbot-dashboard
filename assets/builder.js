@@ -1045,6 +1045,7 @@
     }
     next=applyHalfPointLine(next);
     BUILD.legs.push(next);renderTray();saveMultiDraft();
+    try{ TBMotion.bump($("reviewbtn")); TBMotion.tick(); }catch(_){}
   }
   function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
   function renderTray(){
@@ -1219,6 +1220,7 @@
     renderTray();
     renderBatchTray();
     toast("Added to batch ("+BATCH.tips.length+")","success");
+    try{ TBMotion.bump(document.querySelector("#batchtray .batch-label")); TBMotion.tick(); }catch(_){}
     // Keep building the next tip on the same game / custom / ESPN form.
     if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){ renderEspnNflProps(); }
     else if(BUILD.espn && BUILD.espnEvent){ renderEspnBasketballPick(); }

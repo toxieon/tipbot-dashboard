@@ -17,6 +17,7 @@
 <script src="./assets/routing.js"></script>
 <script src="./assets/scheduled-tips.js"></script>
 <script src="./assets/espn-props.js"></script>
+<script src="./assets/tb-motion.js"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -553,8 +554,12 @@ button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(
 .tbchip--pending::before {display:none;}
 .tbchip-symbol {display:inline-block;width:10px;text-align:center;font-size:12px;}
 @media(prefers-reduced-motion:reduce) {
-  *,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;}
-  .scard:hover,.gcard:hover {transform:none;}
+  /* 0.43.1: reduced motion means no *movement*, not no feedback. Looping/sliding
+     animations stop; opacity and colour fades (toast, progress, theme) still run. */
+  *,*::before,*::after {animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;scroll-behavior:auto!important;
+    transition-property:opacity,color,background-color,border-color,box-shadow,filter,visibility!important;}
+  .scard:hover,.gcard:hover,.dc-card:hover {transform:none;}
+  #tb-loadbar.indeterminate > i {animation:none!important;width:100%!important;opacity:.55;}
 }
 
 /* Paste after theme-chips.css in the existing <style>. */
@@ -782,6 +787,68 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .topnav a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;font-size:14px;padding:6px 10px;border:1px solid var(--line);border-radius:10px}
 .topnav a:hover{color:var(--txt)}
 .topnav-dot{width:7px;height:7px;border-radius:50%;background:var(--loss)}
+
+/* ===== Apple-design pass · 0.43.1 press-feel ===========================================
+   Response: every control answers on press (pointer-down), not on release.
+   Spatial: the gear menu grows out of the gear; trays rise from and return to the bottom edge.
+   Motion is CSS only; reduced motion swaps movement for brightness/opacity. */
+.btn,.ghost,.addbtn,.gradebtn,.delbet,.tab,.compchip,.fchip,.dd-item,.tb-swatch,.mact,.compare-btn,
+.scard,.gcard,.dc-card,.cal-day,.stats-toggle,.back,.chip .x,.batch-clear,.gear,.topnav a,.toggle{
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.switch{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+@media (prefers-reduced-motion:no-preference){
+  .btn,.ghost,.addbtn,.gradebtn,.delbet,.tab,.compchip,.fchip,.tb-swatch,.mact,.compare-btn,.stats-toggle,.batch-clear,.gear,.topnav a{
+    transition:transform .12s cubic-bezier(.2,.9,.3,1),background-color .12s,border-color .12s,color .12s,filter .12s}
+  .btn:active:not(:disabled),.ghost:active,.addbtn:active,.gradebtn:active:not(:disabled),.delbet:active,.tab:active,.compchip:active,
+  .fchip:active,.tb-swatch:active,.mact:active,.compare-btn:active,.batch-clear:active,.gear:active,.topnav a:active{transform:scale(.96);transition-duration:.06s}
+  .stats-toggle:active{transform:scale(.99);transition-duration:.06s}
+  .scard:active,.gcard:active,.dc-card:active,.cal-day:active{transform:scale(.985);transition-duration:.06s}
+  @media (hover:hover) and (pointer:fine){ .scard:hover:active,.gcard:hover:active,.dc-card:hover:active{transform:translateY(-1px) scale(.99)} }
+  .toggle::after{transition:transform .32s cubic-bezier(.3,1.45,.5,1)}
+  .toggle:active::after{width:23px}
+  .toggle.on:active::after{transform:translateX(15px)}
+}
+/* Segmented / list rows: darken instead of shrink (shrinking a segment inside a clipped group looks broken). */
+.ou button:active,.dd-item:active,.back:active,.chip .x:active{filter:brightness(.88)}
+@media (prefers-reduced-motion:reduce){
+  .btn:active,.ghost:active,.addbtn:active,.gradebtn:active,.delbet:active,.tab:active,.compchip:active,.fchip:active,.scard:active,.gcard:active,.dc-card:active,.cal-day:active{filter:brightness(.88)}
+}
+
+/* Gear menu: grows from the gear (top-right origin), shrinks back into it. Stays [hidden] for a11y/state. */
+.dropdown{transform-origin:top right}
+.dropdown[hidden]{display:block!important;visibility:hidden;opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){
+  .dropdown{transition:opacity .16s ease,transform .24s cubic-bezier(.2,.9,.3,1),visibility 0s linear 0s}
+  .dropdown[hidden]{transform:scale(.94) translateY(-6px);transition:opacity .12s ease,transform .16s ease-in,visibility 0s linear .16s}
+}
+@media (prefers-reduced-motion:reduce){
+  .dropdown{transition:opacity .14s ease,visibility 0s linear 0s}
+  .dropdown[hidden]{transition:opacity .12s ease,visibility 0s linear .12s}
+}
+
+/* Trays: enter from the bottom edge and leave the same way (spatial consistency). */
+.tray[hidden],.batchtray[hidden]{display:block!important;visibility:hidden;opacity:0;pointer-events:none}
+.batchtray.above-legs{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+@media (prefers-reduced-motion:no-preference){
+  .tray,.batchtray{transition:transform .42s cubic-bezier(.22,1.12,.36,1),opacity .18s ease,bottom .36s cubic-bezier(.22,1,.36,1),visibility 0s linear 0s}
+  .tray[hidden],.batchtray[hidden]{transform:translateY(105%);transition:transform .24s cubic-bezier(.4,0,1,1),opacity .2s ease .04s,visibility 0s linear .24s}
+}
+@media (prefers-reduced-motion:reduce){
+  .tray,.batchtray{transition:opacity .18s ease,visibility 0s linear 0s}
+  .tray[hidden],.batchtray[hidden]{transition:opacity .15s ease,visibility 0s linear .15s}
+}
+@media(max-width:600px){ .batchtray.above-legs{bottom:0} }
+
+/* Causal feedback: the thing that just received a leg/tip gives a small bump. */
+@keyframes tb-bump{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:no-preference){ .tb-bump{animation:tb-bump .38s cubic-bezier(.3,1.4,.5,1)} }
+@media (prefers-reduced-motion:reduce){ @keyframes tb-bump-rm{0%{filter:brightness(1.35)}100%{filter:none}} .tb-bump{animation:tb-bump-rm .4s ease!important;animation-duration:.4s!important} }
+
+/* Accessibility preferences used by the translucent layers (Phase 4 fills these in). */
+@media (prefers-contrast:more){
+  .btn,.ghost,.tab,.compchip,.fchip,.gradebtn{border-width:1.5px}
+  .dropdown,.tray,.batchtray,.tb-toast{border-color:var(--txt)!important}
+}
 </style>
 </head>
 <body>
@@ -836,7 +903,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           </div>
           <div id="tb-appearance"></div>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.42.3</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1217,7 +1284,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.42.3";
+  TD.version="0.43.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -3613,6 +3680,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     }
     const profitGuess=(sg&&sg.result===result&&sg.profit_units!=null)?sg.profit_units:null;
     const local=applyLocalSettle(gid, tipSnap, result, profitGuess);
+    try{ TBMotion.tick(); }catch(_){}
     rememberTipGrade(gid, tipId, {status:"Settled", result:result, profit_units:local?local.profit_units:profitGuess, settle_source:"manual"});
     const rec={t0:t0, result:result, display:tipSnap.display_id||"", uiMs:Math.round(performance.now()-t0)};
     gqChip(tipId,"Saving…","busy");
@@ -3717,6 +3785,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…","success");
         const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
         rememberTipGrade(gid, tipId, {status:"Settled", result:result, profit_units:profit, settle_source:useGod?"god":"manual"});
+        try{ TBMotion.tick(); }catch(_){}
         // Patch in-memory follower feeds so open panes re-paint tip SoT immediately.
         try{
           const fb=STATE._followerBets&&STATE._followerBets[String(gid)];
