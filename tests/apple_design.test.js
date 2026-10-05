@@ -101,3 +101,43 @@ test("grade undo window is ON by default and can be turned off", () => {
 test("god-delete of a settled tip is hold-to-confirm", () => {
   assert.match(HTML, /confirmLabel:"Delete", destructive:true, hold:settled/);
 });
+
+// ── Phase 3 · history-nav ──────────────────────────────────────────────────────
+test("every view opener records history (navNote) so Back stays in the app", () => {
+  for (const sig of ["function enterHome(){", "async function loadDetail(guildId,month,opts){", "async function openFollowers(gid,name){",
+    "async function openMyTips(fromGid,fromName,month){", "async function openDiscover(fromGid,fromName){", "async function openResults(guildId,name){",
+    "async function openFollowerView(gid,name,month){", "async function openFollowerAllView(month){"]) {
+    const i = HTML.indexOf(sig);
+    assert.ok(i > 0, sig);
+    assert.match(HTML.slice(i, i + 260), /navNote\("#\//, sig + " calls navNote first");
+  }
+  const b = read("assets/builder.js");
+  for (const fn of ["openBuilder", "openEspnBuilder", "openEspnEvent", "openCustom", "openGame", "renderConfirm", "renderBatchConfirm"]) {
+    const i = b.search(new RegExp("function " + fn + "\\("));
+    assert.match(b.slice(i, i + 260), /navNote\("#\//, fn + " calls navNote");
+  }
+  assert.match(HTML, /window\.addEventListener\("popstate"/);
+});
+
+test("builder back links that don't re-open a view step back through history", () => {
+  const b = read("assets/builder.js");
+  assert.match(b, /\$\("bc"\)\.onclick=\(\)=>navBack\(/);
+  assert.match(b, /\$\("bcb"\)\.onclick=\(\)=>navBack\(/);
+});
+
+test("sheets take a history entry (Back closes them) via TBSheet.hooks", () => {
+  assert.match(HTML, /TBSheet\.hooks=\{/);
+  assert.match(read("assets/tb-motion.js"), /w\.TBSheet\.hooks\.open\(api\)/);
+});
+
+test("sticky headers stick: overflow-x clip, not a body scroll container", () => {
+  assert.match(HTML, /@supports \(overflow:clip\)\{ html,body\{overflow-x:clip\} \}/);
+  assert.match(read("live/index.html"), /@supports \(overflow:clip\)\{html,body\{overflow-x:clip\}\}/);
+  assert.match(CSS, /#app > \.top\{position:sticky;top:0/);
+});
+
+test("owner tools live in a Settings view, gear keeps the common path", () => {
+  assert.match(HTML, /id="dd-owner-settings"/);
+  assert.match(HTML, /<div id="settings" hidden><\/div>/);
+  assert.match(HTML, /navNote\("#\/settings"/);
+});

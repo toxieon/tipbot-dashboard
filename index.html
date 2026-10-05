@@ -205,6 +205,8 @@
     .brand{min-width:0;overflow:hidden}
   }
   html,body{overflow-x:hidden;max-width:100%}
+  /* 0.45.1: clip (not hidden) so body is not a scroll container and the sticky header sticks. */
+  @supports (overflow:clip){ html,body{overflow-x:clip} }
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
   .tile .tv{font-weight:800;font-size:26px;line-height:1.1}.tile .tl{color:var(--faint);font-size:12px;text-transform:uppercase;margin-top:4px}
@@ -849,6 +851,28 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   .btn,.ghost,.tab,.compchip,.fchip,.gradebtn{border-width:1.5px}
   .dropdown,.tray,.batchtray,.tb-toast{border-color:var(--txt)!important}
 }
+
+/* ===== Apple-design pass · 0.45.1 history-nav: one header for Dashboard and /live ==========
+   Sticky translucent material; content scrolls under it. The hairline only appears once
+   content is actually under the bar (scroll-edge effect), not as a permanent divider. */
+#app > .top{position:sticky;top:0;z-index:25;isolation:isolate;margin:-22px 0 22px;padding:calc(10px + env(safe-area-inset-top,0px)) 0 10px}
+#app > .top::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc(50% - 50vw);right:calc(50% - 50vw);
+  background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);
+  border-bottom:1px solid transparent;transition:border-color .2s ease,box-shadow .2s ease}
+#app > .top.is-scrolled::before{border-bottom-color:color-mix(in srgb,var(--line) 80%,transparent);box-shadow:0 8px 24px -18px rgb(0 0 0 / 60%)}
+@media(max-width:640px){ #app > .top{margin-top:-16px;margin-bottom:16px} }
+@media (prefers-reduced-transparency:reduce){ #app > .top::before{background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none} }
+.topnav{display:flex;gap:2px;align-items:center}
+.topnav a{border:0!important;padding:6px 11px!important;border-radius:10px!important;font-size:14px;font-weight:650;color:var(--muted)}
+.topnav a[aria-current="page"]{color:var(--txt);background:var(--card)}
+.topnav a:hover{color:var(--txt)}
+.topnav .topnav-dot{margin-right:2px}
+@media(max-width:420px){ .brand .sub{display:none} .topnav a{padding:6px 8px!important;font-size:13.5px} }
+/* Owner settings view */
+#settings .os-lead{color:var(--muted);margin:-8px 0 18px;font-size:14px}
+#settings .os-body{display:grid;gap:16px;max-width:560px}
+#settings .os-card{margin:0}
+#settings .dd-quota,#settings .dd-mk,#settings .dd-gate{padding-left:0;padding-right:0;border-top:0}
 </style>
 </head>
 <body>
@@ -875,12 +899,13 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   <div id="app" hidden>
     <div class="top">
       <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home"><img src="./assets/favicon.svg" alt="" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
-      <nav class="topnav" aria-label="Main"><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player"><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
+      <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player"><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <a class="dd-item" id="dd-master" href="./master/" hidden>Master server (beta) <span style="color:var(--faint)">›</span></a>
+          <div class="dd-item" id="dd-owner-settings" role="button" tabindex="0" hidden>Owner settings <span style="color:var(--faint)">›</span></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
           <div class="dd-quota" id="dd-odds-quota" hidden title="The Odds API monthly quota (TipBot cache)">
             <span class="dq-main" id="dd-odds-quota-main">Odds API · —</span>
@@ -907,7 +932,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.44.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.45.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -921,6 +946,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     <div id="mytips" hidden></div>
     <div id="discover" hidden></div>
     <div id="builder" hidden></div>
+    <div id="settings" hidden></div>
   </div>
 </div>
 <div id="tray" class="tray" hidden></div>
@@ -1288,7 +1314,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.44.1";
+  TD.version="0.45.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1328,7 +1354,87 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder"])$(x).hidden=(x!==p); if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder","settings"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
+
+  // ── Back button / swipe-back stays in the app (0.45.1) ───────────────────────────
+  // Every view opener calls navNote(hash, restore). We mirror the browser history with our
+  // own stack of {hash, restore}: a new view pushes, a refresh of the same view replaces,
+  // and an in-app "← Back" to the previous view becomes a real history.back(). popstate
+  // runs the stored restore() (or routes from the hash after a reload). Open sheets get
+  // their own entry, so Back closes the sheet first — like iOS.
+  const NAV={stack:[], idx:-1, restoring:false, ignorePop:0, sheets:0, initial:(location.hash.indexOf("#/")===0?location.hash:""), routedInitial:false};
+  function navNote(hash, restore){
+    try{
+      if(NAV.restoring){ if(NAV.stack[NAV.idx]){ NAV.stack[NAV.idx].hash=hash; NAV.stack[NAV.idx].restore=restore; } return; }
+      const cur=NAV.stack[NAV.idx], prev=NAV.stack[NAV.idx-1];
+      if(cur && cur.hash===hash){ cur.restore=restore; history.replaceState({tb:NAV.idx},"",hash); return; }
+      if(prev && prev.hash===hash && !NAV.sheets){ prev.restore=restore; NAV.idx--; NAV.ignorePop++; history.back(); return; }
+      NAV.stack=NAV.stack.slice(0,NAV.idx+1);
+      NAV.stack.push({hash:hash, restore:restore}); NAV.idx=NAV.stack.length-1;
+      if(NAV.idx===0) history.replaceState({tb:0},"",hash); else history.pushState({tb:NAV.idx},"",hash);
+    }catch(e){ console.warn("nav", e); }
+  }
+  function navBack(fallback){
+    if(NAV.idx>0 && !NAV.sheets){ history.back(); return; }
+    if(typeof fallback==="function") fallback();
+  }
+  function navServerName(gid){
+    const g=(STATE.servers||[]).concat(STATE.followerServers||STATE.follower_servers||[]).find(x=>String(x.guild_id)===String(gid));
+    return (g&&(g.display_name||g.name))||"";
+  }
+  // Deep links (after a reload the stored restore() closures are gone): #/s/<gid>[/followers|/results|/build], #/mytips, #/discover.
+  function navRoute(hash){
+    const m=String(hash||"").replace(/^#/,"").split("/").filter(Boolean);
+    if(!m.length){ enterHome(); return true; }
+    if(m[0]==="s" && m[1]){
+      const gid=decodeURIComponent(m[1]), nm=navServerName(gid);
+      if(m[2]==="followers") return openFollowers(gid,nm), true;
+      if(m[2]==="results") return openResults(gid,nm), true;
+      if(m[2]==="build") return openBuilder(gid,nm), true;
+      if(m[2]==="follow") return openFollowerView(gid,nm), true;
+      return loadDetail(gid), true;
+    }
+    if(m[0]==="mytips") return openMyTips(), true;
+    if(m[0]==="discover") return openDiscover(), true;
+    if(m[0]==="following") return openFollowerAllView(), true;
+    if(m[0]==="settings") return openOwnerSettings(), true;
+    return false;
+  }
+  window.addEventListener("popstate", e=>{
+    if(NAV.ignorePop>0){ NAV.ignorePop--; return; }
+    // A sheet is open: Back closes it (its history entry is already gone).
+    if(NAV.sheets>0 && window.TBSheet && TBSheet.top()){ NAV.sheets--; TBSheet.top()._navPopped=true; TBSheet.closeTop({via:"back"}); return; }
+    NAV.sheets=0;
+    const st=e.state||{};
+    const id=(typeof st.tb==="number")?st.tb:-1;
+    const entry=NAV.stack[id];
+    if(entry && typeof entry.restore==="function"){
+      NAV.idx=id; NAV.restoring=true;
+      let ret=null;
+      try{ ret=entry.restore(); }catch(err){ console.error(err); }
+      finally{ NAV.restoring=false; }
+      // Back into a builder step: bring the legs tray back (the review page hides it).
+      Promise.resolve(ret).then(()=>{ try{
+        if(!$("builder").hidden && !/\/review$|\/batch$/.test(entry.hash) && typeof renderTray==="function" && BUILD.legs && BUILD.legs.length) renderTray();
+      }catch(_){} });
+      return;
+    }
+    // No stored entry (reload / external link): route from the hash.
+    NAV.stack=[]; NAV.idx=-1;
+    try{ if(getToken()) navRoute(location.hash); }catch(_){}
+  });
+  // Sheets push their own entry so Back closes them; closing a sheet any other way pops it.
+  if(window.TBSheet){
+    TBSheet.hooks={
+      open:function(api){ if(!$("app")||$("app").hidden) return; api._nav=true; if(NAV.sheets===0){ history.pushState({tb:NAV.idx, sheet:1},"",location.hash); } NAV.sheets++; },
+      close:function(api){
+        if(!api._nav||api._navPopped) return;
+        NAV.sheets=Math.max(0,NAV.sheets-1);
+        // Defer: a sheet that's replaced by another (day → day) keeps the same entry.
+        setTimeout(()=>{ if(NAV.sheets===0 && history.state && history.state.sheet){ NAV.ignorePop++; history.back(); } },0);
+      }
+    };
+  }
     // Force re-auth wave (guilds OAuth) — bump TIPBOT_AUTH_EPOCH to invalidate all local sessions.
   var TIPBOT_AUTH_EPOCH = "2";
   (function forceReauthIfNeeded(){
@@ -1594,11 +1700,42 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     $("dropdown").hidden=!$("dropdown").hidden;
     $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
     $("viewas-list").hidden=true;
-    if(opening){ refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow(); }
+    if(opening){ paintOwnerSettingsEntry(); }
   };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
   $("dropdown").addEventListener("click",e=>e.stopPropagation());
+  { let q=false; const top=document.querySelector("#app > .top");
+    const upd=()=>{ q=false; if(top) top.classList.toggle("is-scrolled", window.scrollY>4); };
+    window.addEventListener("scroll",()=>{ if(!q){ q=true; requestAnimationFrame(upd); } },{passive:true}); }
+  // Owner settings (0.45.1): Odds API quota/markets and the sign-up gate live in their own view
+  // instead of crowding the gear menu ("common path first, advanced one level deeper").
+  // The rows are moved (not copied), so their ids and wiring are unchanged.
+  function ownerSettingsAllowed(){ return STATE.role==="owner" && !STATE.viewAs; }
+  function paintOwnerSettingsEntry(){ const e=$("dd-owner-settings"); if(e) e.hidden=!ownerSettingsAllowed(); }
+  function openOwnerSettings(){
+    if(!ownerSettingsAllowed()) return enterHome();
+    navNote("#/settings", ()=>openOwnerSettings());
+    $("dropdown").hidden=true; $("gear").setAttribute("aria-expanded","false");
+    panel("settings"); show("app");
+    const box=$("settings");
+    if(!box.querySelector(".os-body")){
+      box.innerHTML='<div class="back" id="osback">← Back</div><div class="dhead"><h1>Owner settings</h1></div>'
+        +'<p class="os-lead">Platform-owner tools. Only you can see these.</p><div class="os-body"></div>';
+      const body=box.querySelector(".os-body");
+      [["Odds API","dd-odds-quota","dd-odds-markets"],["Sign-ups","dd-signup-gate"]].forEach(([title,...ids])=>{
+        const card=document.createElement("section"); card.className="panel os-card";
+        card.innerHTML='<h3>'+esc(title)+'</h3>';
+        ids.forEach(id=>{ const n=$(id); if(n) card.appendChild(n); });
+        body.appendChild(card);
+      });
+      $("osback").onclick=()=>navBack(()=>enterHome());
+    }
+    refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow();
+    window.scrollTo(0,0);
+  }
+  { const e=$("dd-owner-settings"); if(e){ e.onclick=openOwnerSettings; e.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openOwnerSettings(); } }; } }
+  { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
   $("dd-logout").onclick=()=>{clearToken();location.hash="";renderLogin();};
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
@@ -1606,6 +1743,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
   // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){
+    navNote("#/", ()=>enterHome());
+    if(NAV.initial && !NAV.routedInitial){ NAV.routedInitial=true; const h=NAV.initial; setTimeout(()=>{ try{ navRoute(h); }catch(e){ console.warn(e); } },0); }
     const admin=homeServers();
     const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
     if(admin.length===1 && !follows.length){ return loadDetail(admin[0].guild_id); }
@@ -1933,6 +2072,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
   function fmtMonth(m){try{const[y,mo]=m.split("-");return new Date(+y,+mo-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"});}catch{return m;}}
   async function loadDetail(guildId,month,opts){
+    navNote("#/s/"+encodeURIComponent(guildId), ()=>loadDetail(guildId,month));
     opts=opts||{};
     window.__tbDetailGid=String(guildId);
     clearLiveTimer();
@@ -3999,6 +4139,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   /* ---------- FOLLOWER SURFACE (read-only, #31 / #45) ---------- */
   async function openFollowerView(gid,name,month){
+    navNote("#/s/"+encodeURIComponent(gid)+"/follow", ()=>openFollowerView(gid,name,month));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("follower");show("app");
     $("follower").innerHTML='<div style="margin-bottom:18px">'+NDSkeleton.box("220px","28px")+'</div>'+NDSkeleton.grid(4,{cols:2,tile:"70px"})+'<div style="margin-top:18px">'+NDSkeleton.box("100%","120px")+'</div>';
@@ -4056,6 +4197,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const n=Date.parse(v); return Number.isFinite(n)?n:null;
   }
   async function openFollowerAllView(month){
+    navNote("#/following", ()=>openFollowerAllView(month));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
     if(follows.length<=1){
@@ -4220,6 +4362,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   function unmountFollowerPromoChip(){ const w=$("tb-promo-wrap"); if(w)w.remove(); }
 
   async function openMyTips(fromGid,fromName,month){
+    navNote("#/mytips", ()=>openMyTips(fromGid,fromName,month));
     unmountFollowerPromoChip();
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("mytips");show("app");
@@ -4356,6 +4499,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     return pool.slice().sort((a,b)=>Number(b.units_net||0)-Number(a.units_net||0))[0]||null;
   }
   async function openDiscover(fromGid,fromName){
+    navNote("#/discover", ()=>openDiscover(fromGid,fromName));
     unmountFollowerPromoChip();
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("discover");show("app");
@@ -4550,6 +4694,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     });
   }
   async function openFollowers(gid,name){
+    navNote("#/s/"+encodeURIComponent(gid)+"/followers", ()=>openFollowers(gid,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("followers");show("app");
     tipGradeMapForGuild(gid); // seed SoT from detail cache when present
@@ -6480,6 +6625,7 @@ async function loadPerms(gid){
   // ── Recent scores (finished AFL/AFLW games) ──────────────────────────────
   let RESULTS={comp:"All"};
   async function openResults(guildId,name){
+    navNote("#/s/"+encodeURIComponent(guildId)+"/results", ()=>openResults(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     RESULTS={comp:"All",guildId,name,games:[]};
     panel("builder");

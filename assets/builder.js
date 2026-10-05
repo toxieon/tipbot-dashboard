@@ -187,8 +187,8 @@
     const banner=wrap.firstChild;
     // Insert after back/h1 if present
     const h1=box.querySelector("h1");
-    if(h1&&h1.nextSibling) box.insertBefore(banner, h1.nextSibling);
-    else if(h1) h1.insertAdjacentElement("afterend", banner);
+    // (h1 can be nested in a .dhead, so insert relative to h1 itself, not to box.)
+    if(h1) h1.insertAdjacentElement("afterend", banner);
     else box.insertBefore(banner, box.firstChild);
     const cont=$("draft-continue"), disc=$("draft-discard");
     if(cont)cont.onclick=async()=>{ banner.remove(); await resumeMultiDraft(d, games); };
@@ -197,6 +197,7 @@
 
   /* ---------- BUILDER ---------- */
   async function openBuilder(guildId,name){
+    navNote("#/s/"+encodeURIComponent(guildId)+"/build", ()=>openBuilder(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
@@ -311,6 +312,7 @@
       espn:true,espnLeague:league,espnEvent:null,espnEvents:[],espnWeeks:[],espnWeekIndex:-1,espnSeasonYear:null,espnDate:easternYmd(),espnPlayers:[],espnTeams:[],espnPropKey:TBEspnProps.propTabs(league)[0].key,espnErr:"",espnPropsMissing:false};
   }
   async function openEspnBuilder(guildId,name,league){
+    navNote("#/s/"+encodeURIComponent(guildId)+"/build/"+encodeURIComponent(league), ()=>openEspnBuilder(guildId,name,league));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     resetEspnBuild(guildId,name,league);
@@ -468,6 +470,7 @@
     $("builder").querySelectorAll(".gcard").forEach(c=>c.onclick=()=>openEspnEvent(BUILD.espnEvents[+c.dataset.i]));
   }
   async function openEspnEvent(ev){
+    navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/"+encodeURIComponent(BUILD.espnLeague||"espn")+"/"+encodeURIComponent((ev&&ev.id)||""), ()=>openEspnEvent(ev));
     if(!ev)return;
     BUILD.espnEvent=ev;
     BUILD.search="";
@@ -529,7 +532,7 @@
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. Lakers -4.5 · Over 224.5" style="flex:1"><button class="btn sm" id="c_add">Add</button></div></div>'
       +'<div style="color:var(--faint);font-size:12px">Tip payload includes <code>espn_event_id</code> '+esc(String(ev.id||""))+'.</div>'
       +'</div>';
-    $("bg").onclick=()=>{ BUILD.custom=false; BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); };
+    $("bg").onclick=()=>navBack(()=>{ BUILD.custom=false; BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); });
     const rt=$("espnpropretry"); if(rt)rt.onclick=()=>{ BUILD.custom=false; openEspnEvent(ev); };
     const pb=$("espnpropsback"); if(pb)pb.onclick=()=>{ BUILD.custom=false; openEspnEvent(ev); };
     const evEl=$("c_event"); if(evEl)evEl.oninput=()=>{BUILD.customEvent=evEl.value;saveMultiDraft();};
@@ -560,7 +563,7 @@
     if(BUILD.espnErr) html+='<div class="empty" style="margin-bottom:12px">'+esc(BUILD.espnErr)+'</div>';
     html+='<div id="players"></div>';
     $("builder").innerHTML=html;
-    $("bg").onclick=()=>{ BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); };
+    $("bg").onclick=()=>navBack(()=>{ BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); });
     const pr=$("espnplayref"); if(pr)pr.onclick=()=>loadEspnNflPlayers();
     const ft=$("espnfreetext"); if(ft)ft.onclick=()=>renderEspnBasketballPick();
     $("builder").querySelectorAll(".tab[data-pk]").forEach(t=>t.onclick=()=>{BUILD.espnPropKey=t.dataset.pk;BUILD.tab=(TABS.find(x=>x.key===t.dataset.pk)||prop).stat;saveMultiDraft();renderEspnNflProps();});
@@ -638,6 +641,7 @@
   const SPORT_STUBS=[{k:"Soccer",hint:"EPL · A-League"},{k:"NRL",hint:"NRL"}];
   const NFL_PROP_TABS=TBEspnProps.NFL_PROP_TABS;   // assets/espn-props.js (values unchanged)
   function openCustom(guildId,name,presetSport){
+    navNote("#/s/"+encodeURIComponent(guildId)+"/build/custom", ()=>openCustom(guildId,name,presetSport));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",customStartDay:"",unitSize:guildUnitSize(guildId),autoLines:false};
@@ -717,6 +721,7 @@
   }
 
   async function openGame(g){
+    navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/g/"+encodeURIComponent((g&&(g.id||g.gameid))||""), ()=>openGame(g));
     clearLiveTimer();clearGamesTimer();
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     saveMultiDraft();
@@ -1122,6 +1127,7 @@
     return {units:u,error:null};
   }
   function renderConfirm(){
+    navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/review", ()=>renderConfirm());
     clearLiveTimer();
     // Resolve half-points before review so Discord matches what Brandon sees.
     BUILD.legs=normalizePropLines(BUILD.legs);
@@ -1156,7 +1162,7 @@
       +'<button class="btn" id="schedbtn" type="button">Schedule tip →</button></div>'
       +'<div id="scherr" class="err" style="margin-top:10px"></div>'
       +'<div style="color:var(--faint);font-size:12px;margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
-    $("bc").onclick=()=>{ if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} };
+    $("bc").onclick=()=>navBack(()=>{ if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} });
     wireStakeField();
     if(BUILD.compareBook&&$("f_book")&&!$("f_book").value){
       const want=String(BUILD.compareBook).toLowerCase();
@@ -1230,6 +1236,7 @@
     else { openBuilder(BUILD.guildId, BUILD.serverName); }
   }
   function renderBatchConfirm(){
+    navNote("#/s/"+encodeURIComponent(BATCH.guildId||BUILD.guildId)+"/batch", ()=>renderBatchConfirm());
     if(!BATCH.tips.length){ renderBatchTray(); return; }
     clearLiveTimer();
     // Ensure every batched prop line is half-point before review/schedule.
@@ -1262,7 +1269,7 @@
       +'<div style="color:var(--faint);font-size:12px;margin:12px 0 0">Off → all tips share the same delay. On → tip i posts at base delay + i×30s.</div>'
       +'<div class="sched-actions" style="margin-top:16px"><button class="btn" id="batchgo" type="button">Schedule '+n+' tips →</button></div>'
       +'<div id="scherr" class="err" style="margin-top:10px"></div></div>';
-    $("bcb").onclick=()=>{ renderBatchTray(); if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} };
+    $("bcb").onclick=()=>navBack(()=>{ renderBatchTray(); if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} });
     $("builder").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{
       BATCH.tips.splice(+b.dataset.rm,1);
       if(!BATCH.tips.length){ BATCH.guildId=null; renderBatchTray(); if(BUILD.custom)renderCustom(); else if(BUILD.game)renderGame(); else openBuilder(BUILD.guildId,BUILD.serverName); return; }

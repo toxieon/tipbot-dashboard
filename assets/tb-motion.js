@@ -172,6 +172,7 @@
 
     var api = { el: root, card: card, body: body, header: hd, closed: false, close: close, dismissible: opts.dismissible !== false };
     STACK.push(api);
+    try { if (w.TBSheet && w.TBSheet.hooks && w.TBSheet.hooks.open) w.TBSheet.hooks.open(api); } catch (e) {}
     if (STACK.length === 1 && !desktop) { doc.body.classList.remove("tbs-unpushing"); doc.body.classList.add("tbs-pushed"); setOrigin(); }
 
     var H = function () { return card.getBoundingClientRect().height + 24; };
@@ -213,6 +214,7 @@
       api.closed = true;
       var i = STACK.indexOf(api); if (i >= 0) STACK.splice(i, 1);
       doc.removeEventListener("keydown", onKey, true);
+      try { if (w.TBSheet && w.TBSheet.hooks && w.TBSheet.hooks.close) w.TBSheet.hooks.close(api, reason || {}); } catch (e) {}
       if (!STACK.length && !desktop) { doc.body.classList.add("tbs-unpushing"); doc.body.classList.remove("tbs-pushed"); setTimeout(function () { doc.body.classList.remove("tbs-unpushing"); }, 350); }
       return new Promise(function (res) {
         var v = (reason && reason.velocity) || 0;
@@ -337,6 +339,7 @@
 
   w.TBMotion = { reduced: reduced, bump: bump, tick: tick, spring: spring, project: project };
   w.TBSheet = {
+    hooks: null, // {open(api), close(api, reason)} — the dashboard's router uses these (0.45.1)
     open: open, confirm: confirm,
     top: function () { return STACK[STACK.length - 1] || null; },
     closeTop: function (reason) { var t = STACK[STACK.length - 1]; if (t && t.dismissible) { t.close(reason || { via: "back" }); return true; } return false; }

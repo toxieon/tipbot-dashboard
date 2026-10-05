@@ -1,5 +1,18 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.45.1 · 2026-10-06 · `history-nav` · Back button and swipe-back stay in TipDash; one header for Dashboard and Live
+
+Apple-design pass, phase 3 of 4.
+
+- **Back stays in the app.** There was no `pushState`/`popstate` anywhere, so Android back, iOS edge-swipe and the browser Back button left TipDash. Every view opener now calls `navNote(hash, restore)`: a new view pushes a history entry, a refresh of the same view replaces it, and an in-app "← Back" to the previous view becomes a real `history.back()`. `popstate` runs the stored restore. Covered: home, server, followers, follower views, My Tips, Discover, Results, Owner settings, builder (games, ESPN league/event, custom, AFL game, review, batch review).
+- **Back closes sheets first** (like iOS): an open `TBSheet` has its own history entry; closing it with ✕/scrim/Escape pops that entry, so Back never lands on a dead step.
+- **Deep links:** `#/s/<guild>`, `…/followers`, `…/results`, `…/build`, `…/follow`, `#/mytips`, `#/discover`, `#/following`, `#/settings` open directly after a reload or from a shared link. Login hashes (`#token=…`, `#error=…`, `#signup=…`) are untouched.
+- Coming back to a builder step re-shows the legs tray (the review page hides it), and leaving the builder hides it.
+- **Fixed (pre-existing):** restoring a builder page with a saved draft threw `insertBefore … not a child` when the page's `<h1>` sat inside `.dhead`; the draft banner now inserts after the `<h1>` itself.
+- **One header:** the dashboard's top bar is now sticky translucent material (blur + saturation) with the same Dashboard · Live pills as `/live`; a hairline appears only once content scrolls under it. Reduced transparency → solid bar.
+- **Fixed (pre-existing): sticky headers didn't stick** — on the dashboard *and on `/live`* (its header and per-game headers scrolled away). `html,body{overflow-x:hidden}` made `body` a scroll container; now `overflow-x:clip` where supported.
+- **Owner settings view** (`#/settings`, owner only): Odds API quota, Odds API markets and the Australia-only sign-up gate moved out of the gear menu into a named view. The rows are moved, not copied, so all ids and wiring are unchanged. The gear keeps the common path: View as, Master server, Appearance, grade undo, Log out.
+
 ## 0.44.1 · 2026-10-06 · `sheets-and-undo` · Real bottom sheets, no more browser pop-ups, and Undo instead of "Are you sure?"
 
 Apple-design pass, phase 2 of 4. Builds on 0.42.3's `toast(msg, kind, {action})`.
