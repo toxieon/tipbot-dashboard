@@ -10,7 +10,7 @@
  *
  *   TBSheet.open(opts)      bottom sheet (phones) / centered card (desktop); drag-to-dismiss
  *   TBSheet.confirm(opts)   action sheet → Promise<boolean>; `hold:true` = hold-to-confirm
- *   TBSheet.top() / TBSheet.closeTop()   used by the Back-button router (0.45.1)
+ *   TBSheet.top() / TBSheet.closeTop()   used by the Back-button router (0.43.1)
  *
  * Also: tapping anywhere on a `.switch` row flips its `.toggle` (bigger hit target).
  */
@@ -337,7 +337,7 @@
     });
   }
 
-  /* Switches (0.46.1): `.toggle` buttons are visual-only — give them role=switch, an on/off
+  /* Switches (0.43.1): `.toggle` buttons are visual-only — give them role=switch, an on/off
      state and the label beside them, and keep aria-checked in sync with the .on class. */
   function a11ySwitch(b) {
     if (!b || !b.classList || !b.classList.contains("toggle")) return;
@@ -370,7 +370,7 @@
 
   w.TBMotion = { reduced: reduced, bump: bump, tick: tick, spring: spring, project: project };
   w.TBSheet = {
-    hooks: null, // {open(api), close(api, reason)} — the dashboard's router uses these (0.45.1)
+    hooks: null, // {open(api), close(api, reason)} — the dashboard's router uses these (0.43.1)
     open: open, confirm: confirm,
     top: function () { return STACK[STACK.length - 1] || null; },
     closeTop: function (reason) { var t = STACK[STACK.length - 1]; if (t && t.dismissible) { t.close(reason || { via: "back" }); return true; } return false; }

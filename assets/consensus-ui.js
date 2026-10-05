@@ -4,7 +4,7 @@
  */
 (function (root) {
   "use strict";
-  // Action sheet when tb-motion.js is loaded (0.44.1); plain confirm() otherwise.
+  // Action sheet when tb-motion.js is loaded (0.43.1); plain confirm() otherwise.
   function ask(o) {
     var W = typeof window !== "undefined" ? window : {};
     if (W.TBSheet && W.TBSheet.confirm) return W.TBSheet.confirm(o);

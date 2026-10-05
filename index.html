@@ -21,7 +21,7 @@
 <script src="./assets/routing.js"></script>
 <script src="./assets/scheduled-tips.js"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js"></script>
+<script src="./assets/tb-motion.js?v=0.43.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -37,7 +37,7 @@
 }());
 </script>
 <style>
-  /* ===== Apple-design pass · 0.46.1 design system =====================================
+  /* ===== Apple-design pass · 0.43.1 design system =====================================
      Type: 8 sizes in rem (they follow the browser's text-size setting), size-specific
      tracking (tighter as text grows). Radii: 5 steps; nested corners are concentric. */
   :root{
@@ -225,7 +225,7 @@
     .brand{min-width:0;overflow:hidden}
   }
   html,body{overflow-x:hidden;max-width:100%}
-  /* 0.45.1: clip (not hidden) so body is not a scroll container and the sticky header sticks. */
+  /* 0.43.1: clip (not hidden) so body is not a scroll container and the sticky header sticks. */
   @supports (overflow:clip){ html,body{overflow-x:clip} }
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px}
@@ -342,7 +342,7 @@
     .addbtn{min-height:38px;padding:9px 16px}
     .builder-tools #psearch,.builder-tools #psort{min-width:0!important;width:100%}
     .builder-tools{flex-direction:column}
-    .builder-tools #psearch,.builder-tools #psort{flex:0 0 auto!important} /* 0.46.1: flex-basis 160px became a 160px-tall search box in the column layout */
+    .builder-tools #psearch,.builder-tools #psort{flex:0 0 auto!important} /* 0.43.1: flex-basis 160px became a 160px-tall search box in the column layout */
     .cal-nav-row{flex-wrap:wrap!important;max-width:100%}
     .admin-row{min-width:0!important}
   }
@@ -434,7 +434,7 @@
   .tb-toast--warn{border-color:var(--warn);color:var(--warn-ink)}
   .tb-toast--error{border-color:var(--loss);color:var(--loss-ink)}
   .tb-toast button{background:none;border:0;color:var(--accent);font:inherit;font-weight:800;cursor:pointer;padding:6px 2px;margin:-6px 0;flex:none;min-height:32px}
-  /* Float above an open tray so the toast never covers its buttons (0.44.1). */
+  /* Float above an open tray so the toast never covers its buttons (0.43.1). */
   body:has(#tray:not([hidden])) .tb-toast,body:has(#batchtray:not([hidden])) .tb-toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
   body:has(#tray:not([hidden])):has(#batchtray.above-legs:not([hidden])) .tb-toast{bottom:calc(164px + env(safe-area-inset-bottom,0px))}
   [hidden]{display:none!important}
@@ -873,7 +873,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   .dropdown,.tray,.batchtray,.tb-toast{border-color:var(--txt)!important}
 }
 
-/* ===== Apple-design pass · 0.45.1 history-nav: one header for Dashboard and /live ==========
+/* ===== Apple-design pass · 0.43.1 history-nav: one header for Dashboard and /live ==========
    Sticky translucent material; content scrolls under it. The hairline only appears once
    content is actually under the bar (scroll-edge effect), not as a permanent divider. */
 #app > .top{position:sticky;top:0;z-index:25;isolation:isolate;margin:-22px 0 22px;padding:calc(10px + env(safe-area-inset-top,0px)) 0 10px}
@@ -896,7 +896,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 #settings .os-card{margin:0}
 #settings .dd-quota,#settings .dd-mk,#settings .dd-gate{padding-left:0;padding-right:0;border-top:0}
 
-/* ===== Apple-design pass · 0.46.1 design-system ==================================== */
+/* ===== Apple-design pass · 0.43.1 design-system ==================================== */
 /* Tracking is size-specific: big text tighter, small caps looser, body neutral. */
 h1,.dhead h1,.center h1,#builder h1,.dc-hero h1{letter-spacing:-.022em;line-height:1.12}
 h2,.dc-empty h3,.day-sheet-hd h3,.tbs-act h3{letter-spacing:-.012em}
@@ -1001,7 +1001,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.46.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1383,7 +1383,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.46.1";
+  TD.version="0.43.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1425,7 +1425,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
   const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder","settings"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
 
-  // ── Back button / swipe-back stays in the app (0.45.1) ───────────────────────────
+  // ── Back button / swipe-back stays in the app (0.43.1) ───────────────────────────
   // Every view opener calls navNote(hash, restore). We mirror the browser history with our
   // own stack of {hash, restore}: a new view pushes, a refresh of the same view replaces,
   // and an in-app "← Back" to the previous view becomes a real history.back(). popstate
@@ -1777,7 +1777,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { let q=false; const top=document.querySelector("#app > .top");
     const upd=()=>{ q=false; if(top) top.classList.toggle("is-scrolled", window.scrollY>4); };
     window.addEventListener("scroll",()=>{ if(!q){ q=true; requestAnimationFrame(upd); } },{passive:true}); }
-  // Owner settings (0.45.1): Odds API quota/markets and the sign-up gate live in their own view
+  // Owner settings (0.43.1): Odds API quota/markets and the sign-up gate live in their own view
   // instead of crowding the gear menu ("common path first, advanced one level deeper").
   // The rows are moved (not copied), so their ids and wiring are unchanged.
   function ownerSettingsAllowed(){ return STATE.role==="owner" && !STATE.viewAs; }
@@ -1856,7 +1856,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     t.onclick=async()=>{
       const turningOn=!t.classList.contains("on");
-      // Reversible, nothing deleted: act now and offer Undo instead of asking first (0.44.1).
+      // Reversible, nothing deleted: act now and offer Undo instead of asking first (0.43.1).
       const apply=async(on)=>{ if(await send(on)){ t.classList.toggle("on",on); $("trialopts").hidden=!on; return true; } return false; };
       if(!(await apply(turningOn))) return;
       toast(turningOn?"Trial mode on — new reactions aren't tracked. Existing follows are kept.":"Tracking is on from now — trial reactions aren't imported.",
@@ -3874,18 +3874,63 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     return tipSnap;
   }
-  // Undo window (0.44.1, ON by default — Brandon 2026-10-06): hold the grade locally for a few
+  // Action sheet when tb-motion.js loaded; native confirm if that script failed.
+  function tbConfirm(o){
+    o=o||{};
+    if(window.TBSheet && typeof window.TBSheet.confirm==="function") return window.TBSheet.confirm(o);
+    const msg=String(o.title||"Are you sure?")+(o.message?"\n\n"+o.message:"");
+    let ok=false;
+    try{ ok=typeof window.confirm==="function" && window.confirm(msg); }catch(_){}
+    return Promise.resolve(!!ok);
+  }
+  // Undo window (on by default — Brandon 2026-10-06): hold the grade locally for a few
   // seconds so a Win/Loss mis-tap can be taken back before TipBot posts it to Discord.
   // Turn off in ⚙ Settings ("Undo window when grading").
+  // The hold lives on GRADE_HELD, not on the toast. Replacing the toast (a second grade,
+  // "Already grading…", anything else) must not cancel the first post or send it twice.
   const GRADE_UNDO_MS=4000;
+  const GRADE_HELD=[];
   function gradeUndoOn(){ try{ return localStorage.getItem("tipdash_grade_undo")!=="0"; }catch(_){ return true; } }
-  function gradeUndoWait(result, display){
+  function gradeUndoWait(result, display, body){
     return new Promise(res=>{
-      let done=false; const fin=v=>{ if(done)return; done=true; clearTimeout(tm); res(v); };
-      const tm=setTimeout(()=>fin(true), GRADE_UNDO_MS);
-      toast("Graded "+result+(display?" · "+display:"")+" — posting in a moment.","success",{ms:GRADE_UNDO_MS, action:{label:"Undo", run:()=>fin(false)}});
+      const rec={body:body, settled:false, res:res, timer:0, undo:null};
+      GRADE_HELD.push(rec);
+      rec.undo=function(){ settleHeldGrade(rec, "undo"); };
+      rec.timer=setTimeout(function(){ settleHeldGrade(rec, "post"); }, GRADE_UNDO_MS);
+      toast("Graded "+result+(display?" · "+display:"")+" — posting in a moment.","success",{ms:GRADE_UNDO_MS, action:{label:"Undo", run:rec.undo}});
     });
   }
+  function settleHeldGrade(rec, mode){
+    if(!rec || rec.settled) return;
+    rec.settled=true;
+    clearTimeout(rec.timer);
+    const i=GRADE_HELD.indexOf(rec); if(i>=0) GRADE_HELD.splice(i,1);
+    if(mode==="undo"){ rec.res(false); return; }
+    if(mode==="flush"){
+      let p;
+      try{
+        p=fetch(API+"/api/grade",{method:"POST",keepalive:true,headers:{"Content-Type":"application/json","Authorization":"Bearer "+getToken()},body:JSON.stringify(rec.body)});
+      }catch(e){ p=Promise.reject(e); }
+      rec.res({flushed:true, response:p});
+      return;
+    }
+    rec.res(true);
+  }
+  function flushHeldGrades(){
+    const pending=GRADE_HELD.slice();
+    const undos=[];
+    pending.forEach(function(rec){
+      if(rec.settled) return;
+      if(rec.undo) undos.push(rec.undo);
+      settleHeldGrade(rec, "flush");
+    });
+    const t=document.getElementById("tb-toast");
+    if(t && undos.indexOf(t._actionRun)>=0){
+      try{ toast("Grade saved — posting to Discord.","success",{ms:2500}); }catch(_){}
+    }
+  }
+  window.addEventListener("pagehide", flushHeldGrades);
+  document.addEventListener("visibilitychange", function(){ if(document.hidden) flushHeldGrades(); });
   async function instantGrade(gid, tipId, result, box){
     const t0=performance.now();
     if(GQ.byTip[tipId]){ toast("Already grading that bet…"); return; }
@@ -3912,19 +3957,32 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     gqChip(tipId,"Saving…","busy");
     GQ.byTip[tipId]="pending";
     requestAnimationFrame(()=>{ rec.paintMs=Math.round(performance.now()-t0); });
+    let out=null;
     if(gradeUndoOn()){
       gqChip(tipId,"Undo available…","busy");
-      if(!(await gradeUndoWait(result, tipSnap.display_id))){
+      const gate=await gradeUndoWait(result, tipSnap.display_id, {guild_id:gid, tip_id:tipId, result:result});
+      if(gate===false){
         return gqRollback(gid, tipId, "Grade undone — the bet is back in the list.", "status");
       }
       gqChip(tipId,"Saving…","busy");
+      // Flush already sent this grade (pagehide / tab hidden). Don't send it again.
+      // A 502/503/401 or a failed send falls through to gqPost, which retries safely
+      // (/api/grade dedupes the same result).
+      if(gate && gate.flushed && gate.response){
+        try{
+          const r=await gate.response;
+          let j=null; try{ j=await r.json(); }catch(e){}
+          if(r && r.status!==401 && r.status!==502 && r.status!==503) out={status:r.status, j:j||{}};
+        }catch(e){}
+      }
     }
-    let out;
+    if(!out){
     try{ out=await gqPost({guild_id:gid, tip_id:tipId, result:result}, tipId); }
     catch(e){
       delete GQ.byTip[tipId];
       if(e&&e.unauth){ gqRollback(gid, tipId, "Session expired — sign in again, then re-grade (not saved)."); return renderLogin("Session expired — sign in again to grade (your grade was not saved)."); }
       return gqRollback(gid, tipId, "Couldn't reach the bot — grade not saved.");
+    }
     }
     sharedInvalidate();
     const j=out.j||{};
@@ -4001,7 +4059,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   async function gradeBet(gid,tipId,result,box,god,opts){
     const useGod=!!god&&godOn();
     if(!useGod && GQ.available!==false) return instantGrade(gid, tipId, result, box);
-    if(!(await TBSheet.confirm({title:(useGod?"🔱 God-mode grade: ":"Grade as ")+result+"?",
+    if(!(await tbConfirm({title:(useGod?"🔱 God-mode grade: ":"Grade as ")+result+"?",
       message:"Followers will be notified and it will post to bet-results.", confirmLabel:(useGod?"Override as ":"Grade ")+result,
       destructive:result==="Loss"}))) return;
     if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=true);
@@ -4051,7 +4109,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   async function deleteBet(gid,tipId,name,btn){
     const settled=!!(btn&&btn.dataset&&btn.dataset.settled==="1");
-    if(!(await TBSheet.confirm({title:settled?("🔱 God-delete "+(name||"this settled tip")+"?"):("Delete "+(name||"this bet")+"?"),
+    if(!(await tbConfirm({title:settled?("🔱 God-delete "+(name||"this settled tip")+"?"):("Delete "+(name||"this bet")+"?"),
       message:settled?"History and stats will change, and the Discord tip will be redacted. This can't be undone."
                      :"It will be removed from Discord with a redaction note posted in its place.",
       confirmLabel:"Delete", destructive:true, hold:settled}))) return;
@@ -4079,6 +4137,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     t.className = "tb-toast tb-toast--" + kind;
     t.textContent = String(msg == null ? "" : msg);
+    t._actionRun = (opts.action && typeof opts.action.run === "function") ? opts.action.run : null;
     if(opts.action && opts.action.label && typeof opts.action.run === "function"){
       const b = document.createElement("button");
       b.type = "button"; b.textContent = opts.action.label;
@@ -4859,7 +4918,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("followers").querySelectorAll(".mact").forEach(b=>b.onclick=async()=>{
       const a=b.dataset.a,uid=b.dataset.uid,min=b.dataset.min;
       const who=b.dataset.name||"this member", dur=(min>=1440?(min/1440+" day"):min>=60?(min/60+" hour"):(min+" min"));
-      const ok=await TBSheet.confirm(a==="kick"
+      const ok=await tbConfirm(a==="kick"
         ?{title:"Kick "+who+"?", message:"They're removed from the server and can only come back with a new invite.", confirmLabel:"Kick", destructive:true}
         :{title:"Time out "+who+" for "+dur+"?", message:"They can read but can't send messages or react until it ends.", confirmLabel:"Time out "+dur});
       if(!ok)return; b.disabled=true;
@@ -5042,7 +5101,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   // ── Day settle sheet (calendar tap) ──────────────────────────────────────
   // Day sheet now rides on TBSheet (assets/tb-motion.js): slide-up + drag-to-dismiss on phones,
-  // scale-in on desktop; focus trap, Escape and focus return are handled there (0.44.1).
+  // scale-in on desktop; focus trap, Escape and focus return are handled there (0.43.1).
   let DAY_SHEET=null;
   function closeDaySheet(){
     const sh=DAY_SHEET; DAY_SHEET=null;
@@ -5073,6 +5132,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       : '<div class="empty">No tip rows loaded for this day yet — totals above still count. Pull a refresh or open Recent Results.</div>';
     const header='<div class="day-sheet-hd"><div><h3>'+esc(whenLabel)+'</h3><div class="sub">'+esc(sub)+'</div></div>'
       +'<button type="button" class="ghost" id="day-sheet-x" aria-label="Close">✕</button></div>';
+    if(!(window.TBSheet && typeof window.TBSheet.open==="function")){
+      try{ window.alert(whenLabel+(sub?"\n\n"+sub:"")); }catch(_){}
+      return;
+    }
     const sh=TBSheet.open({id:"day-sheet", label:"Settled tips · "+whenLabel, header:header,
       html:'<div id="day-sheet-list">'+body+'</div>', initialFocus:"#day-sheet-x",
       onClose:()=>{ if(DAY_SHEET===sh) DAY_SHEET=null; }});
@@ -6134,7 +6197,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }; }
     { const gr=$("godresyncbtn"); if(gr)gr.onclick=async()=>{
       if(!godOn()){ toast("Turn God mode on first"); return; }
-      if(!(await TBSheet.confirm({title:"🔱 Resync all bets on this server?",
+      if(!(await tbConfirm({title:"🔱 Resync all bets on this server?",
         message:"Durable DB repair of tip status, result, profit and actuals, plus follower bankrolls.\nDoesn't post or edit anything on Discord.\nPending tips with no recoverable grade stay Pending.",
         confirmLabel:"Resync"}))) return;
       const m=$("godresyncmsg"), prog=$("godresyncprog"), logEl=$("godresynclog");
@@ -6352,7 +6415,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     var next=resolve(new Date());
     var apply=function(){root.dataset.theme=next;accent();sync();};
     var rm=false; try{rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
-    // 0.46.1: cross-fade a real theme change (avoids an abrupt brightness jump); first paint stays instant.
+    // 0.43.1: cross-fade a real theme change (avoids an abrupt brightness jump); first paint stays instant.
     if(root.dataset.theme&&root.dataset.theme!==next&&document.startViewTransition&&!rm&&!document.hidden){ try{document.startViewTransition(apply);return;}catch(e){} }
     apply();
   }

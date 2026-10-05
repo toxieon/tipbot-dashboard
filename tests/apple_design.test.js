@@ -12,7 +12,10 @@ const CSS = (HTML.match(/<style[^>]*>([\s\S]*?)<\/style>/) || [, ""])[1];
 
 // ── Phase 1 · press-feel ───────────────────────────────────────────────────────
 test("tb-motion.js loads eagerly and exposes TBMotion without a DOM", () => {
-  assert.match(HTML, /<script src="\.\/assets\/tb-motion\.js"><\/script>/);
+  const version = read("VERSION").trim();
+  const q = version.replace(/\./g, "\\.");
+  assert.match(HTML, new RegExp("<script src=\"\\./assets/tb-motion\\.js\\?v=" + q + "\"></script>"));
+  assert.match(read("master/index.html"), new RegExp("<script src=\"\\.\\./assets/tb-motion\\.js\\?v=" + q + "\"></script>"));
   const ctx = {setTimeout, clearTimeout};
   ctx.window = ctx;
   vm.createContext(ctx);
@@ -68,7 +71,31 @@ test("TBSheet exposes open/confirm/top/closeTop and the master page loads it", (
   for (const k of ["open", "confirm", "top", "closeTop"]) assert.equal(typeof ctx.TBSheet[k], "function", k);
   assert.equal(ctx.TBSheet.top(), null);
   assert.equal(ctx.TBSheet.closeTop(), false);
-  assert.match(read("master/index.html"), /<script src="\.\.\/assets\/tb-motion\.js"><\/script>/);
+});
+
+test("TBSheet.confirm falls back to window.confirm when tb-motion.js did not load", () => {
+  const guard = /if\(window\.TBSheet && typeof window\.TBSheet\.confirm==="function"\) return window\.TBSheet\.confirm\(o\);/;
+  for (const f of ["index.html", "master/index.html"]) {
+    const src = read(f);
+    assert.match(src, /function tbConfirm\(o\)\{/, f);
+    assert.match(src, guard, f);
+    assert.match(src, /window\.confirm\(msg\)/, f);
+    assert.doesNotMatch(src, /await TBSheet\.confirm\(/, f);
+  }
+  assert.match(HTML, /window\.TBSheet && typeof window\.TBSheet\.open==="function"/);
+});
+
+test("a held grade posts once: second toast cannot drop it, and pagehide flushes it", () => {
+  assert.match(HTML, /const GRADE_HELD=\[\]/);
+  assert.match(HTML, /if\(!rec \|\| rec\.settled\) return/);
+  assert.match(HTML, /window\.addEventListener\("pagehide", flushHeldGrades\)/);
+  assert.match(HTML, /document\.addEventListener\("visibilitychange", function\(\)\{ if\(document\.hidden\) flushHeldGrades\(\); \}\)/);
+  assert.match(HTML, /keepalive:true/);
+  assert.match(HTML, /Authorization:"Bearer "\+getToken\(\)/);
+  const toastFn = HTML.slice(HTML.indexOf("function toast(msg, kind, opts)"), HTML.indexOf("function fmtUnitsNet"));
+  assert.doesNotMatch(toastFn, /GRADE_HELD/);
+  assert.match(toastFn, /clearTimeout\(t\._h\)/);
+  assert.doesNotMatch(toastFn, /clearTimeout\(rec\.timer\)/);
 });
 
 test("spring settles on target from any start velocity (interruptible re-target)", async () => {
@@ -171,13 +198,25 @@ test("theme changes cross-fade via View Transitions (not on first paint, not wit
   assert.match(HTML, /if\(root\.dataset\.theme&&root\.dataset\.theme!==next&&document\.startViewTransition&&!rm/);
 });
 
-test("home-screen app: manifest + PNG icons (iOS ignores SVG touch icons)", () => {
+test("home-screen app: one manifest, Cinna's PNG icons (iOS ignores SVG touch icons)", () => {
   const man = JSON.parse(read("manifest.webmanifest"));
   assert.equal(man.display, "standalone");
-  for (const ic of man.icons) assert.ok(fs.existsSync(path.join(root, ic.src)), ic.src);
-  assert.ok(man.icons.some((i) => i.purpose === "maskable"));
-  assert.match(HTML, /<link rel="manifest" href="\.\/manifest\.webmanifest">/);
-  assert.match(HTML, /<link rel="apple-touch-icon" href="\.\/assets\/icons\/apple-touch-icon-180\.png">/);
+  assert.equal(man.short_name, "TipBot");
+  assert.equal(man.theme_color, "#0F1420");
+  assert.ok(man.icons.length >= 2);
+  for (const ic of man.icons) {
+    assert.ok(fs.existsSync(path.join(root, ic.src)), ic.src);
+    assert.doesNotMatch(ic.src, /assets\/icons\//);
+  }
+  assert.ok(man.icons.some((i) => i.sizes === "192x192"));
+  assert.ok(man.icons.some((i) => i.sizes === "512x512"));
+  for (const f of ["index.html", "live/index.html", "master/index.html", "compare/index.html"]) {
+    const src = read(f);
+    assert.equal((src.match(/rel="manifest"/g) || []).length, 1, f);
+    assert.equal((src.match(/rel="apple-touch-icon"/g) || []).length, 1, f);
+    assert.match(src, /apple-touch-icon\.png/, f);
+    assert.doesNotMatch(src, /assets\/icons\//, f);
+  }
 });
 
 test("switches are exposed to assistive tech", () => {

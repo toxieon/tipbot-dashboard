@@ -1,78 +1,22 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
-## 0.46.1 · 2026-10-06 · `design-system` · Type scale, corner tokens, translucent materials, theme cross-fade, home-screen app
+## 0.43.1 · 2026-10-06 · `apple-design` · Press feedback, sheets and undo, in-app Back, and the design system
 
-Apple-design pass, phase 4 of 4.
+One feature release on top of 0.42.3 (the simple TipBot tile stays the mark).
 
-- **Type scale:** 18 font sizes (9–28 px) collapse to 8 tokens in `rem` (`--t-cap` 11 · `--t-foot` 12 · `--t-sub` 13 · `--t-callout` 14 · `--t-body` 15 · `--t-h3` 17 · `--t-h2` 20 · `--t-h1` 22–28 fluid), across the stylesheet **and** the inline styles in `index.html`, `builder.js` and `admin.js`. Nothing is smaller than 11 px now, and because they're `rem`, a larger browser text size scales the layout. Emoji/icon boxes keep their exact sizes. Tracking is size-specific: headings and big numbers −0.02em, uppercase labels keep their +0.04–0.06em.
-- **Corner tokens:** 16 radii collapse to `--r-xs` 6 · `--r-sm` 8 · `--r-md` 12 · `--r-lg` 16 · pill. Nested corners are concentric (bet cards 8 inside game groups 16).
-- **Materials:** the legs/batch trays, gear menu and toast are translucent layers (blur + saturation) that content scrolls under; the toast rises in as a material and never stacks glass on glass (it lifts above an open tray). Solid fallbacks for `prefers-reduced-transparency` and `prefers-contrast: more`.
-- **Older sheets match:** the post countdown and sport-routing picker (`NDCountdownConfirm` / `.ndcc-*`) get the same surface, corners, grab handle and button style as `TBSheet`, centred on desktop.
-- **Theme changes cross-fade** (View Transitions, ~0.28 s) instead of snapping light↔dark; first paint and reduced motion stay instant. The existing Auto theme (Day 7 am–7 pm Sydney) is kept as is.
-- **Home-screen app:** `manifest.webmanifest` (standalone, navy theme), full-bleed PNG icons (180 Apple touch, 192, 512, 512 maskable; iOS ignores SVG touch icons), Apple web-app meta tags.
-- **Switches are accessible:** every `.toggle` gets `role="switch"`, `aria-checked` kept in sync, and the label next to it; the God-mode switch is labelled.
-- **Fixed (pre-existing):** on phones the builder's player search box was ~160 px tall (`flex-basis:160px` in the stacked toolbar).
-
-## 0.45.1 · 2026-10-06 · `history-nav` · Back button and swipe-back stay in TipDash; one header for Dashboard and Live
-
-Apple-design pass, phase 3 of 4.
-
-- **Back stays in the app.** There was no `pushState`/`popstate` anywhere, so Android back, iOS edge-swipe and the browser Back button left TipDash. Every view opener now calls `navNote(hash, restore)`: a new view pushes a history entry, a refresh of the same view replaces it, and an in-app "← Back" to the previous view becomes a real `history.back()`. `popstate` runs the stored restore. Covered: home, server, followers, follower views, My Tips, Discover, Results, Owner settings, builder (games, ESPN league/event, custom, AFL game, review, batch review).
-- **Back closes sheets first** (like iOS): an open `TBSheet` has its own history entry; closing it with ✕/scrim/Escape pops that entry, so Back never lands on a dead step.
-- **Deep links:** `#/s/<guild>`, `…/followers`, `…/results`, `…/build`, `…/follow`, `#/mytips`, `#/discover`, `#/following`, `#/settings` open directly after a reload or from a shared link. Login hashes (`#token=…`, `#error=…`, `#signup=…`) are untouched.
-- Coming back to a builder step re-shows the legs tray (the review page hides it), and leaving the builder hides it.
-- **Fixed (pre-existing):** restoring a builder page with a saved draft threw `insertBefore … not a child` when the page's `<h1>` sat inside `.dhead`; the draft banner now inserts after the `<h1>` itself.
-- **One header:** the dashboard's top bar is now sticky translucent material (blur + saturation) with the same Dashboard · Live pills as `/live`; a hairline appears only once content scrolls under it. Reduced transparency → solid bar.
-- **Fixed (pre-existing): sticky headers didn't stick** — on the dashboard *and on `/live`* (its header and per-game headers scrolled away). `html,body{overflow-x:hidden}` made `body` a scroll container; now `overflow-x:clip` where supported.
-- **Owner settings view** (`#/settings`, owner only): Odds API quota, Odds API markets and the Australia-only sign-up gate moved out of the gear menu into a named view. The rows are moved, not copied, so all ids and wiring are unchanged. The gear keeps the common path: View as, Master server, Appearance, grade undo, Log out.
-
-## 0.44.1 · 2026-10-06 · `sheets-and-undo` · Real bottom sheets, no more browser pop-ups, and Undo instead of "Are you sure?"
-
-Apple-design pass, phase 2 of 4. Builds on 0.42.3's `toast(msg, kind, {action})`.
-
-- **`TBSheet` (assets/tb-motion.js):** one sheet component for the whole app. Phones: slides up from the bottom on a spring (damping 0.86, response 0.34), the page behind dims and steps back, and the grab handle/header can be dragged 1:1. Release velocity is projected (Apple's `v/1000·d/(1−d)`) to decide close vs. snap back, a flick closes it, it rubber-bands when pulled up, and it can be grabbed mid-animation. Desktop: a centred card that scales in. Focus is trapped, Escape closes it, and focus returns to whatever opened it. Reduced motion: a short cross-fade.
-- **`TBMotion.spring`:** small interruptible spring (damping ratio + response) that re-targets from the live value and velocity. Chosen over loading Motion from a CDN: nothing external to load or fail.
-- **Day sheet** (calendar tap) now uses `TBSheet`.
-- **All 15 native `confirm()` dialogs are gone** (the handoff counted 10; 5 more lived in `consensus-ui.js`, `scheduled-tips.js` and `master-access.js`):
-  - *Undo instead of asking:* trial mode on/off and clearing the batch act immediately, with an Undo toast.
-  - *Action sheets:* delete an unsettled bet, kick/timeout (now names the member), God-mode grade, God resync, cancel a scheduled tip, consensus on/dry-run off, master forwarding/beta/set master, lockdown apply, whitelist remove.
-  - *Hold-to-confirm* (1.2 s fill; hold Space/Enter on a keyboard) for the one truly irreversible action: God-deleting a settled tip.
-  - Shared modules fall back to plain `confirm()` only if `tb-motion.js` isn't loaded.
-- **Grade undo window — ON by default (Brandon, 2026-10-06):** after a grade tap the card settles instantly, a "Graded Win · #110 — posting in a moment. **Undo**" toast shows for 4 s, and only then does `/api/grade` go to TipBot. Undo puts the bet back with no request sent. Turn it off in ⚙ Settings → "Undo window when grading".
-- Toast sizes to its content (no more 3-line wrapping) and floats above an open tray instead of covering it.
-- Tests: `tests/apple_design.test.js` (no `confirm(` anywhere, spring re-target keeps velocity, projection formula, undo default, hold-to-delete).
-
-## 0.43.1 · 2026-10-06 · `press-feel` · Every control answers the moment you press it; menus and trays move with purpose
-
-Apple-design pass, phase 1 of 4 (`APPLE_DESIGN_UPGRADE_HANDOFF.md`). CSS plus a small helper (`assets/tb-motion.js`); no external libraries.
-
-- **Press feedback:** buttons, chips, tabs, grade/delete buttons and cards respond on pointer-down (scale 0.96 for controls, 0.985 for cards), with `touch-action: manipulation` so phones don't add a tap delay. Segmented and list rows darken instead of shrinking.
-- **Gear menu** grows out of the gear (top-right origin) and shrinks back into it. It stays `[hidden]` for state and a11y; while hidden it is `visibility:hidden` + `pointer-events:none`, so it can't catch taps.
-- **Trays** (multi legs, batch) rise from the bottom edge and leave the same way; the batch tray glides when it stacks above the legs tray (and now clears the iPhone home bar).
-- **Toggle** knob has a slight physical overshoot and stretches while pressed (iOS-style). The whole `.switch` row is now the tap target.
-- **Causal feedback:** adding a leg bumps "Review multi", adding to a batch bumps the batch label, and both plus grading give a 10 ms haptic tick on Android (iOS Safari has no Vibration API).
-- **Reduced motion** no longer disables *all* transitions: movement stops, but opacity/colour fades (toast, progress, theme) still run, and presses use a brightness change. The indeterminate load bar becomes a static bar.
-- `prefers-contrast: more` strengthens control borders.
-- Tests: `tests/apple_design.test.js`.
+- **Bug fixes:** one `toast(msg, kind, {action})` (error / success / warn), Day-theme ink tokens, safe areas, hover only on fine pointers, promo chip pulses twice, day-sheet focus trap, toggle uses `transform`.
+- **Press feel:** controls and cards react on pointer-down; the gear menu grows from the gear; trays enter and leave along one path; the switch has a physical overshoot; adding a leg bumps the tray count (and a short haptic tick on Android). Reduced motion drops movement and keeps fades.
+- **Sheets and undo:** `assets/tb-motion.js` (`TBMotion` spring + `TBSheet`, drag to dismiss). Native `confirm()` is gone: trial mode and clearing a batch undo from a toast; destructive actions use a sheet; God-delete of a settled tip is a 1.2 s hold. Grade undo is on by default (4 s, ⚙ to turn off).
+- **Back stays in the app:** views and sheets push history, so Back / swipe-back steps through TipDash and closes a sheet first. Deep links `#/s/<id>`, `#/settings`, and the other view hashes. One sticky header (Dashboard · Live) shared with `/live`. Owner settings is its own view. Sticky headers stick (`overflow-x: clip`). Restoring a builder draft no longer throws when the title sits in `.dhead`. The builder search box is no longer ~160 px tall on a phone.
+- **Design system:** 8-step rem type scale, radius tokens (nested corners concentric), frosted trays / menu / toast with reduced-transparency and high-contrast fallbacks, theme changes cross-fade, switches expose `role="switch"`. Home screen: `display: standalone` on the existing manifest, using the 0.42.3 tile icons.
+- **Review fixes:** `tb-motion.js` is cache-busted with `?v=` like the other modules. If that script fails to load, confirms fall back to the browser dialog (dashboard and Master) and the day sheet falls back to an alert. A grade waiting out the 4 s undo window is sent immediately on `pagehide` or when the tab is hidden (`fetch` keepalive, same bearer token); a second toast cannot drop or double-post that grade.
+- Tests: `tests/toast_single.test.js`, `tests/day_theme_tokens.test.js`, `tests/apple_design.test.js`.
 
 ## 0.42.3 · 2026-10-06 · `logo-simple` · Cinna's simple TipBot tile is the default mark
 
 - Favicon is the TB monogram (`assets/favicon.svg`, the 16/32 mark). The header slot is 30 px and the Live brand mark is 18 px, so they use that monogram. Login and the loading panel are 46 px, so they use the TipBot wordmark tile (`assets/logo.svg`).
 - Apple touch icon is a 180 px raster of the solid tile. `assets/favicon.ico` (16/32/48/256) and the solid PWA icons (192 and 512) are linked from the dashboard, Live, Master and Compare. `manifest.webmanifest` carries the name and the tile colour `#0F1420`.
 - Bookie marks stay as they are.
-
-## 0.42.3 · 2026-10-06 · `dash-bugfixes` · Error toasts look like errors, Day theme is readable, iPhone home-bar spacing
-
-Built by Grokbot from `TIPDASH_BUGFIX_HANDOFF.md`; reviewed and finalised by Claude.
-
-- **Toasts (B1):** `index.html` declared `toast()` twice in one scope, so the second (a green success pill that stacked a new div per call) won. Now one `toast(msg, kind, {action, ms})` with `status | success | warn | error` kinds, a single `role=status` live region, and an optional action button. Error call sites pass `"error"`; confirmations pass `"success"`; "Discord post is delayed" is `"warn"`.
-- **Day theme (B2):** hard-coded dark-theme pastels (`#7ee0a6`, `#f0857f`, `#9fc7ff`, `#9cc0ff`, `#5fd48c`, `#ff9a9e`) replaced with `--win-ink`, `--loss-ink`, `--warn-ink`, `--api-ink` (including the paste-sheet success message in `assets/admin.js`).
-- **Safe areas (B3):** `viewport-fit=cover`, `theme-color`, and `env(safe-area-inset-bottom)` on the trays, toast, promo chips and page bottom padding.
-- **Hover (B4):** card lift only on hover-capable fine pointers, so tapped cards don't stay raised on phones.
-- **Promo chip (B5):** pulses twice, then stops.
-- **Day sheet (B6):** the Escape listener no longer leaks on ✕/scrim close; focus moves to ✕ on open, is trapped inside, and returns to the calendar day on close.
-- **Toggle (B7):** the knob animates `transform` instead of `left`.
-- Tests: `tests/toast_single.test.js`, `tests/day_theme_tokens.test.js`.
 
 ## 0.42.2 · 2026-10-02 · `busy-recovery` · Scheduled Tips no longer sticks on "warming"; AFL Upcoming Bets keeps its start times (works with TipBot 0.44.1 or older)
 
