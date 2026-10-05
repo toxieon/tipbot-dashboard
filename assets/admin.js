@@ -258,8 +258,8 @@
       if(r.ok && j && (j.ok!==false)){
         const q=j.queued!=null?j.queued:(j.count!=null?j.count:(j.tips_queued!=null?j.tips_queued:parsed.tipCount));
         prog.ok("Queued "+q+" tip(s)");
-        if(msg){ msg.style.color="#7ee0a6"; msg.textContent=(j.message||("Queued "+q+" tip(s)"))+(j.replayed?" (replayed)":""); }
-        toast((q!=null?q+" tip(s) queued":"Import queued"));
+        if(msg){ msg.style.color="var(--win-ink)"; msg.textContent=(j.message||("Queued "+q+" tip(s)"))+(j.replayed?" (replayed)":""); }
+        toast((q!=null?q+" tip(s) queued":"Import queued"),"success");
         if(window.NDConfirmPop) NDConfirmPop.show({label:String(q)+" queued", color:"#2eaf62"});
         loadDetail(guildId);
         return;

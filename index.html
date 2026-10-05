@@ -6,7 +6,8 @@
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" sizes="180x180">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
 <script src="./assets/req-pool.js"></script>
@@ -84,8 +85,8 @@
   .submit-prog-label{
     margin-top:7px;font-size:12.5px;line-height:1.35;color:var(--muted);
   }
-  .submit-prog.ok  .submit-prog-label{color:#7ee0a6}
-  .submit-prog.err .submit-prog-label{color:#f0857f}
+  .submit-prog.ok  .submit-prog-label{color:var(--win-ink)}
+  .submit-prog.err .submit-prog-label{color:var(--loss-ink)}
   @media (prefers-reduced-motion:reduce){
     .submit-prog.indet .submit-prog-bar > i{animation:none;width:100% !important}
     .submit-prog-bar > i{transition:none}
@@ -114,7 +115,7 @@
   *{box-sizing:border-box} html,body{margin:0}
   body{background:radial-gradient(1200px 600px at 80% -10%, #182142 0%, var(--bg) 55%) fixed, var(--bg);
        color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
-  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 90px;min-width:0;box-sizing:border-box}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px calc(90px + env(safe-area-inset-bottom,0px));min-width:0;box-sizing:border-box}
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
   .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:16px}
@@ -147,11 +148,11 @@
   .dd-mk-row{align-items:flex-start}
   .dd-mk-row .mk-main{flex:1;min-width:0}
   .dd-mk-row .mk-sub{display:block;font-size:10.5px;color:var(--faint);margin-top:1px;line-height:1.3}
-  .dd-mk-row .mk-sub.good{color:#7ee0a6}
+  .dd-mk-row .mk-sub.good{color:var(--win-ink)}
   .dd-mk-row .mk-sub.warn{color:var(--warn-ink,#f0bf79)}
   .mk-side{font-size:10px;font-weight:700;letter-spacing:.03em;border-radius:999px;
     padding:1px 6px;flex:none;border:1px solid transparent;margin-top:1px}
-  .mk-side.ou{color:#7ee0a6;border-color:rgba(126,224,166,.45);background:rgba(126,224,166,.10)}
+  .mk-side.ou{color:var(--win-ink);border-color:rgba(126,224,166,.45);background:rgba(126,224,166,.10)}
   .mk-side.over{color:var(--muted);border-color:var(--line)}
   .dd-mk-group{font-size:10px;text-transform:uppercase;letter-spacing:.06em;
     color:var(--faint);padding:9px 2px 3px;font-weight:700}
@@ -166,15 +167,15 @@
   .dd-mk-actions button[disabled]{opacity:.5;cursor:default}
   .dd-mk-actions button.primary{border-color:var(--accent,#5b8cff);background:rgba(91,140,255,.16)}
   .dd-mk-msg{margin-top:7px;font-size:11.5px;line-height:1.4;min-height:1em}
-  .dd-mk-msg.ok{color:#7ee0a6}
-  .dd-mk-msg.err{color:#f0857f}
+  .dd-mk-msg.ok{color:var(--win-ink)}
+  .dd-mk-msg.err{color:var(--loss-ink)}
   .danger{color:var(--loss)}
   .viewas{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,rgba(123,91,255,.18),rgba(91,140,255,.10));border:1px solid #34407a;border-radius:12px;padding:10px 14px;margin-bottom:18px;font-size:14px}
   .viewas b{color:#c9d4ff}
   .link{color:var(--accent);cursor:pointer;font-weight:600}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
   .scard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
-  .scard:hover{transform:translateY(-2px);border-color:#3a4772;background:var(--card2)}
+  .scard:hover{border-color:#3a4772;background:var(--card2)}
   .scard .row1{display:flex;justify-content:space-between;gap:10px;margin-bottom:14px}
   .sname{font-weight:700;font-size:16px}.sgid{color:var(--faint);font-size:12px}
   .plan{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:2px 8px;text-transform:capitalize}
@@ -195,7 +196,7 @@
   .live-open-btn{color:var(--txt)!important;border-color:color-mix(in srgb,var(--loss) 55%,var(--line))!important}
   .live-open-link{color:var(--accent);font-weight:700;white-space:nowrap;text-decoration:none}
   @media(max-width:640px){
-    .wrap{padding:16px 14px 90px}
+    .wrap{padding:16px 14px calc(90px + env(safe-area-inset-bottom,0px))}
     .dhead{flex-direction:column;align-items:stretch}
     .dhead h1{font-size:20px}
     .dhead-actions{width:100%}
@@ -261,7 +262,7 @@
   .switches{display:flex;gap:12px;flex-wrap:wrap}
   .switch{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 14px}
   .toggle{width:44px;height:25px;border-radius:999px;background:#43506b;position:relative;cursor:pointer;border:none;flex:none;transition:background .15s}
-  .toggle.on{background:var(--win)}.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:left .15s}.toggle.on::after{left:22px}
+  .toggle.on{background:var(--win)}.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .15s ease}.toggle.on::after{left:3px;transform:translateX(19px)}
   .tips-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:760px){.tips-cols{grid-template-columns:1fr}}
   .tip{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.tip:last-child{border-bottom:none}
   .tip .g{font-weight:600;font-size:14px}.tip .meta{color:var(--faint);font-size:12px}
@@ -278,7 +279,7 @@
   /* builder */
   .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
   .gcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s,transform .12s}
-  .gcard:hover{border-color:#3a4772;transform:translateY(-2px)}
+  .gcard:hover{border-color:#3a4772}
   .gcard .rd{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
   .gcard .mt{font-weight:700;font-size:16px}.gcard .vn{color:var(--muted);font-size:12px;margin-top:6px}
   .gcard .espn-teamrow{display:flex;align-items:center;gap:10px;margin:8px 0}
@@ -346,7 +347,7 @@
   .auto-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;min-height:18px}
   .auto-price{font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;color:var(--txt);letter-spacing:.01em}
   .auto-price.muted{color:var(--faint);font-weight:650}
-  .auto-better{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:750;padding:2px 8px;border-radius:999px;background:rgba(91,140,255,.16);border:1px solid rgba(91,140,255,.4);color:#9fc7ff;white-space:nowrap;max-width:100%}
+  .auto-better{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:750;padding:2px 8px;border-radius:999px;background:rgba(91,140,255,.16);border:1px solid rgba(91,140,255,.4);color:var(--api-ink);white-space:nowrap;max-width:100%}
   .linectl-wrap{display:flex;flex-direction:column;gap:2px;flex:1 1 160px;min-width:0;max-width:100%}
   .linectl-wrap .linectl{flex:1 1 auto;max-width:100%}
   .compare-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:650;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;flex:none;white-space:nowrap}
@@ -356,7 +357,7 @@
   .draft-banner .db-acts{display:flex;gap:8px;flex-wrap:wrap}
   /* multi tray */
   .tray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:40}
-  .tray-in{max-width:1120px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .tray-in{max-width:1120px;margin:0 auto;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .legchips{display:flex;gap:8px;flex-wrap:wrap;flex:1}
   .chip{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;align-items:center;gap:8px}
   .chip .x{color:var(--faint);cursor:pointer;font-weight:700}
@@ -364,7 +365,7 @@
   /* batch tray — compact collapsed bar (full tip list lives on review page) */
   .batchtray{position:fixed;left:0;right:0;bottom:0;background:var(--card2);border-top:1px solid var(--line);box-shadow:0 -14px 40px rgba(0,0,0,.4);z-index:39}
   .batchtray.above-legs{bottom:76px}
-  .batchtray-in{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
+  .batchtray-in{max-width:1120px;margin:0 auto;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
   .batch-label{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);border-radius:999px;padding:4px 10px;flex:none;white-space:nowrap}
   .batchtray .batch-clear{border:1px solid var(--line);background:transparent;color:var(--faint);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-size:14px;font-weight:700;flex:none;line-height:1}
   .batchtray .batch-clear:hover{color:var(--loss);border-color:rgba(229,72,77,.45)}
@@ -397,7 +398,7 @@
   .live-copy-text{margin:8px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:12px;line-height:1.45;white-space:pre-wrap;word-break:break-word;max-height:260px;overflow:auto;user-select:text;-webkit-user-select:text}
   @media(max-width:600px){
     .batchtray.above-legs{bottom:0}
-    .batchtray-in{padding:10px 12px;gap:8px}
+    .batchtray-in{padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));gap:8px}
     .batchtray .btn{padding:9px 12px;font-size:13px}
     .sched-actions .btn{width:100%}
     .live-tips-row .live-tips-actions > .btn:not(.live-q),
@@ -406,7 +407,15 @@
   .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
   .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
   .field input,.field select{background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px 12px;font:inherit}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--win);color:#04120a;font-weight:700;padding:12px 20px;border-radius:12px;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .tb-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:60;
+    display:flex;gap:12px;align-items:center;max-width:min(92vw,480px);padding:11px 16px;border-radius:12px;
+    background:var(--card2);border:1px solid var(--line);color:var(--txt);font-weight:600;font-size:14px;
+    box-shadow:0 12px 40px rgba(0,0,0,.4);opacity:0;transform:translateX(-50%);pointer-events:none;transition:opacity .2s ease}
+  .tb-toast.in{opacity:1;pointer-events:auto}
+  .tb-toast--success{border-color:var(--win)}
+  .tb-toast--warn{border-color:var(--warn);color:var(--warn-ink)}
+  .tb-toast--error{border-color:var(--loss);color:var(--loss-ink)}
+  .tb-toast button{background:none;border:0;color:var(--accent);font:inherit;font-weight:800;cursor:pointer;padding:0}
   [hidden]{display:none!important}
 
 
@@ -578,7 +587,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .paste-card-kind{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--accent);background:var(--card);color:var(--txt)}
 .paste-card-meta{font-size:12px;color:var(--muted)}
 .paste-leg{font-size:12.5px;line-height:1.4;color:var(--txt);padding:2px 0}
-.paste-err{font-size:12px;color:#f0857f;margin-top:4px}
+.paste-err{font-size:12px;color:var(--loss-ink);margin-top:4px}
 
 /* Paste after the existing TB CSS. Brand colours are isolated from outcome tokens. */
 .tb-bookie{position:relative;display:inline-grid;place-items:center;flex:none;vertical-align:middle;width:var(--bookie-size,24px);height:var(--bookie-size,24px);border-radius:6px;overflow:hidden;background:var(--card2);color:var(--txt);border-bottom:2px solid var(--bookie-color,var(--line));font-variant-numeric:tabular-nums;}
@@ -594,7 +603,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 
 /* Follower promo chips — Expansion Pass stack (wrap is fixed; chips are NOT) */
 .tb-promo-wrap{
-  position:fixed;right:16px;bottom:16px;z-index:80;
+  position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:80;
   display:flex;flex-direction:column;gap:10px;align-items:stretch;
   width:min(268px,calc(100vw - 32px));
 }
@@ -608,7 +617,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   background:linear-gradient(90deg,#ffe566 0%,#7bc96f 55%,#1f8a4c 100%);
   box-shadow:0 6px 18px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.35);
   font:inherit;color:#111;text-align:left;
-  animation:tb-promo-pulse 2.6s ease-in-out infinite;
+  animation:tb-promo-pulse 2.6s ease-in-out 2;
   transition:transform .28s ease,opacity .28s ease,filter .12s ease;
 }
 @keyframes tb-promo-pulse{
@@ -718,14 +727,18 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 }
 .dc-empty h3{margin:0 0 8px;font-size:18px}
 .dc-empty p{margin:0 auto;max-width:28em;color:var(--muted);font-size:13px;line-height:1.5}
-.dc-card:hover{background:var(--card2);transform:translateY(-2px)}
+.dc-card:hover{background:var(--card2)}
+/* B4: hover lift only on hover-capable fine pointers (no latched lift after a tap on phones) */
+@media (hover:hover) and (pointer:fine){
+  .scard:hover,.gcard:hover,.dc-card:hover{transform:translateY(-2px)}
+}
 .dc-card{transition:background .12s,transform .12s}
 .dc-card .dc-av, .dc-spotlight .dc-av{overflow:hidden}
 img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .dc-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .dc-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
-.dc-pill--w{background:rgba(46,175,98,.16);color:#5fd48c}
-.dc-pill--l{background:rgba(229,89,95,.16);color:#ff9a9e}
+.dc-pill--w{background:rgba(46,175,98,.16);color:var(--win-ink)}
+.dc-pill--l{background:rgba(229,89,95,.16);color:var(--loss-ink)}
 .dc-mini{display:block;margin-top:8px;width:100%;height:32px;overflow:visible}
 .dc-mini--wide{height:36px}
 .tb-comm-chip{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.03em;color:var(--muted);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:2px 8px;line-height:1.3}
@@ -740,10 +753,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .betcard-leg .leg-odds{order:0}
 
   .tb-gq-chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);background:var(--card2);color:var(--muted);transition:opacity .4s}
-  .tb-gq-chip[data-kind="ok"]{color:#7ee0a6;border-color:rgba(66,176,111,.45);background:rgba(66,176,111,.12)}
-  .tb-gq-chip[data-kind="warn"]{color:#e0a04a;border-color:rgba(224,160,74,.45);background:rgba(224,160,74,.1)}
+  .tb-gq-chip[data-kind="ok"]{color:var(--win-ink);border-color:rgba(66,176,111,.45);background:rgba(66,176,111,.12)}
+  .tb-gq-chip[data-kind="warn"]{color:var(--warn-ink);border-color:rgba(224,160,74,.45);background:rgba(224,160,74,.1)}
   .gradebtn.gq-armed{outline:2px solid currentColor;outline-offset:1px}
-  .gradebtn.gq-sugg{border:1px solid rgba(90,150,255,.5);background:rgba(90,150,255,.14);color:#9cc0ff;border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
+  .gradebtn.gq-sugg{border:1px solid rgba(90,150,255,.5);background:rgba(90,150,255,.14);color:var(--api-ink);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
 /* Feature G trial mode */
 .badge.trial,.badge.trial-expired{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.04em;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px;border:1px solid var(--line);color:var(--muted)}
 .trial-banner{margin:0 0 14px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:13px}
@@ -1228,7 +1241,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       return real.apply(self,args);
     }).catch(function(e){
       console.error(e);
-      try{ toast("Couldn't load the "+(name==="builder"?"tip builder":"admin tools")+". Check your connection and try again."); }catch(_){}
+      try{ toast("Couldn't load the "+(name==="builder"?"tip builder":"admin tools")+". Check your connection and try again.","error"); }catch(_){}
     });
   };
 
@@ -1556,10 +1569,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         const r=await api("/api/server/trial",{method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({guild_id:s.guild_id,trial_mode:on,trial_expires_at:exp,on_expiry:($("trialoe")&&$("trialoe").value)||"stay_trial"})});
         const j=await r.json().catch(()=>({}));
-        if(!r.ok||!j.ok){ toast(j.error||("Couldn't change trial mode ("+r.status+")")); return false; }
+        if(!r.ok||!j.ok){ toast(j.error||("Couldn't change trial mode ("+r.status+")"),"error"); return false; }
         Object.assign(s,j); toast(on?"Trial mode on: new reactions aren't tracked. Existing follows are kept.":"Tracking is on from now (no backfill of trial reactions).");
         return true;
-      }catch(e){ toast("Couldn't reach TipBot"); return false; }
+      }catch(e){ toast("Couldn't reach TipBot","error"); return false; }
     }
     t.onclick=async()=>{
       const turningOn=!t.classList.contains("on");
@@ -3050,7 +3063,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         ingestOddsMarkets(d);
         STATE._oddsMk.msg=d.message||"Saved.";
         STATE._oddsMk.msgKind="ok";
-        toast("Odds markets saved");
+        toast("Odds markets saved","success");
       }else{
         STATE._oddsMk.msg=(d&&(d.message||d.error))||("Couldn't save (HTTP "+r.status+")");
         STATE._oddsMk.msgKind="err";
@@ -3486,7 +3499,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     if(STATE._tipGrades&&STATE._tipGrades[String(gid)]) delete STATE._tipGrades[String(gid)][String(tipId)];
     if(STATE._detailCache) Object.keys(STATE._detailCache).forEach(k=>{ if(String(k).startsWith(String(gid)+"|")) delete STATE._detailCache[k]; });
     sharedInvalidate();
-    toast(msg||"Couldn't save that grade — the bet is back in the list.");
+    toast(msg||"Couldn't save that grade — the bet is back in the list.","error");
     const det=$("detail");
     if(det && !det.hidden && window.__tbDetailGid===String(gid)) setTimeout(()=>loadDetail(gid,null,{force:true}),150);
   }
@@ -3539,7 +3552,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         tap_to_synced_ms:Math.round(now-rec.t0), server:job.timings||null});
     }else if(st==="sync_failed"){
       gqChip(rec.tipId,"Saved · Discord pending","warn");
-      toast("Graded "+rec.result+" — saved. Discord post is delayed; the bot will catch it up.");
+      toast("Graded "+rec.result+" — saved. Discord post is delayed; the bot will catch it up.","warn");
     }else{
       gqRollback(rec.gid, rec.tipId, "Couldn't grade "+(rec.display||"that bet")+": "+(job.error||"the bot rejected it")+".");
     }
@@ -3701,7 +3714,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         function(n,max){ toast("Saving… (bot busy, retry "+n+"/"+max+")"); });
       sharedInvalidate();
       if(j.ok){
-        toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…");
+        toast((useGod?"🔱 Overriding as ":"Graded ")+result+(j.profit_units!=null?(" · "+fmtUnitsNet(j.profit_units)): "")+" — Discord updating…","success");
         const profit=j.profit_units!=null?j.profit_units:(j.tip&&j.tip.profit_units);
         rememberTipGrade(gid, tipId, {status:"Settled", result:result, profit_units:profit, settle_source:useGod?"god":"manual"});
         // Patch in-memory follower feeds so open panes re-paint tip SoT immediately.
@@ -3729,8 +3742,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           applyLocalSettle(gid, Object.assign({}, tipSnap, j.tip||{}), result, profit);
         }
       }
-      else { toast(j.message||j.error||"Couldn't grade that bet."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
-    }catch(e){ if(e&&e.unauth){ toast("Session expired — sign in again, then re-grade."); return renderLogin("Session expired — sign in again to grade (your grade was not saved)."); } toast("Couldn't reach the bot."); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
+      else { toast(j.message||j.error||"Couldn't grade that bet.","error"); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
+    }catch(e){ if(e&&e.unauth){ toast("Session expired — sign in again, then re-grade.","error"); return renderLogin("Session expired — sign in again to grade (your grade was not saved)."); } toast("Couldn't reach the bot.","error"); if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=false); }
   }
   async function deleteBet(gid,tipId,name,btn){
     const settled=!!(btn&&btn.dataset&&btn.dataset.settled==="1");
@@ -3744,12 +3757,35 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const j=await r.json();
       if(j.ok){ document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>row.remove());
         if(STATE._detailCache)STATE._detailCache={};
-        toast("Redacted — it previously contained: "+(j.message||"the bet"));
-      } else { toast(j.message||"Couldn't delete that bet."); if(btn)btn.disabled=false; }
-    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); if(btn)btn.disabled=false; }
+        toast("Redacted — it previously contained: "+(j.message||"the bet"),"success");
+      } else { toast(j.message||"Couldn't delete that bet.","error"); if(btn)btn.disabled=false; }
+    }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot.","error"); if(btn)btn.disabled=false; }
   }
 
-  function toast(msg){ let t=$("nd_toast"); if(!t){ t=document.createElement("div"); t.id="nd_toast"; t.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:11px 16px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:60;font-size:14px;max-width:90vw;transition:opacity .3s"; document.body.appendChild(t);} t.textContent=msg; t.style.opacity="1"; clearTimeout(t._h); t._h=setTimeout(()=>{t.style.opacity="0";},4000); }
+  // Single global toast (B1): one reusable live region; kind = "status" | "success" | "warn" | "error".
+  function toast(msg, kind, opts){
+    kind = kind || "status"; opts = opts || {};
+    let t = document.getElementById("tb-toast");
+    if(!t){
+      t = document.createElement("div");
+      t.id = "tb-toast";
+      t.setAttribute("role","status");
+      t.setAttribute("aria-live","polite");
+      document.body.appendChild(t);
+    }
+    t.className = "tb-toast tb-toast--" + kind;
+    t.textContent = String(msg == null ? "" : msg);
+    if(opts.action && opts.action.label && typeof opts.action.run === "function"){
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = opts.action.label;
+      b.onclick = () => { try{ opts.action.run(); } finally { hide(); } };
+      t.appendChild(b);
+    }
+    requestAnimationFrame(() => t.classList.add("in"));
+    clearTimeout(t._h);
+    t._h = setTimeout(hide, opts.ms || (kind === "error" ? 5000 : 3500));
+    function hide(){ t.classList.remove("in"); }
+  }
   function fmtUnitsNet(n){
     if(n==null||n===""||isNaN(Number(n))) return null;
     const v=Math.round(Number(n)*100)/100;
@@ -3797,7 +3833,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         if(graded!=null) msg+=" · "+graded+" graded";
         if(failed) msg+=" · "+failed+" failed";
         if(net!=null){ const f=fmtUnitsNet(net); if(f) msg+=" · "+f; }
-        toast(msg);
+        toast(msg,"success");
         // Instant UI: patch chips / move cards / refresh units from response tips + units_net.
         const details=Array.isArray(j.tips)?j.tips:[];
         details.forEach(d=>{
@@ -3815,10 +3851,10 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           }
         }
         refreshStatsTilesFromCache(guildId);
-      }else toast(j.message||"Couldn't push all.");
+      }else toast(j.message||"Couldn't push all.","error");
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
-      toast("Couldn't reach the bot.");
+      toast("Couldn't reach the bot.","error");
     }finally{ if(btn)btn.disabled=false; }
   }
   async function loadAutoPushState(gid, s){
@@ -4157,9 +4193,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
           try{
             const j=await settlePost("/api/my-tips/settle",{id:b.dataset.id,result:b.dataset.r},
               function(n,max){ toast("Saving… (bot busy, retry "+n+"/"+max+")"); });
-            if(!j.ok) toast(j.message||j.error||"Settle failed");
+            if(!j.ok) toast(j.message||j.error||"Settle failed","error");
             await paint();
-          }catch(e){ if(e&&e.unauth){ toast("Session expired — sign in again, then re-settle."); return renderLogin("Session expired — sign in again to settle (not saved)."); } toast("Couldn't settle"); }
+          }catch(e){ if(e&&e.unauth){ toast("Session expired — sign in again, then re-settle.","error"); return renderLogin("Session expired — sign in again to settle (not saved)."); } toast("Couldn't settle","error"); }
         });
       }catch(e){ if(e&&e.unauth)return renderLogin("Session expired.");
         box.innerHTML='<div class="empty">Couldn\'t load My Tips.</div>'; if(cal)cal.innerHTML=""; }
@@ -4516,8 +4552,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       const human=a==="kick"?"Kick this member?":("Time this member out for "+(min>=1440?(min/1440+" day"):min>=60?(min/60+" hour"):(min+" min"))+"?");
       if(!confirm(human))return; b.disabled=true;
       try{ const r=await api("/api/moderate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,user_id:uid,action:a,minutes:min?+min:null})});
-        const j=await r.json(); toast(j.ok?("Queued — "+(a==="kick"?"kick":("timeout "+min+"m"))+" will apply in a few seconds."):(j.message||"Failed")); }
-      catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot."); }
+        const j=await r.json(); toast(j.ok?("Queued — "+(a==="kick"?"kick":("timeout "+min+"m"))+" will apply in a few seconds."):(j.message||"Failed"), j.ok?"success":"error"); }
+      catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); toast("Couldn't reach the bot.","error"); }
       finally{ b.disabled=false; }
     });
     $("followers").querySelectorAll(".fmap").forEach(b=>b.onclick=(e)=>{
@@ -4693,8 +4729,12 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
       +'</svg><div style="color:var(--muted);font-size:12px">'+series.length+' months · net <b class="'+(tot>=0?"pos":"neg")+'">'+u(tot)+'</b></div></div></div>';
   }
   // ── Day settle sheet (calendar tap) ──────────────────────────────────────
+  let DAY_SHEET_KEY=null, DAY_SHEET_OPENER=null;
   function closeDaySheet(){
+    if(DAY_SHEET_KEY){ document.removeEventListener("keydown", DAY_SHEET_KEY); DAY_SHEET_KEY=null; }
     const el=$("day-sheet"); if(el) el.remove();
+    const op=DAY_SHEET_OPENER; DAY_SHEET_OPENER=null;
+    if(op && op.isConnected && typeof op.focus==="function"){ try{ op.focus(); }catch(_){} }
   }
   function tipsSettledOnDay(day, tips){
     const list=(tips||[]).filter(t=>tipDayKey(t)===day);
@@ -4706,7 +4746,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   }
   function openDaySheet(day, dailyEntry, tips, opts){
     opts=opts||{};
+    const opener=document.activeElement;
     closeDaySheet();
+    DAY_SHEET_OPENER=(opener && opener!==document.body) ? opener : null;
     const e=dailyEntry||{net:0,n:0,won:0,lost:0,push:0};
     const settled=tipsSettledOnDay(day, tips);
     let whenLabel=day;
@@ -4730,13 +4772,23 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
     const closer=()=>closeDaySheet();
     wrap.addEventListener("click",ev=>{ if(ev.target===wrap) closer(); });
     const xb=$("day-sheet-x"); if(xb) xb.onclick=closer;
-    document.addEventListener("keydown", function onEsc(ev){
-      if(ev.key==="Escape"){ closer(); document.removeEventListener("keydown", onEsc); }
-    });
+    DAY_SHEET_KEY=function(ev){
+      if(ev.key==="Escape"){ closer(); return; }
+      if(ev.key==="Tab"){
+        const card=wrap.querySelector(".day-sheet-card"); if(!card) return;
+        const f=Array.from(card.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')).filter(n=>n.offsetParent!==null||n===document.activeElement);
+        if(!f.length){ ev.preventDefault(); return; }
+        const first=f[0], last=f[f.length-1], a=document.activeElement;
+        if(ev.shiftKey){ if(a===first||!card.contains(a)){ ev.preventDefault(); last.focus(); } }
+        else if(a===last||!card.contains(a)){ ev.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", DAY_SHEET_KEY);
     if(!opts.follower){
       const list=$("day-sheet-list");
       if(list){ wireTipRows(list, opts.guildId||""); }
     }
+    if(xb){ try{ xb.focus(); }catch(_){} }
   }
   function wireCalendarDays(root, tips, daily, opts){
     if(!root) return;
@@ -5533,14 +5585,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         await copyTextToClipboard(text);
         const orig=b.textContent; b.textContent="Copied ✓";
         if(ok) ok.textContent=q+" copied"+(text.length>2000?" · over Discord's 2000-char limit, split it":"");
-        toast("Copied "+q+" Discord post — paste it into your tips channel.");
+        toast("Copied "+q+" Discord post — paste it into your tips channel.","success");
         setTimeout(()=>{ b.textContent=orig; if(ok) ok.textContent=""; },2500);
       }catch(e){
         // Last resort: open the preview and select the text so it can be copied by hand.
         const prev=row.querySelector(".live-tips-preview"); if(prev) prev.hidden=false;
         const pre=row.querySelector(".live-copy-text");
         if(pre){ try{ const r=document.createRange(); r.selectNodeContents(pre); const s2=getSelection(); s2.removeAllRanges(); s2.addRange(r); }catch(e2){} }
-        toast("Couldn't copy automatically — text selected, use Copy from the menu.");
+        toast("Couldn't copy automatically — text selected, use Copy from the menu.","error");
       }
     });
     box.querySelectorAll(".live-q").forEach(b=>b.onclick=()=>{
@@ -5608,11 +5660,11 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
         return;
       }
       const j=await r.json().catch(()=>({}));
-      if(r.ok&&j.ok) toast(q?("Queued "+q+" — check your tips channel shortly."):"Queued — check your tips channel shortly.");
-      else toast(j.message||"Couldn't queue live update.");
+      if(r.ok&&j.ok) toast(q?("Queued "+q+" — check your tips channel shortly."):"Queued — check your tips channel shortly.","success");
+      else toast(j.message||"Couldn't queue live update.","error");
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
-      toast("Couldn't reach the bot.");
+      toast("Couldn't reach the bot.","error");
     }finally{ busy.forEach(el=>{ el.disabled=false; }); }
   }
   // Admin Tools · Paste tip sheet: assets/admin.js, loaded on first use (2.2b).
@@ -5854,7 +5906,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
             m.textContent=msg+" — "+j.durability_warning;
             m.style.color="var(--warn,#e0a04a)";
           }
-          toast("🔱 "+msg);
+          toast("🔱 "+msg,"success");
           try{ await loadDetail(s.guild_id); }catch(e2){}
         }else{
           let err=j.message||j.error||"Resync failed";
@@ -5865,9 +5917,9 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
             m.textContent=err+" — "+j.durability_warning;
             m.style.color="var(--warn,#e0a04a)";
           }
-          toast(err);
+          toast(err,"error");
         }
-      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m){m.textContent="Couldn't reach the bot."; m.style.color="var(--loss)";} toast("Couldn't reach the bot"); }
+      }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); if(m){m.textContent="Couldn't reach the bot."; m.style.color="var(--loss)";} toast("Couldn't reach the bot","error"); }
       finally{ stopPoll(); gr.disabled=!godOn(); }
     }; }
     { const ib=$("inviteMeBtn"); if(ib)ib.onclick=async()=>{
@@ -6557,7 +6609,6 @@ async function loadPerms(gid){
     const btn=$("batchschedbtn"); if(btn)btn.onclick=renderBatchConfirm;
     syncTrayStack();
   }
-  function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
 
   async function load(){
     const hash=new URLSearchParams(location.hash.slice(1));

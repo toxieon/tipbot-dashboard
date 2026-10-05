@@ -6,6 +6,19 @@
 - Apple touch icon is a 180 px raster of the solid tile. `assets/favicon.ico` (16/32/48/256) and the solid PWA icons (192 and 512) are linked from the dashboard, Live, Master and Compare. `manifest.webmanifest` carries the name and the tile colour `#0F1420`.
 - Bookie marks stay as they are.
 
+## 0.42.3 · 2026-10-06 · `dash-bugfixes` · Error toasts look like errors, Day theme is readable, iPhone home-bar spacing
+
+Built by Grokbot from `TIPDASH_BUGFIX_HANDOFF.md`; reviewed and finalised by Claude.
+
+- **Toasts (B1):** `index.html` declared `toast()` twice in one scope, so the second (a green success pill that stacked a new div per call) won. Now one `toast(msg, kind, {action, ms})` with `status | success | warn | error` kinds, a single `role=status` live region, and an optional action button. Error call sites pass `"error"`; confirmations pass `"success"`; "Discord post is delayed" is `"warn"`.
+- **Day theme (B2):** hard-coded dark-theme pastels (`#7ee0a6`, `#f0857f`, `#9fc7ff`, `#9cc0ff`, `#5fd48c`, `#ff9a9e`) replaced with `--win-ink`, `--loss-ink`, `--warn-ink`, `--api-ink` (including the paste-sheet success message in `assets/admin.js`).
+- **Safe areas (B3):** `viewport-fit=cover`, `theme-color`, and `env(safe-area-inset-bottom)` on the trays, toast, promo chips and page bottom padding.
+- **Hover (B4):** card lift only on hover-capable fine pointers, so tapped cards don't stay raised on phones.
+- **Promo chip (B5):** pulses twice, then stops.
+- **Day sheet (B6):** the Escape listener no longer leaks on ✕/scrim close; focus moves to ✕ on open, is trapped inside, and returns to the calendar day on close.
+- **Toggle (B7):** the knob animates `transform` instead of `left`.
+- Tests: `tests/toast_single.test.js`, `tests/day_theme_tokens.test.js`.
+
 ## 0.42.2 · 2026-10-02 · `busy-recovery` · Scheduled Tips no longer sticks on "warming"; AFL Upcoming Bets keeps its start times (works with TipBot 0.44.1 or older)
 
 - **Scheduled Tips panel:** when TipBot answered 503 (`{"error":"warming"}` or `{"error":"db_busy"}`, which happens during a restart or a busy DB), the panel showed the raw word "warming" until the next 30 s poll, and every remount whose first load got a 503 showed it again. Brandon hit this on 2 Oct around 19:38–19:47, when TipBot logs show `/api/scheduled-tips` 503s and two health-check restarts. Now a 503 shows "TipBot is busy or starting up. Retrying…", keeps any list already loaded, and retries after `retry_after` (2–10 s, default 4 s), up to 6 times, before it waits for the normal poll.

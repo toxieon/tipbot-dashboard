@@ -192,7 +192,7 @@
     else box.insertBefore(banner, box.firstChild);
     const cont=$("draft-continue"), disc=$("draft-discard");
     if(cont)cont.onclick=async()=>{ banner.remove(); await resumeMultiDraft(d, games); };
-    if(disc)disc.onclick=()=>{ clearMultiDraft(guildId); banner.remove(); toast("Draft discarded"); };
+    if(disc)disc.onclick=()=>{ clearMultiDraft(guildId); banner.remove(); toast("Draft discarded","success"); };
   }
 
   /* ---------- BUILDER ---------- */
@@ -1218,7 +1218,7 @@
     clearMultiDraft(BUILD.guildId);
     renderTray();
     renderBatchTray();
-    toast("Added to batch ("+BATCH.tips.length+")");
+    toast("Added to batch ("+BATCH.tips.length+")","success");
     // Keep building the next tip on the same game / custom / ESPN form.
     if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){ renderEspnNflProps(); }
     else if(BUILD.espn && BUILD.espnEvent){ renderEspnBasketballPick(); }
@@ -1409,7 +1409,7 @@
               renderBatchConfirm();
               const fresh=$("scherr");
               if(fresh) fresh.textContent=note;
-              toast(queuedN+" of "+nTips+" scheduled — "+keep.length+" left in the tray");
+              toast(queuedN+" of "+nTips+" scheduled — "+keep.length+" left in the tray","success");
               loadDetail(guildId);
               return;
             }
@@ -1425,7 +1425,7 @@
         clearMultiDraft(guildId);
         if($("tray"))$("tray").hidden=true;
         if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
-        toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""));
+        toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""),"success");
         loadDetail(guildId);
         return;
       }
@@ -1446,7 +1446,7 @@
           clearMultiDraft(guildId);
           if($("tray"))$("tray").hidden=true;
           if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
-          toast(n+" tip"+(n===1?"":"s")+" scheduled (legacy fallback)");
+          toast(n+" tip"+(n===1?"":"s")+" scheduled (legacy fallback)","success");
           loadDetail(guildId);
           return;
         }
