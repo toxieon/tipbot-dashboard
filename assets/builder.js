@@ -420,25 +420,25 @@
       const weeks=BUILD.espnWeeks||[];
       html+='<div style="display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap">'
         +'<button class="ghost" id="espnprevw" '+(BUILD.espnWeekIndex<=0?"disabled":"")+'>‹</button>'
-        +'<select id="espnweek" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;min-width:min(100%,280px)">'
+        +'<select id="espnweek" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit;min-width:min(100%,280px)">'
         +(weeks.length?weeks.map((w,i)=>'<option value="'+i+'">'+esc((BUILD.espnSeasonYear?BUILD.espnSeasonYear+" · ":"")+(w.label||("Week "+w.value))+(w.phase&&String(w.type)!=="2"?" · "+w.phase:""))+'</option>').join(""):'<option>Loading weeks…</option>')
         +'</select>'
         +'<button class="ghost" id="espnnextw" '+(BUILD.espnWeekIndex>=weeks.length-1?"disabled":"")+'>›</button></div>';
     }else{
       html+='<div style="display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap">'
         +'<button class="ghost" id="espnprevd">‹</button>'
-        +'<input type="date" id="espndate" value="'+esc(BUILD.espnDate||"")+'" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
+        +'<input type="date" id="espndate" value="'+esc(BUILD.espnDate||"")+'" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit">'
         +'<button class="ghost" id="espnnextd">›</button>'
         +'<button class="ghost" id="espntoday">Today (ET)</button>'
-        +'<span style="color:var(--faint);font-size:12px">Schedule date · US Eastern</span></div>';
+        +'<span style="color:var(--faint);font-size:var(--t-foot)">Schedule date · US Eastern</span></div>';
     }
     if(BUILD.espnErr){ html+='<div class="panel"><div class="empty">'+esc(BUILD.espnErr)+'</div></div>'; }
     else if(!(BUILD.espnEvents||[]).length){ html+='<div class="panel"><div class="empty">No '+esc(label)+' games in this view.</div></div>'; }
     else{
       html+='<div class="gcards">'+BUILD.espnEvents.map((ev,i)=>{
         const st=(ev.status&&ev.status.state)||"";
-        const live=st==="in"?' <span style="color:#e5484d;font-weight:800;font-size:11px">● LIVE</span>':'';
-        const final=st==="post"?' <span style="color:var(--faint);font-size:11px">FINAL</span>':'';
+        const live=st==="in"?' <span style="color:#e5484d;font-weight:800;font-size:var(--t-cap)">● LIVE</span>':'';
+        const final=st==="post"?' <span style="color:var(--faint);font-size:var(--t-cap)">FINAL</span>':'';
         const when=espnFmtWhen(ev.date);
         const a=ev.away||{}, h=ev.home||{};
         const aScore=st==="pre"?"—":((a.score!=null&&a.score!=="")?a.score:"—");
@@ -530,7 +530,7 @@
       +'<div class="panel">'
       +'<div class="field"><label>Event</label><input id="c_event" value="'+esc(BUILD.customEvent||"")+'"></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. Lakers -4.5 · Over 224.5" style="flex:1"><button class="btn sm" id="c_add">Add</button></div></div>'
-      +'<div style="color:var(--faint);font-size:12px">Tip payload includes <code>espn_event_id</code> '+esc(String(ev.id||""))+'.</div>'
+      +'<div style="color:var(--faint);font-size:var(--t-foot)">Tip payload includes <code>espn_event_id</code> '+esc(String(ev.id||""))+'.</div>'
       +'</div>';
     $("bg").onclick=()=>navBack(()=>{ BUILD.custom=false; BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); });
     const rt=$("espnpropretry"); if(rt)rt.onclick=()=>{ BUILD.custom=false; openEspnEvent(ev); };
@@ -558,7 +558,7 @@
     let html='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><div style="display:flex;gap:8px">'+(bball?'<button class="ghost" id="espnfreetext">＋ Free text</button>':'')+'<button class="ghost" id="espnplayref">↻ Players</button></div></div>'
       +'<div class="tabs" style="flex-wrap:wrap">'+tabs+'</div>'
       +'<div class="builder-tools">'
-      +'<input id="psearch" placeholder="Search players… e.g. '+(bball?'Gilgeous-Alexander, Shai':'Hill, Tyreek')+'" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;flex:1">'
+      +'<input id="psearch" placeholder="Search players… e.g. '+(bball?'Gilgeous-Alexander, Shai':'Hill, Tyreek')+'" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit;flex:1">'
       +'</div>';
     if(BUILD.espnErr) html+='<div class="empty" style="margin-bottom:12px">'+esc(BUILD.espnErr)+'</div>';
     html+='<div id="players"></div>';
@@ -600,9 +600,9 @@
         const def=prop.def, mx=prop.max;
         html+='<div class="prow"><div class="pnum" style="min-width:40px;color:var(--muted);font-weight:700">'+esc(p.position||"—")+'</div>'
           +'<div class="pname-block"><div class="pname">'+esc(p.name)+(p.number?' <small style="color:var(--muted)">#'+esc(String(p.number))+'</small>':'')+'</div></div>'
-          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center"></div>'
+          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
-          +'<input id="'+rid+'_odds" type="number" step="0.01" min="1.01" placeholder="Odds" title="Leg odds (optional)" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit">'
+          +'<input id="'+rid+'_odds" type="number" step="0.01" min="1.01" placeholder="Odds" title="Leg odds (optional)" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit">'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
       html+='</div>';
@@ -656,8 +656,8 @@
       +'<div class="panel">'
       +'<div class="field"><label>Event / match</label><input id="c_event" placeholder="e.g. Lakers v Celtics · Race 5 Flemington · Man City v Arsenal" value="'+esc(BUILD.customEvent||"")+'"></div>'
       +'<div class="field"><label>Sport / league (optional)</label><input id="c_sport" placeholder="e.g. NBA · EPL · UFC · Racing · NRL" value="'+esc(BUILD.customSport||"")+'"></div>'
-      +'<div class="field"><label>Start day (optional)</label><input id="c_start" type="date" value="'+esc(BUILD.customStartDay||"")+'"><div style="color:var(--faint);font-size:12px;margin-top:6px">When the event tips off — sent as <code>start_date</code> when TipBot supports it.</div></div>'
-      +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:12px;margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
+      +'<div class="field"><label>Start day (optional)</label><input id="c_start" type="date" value="'+esc(BUILD.customStartDay||"")+'"><div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">When the event tips off — sent as <code>start_date</code> when TipBot supports it.</div></div>'
+      +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
       +'</div>';
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
     const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;saveMultiDraft();};
@@ -685,8 +685,8 @@
       +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     // Sport switcher: AFL live · NFL/NBA/WNBA via TipBot ESPN · stubs → custom.
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
-      +'<span class="compchip on" title="Live AFL/AFLW data">🏉 AFL <span style="opacity:.7;font-size:11px">live</span></span>'
-      +ESPN_SPORTS.map(s=>'<button class="compchip espnsport" data-league="'+esc(s.league)+'" title="'+esc(s.hint)+'">'+esc(s.k)+' <span style="opacity:.7;font-size:11px">ESPN</span></button>').join("")
+      +'<span class="compchip on" title="Live AFL/AFLW data">🏉 AFL <span style="opacity:.7;font-size:var(--t-cap)">live</span></span>'
+      +ESPN_SPORTS.map(s=>'<button class="compchip espnsport" data-league="'+esc(s.league)+'" title="'+esc(s.hint)+'">'+esc(s.k)+' <span style="opacity:.7;font-size:var(--t-cap)">ESPN</span></button>').join("")
       +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — custom tip">'+esc(s.k)+'</button>').join("")
       +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">＋ Other</button></div>';
     if(hasMulti){
@@ -701,7 +701,7 @@
     }
     else if(!shown.length){ html+='<div class="panel"><div class="empty">No '+BUILD.compFilter+' games in the next 7 days.</div></div>'; }
     else{ html+='<div class="gcards">'+shown.map((g,i)=>{
-      const liveBadge=g.live?' <span style="color:#e5484d;font-weight:800;font-size:11px;letter-spacing:.03em">● LIVE</span>':'';
+      const liveBadge=g.live?' <span style="color:#e5484d;font-weight:800;font-size:var(--t-cap);letter-spacing:.03em">● LIVE</span>':'';
       const compBadge=hasMulti?' <span class="compbadge'+(gameComp(g)==="AFLW"?" aflw":"")+'">'+gameComp(g)+'</span>':'';
       const ht=g.hteam, at=g.ateam;
       return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'>'
@@ -770,22 +770,22 @@
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
-      +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:12px;background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
-        +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:13px">△ Assumption mode</div><div style="color:var(--muted);font-size:12px;margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
+      +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:var(--r-md);background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
+        +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:var(--t-sub)">△ Assumption mode</div><div style="color:var(--muted);font-size:var(--t-foot);margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
         +'<button id="assumetoggle" class="toggle '+(BUILD.assume?"on":"")+'" style="flex:none"></button></div>'):"")
       +'<div class="tabs">'+tabs+'</div>'
-      +'<div style="color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px">First / last markets</div>'
+      +'<div style="color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.05em;margin:2px 0 6px">First / last markets</div>'
       +'<div class="tabs">'+mtabs+'</div>'
       +'<div class="builder-tools">'
-      +'<input id="psearch" placeholder="Search players… e.g. Dangerfield Cameron" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit">'
-      +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer;min-width:0"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
+      +'<input id="psearch" placeholder="Search players… e.g. Dangerfield Cameron" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit">'
+      +'<select id="psort" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit;cursor:pointer;min-width:0"><option value="number">Sort: Number</option><option value="name">Sort: Name (A–Z)</option></select>'
       +'</div>'
       +'<div class="auto-bar" id="auto-bar">'
       +'<span class="auto-lab">Auto</span>'
       +'<button type="button" class="toggle'+(BUILD.autoLines?" on":"")+'" id="autolines-toggle" aria-pressed="'+(BUILD.autoLines?"true":"false")+'" title="Seed lines from TipBot book cache"></button>'
       +'<span class="auto-hint">Book line + ~under from TipBot cache (Sportsbet first). Manual O/U still works.</span>'
       +'<span class="auto-status" id="auto-status"></span>'
-      +(STATE.role==="owner"&&!STATE.viewAs?'<button type="button" class="ghost" id="autolines-refresh" title="Refresh TipBot cache (owner)" style="padding:6px 10px;font-size:12px">↻</button>':"")
+      +(STATE.role==="owner"&&!STATE.viewAs?'<button type="button" class="ghost" id="autolines-refresh" title="Refresh TipBot cache (owner)" style="padding:6px 10px;font-size:var(--t-foot)">↻</button>':"")
       +'</div><div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
@@ -964,12 +964,12 @@
     const meta=STATE.playerMeta||{};
     if(meta.enabled===false&&meta.error){ html+='<div class="empty" style="margin-bottom:14px">⚠ '+meta.error+'</div>'; }
     const L=BUILD.live;
-    if(L&&L.available){ html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.2);display:inline-block"></span> LIVE · '+(L.phase&&L.phase.label||"in progress")+' — rows tint by projected pace vs your line</div>'; }
+    if(L&&L.available){ html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:var(--t-foot);color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#e5484d;box-shadow:0 0 0 3px rgba(229,72,77,.2);display:inline-block"></span> LIVE · '+(L.phase&&L.phase.label||"in progress")+' — rows tint by projected pace vs your line</div>'; }
     sides.forEach(team=>{
       const nm=teamName(team),slug=nm.replace(/\W/g,"");
       const status=((team&&team.selectionStatus)||"").replace(/_/g," ").toLowerCase();
       if(!isNamed(team)&&!isAssumed(team)){
-        html+='<div class="teamhdr">'+nm+' <span style="background:#5a4a1f;color:#f0d78a;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NOT NAMED</span></div>'
+        html+='<div class="teamhdr">'+nm+' <span style="background:#5a4a1f;color:#f0d78a;font-size:var(--t-cap);font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NOT NAMED</span></div>'
           +'<div class="empty" style="margin:0 0 14px">Team not announced yet — players appear once the side is named (usually 1\u20132 days before the game)'+(status?" \u00b7 "+status:"")+'.</div>';
         return;
       }
@@ -977,13 +977,13 @@
       const list=displayList(team);
       const collapsed=!!BUILD.collapsed[slug];
       const sideBadge=assumed
-        ? '<span style="background:#5a4a1f;color:#f0d78a;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">\u25b3 ASSUMED \u00b7 FULL SQUAD</span>'
-        : '<span style="background:#1f6f43;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span>';
+        ? '<span style="background:#5a4a1f;color:#f0d78a;font-size:var(--t-cap);font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">\u25b3 ASSUMED \u00b7 FULL SQUAD</span>'
+        : '<span style="background:#1f6f43;color:#fff;font-size:var(--t-cap);font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;vertical-align:middle">NAMED SIDE</span>';
       html+='<div class="thdr" data-slug="'+slug+'" role="button" tabindex="0" aria-expanded="'+(!collapsed)+'" aria-controls="tp_'+slug+'"><span class="tcaret" aria-hidden="true">'+(collapsed?"\u25b8":"\u25be")+'</span>'+nm+' '+sideBadge+' <small style="color:var(--muted);font-weight:400">\u00b7 '+list.length+' player'+(list.length===1?"":"s")+(status?" \u00b7 "+status:"")+'</small></div>';
       html+='<div class="teamplayers" id="tp_'+slug+'"'+(collapsed?' hidden':'')+'>';
       const ins=(team&&team.ins)||[],outs=(team&&team.outs)||[];
       if(ins.length||outs.length){
-        html+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin:-2px 0 12px;font-size:12.5px;line-height:1.5">';
+        html+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin:-2px 0 12px;font-size:var(--t-foot);line-height:1.5">';
         if(outs.length)html+='<div><span style="color:#e5695b;font-weight:800">OUT</span> <span style="color:var(--muted)">'+outs.map(p=>p.name).join(", ")+'</span></div>';
         if(ins.length)html+='<div><span style="color:#42b06f;font-weight:800">IN</span> <span style="color:var(--muted)">'+ins.map(p=>p.name).join(", ")+'</span></div>';
         html+='</div>';
@@ -1008,7 +1008,7 @@
         const rangeMax=Math.max(mx, Math.ceil(rowDef||0)+5);
         const autoMeta=(BUILD.autoLines?autoPriceHtml(hit):"");
         html+='<div class="prow" data-player="'+esc(p.name)+'"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
-          +'<div class="linectl-wrap"><div class="linectl"><input type="range" min="0" max="'+rangeMax+'" step="'+step+'" value="'+rowDef+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="'+step+'" value="'+rowDef+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 8px;font:inherit;font-weight:800;font-size:16px;text-align:center"></div>'
+          +'<div class="linectl-wrap"><div class="linectl"><input type="range" min="0" max="'+rangeMax+'" step="'+step+'" value="'+rowDef+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="'+step+'" value="'+rowDef+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +autoMeta+'</div>'
           +'<div class="prow-actions">'+cmp+'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
@@ -1075,18 +1075,18 @@
     const us=BUILD.unitSize||0;
     if(!(us>0)){
       return '<div class="field"><label>Units</label><input id="f_units" type="number" step="0.5" placeholder="e.g. 1">'
-        +'<div style="color:var(--faint);font-size:12px;margin-top:6px">Set a unit size in Settings → General to stake in dollars.</div></div>';
+        +'<div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">Set a unit size in Settings → General to stake in dollars.</div></div>';
     }
     const mode=BUILD.stakeMode||"units";
-    const seg='<div id="stakeseg" style="display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:8px">'
+    const seg='<div id="stakeseg" style="display:inline-flex;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;margin-bottom:8px">'
       +'<button type="button" class="stakemode" data-mode="units">Units</button>'
       +'<button type="button" class="stakemode" data-mode="dollars">Dollars</button></div>';
     return '<div class="field"><label>Stake</label>'+seg
       +'<div id="stake_units_wrap"><input id="f_units" type="number" step="0.5" placeholder="e.g. 1"></div>'
       +'<div id="stake_dollars_wrap"><div style="display:flex;align-items:center;gap:8px">'
       +'<span style="color:var(--muted)">$</span><input id="f_dollars" type="number" step="1" placeholder="e.g. 100" style="flex:1"></div>'
-      +'<div id="f_units_prev" style="color:var(--muted);font-size:13px;margin-top:6px">= —</div>'
-      +'<div style="color:var(--faint);font-size:12px;margin-top:2px">Unit size $'+(us%1?us.toFixed(2):us)+' · rounded to 2 dp</div></div></div>';
+      +'<div id="f_units_prev" style="color:var(--muted);font-size:var(--t-sub);margin-top:6px">= —</div>'
+      +'<div style="color:var(--faint);font-size:var(--t-foot);margin-top:2px">Unit size $'+(us%1?us.toFixed(2):us)+' · rounded to 2 dp</div></div></div>';
   }
   function wireStakeField(){
     const us=BUILD.unitSize||0; if(!(us>0))return;
@@ -1138,7 +1138,7 @@
     const title=BUILD.espn?(espnEventName(BUILD.espnEvent)||BUILD.customEvent||espnLeagueLabel(BUILD.espnLeague)):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi"));
     const adjustNotes=BUILD.legs.map(lineAdjustNote).filter(Boolean);
     const adjustBanner=adjustNotes.length
-      ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:13px;line-height:1.45">'
+      ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:var(--r-md);border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:var(--t-sub);line-height:1.45">'
         +'<b>Half-point lines</b> — whole numbers become N−0.5 (Over &amp; Under).<br>'
         +adjustNotes.map(n=>esc(n)).join("<br>")+'</div>'
       :'';
@@ -1161,7 +1161,7 @@
       +'<div class="sched-actions"><button class="btn secondary" id="batchaddbtn" type="button">Add to batch</button>'
       +'<button class="btn" id="schedbtn" type="button">Schedule tip →</button></div>'
       +'<div id="scherr" class="err" style="margin-top:10px"></div>'
-      +'<div style="color:var(--faint);font-size:12px;margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
+      +'<div style="color:var(--faint);font-size:var(--t-foot);margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
     $("bc").onclick=()=>navBack(()=>{ if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} });
     wireStakeField();
     if(BUILD.compareBook&&$("f_book")&&!$("f_book").value){
@@ -1176,10 +1176,10 @@
     if(fi)fi.onchange=async()=>{
       const prev=$("f_img_prev");const file=fi.files&&fi.files[0];
       if(!file){ BUILD.image=null; prev.innerHTML=""; return; }
-      prev.innerHTML='<span style="color:var(--muted);font-size:12px">Compressing…</span>';
+      prev.innerHTML='<span style="color:var(--muted);font-size:var(--t-foot)">Compressing…</span>';
       try{ BUILD.image=await compressImage(file);
-        prev.innerHTML='<img src="'+BUILD.image+'" style="max-height:120px;border-radius:8px;border:1px solid var(--line)"> <span style="color:var(--faint);font-size:12px">attached — the bot posts it with the tip</span>';
-      }catch(e){ BUILD.image=null; prev.innerHTML='<span class="err" style="font-size:12px">Couldn\'t read that image.</span>'; }
+        prev.innerHTML='<img src="'+BUILD.image+'" style="max-height:120px;border-radius:var(--r-sm);border:1px solid var(--line)"> <span style="color:var(--faint);font-size:var(--t-foot)">attached — the bot posts it with the tip</span>';
+      }catch(e){ BUILD.image=null; prev.innerHTML='<span class="err" style="font-size:var(--t-foot)">Couldn\'t read that image.</span>'; }
     };
   }
   function readTipForm(){
@@ -1248,7 +1248,7 @@
     const batchNotes=[];
     BATCH.tips.forEach((tip,ti)=>{(tip.legs||[]).forEach(l=>{const nte=lineAdjustNote(l); if(nte) batchNotes.push("Tip "+(ti+1)+": "+nte);});});
     const adjustBanner=batchNotes.length
-      ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:13px;line-height:1.45">'
+      ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:var(--r-md);border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:var(--t-sub);line-height:1.45">'
         +'<b>Half-point lines</b> — whole numbers become N−0.5 (Over &amp; Under).<br>'
         +batchNotes.map(n=>esc(n)).join("<br>")+'</div>'
       :'';
@@ -1266,7 +1266,7 @@
       +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
       +'<label class="trickle-row" for="f_trickle"><input id="f_trickle" type="checkbox">'
       +'<div><div class="title">Trickle</div><div class="thint">Stagger tips ~30s apart so followers can get on</div></div></label>'
-      +'<div style="color:var(--faint);font-size:12px;margin:12px 0 0">Off → all tips share the same delay. On → tip i posts at base delay + i×30s.</div>'
+      +'<div style="color:var(--faint);font-size:var(--t-foot);margin:12px 0 0">Off → all tips share the same delay. On → tip i posts at base delay + i×30s.</div>'
       +'<div class="sched-actions" style="margin-top:16px"><button class="btn" id="batchgo" type="button">Schedule '+n+' tips →</button></div>'
       +'<div id="scherr" class="err" style="margin-top:10px"></div></div>';
     $("bcb").onclick=()=>navBack(()=>{ renderBatchTray(); if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} });

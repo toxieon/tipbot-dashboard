@@ -337,6 +337,37 @@
     });
   }
 
+  /* Switches (0.46.1): `.toggle` buttons are visual-only — give them role=switch, an on/off
+     state and the label beside them, and keep aria-checked in sync with the .on class. */
+  function a11ySwitch(b) {
+    if (!b || !b.classList || !b.classList.contains("toggle")) return;
+    if (b.getAttribute("role") !== "switch") b.setAttribute("role", "switch");
+    var on = String(b.classList.contains("on"));
+    if (b.getAttribute("aria-checked") !== on) b.setAttribute("aria-checked", on);
+    if (!b.hasAttribute("aria-label") && !b.hasAttribute("aria-labelledby")) {
+      var row = b.closest && b.closest(".switch");
+      var lab = row && row.querySelector("span");
+      var txt = lab ? lab.textContent.trim() : (b.title || "");
+      if (txt) b.setAttribute("aria-label", txt);
+    }
+  }
+  function wireSwitchA11y() {
+    if (!doc || !doc.body || typeof w.MutationObserver !== "function") return;
+    Array.prototype.forEach.call(doc.querySelectorAll(".toggle"), a11ySwitch);
+    new w.MutationObserver(function (muts) {
+      muts.forEach(function (m) {
+        if (m.type === "attributes") { a11ySwitch(m.target); return; }
+        Array.prototype.forEach.call(m.addedNodes || [], function (n) {
+          if (n.nodeType !== 1) return;
+          a11ySwitch(n);
+          if (n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll(".toggle"), a11ySwitch);
+        });
+      });
+    }).observe(doc.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+  }
+  if (doc && doc.readyState === "loading" && doc.addEventListener) doc.addEventListener("DOMContentLoaded", wireSwitchA11y);
+  else wireSwitchA11y();
+
   w.TBMotion = { reduced: reduced, bump: bump, tick: tick, spring: spring, project: project };
   w.TBSheet = {
     hooks: null, // {open(api), close(api, reason)} — the dashboard's router uses these (0.45.1)

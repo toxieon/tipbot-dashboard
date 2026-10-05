@@ -141,3 +141,46 @@ test("owner tools live in a Settings view, gear keeps the common path", () => {
   assert.match(HTML, /<div id="settings" hidden><\/div>/);
   assert.match(HTML, /navNote\("#\/settings"/);
 });
+
+// ── Phase 4 · design-system ────────────────────────────────────────────────────
+test("type scale: 8 rem tokens, no stray px font sizes outside icon/emoji boxes", () => {
+  for (const t of ["cap", "foot", "sub", "callout", "body", "h3", "h2", "h1"]) assert.match(CSS, new RegExp("--t-" + t + ":"));
+  const px = [];
+  for (const m of CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1], body = m[2];
+    if (/\.logo\b|\.dc-av|\.dc-empty-mark|\.tb-promo-bag|\.tb-promo-chev|\.tbchip-symbol|\.gear\b|\.tb-bookie|\.tb-mini|\.toggle|\.tbs-grab/.test(sel)) continue;
+    for (const f of body.matchAll(/font-size:\s*([0-9.]+)px/g)) px.push(sel.trim().slice(-40) + " " + f[1]);
+  }
+  assert.deepEqual(px, []);
+  for (const f of ["assets/builder.js", "assets/admin.js"]) assert.doesNotMatch(read(f), /font-size:\s*[0-9.]+px/, f);
+});
+
+test("radius tokens; nested corners concentric (betcard inside game-group)", () => {
+  for (const r of ["xs", "sm", "md", "lg"]) assert.match(CSS, new RegExp("--r-" + r + ":"));
+  assert.match(CSS, /\.game-group\{border-radius:var\(--r-lg\)\}/);
+  assert.match(CSS, /\.betcard\{border-radius:var\(--r-sm\)\}/);
+});
+
+test("translucent materials have reduced-transparency and high-contrast fallbacks", () => {
+  assert.match(CSS, /\.tray,\.batchtray\{background:color-mix\(in srgb,var\(--card2\) 76%,transparent\);/);
+  assert.match(CSS, /@media \(prefers-reduced-transparency:reduce\)\{\s*\.tray,\.batchtray,\.tb-toast,\.dropdown\{background:var\(--card2\)!important/);
+});
+
+test("theme changes cross-fade via View Transitions (not on first paint, not with reduced motion)", () => {
+  assert.match(HTML, /document\.startViewTransition\(apply\)/);
+  assert.match(HTML, /if\(root\.dataset\.theme&&root\.dataset\.theme!==next&&document\.startViewTransition&&!rm/);
+});
+
+test("home-screen app: manifest + PNG icons (iOS ignores SVG touch icons)", () => {
+  const man = JSON.parse(read("manifest.webmanifest"));
+  assert.equal(man.display, "standalone");
+  for (const ic of man.icons) assert.ok(fs.existsSync(path.join(root, ic.src)), ic.src);
+  assert.ok(man.icons.some((i) => i.purpose === "maskable"));
+  assert.match(HTML, /<link rel="manifest" href="\.\/manifest\.webmanifest">/);
+  assert.match(HTML, /<link rel="apple-touch-icon" href="\.\/assets\/icons\/apple-touch-icon-180\.png">/);
+});
+
+test("switches are exposed to assistive tech", () => {
+  assert.match(read("assets/tb-motion.js"), /setAttribute\("role", "switch"\)/);
+  assert.match(HTML, /id="godtoggle" aria-label="God mode"/);
+});

@@ -1,5 +1,18 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.46.1 · 2026-10-06 · `design-system` · Type scale, corner tokens, translucent materials, theme cross-fade, home-screen app
+
+Apple-design pass, phase 4 of 4.
+
+- **Type scale:** 18 font sizes (9–28 px) collapse to 8 tokens in `rem` (`--t-cap` 11 · `--t-foot` 12 · `--t-sub` 13 · `--t-callout` 14 · `--t-body` 15 · `--t-h3` 17 · `--t-h2` 20 · `--t-h1` 22–28 fluid), across the stylesheet **and** the inline styles in `index.html`, `builder.js` and `admin.js`. Nothing is smaller than 11 px now, and because they're `rem`, a larger browser text size scales the layout. Emoji/icon boxes keep their exact sizes. Tracking is size-specific: headings and big numbers −0.02em, uppercase labels keep their +0.04–0.06em.
+- **Corner tokens:** 16 radii collapse to `--r-xs` 6 · `--r-sm` 8 · `--r-md` 12 · `--r-lg` 16 · pill. Nested corners are concentric (bet cards 8 inside game groups 16).
+- **Materials:** the legs/batch trays, gear menu and toast are translucent layers (blur + saturation) that content scrolls under; the toast rises in as a material and never stacks glass on glass (it lifts above an open tray). Solid fallbacks for `prefers-reduced-transparency` and `prefers-contrast: more`.
+- **Older sheets match:** the post countdown and sport-routing picker (`NDCountdownConfirm` / `.ndcc-*`) get the same surface, corners, grab handle and button style as `TBSheet`, centred on desktop.
+- **Theme changes cross-fade** (View Transitions, ~0.28 s) instead of snapping light↔dark; first paint and reduced motion stay instant. The existing Auto theme (Day 7 am–7 pm Sydney) is kept as is.
+- **Home-screen app:** `manifest.webmanifest` (standalone, navy theme), full-bleed PNG icons (180 Apple touch, 192, 512, 512 maskable; iOS ignores SVG touch icons), Apple web-app meta tags.
+- **Switches are accessible:** every `.toggle` gets `role="switch"`, `aria-checked` kept in sync, and the label next to it; the God-mode switch is labelled.
+- **Fixed (pre-existing):** on phones the builder's player search box was ~160 px tall (`flex-basis:160px` in the stacked toolbar).
+
 ## 0.45.1 · 2026-10-06 · `history-nav` · Back button and swipe-back stay in TipDash; one header for Dashboard and Live
 
 Apple-design pass, phase 3 of 4.
