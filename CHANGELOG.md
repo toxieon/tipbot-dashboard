@@ -1,5 +1,21 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.44.1 · 2026-10-06 · `sheets-and-undo` · Real bottom sheets, no more browser pop-ups, and Undo instead of "Are you sure?"
+
+Apple-design pass, phase 2 of 4. Builds on 0.42.3's `toast(msg, kind, {action})`.
+
+- **`TBSheet` (assets/tb-motion.js):** one sheet component for the whole app. Phones: slides up from the bottom on a spring (damping 0.86, response 0.34), the page behind dims and steps back, and the grab handle/header can be dragged 1:1. Release velocity is projected (Apple's `v/1000·d/(1−d)`) to decide close vs. snap back, a flick closes it, it rubber-bands when pulled up, and it can be grabbed mid-animation. Desktop: a centred card that scales in. Focus is trapped, Escape closes it, and focus returns to whatever opened it. Reduced motion: a short cross-fade.
+- **`TBMotion.spring`:** small interruptible spring (damping ratio + response) that re-targets from the live value and velocity. Chosen over loading Motion from a CDN: nothing external to load or fail.
+- **Day sheet** (calendar tap) now uses `TBSheet`.
+- **All 15 native `confirm()` dialogs are gone** (the handoff counted 10; 5 more lived in `consensus-ui.js`, `scheduled-tips.js` and `master-access.js`):
+  - *Undo instead of asking:* trial mode on/off and clearing the batch act immediately, with an Undo toast.
+  - *Action sheets:* delete an unsettled bet, kick/timeout (now names the member), God-mode grade, God resync, cancel a scheduled tip, consensus on/dry-run off, master forwarding/beta/set master, lockdown apply, whitelist remove.
+  - *Hold-to-confirm* (1.2 s fill; hold Space/Enter on a keyboard) for the one truly irreversible action: God-deleting a settled tip.
+  - Shared modules fall back to plain `confirm()` only if `tb-motion.js` isn't loaded.
+- **Grade undo window — ON by default (Brandon, 2026-10-06):** after a grade tap the card settles instantly, a "Graded Win · #110 — posting in a moment. **Undo**" toast shows for 4 s, and only then does `/api/grade` go to TipBot. Undo puts the bet back with no request sent. Turn it off in ⚙ Settings → "Undo window when grading".
+- Toast sizes to its content (no more 3-line wrapping) and floats above an open tray instead of covering it.
+- Tests: `tests/apple_design.test.js` (no `confirm(` anywhere, spring re-target keeps velocity, projection formula, undo default, hold-to-delete).
+
 ## 0.43.1 · 2026-10-06 · `press-feel` · Every control answers the moment you press it; menus and trays move with purpose
 
 Apple-design pass, phase 1 of 4 (`APPLE_DESIGN_UPGRADE_HANDOFF.md`). CSS plus a small helper (`assets/tb-motion.js`); no external libraries.

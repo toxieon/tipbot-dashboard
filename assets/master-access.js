@@ -1,6 +1,12 @@
 /* Owner-only master access UI. Uses the existing page's tokens and API client. */
 (function (root) {
   "use strict";
+  // Action sheet when tb-motion.js is loaded (0.44.1); plain confirm() otherwise.
+  function ask(o) {
+    var W = typeof window !== "undefined" ? window : {};
+    if (W.TBSheet && W.TBSheet.confirm) return W.TBSheet.confirm(o);
+    return Promise.resolve(typeof W.confirm === "function" ? W.confirm(o.title + (o.message ? "\n\n" + o.message : "")) : false);
+  }
   function esc(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
@@ -91,8 +97,8 @@
       var role=$('lock-role');if(role)role.onchange=function(){state.roleLock=role.checked;state.review=null;paint();};
       var preview=$('lock-preview');if(preview)preview.onclick=function(){run(async function(){state.review=assert(await call('/api/master/lockdown',{dry_run:true,lock_everyone_role:state.roleLock}));});};
       var apply=$('lock-apply');if(apply)apply.onclick=function(){
-        if(!confirm('Apply the reviewed permission changes to this master server?'+(state.roleLock?' This includes removing View Channels from @everyone.':'')))return;
-        run(async function(){var r=assert(await call('/api/master/lockdown',{dry_run:false,lock_everyone_role:state.roleLock,review_token:state.review.review_token,confirmed:true}));state.action={id:r.action_id,status:'queued'};state.review=null;state.message='Lockdown queued. Refresh the action status to check completion.';});
+        ask({title:'Apply the reviewed permission changes?',message:'This changes Discord permissions on the master server.'+(state.roleLock?' It includes removing View Channels from @everyone.':''),confirmLabel:'Apply changes',destructive:!!state.roleLock}).then(function(ok){ if(!ok)return;
+        run(async function(){var r=assert(await call('/api/master/lockdown',{dry_run:false,lock_everyone_role:state.roleLock,review_token:state.review.review_token,confirmed:true}));state.action={id:r.action_id,status:'queued'};state.review=null;state.message='Lockdown queued. Refresh the action status to check completion.';}); });
       };
       var pause=$('lock-pause');if(pause)pause.onclick=function(){run(async function(){var r=assert(await call('/api/master/config',{lockdown_enabled:false}));cfg().config=r.config;state.review=null;state.message='Permission repair paused; existing permissions remain applied.';});};
       var form=$('whitelist-form');if(form)form.onsubmit=function(e){
@@ -103,7 +109,7 @@
         run(async function(){var r=assert(await call('/api/master/whitelist',data));state.entries=r.entries;state.review=null;state.action={id:r.action_id,status:'queued'};state.message='Whitelist saved.';});
       };
       document.querySelectorAll('[data-access-edit]').forEach(function(b){b.onclick=function(){var e=state.entries.find(function(row){return row.user_id===b.dataset.accessEdit;});$('access-user').value=e.user_id;$('access-label').value=e.label||'';$('access-scope').value=e.scope;$('access-send').checked=!!e.can_send;$('access-targets').value=e.targets.map(function(t){return t.target_type+':'+t.target_id;}).join(', ');$('access-user').focus();};});
-      document.querySelectorAll('[data-access-remove]').forEach(function(b){b.onclick=function(){if(!confirm('Remove this member from the whitelist?'))return;run(async function(){var r=assert(await call('/api/master/whitelist',{user_id:b.dataset.accessRemove},'DELETE'));state.entries=r.entries;state.review=null;state.action={id:r.action_id,status:'queued'};state.message='Member removed.';});};});
+      document.querySelectorAll('[data-access-remove]').forEach(function(b){b.onclick=function(){ask({title:'Remove this member from the whitelist?',message:'They lose their master-server access the next time permissions apply.',confirmLabel:'Remove',destructive:true}).then(function(ok){if(!ok)return;run(async function(){var r=assert(await call('/api/master/whitelist',{user_id:b.dataset.accessRemove},'DELETE'));state.entries=r.entries;state.review=null;state.action={id:r.action_id,status:'queued'};state.message='Member removed.';});});};});
       var action=$('access-action');if(action)action.onclick=function(){run(async function(){state.action=assert(await call('/api/master/action?id='+encodeURIComponent(state.action.id))).action;var r=assert(await call('/api/master/config'));Object.assign(cfg(),r);});};
     }
     function enter(tab) {

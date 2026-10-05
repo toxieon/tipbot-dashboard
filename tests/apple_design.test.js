@@ -47,3 +47,57 @@ test("adding a leg / batch tip gives causal feedback", () => {
   assert.match(b, /BUILD\.legs\.push\(next\);renderTray\(\);saveMultiDraft\(\);\n\s+try\{ TBMotion\.bump\(\$\("reviewbtn"\)\); TBMotion\.tick\(\); \}catch\(_\)\{\}/);
   assert.match(b, /TBMotion\.bump\(document\.querySelector\("#batchtray \.batch-label"\)\)/);
 });
+
+// ── Phase 2 · sheets-and-undo ──────────────────────────────────────────────────
+test("no native confirm() dialogs remain (action sheets / undo instead)", () => {
+  const files = ["index.html", "master/index.html", "assets/builder.js", "assets/admin.js", "assets/consensus-ui.js",
+    "assets/scheduled-tips.js", "assets/master-access.js", "assets/routing.js", "assets/slip-ui.js"];
+  for (const f of files) {
+    const src = read(f).replace(/W\.confirm\(o\.title[^;]+;/g, "") // ask() fallback when tb-motion.js is absent
+      .replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    const bare = src.match(/(^|[^.\w])confirm\(/gm) || [];
+    assert.deepEqual(bare, [], f + " still calls window.confirm()");
+  }
+});
+
+test("TBSheet exposes open/confirm/top/closeTop and the master page loads it", () => {
+  const ctx = {setTimeout, clearTimeout};
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(read("assets/tb-motion.js"), ctx);
+  for (const k of ["open", "confirm", "top", "closeTop"]) assert.equal(typeof ctx.TBSheet[k], "function", k);
+  assert.equal(ctx.TBSheet.top(), null);
+  assert.equal(ctx.TBSheet.closeTop(), false);
+  assert.match(read("master/index.html"), /<script src="\.\.\/assets\/tb-motion\.js"><\/script>/);
+});
+
+test("spring settles on target from any start velocity (interruptible re-target)", async () => {
+  let t = 0;
+  const ctx = {setTimeout, clearTimeout, performance: {now: () => t}, requestAnimationFrame: (f) => setTimeout(() => { t += 16; f(t); }, 0), cancelAnimationFrame: clearTimeout};
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(read("assets/tb-motion.js"), ctx);
+  const seen = [];
+  await new Promise((done) => {
+    const s = ctx.TBMotion.spring({from: 0, to: 300, velocity: -2000, damping: 0.86, response: 0.34, onUpdate: (v) => seen.push(v), onRest: done});
+    setTimeout(() => s.retarget(100), 5);
+  });
+  assert.equal(seen[seen.length - 1], 100);
+  assert.ok(Math.min(...seen) < 0, "negative start velocity carried into the motion (no velocity reset)");
+});
+
+test("projection matches Apple's formula", () => {
+  const ctx = {setTimeout, clearTimeout}; ctx.window = ctx; vm.createContext(ctx);
+  vm.runInContext(read("assets/tb-motion.js"), ctx);
+  assert.ok(Math.abs(ctx.TBMotion.project(1000) - 499) < 0.01);
+});
+
+test("grade undo window is ON by default and can be turned off", () => {
+  assert.match(HTML, /function gradeUndoOn\(\)\{ try\{ return localStorage\.getItem\("tipdash_grade_undo"\)!=="0"; \}catch\(_\)\{ return true; \} \}/);
+  assert.match(HTML, /id="dd-grade-undo-on"/);
+  assert.match(HTML, /if\(gradeUndoOn\(\)\)\{[\s\S]{0,200}gradeUndoWait\(result/);
+});
+
+test("god-delete of a settled tip is hold-to-confirm", () => {
+  assert.match(HTML, /confirmLabel:"Delete", destructive:true, hold:settled/);
+});
