@@ -1,0 +1,94 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+html,body{width:600px;height:1000px;overflow:hidden}
+.stage{width:600px;height:1000px}
+.screen{background:radial-gradient(420px 300px at 85% 0%,#17204a 0%,rgba(11,15,26,0) 70%),var(--bg)}
+.hdr{height:48px;display:flex;align-items:center;padding:0 18px;gap:9px}
+.hdr .tb{width:30px;height:30px;border-radius:8px;border:1px solid #26304a}
+.hdr .brand{display:flex;align-items:center;gap:0;font-size:19px;font-weight:700;letter-spacing:-.02em}
+.hdr .brand .my{color:var(--muted);font-weight:700;font-size:25px;letter-spacing:-.02em;line-height:1}
+.hdr .brand img{height:24px;margin-left:-1px;margin-top:3px}
+.hdr .r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.bell{position:relative;width:34px;height:34px;border-radius:10px;background:var(--card);border:1px solid var(--line-soft);display:flex;align-items:center;justify-content:center;color:var(--txt)}
+.bell svg{width:17px;height:17px}.bell i{position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:9px;background:var(--accent);box-shadow:0 0 0 2px var(--card)}
+.me{width:34px;height:34px;border-radius:99px;background:linear-gradient(140deg,#5a3f9c,#2e2a66);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#e6defa}
+.wrap{padding:6px 16px 0}
+.bank{padding:14px 16px 8px;background:linear-gradient(160deg,rgba(91,140,255,.16),rgba(91,140,255,.03) 55%),var(--card);border-color:rgba(91,140,255,.22)}
+.bank .k{font-size:12.5px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between}
+.bank .v{font-size:32px;font-weight:700;letter-spacing:-.03em;margin-top:4px;line-height:1.1}
+.bank .d{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.bank .d .up{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:rgba(46,175,98,.15);color:var(--win-ink);font-weight:650}
+.seg{display:flex;background:var(--bg2);border:1px solid var(--line-soft);border-radius:8px;padding:2px}
+.seg span{font-size:11px;padding:3px 8px;border-radius:6px;color:var(--muted);font-weight:500}
+.seg span.on{background:var(--card2);color:var(--txt)}
+.sec{margin-top:10px;padding:12px 14px}
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sh h2{font-size:14px;font-weight:650}.sh span{font-size:12px;color:var(--muted)}
+.donut{display:flex;align-items:center;gap:18px}
+.legend{flex:1;display:flex;flex-direction:column;gap:3px}
+.legend div{display:flex;align-items:center;font-size:12.5px;gap:8px}
+.legend i{width:8px;height:8px;border-radius:3px;display:block}
+.legend b{margin-left:auto;font-weight:600}.legend em{font-style:normal;color:var(--muted);width:34px;text-align:right}
+.rank{display:flex;align-items:center;gap:10px;height:39px;border-top:1px solid var(--line-soft)}
+.rank:first-of-type{border-top:0}
+.rank .n{width:12px;font-size:12px;color:var(--faint);font-weight:600}
+.rank .a{width:28px;height:28px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.rank .nm{font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px}.rank .nm svg{width:13px;height:13px}
+.rank .sb{font-size:11px;color:var(--muted);margin-top:1px}
+.rank .p{margin-left:auto;font-size:13.5px;font-weight:650}
+.alert{margin-top:10px;height:44px;padding:0 12px;display:flex;align-items:center;gap:10px;font-size:12.5px}
+.alert .ic{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center}
+.alert .ic svg{width:15px;height:15px}
+.alert b{font-weight:600}.alert .go{margin-left:auto;color:var(--accent-ink);font-weight:600;display:flex;align-items:center}
+.alert .go svg{width:14px;height:14px}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(15,20,32,.94);border-top:1px solid var(--line-soft);display:flex;padding:9px 10px 0;backdrop-filter:blur(10px)}
+.tabs div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:500;color:var(--faint)}
+.tabs svg{width:22px;height:22px}
+.tabs .on{color:var(--accent)}
+.mpill{display:inline-flex;align-items:center;gap:3px;height:24px;padding:0 8px 0 10px;border-radius:7px;background:var(--bg2);border:1px solid var(--line-soft);font-size:11.5px;color:var(--txt)}.mpill svg{width:12px;height:12px;color:var(--muted)}
+.bank .k{align-items:center}
+</style></head><body>
+<div class="stage"><div class="phone"><div class="screen"><div class="island"></div><div id="st"></div>
+ <div class="hdr"><img class="tb" src="icon-16.svg"><div class="brand"><span class="my">My</span><img src="wordmark.svg"></div>
+  <div class="r"><span class="bell" id="bell"></span><span class="me">J</span></div></div>
+ <div class="wrap" id="app"></div>
+ <div class="tabs" id="tabs"></div><div class="homebar"></div></div></div>
+ <div class="example">Example data</div></div>
+<script src="common.js"></script><script src="data.js"></script>
+<script>
+const F=TB.follower;
+st.innerHTML=STATUS(); bell.innerHTML=ICON.bell+'<i></i>';
+const chart=areaChart({w:326,h:104,data:[0,...F.daily],padL:40,padR:8,padT:8,padB:20,yTicks:[0,100,200],yMin:-40,yMax:205,yFmt:v=>'$'+v,smooth:.6,strokeW:2.2,fontSize:10,color:'#2eaf62',
+  xLabels:[[0,'1 Sep'],[15,'15 Sep'],[30,'30 Sep']],id:'pl'});
+// donut
+const cols=['#5b8cff','#7b5bff','#49b6e8','#b39cff','#4b5672'];
+let a0=-Math.PI/2, R=44, r=31, cx=50, cy=50, seg='';
+const tot=F.bets;
+F.books.forEach(([n,c],i)=>{const a1=a0+2*Math.PI*c/tot, gap=0.035;
+  const s=a0+gap/2,e=a1-gap/2, L=(e-s)>Math.PI?1:0;
+  const p=(rad,ang)=>[cx+rad*Math.cos(ang),cy+rad*Math.sin(ang)];
+  const [x1,y1]=p(R,s),[x2,y2]=p(R,e),[x3,y3]=p(r,e),[x4,y4]=p(r,s);
+  seg+=`<path d="M${x1} ${y1} A${R} ${R} 0 ${L} 1 ${x2} ${y2} L${x3} ${y3} A${r} ${r} 0 ${L} 0 ${x4} ${y4} Z" fill="${cols[i]}"/>`; a0=a1;});
+const donut=`<svg width="88" height="88" viewBox="0 0 100 100">${seg}<text x="50" y="49" text-anchor="middle" fill="#f4f6fa" font-size="17" font-weight="700" font-family="Inter">${tot}</text><text x="50" y="63" text-anchor="middle" fill="#8a95ad" font-size="9.5" font-family="Inter">bets</text></svg>`;
+const pct=F.books.map(([n,c])=>Math.round(c/tot*100));
+const avc=[['#22345f','#9ebdff'],['#2d2752','#c4b5ff'],['#1d3b3f','#8fe0d6'],['#3a2a22','#f0bf79']];
+const ini=n=>n.replace('The ','').split(/(?=[A-Z])/).filter(w=>/[A-Za-z]/.test(w)).slice(0,2).map(w=>w.trim()[0]).join('');
+app.innerHTML=`
+<div class="card bank"><div class="k"><span>Bankroll · across 5 bookies</span><span class="mpill">${F.month} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></div>
+ <div class="v">${money(F.bankroll)}</div>
+ <div class="d"><span class="up">▲ ${fmtA(F.monthPL)} · +${F.monthPct.toFixed(1)}%</span><span>Month P&amp;L</span></div>
+ <div style="margin-top:8px">${chart}</div></div>
+<div class="card sec"><div class="sh"><h2>Bets by bookie</h2><span>${F.month}</span></div>
+ <div class="donut">${donut}<div class="legend">${F.books.map(([n,c],i)=>`<div><i style="background:${cols[i]}"></i>${n}<b>${c}</b><em>${pct[i]}%</em></div>`).join('')}</div></div></div>
+<div class="card sec" style="padding-bottom:6px"><div class="sh" style="margin-bottom:4px"><h2>Tipsters making you money</h2><span>${F.month}</span></div>
+ ${F.tipsters.map((t,i)=>`<div class="rank"><span class="n">${i+1}</span><span class="a" style="background:${avc[i][0]};color:${avc[i][1]}">${ini(t.name)}</span>
+  <div><div class="nm">${t.name}${t.verified?ICON.shield:''}</div><div class="sb">${t.bets} bets tailed</div></div>
+  <span class="p ${t.pl>=0?'pos':'neg'}">${fmtA(t.pl)}</span></div>`).join('')}</div>
+<div class="card alert"><span class="ic">${ICON.doc}</span><span><b>${F.month} report ready</b><span class="muted"> · 3 new alerts</span></span><span class="go">View${ICON.chev}</span></div>`;
+const T=(p,l,on)=>`<div class="${on?'on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg>${l}</div>`;
+tabs.innerHTML=T('<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>','Home',1)
+ +T('<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" stroke-width="2.1"/>','Bets')
+ +T('<circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.8a3.5 3.5 0 0 1 0 7.4M18.5 14.4A6.5 6.5 0 0 1 21.5 20"/>','Tipsters')
+ +T('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>','Reports')
+ +T('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>','Settings');
+</script></body></html>

@@ -1,0 +1,47 @@
+@font-face{font-family:"Inter";src:url("fonts/Inter-Variable.ttf") format("truetype");font-weight:100 900;font-style:normal}
+:root{
+  /* tokens matched to tipdash navy theme (tipbot-dashboard/index.html) */
+  --bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;--line-soft:#1f2740;
+  --txt:#f4f6fa;--muted:#8a95ad;--faint:#5c6785;
+  --accent:#5b8cff;--accent-ink:#9ebdff;--accent-soft:rgba(91,140,255,.12);--on-accent:#0b0f1a;
+  --win:#2eaf62;--win-ink:#65d38f;--loss:#e5595f;--loss-ink:#ff9a9e;--warn:#e0a04a;--warn-ink:#f0bf79;
+  --radius:16px;--radius-sm:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--txt);font-family:"Inter",sans-serif;-webkit-font-smoothing:antialiased;
+  font-feature-settings:"tnum" 1,"cv11" 1,"ss01" 0;font-optical-sizing:auto}
+.num{font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius)}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.pos{color:var(--win-ink)} .neg{color:var(--loss-ink)}
+.example{position:absolute;right:18px;bottom:14px;font-size:11px;font-weight:500;letter-spacing:.02em;color:rgba(138,149,173,.72);
+  padding:4px 9px;border:1px solid rgba(138,149,173,.22);border-radius:999px;background:rgba(11,15,26,.55);z-index:50}
+.vbadge{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 7px;border-radius:999px;
+  background:var(--accent-soft);border:1px solid rgba(91,140,255,.32);color:var(--accent-ink);font-size:12.5px;font-weight:600;white-space:nowrap}
+.vbadge svg{width:16px;height:16px;flex:none}
+.dots{display:flex;gap:6px}
+.dot{width:22px;height:22px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff}
+.dot.W{background:var(--win)} .dot.L{background:var(--loss)}
+.streak{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 7px;border-radius:999px;background:rgba(224,160,74,.12);
+  border:1px solid rgba(224,160,74,.32);color:var(--warn-ink);font-size:12.5px;font-weight:600;white-space:nowrap}
+.streak svg{width:16px;height:16px;margin-top:-1px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:12px;font-weight:600;font-size:15px;white-space:nowrap;border:1px solid transparent}
+.btn.primary{background:var(--accent);color:#fff;box-shadow:0 6px 18px -6px rgba(91,140,255,.55)}
+.btn.secondary{background:transparent;border-color:var(--line);color:var(--txt)}
+.btn svg{width:18px;height:18px}
+.chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:700;letter-spacing:.02em}
+.chip.W{background:rgba(46,175,98,.15);color:var(--win-ink)} .chip.L{background:rgba(229,89,95,.15);color:var(--loss-ink)}
+.chip.P{background:var(--accent-soft);color:var(--accent-ink)}
+
+/* generic phone frame */
+.stage{position:relative;overflow:hidden;background:radial-gradient(700px 520px at 50% 0%,#172045 0%,rgba(11,15,26,0) 70%),#090c15;display:flex;align-items:center;justify-content:center}
+.phone{position:relative;width:414px;height:868px;border-radius:64px;background:#1b2030;padding:12px;
+  box-shadow:0 0 0 1.5px #343b52 inset,0 0 0 1px #05070c,0 40px 80px -20px rgba(0,0,0,.7),0 18px 40px -18px rgba(91,140,255,.18)}
+.phone:before,.phone:after{content:"";position:absolute;width:3px;border-radius:3px;background:#2a3147}
+.phone:before{left:-3px;top:180px;height:64px;box-shadow:0 84px 0 #2a3147}
+.phone:after{right:-3px;top:220px;height:96px}
+.screen{position:relative;width:390px;height:844px;border-radius:52px;overflow:hidden;background:var(--bg)}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#000;z-index:20}
+.status{height:52px;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 40px;font-size:15px;font-weight:600;position:relative;z-index:10}
+.status .ic{display:flex;gap:6px;align-items:center}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:rgba(244,246,250,.85);z-index:30}

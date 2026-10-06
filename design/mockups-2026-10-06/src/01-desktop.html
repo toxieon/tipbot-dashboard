@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+html,body{width:1440px;height:1000px;overflow:hidden}
+body{position:relative;background:#070a12}
+.browser{position:absolute;inset:0;display:flex;flex-direction:column}
+.chrome{height:52px;flex:none;background:#0c101b;border-bottom:1px solid #1a2134;display:flex;align-items:center;padding:0 18px;gap:18px}
+.lights{display:flex;gap:8px}.lights i{width:12px;height:12px;border-radius:99px;background:#262e44;display:block}
+.navic{display:flex;gap:14px;color:#4b5672}.navic svg{width:18px;height:18px}
+.url{flex:1;max-width:620px;margin:0 auto;height:32px;border-radius:9px;background:#151b2b;border:1px solid #1f2740;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;color:#c9d1e3;transform:translateX(-40px)}
+.url svg{width:13px;height:13px;color:#8a95ad}.url b{font-weight:500;color:#eef2fa}.url span{color:#8a95ad}
+.page{flex:1;background:radial-gradient(1100px 520px at 82% -8%,#18224a 0%,rgba(11,15,26,0) 60%),var(--bg);position:relative}
+.wrap{width:1200px;margin:0 auto;padding-top:22px}
+.nav{display:flex;align-items:center;height:40px}
+.nav .logo{height:30px;display:block}
+.nav .sep{width:1px;height:18px;background:var(--line);margin:0 14px}
+.nav .crumb{font-size:14px;color:var(--muted);font-weight:500}
+.nav .links{margin-left:auto;display:flex;align-items:center;gap:28px;font-size:14px;color:var(--muted);font-weight:500}
+.nav .btn{height:36px;font-size:13.5px;padding:0 14px;border-radius:10px}
+.hero{margin-top:22px;padding:24px 28px;display:flex;align-items:center;gap:22px}
+.avatar{width:76px;height:76px;border-radius:22px;background:linear-gradient(140deg,#2a3f7a,#1a2648);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px;color:#cfdcff;letter-spacing:-.02em;border:1px solid #33467e;flex:none}
+.who h1{font-size:28px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+.who .meta{margin-top:8px;font-size:14px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.who .meta i{width:3px;height:3px;border-radius:9px;background:var(--faint);display:block}
+.hero .actions{margin-left:auto;display:flex;gap:10px;align-items:center}
+.stats{margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.75fr;gap:16px}
+.stat{padding:18px 20px;height:104px;display:flex;flex-direction:column;justify-content:space-between}
+.stat .k{font-size:12.5px;color:var(--muted);font-weight:500}
+.stat .v{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.stat .s{font-size:12px;color:var(--faint);margin-top:6px}
+.stat.form .row{display:flex;align-items:center;justify-content:space-between}
+.main{margin-top:18px;display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.panel{padding:20px 22px;height:404px;position:relative}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ph h2{font-size:16px;font-weight:650;letter-spacing:-.01em}
+.seg{display:flex;background:var(--bg2);border:1px solid var(--line-soft);border-radius:9px;padding:3px}
+.seg span{font-size:12px;padding:5px 11px;border-radius:6px;color:var(--muted);font-weight:500}
+.seg span.on{background:var(--card2);color:var(--txt)}
+.big{font-size:13px;color:var(--muted);margin-bottom:10px}
+.big b{font-size:22px;color:var(--win-ink);font-weight:700;margin-right:6px;letter-spacing:-.01em}
+.note{position:absolute;left:22px;right:22px;bottom:16px;font-size:12px;color:var(--faint);display:flex;align-items:center;gap:7px}
+.note svg{width:14px;height:14px}
+.tips{margin-top:10px}
+.tip{display:flex;align-items:center;gap:12px;height:48px;border-top:1px solid var(--line-soft)}
+.tip:first-child{border-top:0}
+.tip>div:first-child{flex:1;min-width:0}.tip .t1,.tip .t2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tip .t1{font-size:14px;font-weight:600}
+.tip .t2{font-size:12px;color:var(--muted);margin-top:3px}
+.tip .r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.tip .pl{width:58px;text-align:right;font-size:14px;font-weight:650}
+.cta{margin-top:18px;padding:18px 22px 18px 18px;display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,rgba(91,140,255,.10),rgba(91,140,255,.02) 60%),var(--card);border-color:rgba(91,140,255,.22)}
+.cta img{width:44px;height:44px;border-radius:11px;border:1px solid #26304a}
+.cta h3{font-size:16px;font-weight:650}.cta p{font-size:13.5px;color:var(--muted);margin-top:3px}
+.cta .btn{margin-left:auto}
+.foot{margin-top:16px;font-size:12px;color:var(--faint);display:flex;gap:18px}
+.stat.form .dot{width:24px;height:24px;font-size:11px}.stat.form .dots{gap:7px}
+</style></head><body>
+<div class="browser">
+ <div class="chrome"><div class="lights"><i></i><i></i><i></i></div>
+  <div class="navic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div>
+  <div class="url"><span id="lock"></span><b>tipdashhq.com</b><span>/t/midfieldmick</span></div></div>
+ <div class="page"><div class="wrap" id="app"></div><div class="example">Example data</div></div>
+</div>
+<script src="common.js"></script><script src="data.js"></script>
+<script>
+const S=TB.summary;
+document.getElementById('lock').innerHTML=ICON.lock;
+const rs=TB.roundSeries;
+const chart=areaChart({w:676,h:268,data:rs,padL:44,padR:16,padT:12,padB:28,yTicks:[0,10,20,30],yMax:33,yFmt:v=>v+'u',smooth:.65,strokeW:2.6,
+  xLabels:[[0,'Start'],[6,'Rd 6'],[12,'Rd 12'],[18,'Rd 18'],[23,'Rd 23']],id:'u'});
+const tipRow=x=>`<div class="tip"><div><div class="t1">${x.sel} <span class="muted" style="font-weight:500">@ ${x.odds.toFixed(2)} · ${x.stake}u</span></div><div class="t2">Rd ${x.rnd} · ${x.match} · ${x.book}</div></div>
+ <div class="r"><span class="chip ${x.res}">${x.res==='W'?'WON':x.res==='L'?'LOST':'PENDING'}</span><span class="pl ${x.res==='W'?'pos':x.res==='L'?'neg':'muted'}">${x.res==='P'?'—':fmtU2(x.pl)}</span></div></div>`;
+document.getElementById('app').innerHTML=`
+<div class="nav"><img class="logo" src="wordmark.svg"><span class="sep"></span><span class="crumb">Verified tipster records</span>
+ <div class="links"><span>Leaderboard</span><span>How verification works</span><span class="btn secondary">${ICON.plus}Add TipBot</span></div></div>
+<div class="card hero"><div class="avatar">MM</div>
+ <div class="who"><h1>${S.name} ${vbadge()}</h1>
+  <div class="meta"><span>AFL tipster</span><i></i><span>${S.server} Discord</span><i></i><span>Tracked since Round 1, 2026</span></div></div>
+ <div class="actions"><span class="btn secondary" style="width:44px;padding:0">${ICON.share}</span><span class="btn primary">${ICON.chat}Follow in Discord</span></div></div>
+<div class="stats">
+ <div class="card stat"><div class="k">Units profit</div><div><div class="v pos">${fmtU(S.units)}</div><div class="s">${S.staked}u staked</div></div></div>
+ <div class="card stat"><div class="k">ROI</div><div><div class="v pos">+${S.roi}%</div><div class="s">Profit ÷ units staked</div></div></div>
+ <div class="card stat"><div class="k">Strike rate</div><div><div class="v">${S.sr}%</div><div class="s">${S.wins} won · ${S.losses} lost</div></div></div>
+ <div class="card stat"><div class="k">Total tips</div><div><div class="v">${S.tips}</div><div class="s">Avg odds ${S.avgOdds.toFixed(2)}</div></div></div>
+ <div class="card stat form"><div class="row"><span class="k">Last 10 · ${S.last10w}–${S.last10l}</span>${streakChip(S.streak)}</div>
+  <div class="row">${dots(S.last10)}</div></div>
+</div>
+<div class="main">
+ <div class="card panel"><div class="ph"><h2>Units over time</h2><div class="seg"><span>30d</span><span>90d</span><span class="on">Season</span></div></div>
+  <div class="big"><b>${fmtU(S.units)}</b>across ${S.tips} settled tips</div>${chart}
+  <div class="note">${ICON.shield}Every tip is time-stamped in Discord before the event and settled automatically by TipBot.</div></div>
+ <div class="card panel"><div class="ph"><h2>Recent tips</h2><span class="muted" style="font-size:13px;font-weight:500">View all ${S.tips}</span></div>
+  <div class="tips">${tipRow(TB.pending)}${TB.recent.map(tipRow).join('')}</div></div>
+</div>
+<div class="card cta"><img src="icon.svg"><div><h3>Run a tipping server?</h3><p>TipBot tracks every tip, settles results and builds your verified record. Free for tipsters.</p></div>
+ <span class="btn primary">${ICON.plus}Add TipBot to your server</span></div>
+<div class="foot"><span>© TipBot · tipdashhq.com</span><span>18+ · Gamble responsibly</span><span>Past results don't guarantee future returns</span></div>`;
+</script></body></html>

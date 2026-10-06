@@ -1,0 +1,97 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+html,body{width:1200px;height:640px;overflow:hidden;background:#1e1f22}
+.win{position:absolute;inset:0;display:flex}
+.side{width:232px;background:#2b2d31;display:flex;flex-direction:column}
+.srv{height:52px;display:flex;align-items:center;padding:0 16px;font-weight:700;font-size:15px;color:#f2f3f5;border-bottom:1px solid #1f2023;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.srv svg{width:16px;height:16px;margin-left:auto;color:#b5bac1}
+.cat{margin:18px 0 4px 16px;font-size:11.5px;font-weight:700;letter-spacing:.04em;color:#949ba4}
+.ch{margin:1px 8px;height:34px;border-radius:6px;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:15px;color:#949ba4;font-weight:500}
+.ch .h{font-size:19px;color:#80848e;font-weight:400;width:16px;text-align:center}
+.ch.on{background:#404249;color:#f2f3f5}
+.ch .b{margin-left:auto;font-size:11px;font-weight:700;background:#5b8cff;color:#fff;border-radius:9px;padding:1px 6px}
+.user{margin-top:auto;height:56px;background:#232428;display:flex;align-items:center;gap:10px;padding:0 10px}
+.user .av{width:32px;height:32px;border-radius:99px;background:linear-gradient(140deg,#5a3f9c,#2e2a66);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#e6defa;position:relative}
+.user .av:after{content:"";position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:99px;background:#23a55a;border:3px solid #232428}
+.user .n{font-size:13.5px;font-weight:600;color:#f2f3f5}.user .s{font-size:12px;color:#949ba4}
+.main{flex:1;background:#313338;display:flex;flex-direction:column;position:relative}
+.top{height:52px;display:flex;align-items:center;padding:0 18px;gap:10px;border-bottom:1px solid #26272b;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.top .h{font-size:22px;color:#80848e}.top b{font-size:15.5px;color:#f2f3f5;font-weight:650}
+.top .sep{width:1px;height:22px;background:#3f4147;margin:0 6px}.top .tp{font-size:14px;color:#949ba4}
+.msgs{flex:1;padding:18px 0 0;display:flex;flex-direction:column;justify-content:flex-end}
+.msg{display:flex;gap:16px;padding:6px 24px 6px 18px}
+.msg .av{width:42px;height:42px;border-radius:99px;flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.msg .av img{width:42px;height:42px}
+.nm{display:flex;align-items:center;gap:7px;font-size:15.5px;font-weight:600}
+.ts{font-size:12px;color:#949ba4;font-weight:500;margin-left:2px}
+.bot{display:inline-flex;align-items:center;gap:3px;height:16px;padding:0 5px;border-radius:4px;background:#5b8cff;color:#fff;font-size:10px;font-weight:700;letter-spacing:.02em}
+.bot svg{width:10px;height:10px}
+.txt{font-size:15px;color:#dbdee1;margin-top:3px;line-height:1.45}
+.mention{background:rgba(91,140,255,.18);color:#c9d8ff;border-radius:4px;padding:0 3px;font-weight:500}
+.embed{margin-top:8px;width:560px;background:#2b2d31;border-radius:6px;border-left:4px solid #5b8cff;padding:14px 16px 14px 14px}
+.ea{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#f2f3f5}
+.ea .mm{width:24px;height:24px;border-radius:99px;background:linear-gradient(140deg,#2a3f7a,#1a2648);font-size:10px;font-weight:700;color:#cfdcff;display:flex;align-items:center;justify-content:center}
+.ea .vbadge{height:22px;font-size:11.5px;padding:0 8px 0 6px}.ea .vbadge svg{width:14px;height:14px}
+.et{margin-top:10px;font-size:16.5px;font-weight:700;color:#f2f3f5;letter-spacing:-.01em}
+.ed{font-size:13.5px;color:#b5bac1;margin-top:3px}
+.fields{margin-top:14px;display:grid;grid-template-columns:1.3fr 1fr .8fr;gap:12px}
+.f .k{font-size:12px;font-weight:700;color:#b5bac1;letter-spacing:.01em}
+.f .v{font-size:15px;color:#f2f3f5;margin-top:4px;font-weight:600}
+.f .v span{color:#949ba4;font-weight:500}
+.rec{margin-top:14px;padding:12px;border-radius:8px;background:#232428;display:flex;align-items:center;gap:14px}
+.rec .stats{display:flex;gap:16px;font-size:13px;color:#b5bac1}
+.rec .stats b{display:block;font-size:15px;color:#f2f3f5;font-weight:700;margin-top:1px}
+.rec .stats b.pos{color:var(--win-ink)}
+.rec .r{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.rec .dot{width:16px;height:16px;font-size:8.5px}.rec .dots{gap:3px}
+.rec .streak{height:22px;font-size:11.5px}.rec .streak svg{width:14px;height:14px}
+.ef{margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:#949ba4}
+.ef img{width:18px;height:18px;border-radius:99px}
+.btns{margin-top:8px;display:flex;gap:8px}
+.dbtn{height:34px;padding:0 14px;border-radius:5px;display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:#fff}
+.dbtn svg{width:15px;height:15px}
+.dbtn.p{background:#5b8cff}.dbtn.s{background:#4e5058}
+.input{margin:14px 18px 22px;height:46px;border-radius:8px;background:#383a40;display:flex;align-items:center;padding:0 16px;font-size:15px;color:#6d6f78;gap:14px}
+.input .pl{width:24px;height:24px;border-radius:99px;background:#b5bac1;color:#383a40;display:flex;align-items:center;justify-content:center}.input .pl svg{width:15px;height:15px}
+.example{background:rgba(30,31,34,.6)}
+</style></head><body>
+<div class="win">
+ <div class="side"><div class="srv">Footy Edge<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+  <div class="cat">INFO</div><div class="ch"><span class="h">#</span>welcome</div><div class="ch"><span class="h">#</span>leaderboard</div>
+  <div class="cat">TIPS</div><div class="ch on"><span class="h">#</span>afl-tips</div><div class="ch"><span class="h">#</span>racing-tips</div><div class="ch"><span class="h">#</span>results<span class="b">3</span></div>
+  <div class="cat">COMMUNITY</div><div class="ch"><span class="h">#</span>general</div><div class="ch"><span class="h">#</span>bet-slips</div>
+  <div class="user"><span class="av">J</span><div><div class="n">jess_k</div><div class="s">Online</div></div></div></div>
+ <div class="main">
+  <div class="top"><span class="h">#</span><b>afl-tips</b><span class="sep"></span><span class="tp">Verified tips only · tracked by TipBot</span></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="input"><span class="pl" id="pl"></span>Message #afl-tips</div>
+  <div class="example" style="top:13px;bottom:auto">Example data</div>
+ </div>
+</div>
+<script src="common.js"></script><script src="data.js"></script>
+<script>
+const S=TB.summary,P=TB.pending;
+pl.innerHTML=ICON.plus;
+msgs.innerHTML=`
+<div class="msg"><div class="av" style="background:linear-gradient(140deg,#2a3f7a,#1a2648);color:#cfdcff;font-weight:700;font-size:15px">MM</div>
+ <div><div class="nm" style="color:#9ebdff">${S.name}<span class="ts">Today at 6:11 PM</span></div>
+ <div class="txt">Rd 24 best bet. Swans cover at the SCG, 2 units on the line.</div></div></div>
+<div class="msg" style="margin-top:10px"><div class="av"><img src="icon-16.svg"></div>
+ <div><div class="nm" style="color:#f2f3f5">TipBot<span class="bot">${ICON.check}BOT</span><span class="ts">Today at 6:12 PM</span></div>
+ <div class="txt">New verified tip from <span class="mention">@${S.name}</span></div>
+ <div class="embed">
+  <div class="ea"><span class="mm">MM</span>${S.name}${vbadge()}</div>
+  <div class="et">AFL · Round ${P.rnd} · ${P.match}</div>
+  <div class="ed">${P.venue} · ${P.time} AEST · tip locked before bounce</div>
+  <div class="fields">
+   <div class="f"><div class="k">Selection</div><div class="v">${P.sel} <span>line</span></div></div>
+   <div class="f"><div class="k">Odds</div><div class="v">${P.odds.toFixed(2)} <span>${P.book}</span></div></div>
+   <div class="f"><div class="k">Stake</div><div class="v">${P.stake} units</div></div></div>
+  <div class="rec"><div class="stats">
+    <div>ROI<b class="pos">+${S.roi}%</b></div><div>Strike rate<b>${S.sr}%</b></div><div>Units<b class="pos">${fmtU(S.units)}</b></div><div>Tips<b>${S.tips}</b></div></div>
+   <div class="r">${streakChip(S.streak)}${dots(S.last10)}</div></div>
+  <div class="ef"><img src="icon-16.svg">Verified by TipBot · tipdashhq.com/t/${S.handle}</div>
+ </div>
+ <div class="btns"><span class="dbtn p">${ICON.plus}Track this bet</span><span class="dbtn s">View record${ICON.ext}</span></div>
+ </div></div>`;
+</script></body></html>

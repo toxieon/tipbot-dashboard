@@ -1,0 +1,62 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+html,body{width:1680px;height:960px;overflow:hidden}
+body{position:relative;background:radial-gradient(900px 500px at 50% -10%,#1a2550 0%,rgba(11,15,26,0) 70%),var(--bg)}
+.logo{position:absolute;left:56px;top:40px;height:30px}
+.head{text-align:center;padding-top:104px}
+.eyebrow{display:inline-flex;align-items:center;height:26px;padding:0 12px;border-radius:99px;background:var(--accent-soft);border:1px solid rgba(91,140,255,.28);color:var(--accent-ink);font-size:12.5px;font-weight:600;letter-spacing:.02em}
+.head h1{margin-top:16px;font-size:40px;font-weight:700;letter-spacing:-.03em}
+.head p{margin-top:10px;font-size:16px;color:var(--muted)}
+.grid{margin:64px auto 0;width:1520px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;align-items:stretch}
+.tier{position:relative;padding:28px 26px 28px;display:flex;flex-direction:column;padding-bottom:34px}
+.tier>*{flex-shrink:0}
+.tier.hot{background:linear-gradient(180deg,rgba(91,140,255,.14),rgba(91,140,255,.03) 45%),var(--card);border:1.5px solid rgba(91,140,255,.65);box-shadow:0 30px 60px -30px rgba(91,140,255,.45);transform:translateY(-10px)}
+.pop{position:absolute;top:-13px;left:50%;transform:translateX(-50%);height:26px;padding:0 12px;border-radius:99px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;letter-spacing:.02em;white-space:nowrap}
+.tn{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:650;height:26px}
+.tn img{width:26px;height:26px;border-radius:7px;border:1px solid #26304a}
+.for{margin-top:6px;font-size:14px;color:var(--muted)}
+.price{margin-top:22px;display:flex;align-items:baseline;gap:6px}
+.price b{font-size:46px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.price span{font-size:15px;color:var(--muted)}
+.sub{margin-top:10px;height:46px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;justify-content:flex-start;gap:4px;line-height:1.35}
+.sub .alt{color:var(--muted)}.hot .sub>span:first-child{color:#aeb8cf}.sub .alt b{color:var(--txt);font-weight:600}
+.earn{align-self:flex-start}
+.earn{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:6px;background:rgba(46,175,98,.14);color:var(--win-ink);font-size:12.5px;font-weight:650}
+.btn{margin-top:22px;width:100%}
+.hr{height:1px;background:var(--line-soft);margin:24px 0 18px}
+.lbl{font-size:12px;font-weight:600;color:var(--faint);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
+ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+li{display:flex;gap:10px;font-size:14.5px;line-height:1.35;color:#d7dceb}
+li svg{width:18px;height:18px;flex:none;color:var(--accent);margin-top:0}
+.lbl+ul+.lbl{margin-top:18px}
+.foot{position:absolute;left:0;right:0;bottom:40px;text-align:center;font-size:13px;color:var(--faint)}
+.toggle{margin-left:auto;display:flex;background:var(--bg2);border:1px solid var(--line-soft);border-radius:8px;padding:2px}
+.toggle span{font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:6px;color:var(--muted)}
+.toggle span.on{background:var(--accent);color:#fff}
+</style></head><body>
+<img class="logo" src="wordmark.svg">
+<div class="head"><span class="eyebrow">INDICATIVE PRICING</span><h1>Free to follow. From A$2.42/mo to get serious.</h1><p>Tipsters join free and earn 25% of the My TipBot subs their followers pay.</p></div>
+<div class="grid" id="g"></div>
+<div class="foot">All prices indicative, in AUD, and subject to change · Billed via secure web checkout. 18+. Gamble responsibly.</div>
+<div class="example">Example data</div>
+<script src="common.js"></script>
+<script>
+const li=a=>`<ul>${a.map(x=>`<li>${ICON.check}<span>${x}</span></li>`).join('')}</ul>`;
+g.innerHTML=`
+<div class="card tier"><div class="tn">Free</div><div class="for">For followers getting started</div>
+ <div class="price"><b>A$0</b><span>/month</span></div><div class="sub">Free forever</div>
+ <span class="btn secondary">Get started</span><div class="hr"></div>
+ <div class="lbl">Includes</div>${li(['See verified tipster records','Follow tipsters in Discord','Auto-settled results on every tip'])}</div>
+<div class="card tier hot"><span class="pop">BEST VALUE</span><div class="tn"><img src="icon-16.svg">My TipBot<div class="toggle"><span>Monthly</span><span class="on">Yearly</span></div></div><div class="for">For followers who bet</div>
+ <div class="price"><b>A$29</b><span>/year</span></div><div class="sub"><span>About A$2.42/mo billed yearly · indicative</span><span class="alt">or <b>A$3/mo</b> billed monthly</span></div>
+ <span class="btn primary">Start My TipBot</span><div class="hr"></div>
+ <div class="lbl">Everything in Free, plus</div>${li(['Personal bet log','Bankroll and P&amp;L across all your bookies','Tipster profit ranking','Tip and result alerts','Monthly P&amp;L report'])}</div>
+<div class="card tier"><div class="tn">My TipBot Pro</div><div class="for">For serious punters</div>
+ <div class="price"><b>A$8</b><span>/month</span></div><div class="sub">Indicative · cancel anytime</div>
+ <span class="btn secondary">Go Pro</span><div class="hr"></div>
+ <div class="lbl">Everything in My TipBot, plus</div>${li(['Unlimited tipsters tracked','Slip-photo import','CSV export','Loss limits and alerts'])}</div>
+<div class="card tier"><div class="tn">Tipster</div><div class="for">For tipsters with a following</div>
+ <div class="price"><b>Free</b><span>to join</span></div><div class="sub"><span class="earn">Earn 25% of My TipBot subs</span></div>
+ <span class="btn secondary">Join as a tipster</span><div class="hr"></div>
+ <div class="lbl">Includes</div>${li(['Verified public record page','25% of subs from your followers','Tip tracking and auto-settled results','Units, ROI and strike-rate analytics'])}</div>`;
+</script></body></html>

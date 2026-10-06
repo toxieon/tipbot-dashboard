@@ -1,0 +1,66 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+html,body{width:600px;height:1000px;overflow:hidden}
+.stage{width:600px;height:1000px}
+.urlbar{height:42px;display:flex;align-items:center;justify-content:center;padding:0 16px;border-bottom:1px solid var(--line-soft);background:var(--bg2)}
+.urlbar .pill{height:30px;flex:1;border-radius:9px;background:var(--card);display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:var(--muted)}
+.urlbar .pill b{color:var(--txt);font-weight:500}.urlbar svg{width:11px;height:11px}
+.body{padding:14px 16px 0;background:radial-gradient(420px 260px at 90% 0%,#17204a 0%,rgba(11,15,26,0) 70%)}
+.top{display:flex;align-items:center;gap:12px}
+.av{width:56px;height:56px;border-radius:17px;background:linear-gradient(140deg,#2a3f7a,#1a2648);border:1px solid #33467e;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#cfdcff;flex:none}
+.top h1{font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.top .m{font-size:12.5px;color:var(--muted);margin-top:4px}
+.badges{display:flex;gap:6px;margin-top:12px}
+.badges .vbadge,.badges .streak{height:24px;font-size:12px}
+.follow{margin-top:12px;width:100%;height:46px}
+.statrow{margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 4px}
+.statrow>div{text-align:center;border-left:1px solid var(--line-soft)}.statrow>div:first-child{border-left:0}
+.statrow .v{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.statrow .k{font-size:11px;color:var(--muted);margin-top:3px}
+.form{margin-top:12px;display:flex;align-items:center;justify-content:space-between;padding:11px 14px}
+.form .k{font-size:12px;color:var(--muted);font-weight:500;line-height:1.25}
+.form .dot{width:21px;height:21px;font-size:10px}.form .dots{gap:4px}
+.cc{margin-top:12px;padding:13px 14px 10px}
+.cc .h{display:flex;justify-content:space-between;align-items:baseline}
+.cc h2{font-size:14px;font-weight:650}.cc .h span{font-size:12px;color:var(--muted)}
+.cc .val{font-size:18px;font-weight:700;color:var(--win-ink);margin:2px 0 6px}
+.rt{margin-top:12px;padding:10px 14px 4px}
+.tip{display:flex;align-items:center;gap:10px;height:44px;border-top:1px solid var(--line-soft)}
+.tip:first-of-type{border-top:0}
+.tip>div:first-child{flex:1;min-width:0}
+.tip .t1{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tip .t2{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tip .pl{width:50px;text-align:right;font-size:13px;font-weight:650}
+.tip .chip{height:20px;font-size:10.5px;padding:0 6px}
+.cta{margin-top:12px;padding:9px 10px 9px 10px;display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(91,140,255,.12),rgba(91,140,255,.02)),var(--card);border-color:rgba(91,140,255,.24)}
+.cta img{width:32px;height:32px;border-radius:8px;border:1px solid #26304a}.cta .go{margin-left:auto;width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center}.cta .go svg{width:16px;height:16px}
+.cta .tx{font-size:13px;font-weight:650;line-height:1.25}.cta .tx span{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.cta .btn{margin-left:auto;height:34px;font-size:12.5px;padding:0 12px;border-radius:9px}
+.cta .btn svg{width:14px;height:14px}
+</style></head><body>
+<div class="stage"><div class="phone"><div class="screen"><div class="island"></div><div id="st"></div>
+ <div class="urlbar"><div class="pill"><span id="lk"></span><b>tipdashhq.com</b>/t/midfieldmick</div></div>
+ <div class="body" id="app"></div><div class="homebar"></div></div></div>
+ <div class="example">Example data</div></div>
+<script src="common.js"></script><script src="data.js"></script>
+<script>
+const S=TB.summary;
+st.innerHTML=STATUS(); lk.innerHTML=ICON.lock;
+const chart=areaChart({w:330,h:104,data:TB.roundSeries,padL:30,padR:8,padT:6,padB:20,yTicks:[0,15,30],yMax:33,yFmt:v=>v+'u',smooth:.65,strokeW:2.2,fontSize:10,
+  xLabels:[[0,'Start'],[12,'Rd 12'],[23,'Rd 23']],id:'u'});
+const tipRow=x=>`<div class="tip"><div><div class="t1">${x.sel} <span class="muted" style="font-weight:500">@ ${x.odds.toFixed(2)} · ${x.stake}u</span></div><div class="t2">Rd ${x.rnd} · ${x.match}</div></div>
+ <span class="chip ${x.res}">${x.res==='W'?'WON':x.res==='L'?'LOST':'PENDING'}</span><span class="pl ${x.res==='W'?'pos':x.res==='L'?'neg':'muted'}">${x.res==='P'?'—':fmtU2(x.pl)}</span></div>`;
+app.innerHTML=`
+<div class="top"><div class="av">MM</div><div><h1>${S.name}</h1><div class="m">AFL tipster · ${S.server} Discord</div></div></div>
+<div class="badges">${vbadge()}${streakChip(S.streak)}</div>
+<span class="btn primary follow">${ICON.chat}Follow in Discord</span>
+<div class="card statrow">
+ <div><div class="v pos">${fmtU(S.units)}</div><div class="k">Units</div></div>
+ <div><div class="v pos">+${S.roi}%</div><div class="k">ROI</div></div>
+ <div><div class="v">${S.sr}%</div><div class="k">Strike rate</div></div>
+ <div><div class="v">${S.tips}</div><div class="k">Tips</div></div></div>
+<div class="card form"><div class="k">Last 10<br><span style="color:var(--txt);font-weight:650">${S.last10w}–${S.last10l}</span></div>${dots(S.last10)}</div>
+<div class="card cc"><div class="h"><h2>Units over time</h2><span style="color:var(--win-ink);font-weight:700;font-size:14px">${fmtU(S.units)} <span class="muted" style="font-weight:500;font-size:12px">season</span></span></div><div style="height:8px"></div>${chart}</div>
+<div class="card rt"><div class="cc" style="padding:0;margin:0"><div class="h" style="margin-bottom:2px"><h2>Recent tips</h2><span>View all</span></div></div>
+ ${tipRow(TB.pending)}${tipRow(TB.recent[0])}${tipRow(TB.recent[1])}</div>
+<div class="card cta"><img src="icon-16.svg"><div class="tx">Add TipBot to your server<span>Run a tipping server? Free for tipsters</span></div><span class="go">${ICON.chev}</span></div>`;
+</script></body></html>

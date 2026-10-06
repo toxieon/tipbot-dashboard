@@ -1,0 +1,75 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+html,body{width:1920px;height:1080px;overflow:hidden}
+body{position:relative;background:radial-gradient(1100px 600px at 50% 45%,#141c3a 0%,rgba(11,15,26,0) 70%),var(--bg)}
+.title{position:absolute;left:120px;top:84px}
+.title h1{font-size:52px;font-weight:700;letter-spacing:-.03em}
+.title p{margin-top:12px;font-size:20px;color:var(--muted)}
+.logo{position:absolute;right:120px;top:96px;height:40px}
+svg.arrows{position:absolute;inset:0}
+.node{position:absolute;width:360px;height:150px;padding:24px 26px;display:flex;align-items:center;gap:18px;transform:translate(-50%,-50%)}
+.node.sm{height:128px;width:360px}
+.node .ic{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none}
+.node .ic svg{width:28px;height:28px}
+.node .ic img{width:60px;height:60px;border-radius:14px;border:1px solid #2b3552}
+.node h3{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.node p{margin-top:6px;font-size:17px;color:var(--muted);line-height:1.35}
+.node.hot{border:1.5px solid rgba(91,140,255,.6);background:linear-gradient(160deg,rgba(91,140,255,.16),rgba(91,140,255,.03) 60%),var(--card);box-shadow:0 30px 60px -30px rgba(91,140,255,.5)}
+.pill{position:absolute;transform:translate(-50%,-50%);height:38px;padding:0 16px;border-radius:99px;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;white-space:nowrap;background:#0f1420}
+.pill.money{border:1.5px solid rgba(46,175,98,.55);color:var(--win-ink)}
+.pill.info{border:1.5px solid rgba(91,140,255,.5);color:var(--accent-ink)}
+.pill.grow{border:1.5px dashed rgba(138,149,173,.45);color:#c3cadb;font-weight:500}
+.pill b{font-weight:700;color:#f4f6fa}
+.loop{position:absolute;left:960px;top:712px;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;font-size:18px;font-weight:650;color:var(--txt)}
+.loop .ic{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);border:1px solid rgba(91,140,255,.3);display:flex;align-items:center;justify-content:center;color:var(--accent-ink)}
+.loop .ic svg{width:22px;height:22px}
+.loop span.s{display:block;font-size:14px;color:var(--muted);font-weight:500;margin-top:2px}
+.legend{position:absolute;left:120px;bottom:56px;display:flex;gap:28px;font-size:15px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:28px;height:0;border-top:3px solid;margin-right:9px;vertical-align:middle;border-radius:3px}
+.legend .note{color:var(--faint);margin-left:12px}
+.example{right:120px;bottom:52px;font-size:13px;padding:5px 12px}
+.lab{position:absolute;transform:translate(-50%,-100%);text-align:center;font-size:17px;font-weight:600;line-height:1.35;white-space:nowrap}
+</style></head><body>
+<div class="title"><h1>How TipBot makes money</h1><p>Tipsters bring the audience, followers pay a few dollars a month, and tipsters share the revenue.</p></div>
+<img class="logo" src="wordmark.svg">
+<svg class="arrows" width="1920" height="1080" viewBox="0 0 1920 1080">
+ <defs>
+  <marker id="mb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 9 5 1 9" fill="none" stroke="#5b8cff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="mg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 9 5 1 9" fill="none" stroke="#2eaf62" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="mm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 9 5 1 9" fill="none" stroke="#6b7794" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+ </defs>
+ <!-- tipster -> followers -->
+ <path d="M492 520 H768" stroke="#5b8cff" stroke-width="3" fill="none" marker-end="url(#mb)"/>
+ <!-- followers -> tipbot -->
+ <path d="M1152 520 H1428" stroke="#2eaf62" stroke-width="3" fill="none" marker-end="url(#mg)"/>
+ <!-- rev share arc -->
+ <path d="M1620 437 C1620 238 300 238 300 431" stroke="#2eaf62" stroke-width="3" fill="none" marker-end="url(#mg)"/>
+ <!-- growth loop -->
+ <path d="M1620 603 C1620 770 1590 850 1492 850" stroke="#6b7794" stroke-width="2.5" stroke-dasharray="8 8" fill="none" marker-end="url(#mm)"/>
+ <path d="M1108 850 H812" stroke="#6b7794" stroke-width="2.5" stroke-dasharray="8 8" fill="none" marker-end="url(#mm)"/>
+ <path d="M428 850 C340 850 300 770 300 609" stroke="#6b7794" stroke-width="2.5" stroke-dasharray="8 8" fill="none" marker-end="url(#mm)"/>
+</svg>
+<div id="nodes"></div>
+<div class="legend"><span><i style="border-color:#2eaf62"></i>Money</span><span><i style="border-color:#5b8cff"></i>Tips &amp; verified records</span><span><i style="border-color:#6b7794;border-top-style:dashed"></i>Growth loop</span><span class="note">Indicative: My TipBot A$3/mo or A$29/yr (Pro A$8/mo), 25% of My TipBot subs back to the tipster</span></div>
+<div class="example">Example data</div>
+<script src="common.js"></script>
+<script>
+const I={
+ tipster:`<svg viewBox="0 0 24 24" fill="none" stroke="#9ebdff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1Z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>`,
+ followers:`<svg viewBox="0 0 24 24" fill="none" stroke="#9ebdff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.8a3.5 3.5 0 0 1 0 7.4M18.5 14.4A6.5 6.5 0 0 1 21.5 20"/></svg>`,
+ page:`<svg viewBox="0 0 24 24" fill="none" stroke="#9ebdff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 8.5h18"/><path d="m9 14 2 2 4-4.5"/></svg>`,
+ server:`<svg viewBox="0 0 24 24" fill="none" stroke="#9ebdff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12.5a7.5 7.5 0 0 1-11 6.6L4 20.5l1.4-4.6A7.5 7.5 0 1 1 20 12.5Z"/><path d="M12.5 9v7M9 12.5h7"/></svg>`,
+ loop:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v3h3M4 13a8 8 0 0 0 14.6 4.5M20 20v-3h-3"/></svg>`};
+const node=(x,y,ic,h,p,cls='')=>`<div class="card node ${cls}" style="left:${x}px;top:${y}px"><span class="ic" style="background:rgba(91,140,255,.12);border:1px solid rgba(91,140,255,.25)">${ic}</span><div><h3>${h}</h3><p>${p}</p></div></div>`;
+nodes.innerHTML=
+ node(300,520,I.tipster,'Tipster','Posts tips in their own Discord')
++node(960,520,I.followers,'Followers','Tail tips and check the record')
++`<div class="card node hot" style="left:1620px;top:520px"><span class="ic"><img src="icon.svg"></span><div><h3>TipBot</h3><p>Runs My TipBot: bet log, bankroll, P&amp;L</p></div></div>`
++node(1300,850,I.page,'Verified pages','Public records at tipdashhq.com','sm')
++node(620,850,I.server,'New servers','Tipsters add TipBot to get verified','sm')
++`<div class="lab" style="left:630px;top:506px;color:var(--accent-ink)">Free tips +<br>verified record</div>`
++`<div class="lab" style="left:1290px;top:506px"><b style="color:var(--win-ink);font-size:22px">A$3/mo or A$29/yr</b><br><span class="muted">My TipBot subs</span></div>`
++`<div class="pill money" style="left:960px;top:289px"><span>Revenue share · <b>25%</b> back to the tipster</span></div>`
++`<div class="pill grow" style="left:960px;top:850px">Shared and discovered</div>`
++`<div class="loop"><span class="ic">${I.loop}</span><div>Growth loop<span class="s">Every verified record is an ad for TipBot</span></div></div>`;
+</script></body></html>
