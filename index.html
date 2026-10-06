@@ -14,14 +14,15 @@
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
-<script src="./assets/req-pool.js"></script>
+<script src="./assets/req-pool.js?v=0.43.4"></script>
 <script src="./assets/light-data.js"></script>
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
-<script src="./assets/scheduled-tips.js"></script>
+<script src="./assets/scheduled-tips.js?v=0.43.4"></script>
+<script src="./assets/upcoming-split.js?v=0.43.4"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.43.3"></script>
+<script src="./assets/tb-motion.js?v=0.43.4"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -1002,7 +1003,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.3</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.4</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1384,7 +1385,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.43.3";
+  TD.version="0.43.4";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1979,6 +1980,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // caller gets its own Response clone so each can read the body. Mutations, custom
   // headers/signals and onAttempt callers always get their own request.
   const API_DEDUPE=(window.ReqPool&&window.ReqPool.createDedupe)?window.ReqPool.createDedupe():null;
+  // 0.43.4: TipBot has one dash-db worker. Cap in-flight DB calls (~2) so a server
+  // page can't 503 itself. Fixtures, upcoming, master config and odds skip the queue.
+  const API_QUEUE=(window.ReqPool&&window.ReqPool.createApiQueue)?window.ReqPool.createApiQueue(2):null;
+  function reachErrorLine(status, info){
+    info=info||{};
+    if(window.ReqPool&&ReqPool.unreachableText){
+      return ReqPool.unreachableText({status:status, attempt:info.attempt, maxAttempts:info.maxAttempts, phase:info.phase, network:info.network});
+    }
+    if(info.phase==="retry") return "";
+    if(info.maxAttempts!=null && info.attempt!=null && info.attempt<info.maxAttempts) return "";
+    if(info.network || status===0 || status===502 || status===503) return "Couldn't reach the bot";
+    return "";
+  }
   function api(path,opts){
     const o=opts||{};
     const method=String(o.method||"GET").toUpperCase();
@@ -2013,16 +2027,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const attemptOpts=Object.assign({}, fetchOpts, {headers:headers});
       delete attemptOpts.signal; // never reuse an aborted signal across retries
       let timer=null;
-      if(typeof AbortController!=="undefined"){
-        const ac=new AbortController();
-        timer=setTimeout(function(){ try{ac.abort();}catch(e){} }, timeoutMs);
-        attemptOpts.signal=ac.signal;
-      }
+      // Timeout covers the fetch only, not time spent waiting for a DB slot.
+      const runFetch=function(){
+        if(typeof AbortController!=="undefined"){
+          const ac=new AbortController();
+          timer=setTimeout(function(){ try{ac.abort();}catch(e){} }, timeoutMs);
+          attemptOpts.signal=ac.signal;
+        }
+        return fetch(API+path, attemptOpts);
+      };
       try{
         if(typeof onAttempt==="function"){
           try{ onAttempt(attempt, maxAttempts, {phase:"start"}); }catch(e){}
         }
-        const r=await fetch(API+path, attemptOpts);
+        const r=await (API_QUEUE?API_QUEUE(path, runFetch):runFetch());
         if(timer) clearTimeout(timer);
         if(r.status===401){ got401=true; break; }
 
@@ -2030,12 +2048,17 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           let body=null;
           try{ body=await r.clone().json(); }catch(e){}
           const warming=!!(r.status===503 && body && (body.error==="warming" || body.warming===true || body.status==="warming"));
-          let waitMs=1500*Math.pow(2, attempt-1);
-          if(body && body.retry_after!=null){
-            const ra=Number(body.retry_after);
-            if(Number.isFinite(ra) && ra>=0) waitMs=(ra>0 && ra<120)?(ra*1000):ra; // seconds or ms
-          }
-          waitMs=Math.min(Math.max(waitMs, 400), 15000);
+          // 503: retry_after plus 0–1 s of jitter. The response is not a failure yet.
+          let waitMs=(window.ReqPool&&ReqPool.retryWaitMs)
+            ?ReqPool.retryWaitMs({status:r.status, body:body, attempt:attempt})
+            :(function(){
+              let w=1500*Math.pow(2, attempt-1);
+              if(body && body.retry_after!=null){
+                const ra=Number(body.retry_after);
+                if(Number.isFinite(ra) && ra>=0) w=(ra>0 && ra<120)?(ra*1000):ra;
+              }
+              return Math.min(Math.max(w, 400), 15000);
+            })();
           lastResponse=r;
           if(typeof onAttempt==="function"){
             // `code` is the body's own error ("warming" | "db_busy" | "timeout")
@@ -2174,12 +2197,18 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     try{
       const r=await api("/api/server?guild_id="+encodeURIComponent(guildId)+(month?"&month="+encodeURIComponent(month):""),{
         onAttempt:function(attempt, maxAttempts, info){
-          if(info && info.phase==="retry") paintWaking(attempt, maxAttempts);
+          if(!(info && info.phase==="retry")) return;
+          // A 503 (or a dropped connection) still has tries left. Don't paint
+          // "Couldn't reach the bot" until the last try has failed.
+          if(reachErrorLine(info.status, {attempt:attempt, maxAttempts:maxAttempts, phase:"retry", network:info.network})) return;
+          paintWaking(attempt, maxAttempts);
         }
       });
       if(!r.ok){
         if(cached){ unstaleDetail(cached, guildId); return; } // keep last good detail
-        if(r.status===502||r.status===503) $("detail").innerHTML='<p class="err">Couldn\'t reach the bot.</p>';
+        // Retries inside api() are finished. A 503 only becomes this line now.
+        const line=reachErrorLine(r.status, {attempt:3, maxAttempts:3});
+        if(line) $("detail").innerHTML='<p class="err">'+line+'</p>';
         else $("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';
         return;
       }
@@ -4298,7 +4327,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   const FT_GRADE_LOAD_TRIES=4;
   function ftGradeRetryMs(body){
     // Same 2–10s window as Scheduled Tips' 503 wait. retry_after is seconds.
-    return Math.min(10, Math.max(2, Number(body&&body.retry_after)||4))*1000;
+    // Plus 0–1 s of jitter so this retry doesn't land with the other panels.
+    const base=Math.min(10, Math.max(2, Number(body&&body.retry_after)||4))*1000;
+    let extra=0;
+    try{
+      if(typeof window!=="undefined" && window.ReqPool && window.ReqPool.jitterMs) extra=window.ReqPool.jitterMs();
+    }catch(e){}
+    return base+extra;
   }
   function ftGradeCanSave(loaded){
     return loaded===true||loaded==="1"||loaded===1;
@@ -5279,26 +5314,41 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   const LIVE_POLL_MS=30000;
   let GAMES_POLL_ARMED=false, LIVE_POLL_GAME=null;
   function clearDetailTimers(){ if(DETAIL_TIMER){clearInterval(DETAIL_TIMER);DETAIL_TIMER=null;} }
-  function clearLiveTimer(){ if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;} LIVE_POLL_GAME=null; }
-  function clearGamesTimer(){ if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;} GAMES_POLL_ARMED=false; }
+  function clearLiveTimer(){ if(LIVE_TIMER){clearTimeout(LIVE_TIMER);LIVE_TIMER=null;} LIVE_POLL_GAME=null; }
+  function clearGamesTimer(){ if(GAMES_TIMER){clearTimeout(GAMES_TIMER);GAMES_TIMER=null;} GAMES_POLL_ARMED=false; }
   function pauseBwPolls(){
-    if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;}
-    if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;}
+    if(GAMES_TIMER){clearTimeout(GAMES_TIMER);GAMES_TIMER=null;}
+    if(LIVE_TIMER){clearTimeout(LIVE_TIMER);LIVE_TIMER=null;}
+  }
+  // Base period plus 0–1 s so polls that share a cadence don't fire together.
+  function pollAfter(fn, base){
+    const j=(window.ReqPool&&ReqPool.jitterMs)?ReqPool.jitterMs():0;
+    return setTimeout(fn, base+j);
   }
   function startGamesPoll(){
     GAMES_POLL_ARMED=true;
-    if(GAMES_TIMER){clearInterval(GAMES_TIMER);GAMES_TIMER=null;}
+    if(GAMES_TIMER){clearTimeout(GAMES_TIMER);GAMES_TIMER=null;}
     if(document.hidden) return;
-    GAMES_TIMER=setInterval(async()=>{
-      if(document.hidden||BUILD.game)return;
-      try{ const fx=await (await api(TBLight.FIXTURES_LEAN)).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
-    },GAMES_POLL_MS);
+    const tick=async()=>{
+      GAMES_TIMER=null;
+      if(!document.hidden && !BUILD.game){
+        try{ const fx=await (await api(TBLight.FIXTURES_LEAN)).json(); if(!BUILD.game){ STATE.playerMeta=fx.players||{}; renderGames(fx.games||[]); } }catch(e){}
+      }
+      if(GAMES_POLL_ARMED && !document.hidden) GAMES_TIMER=pollAfter(tick, GAMES_POLL_MS);
+    };
+    GAMES_TIMER=pollAfter(tick, GAMES_POLL_MS);
   }
   function startLivePoll(g){
     LIVE_POLL_GAME=g;
-    if(LIVE_TIMER){clearInterval(LIVE_TIMER);LIVE_TIMER=null;}
+    if(LIVE_TIMER){clearTimeout(LIVE_TIMER);LIVE_TIMER=null;}
     if(document.hidden) return;
-    LIVE_TIMER=setInterval(()=>{ if(document.hidden)return; refreshLive(g); },LIVE_POLL_MS);
+    const tick=()=>{
+      LIVE_TIMER=null;
+      if(document.hidden || LIVE_POLL_GAME!==g) return;
+      refreshLive(g);
+      if(LIVE_POLL_GAME===g && !document.hidden) LIVE_TIMER=pollAfter(tick, LIVE_POLL_MS);
+    };
+    LIVE_TIMER=pollAfter(tick, LIVE_POLL_MS);
   }
   function resumeBwPolls(){
     if(document.hidden) return;
@@ -5306,8 +5356,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(LIVE_POLL_GAME && !LIVE_TIMER) startLivePoll(LIVE_POLL_GAME);
   }
   document.addEventListener("visibilitychange", function(){
-    if(document.hidden) pauseBwPolls();
-    else resumeBwPolls();
+    if(document.hidden){
+      pauseBwPolls();
+      liveTipsStopPoll();
+    }else{
+      resumeBwPolls();
+      if(LIVE_TIPS.guildId && !LIVE_TIPS.timer) liveTipsArm(LIVE_TIPS.guildId);
+    }
   });
   function sparkline(series){
     if(!series||series.length<2) return "";
@@ -5741,31 +5796,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     });
   }
   function tipLooksFinished(t, starts, finished){
-    if(!t) return false;
-    // Settled/deleted tips never belong in Upcoming (defense if a stale cache leaks them).
-    const st=String(t.status||"").trim().toLowerCase();
-    if(st==="settled"||st==="deleted") return true;
-    if(t.result && /^(win|loss|push|void|won|lost)$/i.test(String(t.result).trim())) return true;
-    if(t.finished || t.game_finished || t.ft || t.full_time) return true;
-    const g=t.game_name||"";
-    const info=starts&&starts[g];
-    // A fixture that is live or still in the future wins over a same-named FT result
-    // (e.g. an earlier AFLW meeting of the same clubs inside the 14-day results window).
-    if(info && !info.finished && !info.concluded && (info.live || (info.ts && info.ts*1000>Date.now()))) return false;
-    if(finished&&finished[g]) return true;
-    if(info && (info.finished || info.complete>=100 || info.concluded)) return true;
-    // Wall-clock from AFL fixture row…
-    if(info && info.ts && !info.live){
-      const age=Date.now()-(info.ts*1000);
-      if(age>4*3600*1000) return true;
-    }
-    // …or from the tip's own kickoff (NFL/NBA/custom — /api/upcoming is AFL-only).
-    const tipTs=tipStartTs(t);
-    if(tipTs && !(info&&info.live)){
-      const age=Date.now()-(tipTs*1000);
-      if(age>4*3600*1000) return true;
-    }
-    return false;
+    return TBUpcoming.tipLooksFinished(t, starts, finished);
   }
   function renderGameGroups(box, gid, groups, starts, finishedMap, mode){
     let html="";
@@ -5773,7 +5804,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!keys.length){
       box.innerHTML=mode==="finished"
         ?'<div class="empty">No finished games with pending tips.</div>'
-        :'<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
+        :'<div class="empty">'+esc(TBUpcoming.upcomingEmpty(0))+'</div>';
       return;
     }
     keys.forEach((game,gi)=>{
@@ -5836,13 +5867,22 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
      place. Previously it awaited /api/fixtures → /api/finished-games →
      /api/results serially (each up to 3×60 s with db_busy back-offs). */
   function tipStartTs(t){
-    const raw=t&&(t.game_start||t.start_date||t.commence_time);
-    if(!raw) return null;
-    let s=String(raw).trim();
-    if(/^\d{9,11}$/.test(s)) return +s;
-    if(/^\d{4}-\d{2}-\d{2} \d/.test(s)) s=s.replace(" ","T");
-    const ms=Date.parse(s);
-    return Number.isFinite(ms)?Math.floor(ms/1000):null;
+    // Date-only values (YYYY-MM-DD) are the end of that local day. See TBUpcoming.
+    return TBUpcoming.tipStartTs(t);
+  }
+  function setPanelSum(el, text){
+    if(!el) return;
+    text=text||"";
+    if(text) el.dataset.secSum=text; else delete el.dataset.secSum;
+    const hd=el.querySelector(":scope > .panel-hd .panel-hd-main")||el.querySelector(".panel-hd-main");
+    let sm=el.querySelector(":scope > .panel-hd .panel-hd-sum")||el.querySelector(".panel-hd-sum");
+    if(!text){ if(sm){ sm.textContent=""; sm.hidden=true; } return; }
+    if(!sm && hd){
+      sm=document.createElement("span");
+      sm.className="panel-hd-sum";
+      hd.appendChild(sm);
+    }
+    if(sm){ sm.hidden=false; sm.textContent=text; }
   }
   function groupStartTs(list){
     let best=null;
@@ -5939,7 +5979,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const box=$("upcoming-box"); const finBox=$("finished-box");
     if(!box)return;
     if(!queued||!queued.length){
-      box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
+      setPanelSum($("upcoming-panel"), TBUpcoming.upcomingSum(0));
+      setPanelSum($("finished-panel"), "");
+      box.innerHTML='<div class="empty">'+esc(TBUpcoming.upcomingEmpty(0))+'</div>';
       if(finBox){ finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>'; }
       const fp=$("finished-panel"); if(fp)fp.hidden=true;
       return;
@@ -5952,7 +5994,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       return true;
     });
     if(!queued.length){
-      box.innerHTML='<div class="empty">No upcoming bets. Build one with ＋ Build a tip.</div>';
+      setPanelSum($("upcoming-panel"), TBUpcoming.upcomingSum(0));
+      setPanelSum($("finished-panel"), "");
+      box.innerHTML='<div class="empty">'+esc(TBUpcoming.upcomingEmpty(0))+'</div>';
       if(finBox){ finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>'; }
       const fp=$("finished-panel"); if(fp)fp.hidden=true;
       return;
@@ -5965,14 +6009,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const sigOf=g=>Object.keys(g).map(k=>k+":"+g[k].map(t=>t.tip_id).join(",")).join("|");
     function paint(finDataChanged){
       const starts=ctx.starts, finishedMap=ctx.finished;
-      const upGroups={}, finGroups={};
-      queued.forEach(t=>{
-        const k=t.game_name||"Other";
-        if(tipLooksFinished(t, starts, finishedMap)) (finGroups[k]=finGroups[k]||[]).push(t);
-        else (upGroups[k]=upGroups[k]||[]).push(t);
-      });
+      // Header counts follow this split. tips.queued includes finished-pending
+      // games (still Pending), which must not show as "N queued" on Upcoming.
+      const split=TBUpcoming.splitGroups(queued, starts, finishedMap);
+      const upGroups=split.upcoming, finGroups=split.finished;
+      setPanelSum($("upcoming-panel"), split.upcomingSum);
+      setPanelSum($("finished-panel"), split.finishedSum);
       const us=sigOf(upGroups), fs=sigOf(finGroups);
-      if(us!==upSig){
+      if(!split.upcomingCount){
+        if(us!==upSig){
+          upSig=us;
+          box.innerHTML='<div class="empty">'+esc(split.upcomingEmpty)+'</div>';
+        }
+      }else if(us!==upSig){
         upSig=us;
         renderGameGroups(box, gid, upGroups, starts, finishedMap, "upcoming");
       }else{
@@ -5982,7 +6031,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         });
       }
       if(finBox){
-        const hasFin=Object.keys(finGroups).length>0;
+        const hasFin=split.finishedCount>0;
         const fp=$("finished-panel"); if(fp)fp.hidden=!hasFin;
         if(hasFin){ if(fs!==finSig||finDataChanged) renderGameGroups(finBox, gid, finGroups, starts, finishedMap, "finished"); }
         else finBox.innerHTML='<div class="empty">No finished games with pending tips.</div>';
@@ -6062,18 +6111,28 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // TipBot's /api/live-tips game list (first bounce → FT incl. breaks, + FT grace).
   // No phase/status whitelist here. A transient error/timeout keeps the last good
   // render instead of hiding the panel mid-game; it re-polls while the tab is visible.
-  const LIVE_TIPS_POLL_MS=90000;
   const LIVE_TIPS={guildId:null, timer:null, busy:false, last:null, ui:{}};
-  function liveTipsStopPoll(){ if(LIVE_TIPS.timer){clearInterval(LIVE_TIPS.timer);LIVE_TIPS.timer=null;} }
-  function liveTipsStartPoll(guildId){
-    liveTipsStopPoll();
-    LIVE_TIPS.timer=setInterval(()=>{
-      const panel=$("live-tips-panel");
-      if(!panel||LIVE_TIPS.guildId!==guildId){ liveTipsStopPoll(); return; }
-      if(document.hidden||LIVE_TIPS.busy) return;
-      loadLiveTipsPanel(guildId,{silent:true});
-    },LIVE_TIPS_POLL_MS);
+  function liveTipsStopPoll(){ if(LIVE_TIPS.timer){ clearTimeout(LIVE_TIPS.timer); LIVE_TIPS.timer=null; } }
+  function liveTipsDelay(){
+    const spec=(window.ReqPool&&ReqPool.POLLS&&ReqPool.POLLS.liveTips)||{period:90000, offset:15000};
+    if(window.ReqPool&&ReqPool.pollDelay) return ReqPool.pollDelay(Date.now(), spec.period, spec.offset);
+    return spec.period+spec.offset;
   }
+  // Next live-tips poll sits 15 s off the 30 s scheduled-tips grid, plus 0–1 s jitter.
+  // Hidden tabs don't poll; visibilitychange starts the timer again.
+  function liveTipsArm(guildId){
+    liveTipsStopPoll();
+    if(document.hidden||!guildId) return;
+    LIVE_TIPS.timer=setTimeout(function(){
+      LIVE_TIPS.timer=null;
+      const panel=$("live-tips-panel");
+      if(!panel||LIVE_TIPS.guildId!==guildId) return;
+      if(document.hidden) return;
+      if(LIVE_TIPS.busy){ liveTipsArm(guildId); return; }
+      loadLiveTipsPanel(guildId,{silent:true});
+    }, liveTipsDelay());
+  }
+  function liveTipsStartPoll(guildId){ liveTipsArm(guildId); }
   function copyTextToClipboard(text){
     text=String(text==null?"":text);
     const fallback=()=>new Promise((resolve,reject)=>{
@@ -6384,7 +6443,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q3 / FT) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Queued tips that haven\'t posted yet. Cancel, adjust the odds or edit before they post.</div><div id="scheduled-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="upcoming-panel" data-sec="upcoming" data-sec-sum="'+(tips.queued||[]).length+' queued"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel" id="upcoming-panel" data-sec="upcoming"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
       +sparkline(d.profit_series||[])
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+st.won+'–'+st.lost+'–'+st.push+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
@@ -7264,7 +7323,9 @@ async function loadPerms(gid){
       if(!r.ok){
         TopBar.done(true);
         if(paintedFromCache) return; // keep stale UI
-        if(r.status===502||r.status===503) return renderLogin("Couldn't reach the bot — try again in a moment.");
+        // api() has already used its retries. A 503 mid-retry never gets here.
+        const line=reachErrorLine(r.status, {attempt:3, maxAttempts:3});
+        if(line) return renderLogin(line+" — try again in a moment.");
         return renderLogin();
       }
       const data=await r.json();
