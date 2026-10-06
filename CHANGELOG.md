@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.6 · 2026-10-06 · `form-badges` · Tipster form shows as dots and a streak
+
+Needs TipBot 0.52.1. A server only sends form when its form-badges flag is on. When that object is there, Discover cards (including the featured tipster), the server page, each follower row, and the follower profile show up to 10 small dots — win green, loss red, push or void grey, newest on the left — plus a hot pill (`🔥 3W`) or a quiet streak (`W3` / `L2`). If form is missing, those spots stay as they were. The server page also loads a short Form list of tipsters (hot first) through the same database queue as the other server calls.
+
+- Tests: `tests/form_badges.test.js`.
+
 ## 0.43.5 · 2026-10-06 · `master-confirm` · Master confirms sit on top, and one consensus save keeps every field
 
 - **Master → Forwarding → Servers:** turning a server's Forward switch on opened "Turn forwarding on for this server?" behind the page, so the click looked like it did nothing. Confirms and sheets on the master page now open on top of the page, and the confirm button is focused. The same sheet is used for the other confirms there (master beta, set as master, lockdown, consensus).

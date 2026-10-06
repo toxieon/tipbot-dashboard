@@ -14,15 +14,16 @@
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
-<script src="./assets/req-pool.js?v=0.43.5"></script>
+<script src="./assets/req-pool.js?v=0.43.6"></script>
 <script src="./assets/light-data.js"></script>
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
-<script src="./assets/scheduled-tips.js?v=0.43.5"></script>
-<script src="./assets/upcoming-split.js?v=0.43.5"></script>
+<script src="./assets/scheduled-tips.js?v=0.43.6"></script>
+<script src="./assets/upcoming-split.js?v=0.43.6"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.43.5"></script>
+<script src="./assets/tb-motion.js?v=0.43.6"></script>
+<script src="./assets/form-badges.js?v=0.43.6"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -766,6 +767,24 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .dc-card .dc-av, .dc-spotlight .dc-av{overflow:hidden}
 img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .dc-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+/* Form badges (0.43.6). Empty render is no node, so a missing form does not shift layout. */
+.tb-form{display:inline-flex;align-items:center;gap:5px;max-width:100%;min-width:0;flex-wrap:wrap;vertical-align:middle;line-height:1}
+.tb-form-dots{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;max-width:100%}
+.tb-form-dot{width:7px;height:7px;border-radius:50%;flex:none;display:block}
+.tb-form-hot{display:inline-flex;align-items:center;font-size:var(--t-cap);font-weight:700;line-height:1.2;padding:1px 6px;border-radius:999px;background:rgba(224,160,74,.18);color:var(--warn-ink);white-space:nowrap}
+.tb-form-streak{font-size:var(--t-cap);font-weight:650;line-height:1.2;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tb-form-title{min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.dhead>.tb-form-title{flex:1 1 auto}
+.dc-card .tb-form,.dc-spotlight .tb-form,.frow .tb-form{display:flex;margin-top:6px}
+.tb-form-list{display:flex;flex-direction:column;gap:8px;min-width:0}
+.tb-form-row{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+.tb-form-row>.tb-form{flex:none;margin-top:0}
+.tb-form-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-sub);font-weight:650}
+@media(max-width:390px){
+  .tb-form{gap:4px}
+  .tb-form-dots{gap:2px}
+  .tb-form-dot{width:6px;height:6px}
+}
 .dc-pill{font-size:var(--t-cap);font-weight:700;padding:2px 8px;border-radius:999px}
 .dc-pill--w{background:rgba(46,175,98,.16);color:var(--win-ink)}
 .dc-pill--l{background:rgba(229,89,95,.16);color:var(--loss-ink)}
@@ -1003,7 +1022,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.5</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.6</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1385,7 +1404,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.43.5";
+  TD.version="0.43.6";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -4554,10 +4573,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const fgrades=tipGradeMapForGuild(gid);
     const feed=(d.feed&&d.feed.length)?d.feed.map(t=>followerFeedRow(t,{tipGrade:t&&t.tip_id!=null?fgrades[String(t.tip_id)]:null})).join(""):
       '<div class="empty">No tracked bets yet. In Discord, react to a tip with the follow emoji and it\'ll appear here.</div>';
+    const profForm=(window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(d.form):"";
+    const profTitle=profForm?'<div class="tb-form-title"><h1 style="margin:0">'+esc(nm)+'</h1>'+profForm+'</div>':'<h1 style="margin:0">'+esc(nm)+'</h1>';
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
       +(d.trial_mode?'<div class="trial-banner" role="status">Tracking is off during this server\'s trial. Reactions aren\'t recorded yet; existing tracked bets still settle.</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
-      +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
+      +'<div class="dhead">'+profTitle+'<span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' · your results</span></div>'
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
       +'<div class="panel" data-sec="follower-tips" data-sec-sum="'+((d.feed||[]).length)+'"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
@@ -4913,12 +4934,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const net=Number(t.units_net||0);
       const col=net>=0?"var(--win)":"var(--loss)";
       const name=t.display_name||t.guild_id;
-      const formArr=Array.isArray(t.form)?t.form:(Array.isArray(t.recent)?t.recent:null);
-      const form=formArr&&formArr.length?'<div class="dc-pills" style="gap:4px">'+formArr.slice(0,8).map(x=>{
-        const s=String(x.result||x||"").toLowerCase();
-        const win=/^w|win/.test(s); const loss=/^l|loss/.test(s);
-        return '<span style="width:8px;height:8px;border-radius:50%;display:inline-block;background:'+(win?"var(--win)":loss?"var(--loss)":"var(--push)")+'"></span>';
-      }).join("")+'</div>':'';
+      const form=(window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(t.form):"";
       return '<div class="dc-card">'
         +'<div class="dc-top">'+dcGuildAvatar(t,name,40)
         +'<div style="min-width:0;flex:1"><div class="dc-name">'+esc(name)+'</div>'
@@ -4947,13 +4963,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         const topNet=Number(featured.units_net||0);
         const topCol=topNet>=0?"var(--win)":"var(--loss)";
         const topName=featured.display_name||featured.guild_id;
+        const featForm=(window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(featured.form):"";
         spot.innerHTML='<div class="dc-spotlight" style="flex-direction:column;align-items:stretch">'
           +'<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'
           +dcGuildAvatar(featured,topName,56)
           +'<div style="min-width:0;flex:1"><div style="font-size:var(--t-cap);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Featured</div>'
           +'<div style="font-size:var(--t-h3);font-weight:800">'+esc(topName)+'</div>'
           +'<div class="dc-pills" style="margin-top:6px"><span class="dc-pill dc-pill--w">'+(featured.wins||0)+'W</span><span class="dc-pill dc-pill--l">'+(featured.losses||0)+'L</span>'
-          +'<span style="font-size:var(--t-foot);color:var(--muted);align-self:center">'+(featured.settled||0)+' settled</span></div></div>'
+          +'<span style="font-size:var(--t-foot);color:var(--muted);align-self:center">'+(featured.settled||0)+' settled</span></div>'
+          +featForm+'</div>'
           +'<div class="dc-net" style="color:'+topCol+'">'+(topNet>0?"+":"")+topNet+'u</div>'
           +'<button type="button" class="btn sm dc-open" data-g="'+esc(featured.guild_id)+'" data-n="'+esc(topName)+'">View</button></div>'
           +dcMiniSpark(featured,true)+'</div>';
@@ -5135,10 +5153,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function followerRowHtml(f,i,isOwnerMap){
     const prof=f.profit_units||0;
     const uid=esc(String(f.user_id||""));
+    const rowForm=(window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(f.form):"";
     return '<div class="panel frow" data-uid="'+uid+'" style="padding:14px 16px">'
       +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
         +(isOwnerMap?'<button type="button" class="fmap" data-uid="'+uid+'" title="TipBot server map" style="padding:0;border:0;background:transparent;cursor:pointer;border-radius:50%;line-height:0"><img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover;pointer-events:none" onerror="this.style.visibility=\'hidden\'"></button>':'<img src="'+esc(f.avatar||"")+'" alt="" style="width:44px;height:44px;border-radius:50%;background:var(--card2);object-fit:cover" onerror="this.style.visibility=\'hidden\'">')
-        +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:var(--t-h3)">'+esc(f.name||f.user_id)+'</div><div style="color:var(--faint);font-size:var(--t-foot)">'+f.follows+' bet'+(f.follows===1?"":"s")+' followed'+(f.unit_size?(" · $"+f.unit_size+"/unit"):"")+'</div></div>'
+        +'<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:var(--t-h3)">'+esc(f.name||f.user_id)+'</div>'+rowForm+'<div style="color:var(--faint);font-size:var(--t-foot)">'+f.follows+' bet'+(f.follows===1?"":"s")+' followed'+(f.unit_size?(" · $"+f.unit_size+"/unit"):"")+'</div></div>'
         +'<div style="display:flex;gap:16px;flex-wrap:wrap;text-align:center">'
           +'<div><div class="'+(prof>=0?"pos":"neg")+'" style="font-weight:800;font-size:var(--t-h3)">'+u(prof)+'</div><div style="color:var(--faint);font-size:var(--t-cap)">PROFIT</div></div>'
           +'<div><div style="font-weight:800;font-size:var(--t-h3)"><span class="pos">'+f.won+'</span>–<span class="neg">'+f.lost+'</span></div><div style="color:var(--faint);font-size:var(--t-cap)">W – L</div></div>'
@@ -6332,9 +6351,35 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function pasteSheetTemplate(){ return TD.call("admin", "pasteSheetTemplate", this, arguments); }
 
 
+  let TIPSTER_FORM_GEN=0;
+  async function loadTipsterForm(gid){
+    const gen=++TIPSTER_FORM_GEN;
+    try{
+      const r=await api("/api/tipster-form?guild_id="+encodeURIComponent(gid));
+      if(gen!==TIPSTER_FORM_GEN) return;
+      const slot=$("tipster-form-slot");
+      if(!slot) return;
+      if(!r||!r.ok){ slot.innerHTML=""; return; }
+      let j=null;
+      try{ j=await r.json(); }catch(e2){ slot.innerHTML=""; return; }
+      if(gen!==TIPSTER_FORM_GEN) return;
+      const live=$("tipster-form-slot");
+      if(!live) return;
+      const listHtml=(window.FormBadges&&typeof FormBadges.renderList==="function")?FormBadges.renderList((j&&j.tipsters)||[]):"";
+      live.innerHTML=listHtml?'<div class="panel"><h3>Form</h3>'+listHtml+'</div>':"";
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      if(gen!==TIPSTER_FORM_GEN) return;
+      const slot=$("tipster-form-slot");
+      if(slot) slot.innerHTML="";
+    }
+  }
   function renderDetail(d){
     clearDetailTimers();
     const s=d.settings,st=d.stats,tips=d.tips,total=Math.max(st.won+st.lost+st.push,1);
+    const formOn=d.form!=null&&typeof d.form==="object"&&!Array.isArray(d.form);
+    const guildBadge=(formOn&&window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(d.form):"";
+    const serverTitle=guildBadge?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
     const isAdmin=STATE.role==="owner"&&!STATE.viewAs;      // platform owner (you), not a preview
     const showBack=visibleServers().length>1;               // a lone-server tipster has nowhere to go back to
     const months=d.months||[],curMonth=d.month||"";
@@ -6436,10 +6481,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button></div>'
       +'<div id="settings-body"></div></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead"><h1>'+esc(s.display_name||"Unnamed server")+'</h1><div class="dhead-actions"><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions"><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' stats</span></div>'
       +statsBlock
+      +(formOn?'<div id="tipster-form-slot"></div>':'')
       +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q3 / FT) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Queued tips that haven\'t posted yet. Cancel, adjust the odds or edit before they post.</div><div id="scheduled-box"><div class="empty">Loading…</div></div></div>'
@@ -6658,6 +6704,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     loadUpcoming(s.guild_id,tips.queued);
     loadLiveTipsPanel(s.guild_id);
     mountScheduled(s.guild_id);
+    if(formOn&&s.guild_id!=null) loadTipsterForm(s.guild_id);
   }
   // 0.41.1: Scheduled Tips (assets/scheduled-tips.js). One live instance; it stops
   // itself when the server page is re-rendered or left.
