@@ -174,10 +174,10 @@
         '<div class="hero-actions"><button type="button" class="btn btn-primary" id="follow">' + ICONS.chat + "Follow in Discord</button>" +
         '<button type="button" class="btn btn-secondary icon-btn" id="share" aria-label="Share this record">' + ICONS.share + "</button></div></section>" +
       '<section class="stats" aria-label="Record">' +
-        '<div class="stat"><span class="k">Units profit</span><span class="v pos">' + TipsterStats.formatUnits(stats.units, 1) + '</span><span class="s">' + TipsterStats.formatUnits(stats.staked, 1).replace("+", "") + " staked</span></div>" +
+        '<div class="stat"><span class="k"><span class="k-long">Units profit</span><span class="k-short">Units</span></span><span class="v pos">' + TipsterStats.formatUnits(stats.units, 1) + '</span><span class="s">' + TipsterStats.formatUnits(stats.staked, 1).replace(/^\+/, "") + " staked</span></div>" +
         '<div class="stat"><span class="k">ROI</span><span class="v pos">' + esc(roi) + '</span><span class="s">Profit \u00f7 units staked</span></div>' +
-        '<div class="stat"><span class="k">Strike rate</span><span class="v">' + esc(sr) + '</span><span class="s">' + esc(record) + "</span></div>" +
-        '<div class="stat"><span class="k">Total tips</span><span class="v">' + stats.settledCount + '</span><span class="s">' + esc(avg) + "</span></div>" +
+        '<div class="stat"><span class="k"><span class="k-long">Strike rate</span><span class="k-short">Strike</span></span><span class="v">' + esc(sr) + '</span><span class="s">' + esc(record) + "</span></div>" +
+        '<div class="stat"><span class="k"><span class="k-long">Total tips</span><span class="k-short">Tips</span></span><span class="v">' + stats.settledCount + '</span><span class="s">' + esc(avg) + "</span></div>" +
         '<div class="stat form"><div class="form-top"><span class="k">Last 10 \u00b7 ' + esc(formScore) + "</span>" + streakHtml(stats.streak) + "</div>" +
         dots(stats.last10) + "</div></section>" +
       '<div class="record-main">' +
