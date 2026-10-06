@@ -158,7 +158,11 @@ function appContext(apiBodies) {
     history: {replaceState() {}, pushState() {}}, navigator: {userAgent: "node", clipboard: {writeText: async () => {}}, onLine: true},
     matchMedia: () => ({matches: false, addEventListener() {}, addListener() {}}), requestAnimationFrame: (f) => setTimeout(f, 0),
     cancelAnimationFrame() {}, getComputedStyle: () => ({getPropertyValue: () => ""}), scrollTo() {}, addEventListener() {},
-    removeEventListener() {}, setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, queueMicrotask,
+    removeEventListener() {},
+    // Polls use setTimeout for tens of seconds. Keep the short ones (script onload,
+    // this test's own waits) and drop the rest so a server page doesn't hold the run open.
+    setTimeout: (fn, ms, ...args) => (ms > 500 ? 0 : setTimeout(fn, ms, ...args)),
+    clearTimeout, setInterval: () => 0, clearInterval() {}, queueMicrotask,
     IntersectionObserver: class { observe() {} disconnect() {} unobserve() {} },
     ResizeObserver: class { observe() {} disconnect() {} unobserve() {} },
     MutationObserver: class { observe() {} disconnect() {} },
@@ -184,7 +188,7 @@ function appContext(apiBodies) {
     return s;
   };
   vm.createContext(ctx);
-  for (const src of [...HTML.matchAll(/<script src="\.\/(assets\/[\w-]+\.js)"><\/script>/g)].map((m) => m[1])) {
+  for (const src of [...HTML.matchAll(/<script src="\.\/(assets\/[\w-]+\.js)(?:\?[^"]*)?"><\/script>/g)].map((m) => m[1])) {
     vm.runInContext(read(src), ctx, {filename: src});
   }
   inlineScripts(HTML).forEach((s, i) => vm.runInContext(s, ctx, {filename: "index.html#script" + (i + 1)}));

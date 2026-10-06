@@ -128,7 +128,8 @@ test("bad input never calls TipBot; 401 goes to login", async () => {
 
 test("server page loads the Scheduled Tips section", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  assert.match(html, /<script src="\.\/assets\/scheduled-tips\.js"><\/script>/);
+  const version = fs.readFileSync(path.join(__dirname, "..", "VERSION"), "utf8").trim();
+  assert.match(html, new RegExp("<script src=\"\\./assets/scheduled-tips\\.js\\?v=" + version.replace(/\./g, "\\.") + "\"></script>"));
   assert.match(html, /id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips<\/h3>/);
   assert.match(html, /TBScheduled\.mount\(box,\{api:api,gid:String\(gid\)/);
 });

@@ -98,6 +98,9 @@
           if (busyTries < BUSY_RETRIES) {
             busyTries += 1;
             var wait = Math.min(10, Math.max(2, Number(r.retry_after) || 4)) * 1000;
+            // 0–1 s of jitter so this retry doesn't land on the same second as the other panels.
+            if (typeof ctx.jitter === "function") wait += Number(ctx.jitter()) || 0;
+            else if (root.ReqPool && typeof root.ReqPool.jitterMs === "function") wait += root.ReqPool.jitterMs();
             later(function () { return alive() ? load() : null; }, wait);
           } else {
             S.err = "TipBot is busy. Scheduled tips will refresh on the next check.";
@@ -191,9 +194,38 @@
             state: function () { return S; }};
   }
 
-  /** DOM host: paints into box, binds buttons, refreshes every 30 s while the box is on the page. */
+  /** DOM host: paints into box, binds buttons, refreshes every 30 s while the box is on the page.
+   *  The timer is on the scheduled-tips grid (offset 0). Live tips use a 15 s offset
+   *  so the two polls don't fire in the same second. A hidden tab pauses the timer. */
   function mount(box, ctx) {
     var timer = null;
+    function hidden() { return !!(root.document && root.document.hidden); }
+    function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
+    function pollWait() {
+      var spec = (root.ReqPool && root.ReqPool.POLLS && root.ReqPool.POLLS.scheduled) || {period: POLL_MS, offset: 0};
+      if (root.ReqPool && root.ReqPool.pollDelay) return root.ReqPool.pollDelay(Date.now(), spec.period, spec.offset);
+      return spec.period + (spec.offset || 0);
+    }
+    function arm() {
+      clearTimer();
+      if (box.isConnected === false || hidden()) return;
+      timer = setTimeout(function () {
+        timer = null;
+        if (box.isConnected === false || hidden()) return;
+        var S = ui.state();
+        if (!S.busy && !Object.keys(S.open).length) ui.load();
+        arm();
+      }, pollWait());
+    }
+    function onVis() {
+      if (box.isConnected === false) {
+        clearTimer();
+        if (root.document && root.document.removeEventListener) root.document.removeEventListener("visibilitychange", onVis);
+        return;
+      }
+      if (hidden()) clearTimer();
+      else if (!timer) arm();
+    }
     var ui = create(Object.assign({alive: function () { return box.isConnected !== false; }}, ctx, {paint: paint}));
     function formOf(tipId) {
       var el = box.querySelector('.sched-tip[data-tip="' + (root.CSS && CSS.escape ? CSS.escape(tipId) : tipId) + '"]');
@@ -207,7 +239,7 @@
       return f;
     }
     function paint() {
-      if (!box.isConnected && timer) { clearInterval(timer); timer = null; return; }
+      if (!box.isConnected && timer) { clearTimer(); return; }
       box.innerHTML = ui.view();
       var on = function (cls, fn) { box.querySelectorAll(cls).forEach(function (b) { b.onclick = function () { fn(b.dataset.tip); }; }); };
       on(".sched-odds-btn", function (id) { ui.openForm(id, "odds"); });
@@ -222,12 +254,13 @@
     }
     paint();
     ui.load();
-    timer = setInterval(function () {
-      if (!box.isConnected) { clearInterval(timer); timer = null; return; }
-      var S = ui.state();
-      if (!S.busy && !Object.keys(S.open).length && !(root.document && document.hidden)) ui.load();
-    }, POLL_MS);
-    return {reload: ui.load, ui: ui, stop: function () { if (timer) clearInterval(timer); timer = null; }};
+    arm();
+    if (root.document && root.document.addEventListener) root.document.addEventListener("visibilitychange", onVis);
+    return {reload: ui.load, ui: ui, pause: function () { clearTimer(); }, resume: arm,
+            stop: function () {
+              clearTimer();
+              if (root.document && root.document.removeEventListener) root.document.removeEventListener("visibilitychange", onVis);
+            }};
   }
 
   var API = {create: create, mount: mount, editBody: editBody, rel: rel, UNAVAILABLE: UNAVAILABLE, BUSY_TEXT: BUSY_TEXT};

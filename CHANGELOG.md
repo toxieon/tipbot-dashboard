@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.4 · 2026-10-06 · `db-queue` · Server page stops crowding the bot, and Upcoming counts only upcoming tips
+
+- **One database at a time.** Opening a server fired 6–8 requests together, and the 30 s scheduled-tips poll landed on the same second as the 90 s live-tips poll. TipBot answered 503 `db_busy`, and after three tries the page said "Couldn't reach the bot". Database calls now wait in a short queue (about 2 at a time). Fixtures, upcoming, master config and odds skip that queue. A 503 waits `retry_after` plus a random 0–1 s. The two polls are offset so they don't fire together, and they pause while the tab is hidden. "Couldn't reach the bot" shows only after the retries are used up.
+- **Upcoming Bets count.** The header counted every pending tip ("1 queued") even after that tip had moved to Finished games, so the body said "No upcoming bets". The header now counts upcoming tips only ("0 upcoming"). Finished games has its own badge ("1 to settle"). If nothing is upcoming but a finished tip is waiting to be graded, the empty line says so. A start stored as a date only (such as NBA-2026-037, `2026-10-03`) is the end of that local day.
+- Tests: `tests/db_queue.test.js`, `tests/upcoming_split.test.js`.
+
 ## 0.43.3 · 2026-10-06 · `ft-grade-load` · Full-time auto-grade switches stay unknown when the read fails
 
 - **Settings → General:** a failed, 503 `db_busy`, or missing-flag read of the full-time switches is retried (honouring `retry_after`). If it still doesn't load, that switch stays disabled with "Couldn't load, retry" and is never shown as off, so a reload can't be saved as off by mistake. A toggle does nothing until that sport's real on or off state has loaded. AFL still comes from `/api/auto-push`; NFL and NBA/WNBA still come from `/api/feature-flags`. A late auto-push response can't paint the other two off.
