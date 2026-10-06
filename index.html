@@ -14,16 +14,18 @@
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
-<script src="./assets/req-pool.js?v=0.43.6"></script>
+<script src="./assets/req-pool.js?v=0.44.1"></script>
 <script src="./assets/light-data.js"></script>
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
-<script src="./assets/scheduled-tips.js?v=0.43.6"></script>
-<script src="./assets/upcoming-split.js?v=0.43.6"></script>
+<script src="./assets/scheduled-tips.js?v=0.44.1"></script>
+<script src="./assets/upcoming-split.js?v=0.44.1"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.43.6"></script>
-<script src="./assets/form-badges.js?v=0.43.6"></script>
+<script src="./assets/tb-motion.js?v=0.44.1"></script>
+<script src="./assets/form-badges.js?v=0.44.1"></script>
+<script src="./assets/svg-charts.js?v=0.44.1"></script>
+<script src="./assets/server-view.js?v=0.44.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -138,7 +140,7 @@
   *{box-sizing:border-box} html,body{margin:0}
   body{background:radial-gradient(1200px 600px at 80% -10%, #182142 0%, var(--bg) 55%) fixed, var(--bg);
        color:var(--txt);font:var(--t-body)/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
-  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px calc(90px + env(safe-area-inset-bottom,0px));min-width:0;box-sizing:border-box}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px max(20px, env(safe-area-inset-right, 0px)) calc(90px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left, 0px));min-width:0;box-sizing:border-box}
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:var(--t-h3)}
   .logo{width:30px;height:30px;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:16px}
@@ -211,7 +213,7 @@
   .dhead h1{margin:0;font-size:var(--t-h1);min-width:0;overflow-wrap:anywhere}
   .dhead-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0;max-width:100%}
   .dhead-actions .ghost,.dhead-actions .btn{
-    box-sizing:border-box;min-height:38px;display:inline-flex;align-items:center;justify-content:center;
+    box-sizing:border-box;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
     padding:8px 12px;font-size:var(--t-sub);line-height:1.2;white-space:nowrap;
   }
   .dhead-actions .btn.sm{padding:8px 12px;font-size:var(--t-sub)}
@@ -219,7 +221,7 @@
   .live-open-btn{color:var(--txt)!important;border-color:color-mix(in srgb,var(--loss) 55%,var(--line))!important}
   .live-open-link{color:var(--accent);font-weight:700;white-space:nowrap;text-decoration:none}
   @media(max-width:640px){
-    .wrap{padding:16px 14px calc(90px + env(safe-area-inset-bottom,0px))}
+    .wrap{padding:16px max(14px, env(safe-area-inset-right, 0px)) calc(90px + env(safe-area-inset-bottom,0px)) max(14px, env(safe-area-inset-left, 0px))}
     .dhead{flex-direction:column;align-items:stretch}
     .dhead h1{font-size:var(--t-h2)}
     .dhead-actions{width:100%}
@@ -785,6 +787,68 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   .tb-form-dots{gap:2px}
   .tb-form-dot{width:6px;height:6px}
 }
+/* Server page record (0.44.1). Theme tokens only; charts are inline SVG. */
+.sv-period{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap;min-width:0}
+.sv-period-k,.sv-period-s{color:var(--muted);font-size:var(--t-sub)}
+.sv-period-s{color:var(--faint);font-size:var(--t-foot)}
+#monthsel{min-height:44px;max-width:100%}
+#detail .calnav{min-height:44px;min-width:44px}
+.sv-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;min-width:0}
+.sv-stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-height:92px}
+.sv-stat .k{font-size:var(--t-foot);color:var(--muted);font-weight:600}
+.sv-stat .v{font-size:var(--t-h2);font-weight:750;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.sv-stat .s{font-size:var(--t-cap);color:var(--faint);line-height:1.35}
+.sv-stat.sv-form{grid-column:1 / -1;min-height:0}
+.sv-form-body{min-width:0;overflow:hidden}
+.sv-form .tb-form-dot{width:10px;height:10px}
+.sv-jumps{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.sv-jump{min-height:44px;display:inline-flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;border-radius:var(--r-md);background:var(--card);border:1px solid var(--line);color:var(--txt);font:inherit;cursor:pointer;flex:1 1 140px}
+.sv-jump-k{color:var(--muted);font-size:var(--t-sub);font-weight:650}
+.sv-jump-v{font-size:var(--t-body);font-variant-numeric:tabular-nums}
+.sv-charts,.sv-split{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0 0 16px;min-width:0}
+.sv-panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;min-width:0;max-width:100%}
+.sv-panel h2{margin:0;font-size:var(--t-callout);font-weight:650;letter-spacing:-.01em;color:var(--txt);text-transform:none}
+.sv-ph{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;min-width:0}
+.sv-ph-s{color:var(--muted);font-size:var(--t-foot);font-weight:600;white-space:nowrap}
+.sv-big{font-size:var(--t-sub);color:var(--muted);margin:0 0 8px}
+.sv-big b{font-size:var(--t-h2);font-weight:750;letter-spacing:-.02em;margin-right:6px}
+.sv-chart{width:100%;min-width:0;overflow:hidden}
+.sv-chart svg,.sv-svg{display:block;width:100%;height:auto;max-width:100%}
+.sv-svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.sv-empty{color:var(--faint);font-size:var(--t-sub);padding:12px 0 4px}
+.sv-donut-row{display:flex;align-items:center;gap:14px;min-width:0}
+.sv-donut{width:96px;height:96px;flex:none}
+.sv-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.sv-legend div{display:flex;align-items:center;gap:8px;font-size:var(--t-sub);min-width:0}
+.sv-legend i{width:8px;height:8px;border-radius:3px;flex:none;display:block}
+.sv-legend .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sv-legend b{margin-left:auto;font-weight:650;font-variant-numeric:tabular-nums}
+.sv-legend em{font-style:normal;color:var(--muted);width:38px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.sv-ranks{min-width:0}
+.sv-rank{display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid var(--line);min-width:0}
+.sv-rank:first-child{border-top:0}
+.sv-n{width:14px;flex:none;color:var(--faint);font-size:var(--t-foot);font-weight:650}
+.sv-av{width:32px;height:32px;border-radius:99px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--txt);font-size:var(--t-cap);font-weight:750}
+.sv-who{min-width:0;flex:1}
+.sv-nm{font-size:var(--t-sub);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-sb{font-size:var(--t-cap);color:var(--muted)}
+.sv-pl{margin-left:auto;flex:none;font-size:var(--t-sub);font-weight:700;font-variant-numeric:tabular-nums}
+#recent-box .sv-tip{background:transparent;border:0;border-radius:0;box-shadow:none;padding:10px 0;border-top:1px solid var(--line)}
+#recent-box .sv-tip:first-child{border-top:0}
+.sv-tip-row{display:flex;align-items:center;gap:10px;min-width:0}
+.sv-tip-copy{flex:1;min-width:0}
+.sv-t1{font-size:var(--t-callout);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-t2{font-size:var(--t-foot);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-muted{color:var(--muted);font-weight:500}
+.sv-tip-r{flex:none;display:flex;align-items:center;gap:8px}
+#recent-box .sv-tip .gradebtn,#recent-box .sv-tip .delbet{min-height:44px;min-width:44px}
+@media(min-width:900px){
+  .sv-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .sv-stats:has(.sv-form){grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.45fr)}
+  .sv-stat.sv-form{grid-column:auto}
+  .sv-charts{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+  .sv-split{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
 .dc-pill{font-size:var(--t-cap);font-weight:700;padding:2px 8px;border-radius:999px}
 .dc-pill--w{background:rgba(46,175,98,.16);color:var(--win-ink)}
 .dc-pill--l{background:rgba(229,89,95,.16);color:var(--loss-ink)}
@@ -1022,7 +1086,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.6</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.44.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1404,7 +1468,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.43.6";
+  TD.version="0.44.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -2574,17 +2638,37 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const finishedCtx=!!opts.finished;
     const outcome=evalTipOutcome(legsSrc, t, t._liveLegs, {finished:finishedCtx||isSettled});
     const ocls=betcardOutcomeClass(outcome);
-    return '<div class="betcard tip betrow'+(ocls?(" "+ocls):"")+'" data-tip="'+tid+'" data-settled="'+(isSettled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'">'
+    const tags='<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>';
+    const body='<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, isSettled, godRegrade)+'</div>';
+    const cls='betcard tip betrow'+(ocls?(" "+ocls):"")+(opts.sv?" sv-tip":"");
+    const attrs=' data-tip="'+tid+'" data-settled="'+(isSettled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'"';
+    if(opts.sv){
+      const sel=t.game_name||t.bet_type||("Tip "+(t.display_id||""));
+      const bits=[];
+      if(t.odds) bits.push("@ "+t.odds);
+      if(t.units!=null && t.units!=="") bits.push(String(t.units)+"u");
+      const sub=[];
+      if(t.bet_type && t.game_name) sub.push(String(t.bet_type));
+      const bk=t.bookmaker||t.bookie||"";
+      if(bk && typeof bk!=="object") sub.push(String(bk).trim());
+      else if(bk && typeof bk==="object" && (bk.name||bk.label)) sub.push(String(bk.name||bk.label));
+      if(t.display_id) sub.push(String(t.display_id));
+      return '<div class="'+cls+'"'+attrs+'>'
+        +'<div class="sv-tip-row"><div class="sv-tip-copy"><div class="sv-t1">'+esc(sel)+(bits.length?' <span class="sv-muted">'+esc(bits.join(" · "))+'</span>':'')+'</div>'
+        +(sub.length?'<div class="sv-t2">'+esc(sub.filter(Boolean).join(" · "))+'</div>':'')
+        +'</div><div class="sv-tip-r betcard-meta">'+right+del+'</div></div>'
+        +tags+body+'</div>';
+    }
+    return '<div class="'+cls+'"'+attrs+'>'
       +title
       +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+del+'</div></div>'
       +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
       +'<div class="betcard-type">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units!=null?(" · "+t.units+"u"):"")+'</div>'
-      +'<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>'
-      +'<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, isSettled, godRegrade)+'</div>'
-      +'</div>';
+      +tags+body+'</div>';
   }
-  // Back-compat alias used by Recent Results + god-mode repaint.
+  // Back-compat alias used by day sheets and other lists. Recent tips use recentTipRow.
   function tipRow(t,settled){ return tipCard(t,settled,{hideGame:false}); }
+  function recentTipRow(t){ return tipCard(t,true,{sv:true}); }
   function wireTipRows(box,gid){
     if(!box)return;
     box.querySelectorAll(".delbet").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); deleteBet(gid,b.dataset.tip,b.dataset.name,b); });
@@ -3675,6 +3759,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         if(key==="ROI"){ tv.classList.toggle("pos", Number(st.roi||0)>=0); tv.classList.toggle("neg", Number(st.roi||0)<0); }
       }
     });
+    if(window.ServerView && typeof ServerView.applyCards==="function"){
+      try{ ServerView.applyCards($("detail"), d, {stale:qStale}); }catch(eSv){}
+    }
     const sum=$("stats-sum");
     if(sum){
       const pCls=Number(st.profit_units||0)>=0?"pos":"neg";
@@ -3686,7 +3773,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function appendSettledToRecent(tip, gid){
     const rb=$("recent-box"); if(!rb) return;
     const empty=rb.querySelector(".empty"); if(empty) empty.remove();
-    const html=tipRow(tip, true);
+    const html=recentTipRow(tip);
     rb.insertAdjacentHTML("afterbegin", html);
     const card=rb.querySelector('.betrow[data-tip="'+esc(tip.tip_id)+'"]');
     if(card){ wireTipRows(card.parentNode===rb?rb:card, gid); }
@@ -6376,30 +6463,37 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   function renderDetail(d){
     clearDetailTimers();
-    const s=d.settings,st=d.stats,tips=d.tips,total=Math.max(st.won+st.lost+st.push,1);
+    const s=d.settings,st=d.stats,tips=d.tips;
     const formOn=d.form!=null&&typeof d.form==="object"&&!Array.isArray(d.form);
     const guildBadge=(formOn&&window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(d.form):"";
-    const serverTitle=guildBadge?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
     const isAdmin=STATE.role==="owner"&&!STATE.viewAs;      // platform owner (you), not a preview
     const showBack=visibleServers().length>1;               // a lone-server tipster has nowhere to go back to
     const months=d.months||[],curMonth=d.month||"";
     const period=curMonth?fmtMonth(curMonth):"Lifetime";
-    const wl='<span style="width:'+(st.won/total*100)+'%;background:var(--win)"></span><span style="width:'+(st.lost/total*100)+'%;background:var(--loss)"></span><span style="width:'+(st.push/total*100)+'%;background:var(--push)"></span>';
     const qStale=DETAIL_STALE.has(d);
+    let wonN=st.won, lostN=st.lost, pushN=st.push, settledN=st.settled, stakedN=st.staked_units;
+    if(window.ServerView&&typeof ServerView.cardModel==="function"){
+      const m=ServerView.cardModel(d,{stale:qStale});
+      if(m&&m.source==="tips"){ wonN=m.won; lostN=m.lost; pushN=m.push; settledN=m.settled; stakedN=m.staked; }
+    }
+    const total=Math.max(Number(wonN)+Number(lostN)+Number(pushN),1);
+    const wl='<span style="width:'+(wonN/total*100)+'%;background:var(--win)"></span><span style="width:'+(lostN/total*100)+'%;background:var(--loss)"></span><span style="width:'+(pushN/total*100)+'%;background:var(--push)"></span>';
+    const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(d,{formHtml:guildBadge,period:period,stale:qStale}):null;
+    const serverTitle=(!sv&&guildBadge)?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
     const qTxt=qStale?'<span class="st-updating">Updating…</span>':st.queued;
     const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won,"pos",""],["Lost",st.lost,"neg",""],["Success Rate",st.strike_rate+"%","",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg",""],["ROI",st.roi+"%",st.roi>=0?"pos":"neg",""],["Followers",st.followers,"","followers"]];
     const tiles=tileDefs.map(t=>'<div class="tile'+(t[3]?" clk":"")+'"'+(t[3]?' data-act="'+t[3]+'"':'')+'><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+(t[3]?' <span style="color:var(--accent)">›</span>':'')+'</div></div>').join("");
     const pCls=st.profit_units>=0?"pos":"neg";
     const rCls=st.roi>=0?"pos":"neg";
-    const statsBlock='<div class="stats-wrap" id="stats-wrap">'
+    const statsBlock=sv?sv.stats:('<div class="stats-wrap" id="stats-wrap">'
       +'<button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true">'
       +'<div class="st-sum" id="stats-sum"><span>Profit <b class="'+pCls+'">'+esc(u(st.profit_units))+'</b></span>'
       +'<span>ROI <b class="'+rCls+'">'+esc(String(st.roi))+'%</b></span>'
       +'<span>Queued <b>'+(qStale?'<span class="st-updating">Updating…</span>':esc(String(st.queued)))+'</b></span></div>'
       +'<span class="st-caret">▾</span></button>'
-      +'<div class="tiles">'+tiles+'</div></div>';
+      +'<div class="tiles">'+tiles+'</div></div>');
     const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("")+trialControlsHTML(s);
-    const se=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>';
+    const se=tips.settled.length?tips.settled.map(t=>recentTipRow(t)).join(""):'<div class="empty">No settled tips yet.</div>';
     const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
     const dbgBtn=(kind,label,hint)=>'<button class="dbgbtn" data-k="'+kind+'" title="'+hint+'" style="border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:var(--r-sm);padding:8px 12px;cursor:pointer;font:inherit;font-size:var(--t-foot);font-weight:600">'+label+'</button>';
     const debugMenu='<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><div style="color:#b9a5ff;font-size:var(--t-foot);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px">🛠️ Debug menu</div>'
@@ -6483,18 +6577,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +'<div class="dhead">'+serverTitle+'<div class="dhead-actions"><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
-      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' stats</span></div>'
+      +'<div class="sv-period"><span class="sv-period-k">Showing</span>'+monthSel+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
+      +(sv?sv.charts:"")
+      +(sv?sv.splits:"")
       +(formOn?'<div id="tipster-form-slot"></div>':'')
       +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q3 / FT) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Queued tips that haven\'t posted yet. Cancel, adjust the odds or edit before they post.</div><div id="scheduled-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="upcoming-panel" data-sec="upcoming"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="empty">Loading…</div></div></div>'
-      +sparkline(d.profit_series||[])
-      +'<div class="panel" data-sec="wlp" data-sec-sum="'+st.won+'–'+st.lost+'–'+st.push+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.settled+' settled · '+st.staked_units+'u staked</span></div></div>'
+      +(sv?"":sparkline(d.profit_series||[]))
+      +'<div class="panel" data-sec="wlp" data-sec-sum="'+wonN+'–'+lostN+'–'+pushN+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+wonN+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+lostN+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+pushN+'</span><span class="lg" style="margin-left:auto">'+settledN+' settled · '+stakedN+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
       +settingsPanel
-      +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent Results</h3><div id="recent-box">'+se+'</div></div>';
+      +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent tips</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
@@ -6524,7 +6620,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const gh=$("godhint"); if(gh){ gh.textContent=on?"● ON — use grade controls on any tip to re-grade it, or ✕ to delete settled tips.":"Off — tips grade normally."; gh.style.color=on?"var(--warn,#e0a04a)":"var(--faint)"; }
       const rb2=$("godresyncbtn"); if(rb2){ rb2.disabled=!on; rb2.style.cursor=on?"pointer":"not-allowed"; rb2.style.color=on?"var(--warn,#e0a04a)":"#7a6a4a"; }
       // Re-paint settled cards so god grade/✕ shows without a full reload.
-      const rb=$("recent-box"); if(rb){ rb.innerHTML=tips.settled.length?tips.settled.map(t=>tipRow(t,true)).join(""):'<div class="empty">No settled tips yet.</div>'; wireTipRows(rb,s.guild_id); hydrateTipCards(rb,s.guild_id,tips.settled); }
+      const rb=$("recent-box"); if(rb){ rb.innerHTML=tips.settled.length?tips.settled.map(t=>recentTipRow(t)).join(""):'<div class="empty">No settled tips yet.</div>'; wireTipRows(rb,s.guild_id); hydrateTipCards(rb,s.guild_id,tips.settled); }
       // If Followers is open, re-paint expanded bet panes for God grade controls.
       try{
         if($("followers")&&!$("followers").hidden){

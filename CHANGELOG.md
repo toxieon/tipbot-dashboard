@@ -1,5 +1,13 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.44.1 · 2026-10-06 · `server-view` · Server page matches the stat cards, charts and tip list
+
+The server page (open a Discord server) now leads with the same kind of record Cinna mocked up: units, ROI, strike rate and the W–L record with pushes, form dots and the hot streak when the server sends form, a units-over-time line and a monthly P&L bar chart, then the recent tips in that tighter list. Charts are hand-drawn SVG and follow the day, night and ochre colours already in the app.
+
+Bets by bookie is a donut, and it only appears when tips actually carry a bookie. Per-tipster units in this server are added up from the tips already on the page (no new API). Tips marked as a historical import are left out of those sums when the list is complete enough to recompute; otherwise the cards stay on the figures `/api/server` already sent. Month picker, calendar, Upcoming and Finished, Scheduled Tips, settings, owner tools and the Form list are unchanged.
+
+- Tests: `tests/server_view.test.js`.
+
 ## 0.43.6 · 2026-10-06 · `form-badges` · Tipster form shows as dots and a streak
 
 Needs TipBot 0.52.1. A server only sends form when its form-badges flag is on. When that object is there, Discover cards (including the featured tipster), the server page, each follower row, and the follower profile show up to 10 small dots — win green, loss red, push or void grey, newest on the left — plus a hot pill (`🔥 3W`) or a quiet streak (`W3` / `L2`). If form is missing, those spots stay as they were. The server page also loads a short Form list of tipsters (hot first) through the same database queue as the other server calls.
