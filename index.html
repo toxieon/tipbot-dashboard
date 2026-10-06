@@ -21,7 +21,7 @@
 <script src="./assets/routing.js"></script>
 <script src="./assets/scheduled-tips.js"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.43.1"></script>
+<script src="./assets/tb-motion.js?v=0.43.2"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -1001,7 +1001,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.2</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1383,7 +1383,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.43.1";
+  TD.version="0.43.2";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -4220,27 +4220,122 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       toast("Couldn't reach the bot.","error");
     }finally{ if(btn)btn.disabled=false; }
   }
-  async function loadAutoPushState(gid, s){
-    const btn=$("autopush-toggle"); if(!btn)return;
-    let on=!!(s&&(s.auto_push_ft===true||s.auto_push_ft===1));
-    btn.classList.toggle("on", on);
+  /* Full-time auto-grade. AFL stays on /api/auto-push. NFL and NBA/WNBA are their own
+     flags (TipBot 0.47.1) and default off. Pure helpers are tested in tests/ft_autograde.test.js. */
+  /*__FT_GRADE__*/
+  const FT_GRADE_TOGGLES=[
+    {id:"autopush-toggle", key:"feat.auto_push_ft", label:"Auto-grade AFL at full time"},
+    {id:"autopush-nfl-toggle", key:"feat.auto_push_ft_nfl", label:"Auto-grade NFL at full time"},
+    {id:"autopush-nba-toggle", key:"feat.auto_push_ft_nba", label:"Auto-grade NBA/WNBA at full time"},
+  ];
+  const FT_GRADE_ENV_NOTE="NFL and NBA/WNBA also need the server-side env switch (ESPN_AUTO_PUSH_FT for NFL, ESPN_AUTO_PUSH_FT_NBA for NBA and WNBA). The toggle alone won't grade if that's off.";
+  function ftGradeLabel(key, apiLabel){
+    for(let i=0;i<FT_GRADE_TOGGLES.length;i++){
+      if(FT_GRADE_TOGGLES[i].key===key) return FT_GRADE_TOGGLES[i].label;
+    }
+    return apiLabel||key;
+  }
+  function ftGradeStateField(key){
+    if(key==="feat.auto_push_ft") return "auto_push_ft";
+    if(key==="feat.auto_push_ft_nfl") return "auto_push_ft_nfl";
+    if(key==="feat.auto_push_ft_nba") return "auto_push_ft_nba";
+    return null;
+  }
+  function ftGradeWrite(gid, key, want){
+    const on=!!want;
+    if(key==="feat.auto_push_ft"){
+      return {path:"/api/auto-push", body:{guild_id:gid, enabled:on, auto_push_ft:on}};
+    }
+    const flags={};
+    flags[key]=on;
+    return {path:"/api/feature-flags", body:{guild_id:gid, flags:flags}};
+  }
+  function ftGradeFromAutoPush(j){
+    if(!j) return null;
+    if(j.enabled!=null) return !!(j.enabled===true||j.enabled===1);
+    if(j.auto_push_ft!=null) return !!(j.auto_push_ft===true||j.auto_push_ft===1);
+    return null;
+  }
+  function ftGradeFromFlags(flags, key){
+    if(!flags||typeof flags!=="object") return null;
+    if(!Object.prototype.hasOwnProperty.call(flags, key)) return null;
+    return !!(flags[key]===true||flags[key]===1);
+  }
+  function ftGradeEnvState(data, key){
+    if(!data||typeof data!=="object") return null;
+    const name=key==="feat.auto_push_ft_nfl"?"ESPN_AUTO_PUSH_FT":(key==="feat.auto_push_ft_nba"?"ESPN_AUTO_PUSH_FT_NBA":null);
+    if(!name) return null;
+    const short=key==="feat.auto_push_ft_nfl"?"nfl":"nba";
+    const bags=[data.env, data.espn_env, data.gates];
+    for(let i=0;i<bags.length;i++){
+      const env=bags[i];
+      if(!env||typeof env!=="object") continue;
+      if(Object.prototype.hasOwnProperty.call(env, name)) return !!env[name];
+      if(Object.prototype.hasOwnProperty.call(env, short)) return !!env[short];
+      if(Object.prototype.hasOwnProperty.call(env, key)) return !!env[key];
+    }
+    const flat=key==="feat.auto_push_ft_nfl"?"espn_auto_push_ft":"espn_auto_push_ft_nba";
+    if(Object.prototype.hasOwnProperty.call(data, flat)) return !!data[flat];
+    return null;
+  }
+  function ftGradeEnvText(data){
+    const nfl=ftGradeEnvState(data, "feat.auto_push_ft_nfl");
+    const nba=ftGradeEnvState(data, "feat.auto_push_ft_nba");
+    if(nfl==null&&nba==null) return FT_GRADE_ENV_NOTE;
+    function bit(v){ return v==null?"unknown":(v?"on":"off"); }
+    return FT_GRADE_ENV_NOTE+" Server env: NFL "+bit(nfl)+", NBA/WNBA "+bit(nba)+".";
+  }
+  function ftGradeRowNote(data, key){
+    if(key!=="feat.auto_push_ft_nfl"&&key!=="feat.auto_push_ft_nba") return "";
+    const name=key==="feat.auto_push_ft_nfl"?"ESPN_AUTO_PUSH_FT":"ESPN_AUTO_PUSH_FT_NBA";
+    const st=ftGradeEnvState(data, key);
+    const gate=st==null?"":(" Server env is "+(st?"on":"off")+".");
+    return "Also needs "+name+" on the server."+gate+" The toggle alone won't grade if that's off.";
+  }
+  /*__FT_GRADE_END__*/
+  function ftGradeSwitchHtml(spec, on){
+    const onCls=on?" on":"";
+    const checked=on?"true":"false";
+    return '<div class="switch"><button type="button" class="toggle'+onCls+'" id="'+spec.id+'" role="switch" aria-checked="'+checked+'" aria-label="'+esc(spec.label)+'" data-ft-grade="1"></button><span>'+esc(spec.label)+'</span></div>';
+  }
+  function setFtSwitch(btn, on){
+    if(!btn) return;
+    btn.classList.toggle("on", !!on);
+    btn.setAttribute("aria-checked", on?"true":"false");
     btn.disabled=false;
+  }
+  async function loadAutoPushState(gid, s){
+    const afl=$("autopush-toggle"); if(!afl) return;
+    FT_GRADE_TOGGLES.forEach(function(spec){
+      const field=ftGradeStateField(spec.key);
+      setFtSwitch($(spec.id), !!(s&&field&&(s[field]===true||s[field]===1)));
+    });
     const msg=$("autopush-msg");
     try{
-      const r=await api("/api/auto-push?guild_id="+encodeURIComponent(gid));
-      if(r.status===404||r.status===501){
+      const ar=await api("/api/auto-push?guild_id="+encodeURIComponent(gid));
+      if(ar.status===404||ar.status===501){
         if(msg){ msg.textContent="API pending deploy"; msg.style.color="var(--faint)"; }
-        return;
+      }else if(ar.ok){
+        const j=await ar.json().catch(()=>({}));
+        const on=ftGradeFromAutoPush(j);
+        if(on!=null){ setFtSwitch(afl, on); if(s) s.auto_push_ft=on?1:0; }
       }
-      if(!r.ok){
-        if(msg){ msg.textContent=""; }
-        return;
+    }catch(e){
+      if(e&&e.unauth)return renderLogin("Session expired.");
+    }
+    try{
+      const fr=await api("/api/feature-flags?guild_id="+encodeURIComponent(gid));
+      if(fr.ok){
+        const d=await fr.json().catch(()=>({}));
+        const flags=d.flags||{};
+        ["feat.auto_push_ft_nfl","feat.auto_push_ft_nba"].forEach(function(key){
+          const on=ftGradeFromFlags(flags, key);
+          const field=ftGradeStateField(key);
+          const spec=FT_GRADE_TOGGLES.filter(function(t){ return t.key===key; })[0];
+          if(on!=null&&spec){ setFtSwitch($(spec.id), on); if(s&&field) s[field]=on?1:0; }
+        });
+        const env=$("autopush-env"); if(env) env.textContent=ftGradeEnvText(d);
       }
-      const j=await r.json().catch(()=>({}));
-      on=!!(j.enabled===true||j.enabled===1||j.auto_push_ft===true||j.auto_push_ft===1);
-      btn.classList.toggle("on", on);
-      if(s) s.auto_push_ft=on?1:0;
-      if(msg) msg.textContent="";
     }catch(e){
       if(e&&e.unauth)return renderLogin("Session expired.");
     }
@@ -5387,13 +5482,17 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<span style="font-size:var(--t-sub);color:var(--txt)">Listed</span></label>'
         +'<span id="portalopt-msg" style="font-size:var(--t-foot)"></span></div>';
     }
-    // Auto-push when game ends — grades + Discord posts at FT with no click.
+    // Full-time auto-grade — one switch per sport. AFL, NFL and NBA/WNBA are independent and default off.
     if(s.can_admin!==false){
-      const apOn=s.auto_push_ft===1||s.auto_push_ft===true;
-      body.innerHTML+='<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'
-        +'<div class="admin-row" style="flex:1;min-width:0"><div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">Auto-push when game ends</div>'
-        +'<div style="color:var(--faint);font-size:var(--t-foot);line-height:1.45">When ON, TipBot auto-grades pending tips at full time and posts settle results to Discord — no click needed. <b>Push all</b> on finished games still works as a manual override.</div></div>'
-        +'<button type="button" class="toggle'+(apOn?' on':'')+'" id="autopush-toggle" aria-pressed="'+(apOn?'true':'false')+'" title="Auto-push when game ends"></button>'
+      body.innerHTML+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'
+        +'<div class="admin-row" style="min-width:0"><div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">Auto-grade at full time</div>'
+        +'<div style="color:var(--faint);font-size:var(--t-foot);line-height:1.45">When ON, TipBot auto-grades that sport\'s pending tips at full time and posts settle results to Discord — no click needed. <b>Push all</b> on finished games still works as a manual override. AFL, NFL and NBA/WNBA are separate.</div></div>'
+        +'<div class="switches" id="ft-grade-switches" style="margin-top:10px">'+FT_GRADE_TOGGLES.map(function(spec){
+          const field=ftGradeStateField(spec.key);
+          const on=!!(field&&(s[field]===1||s[field]===true));
+          return ftGradeSwitchHtml(spec, on);
+        }).join("")+'</div>'
+        +'<div id="autopush-env" style="color:var(--faint);font-size:var(--t-foot);line-height:1.45;margin-top:8px">'+esc(FT_GRADE_ENV_NOTE)+'</div>'
         +'<span id="autopush-msg" style="font-size:var(--t-foot)"></span></div>';
     }
 
@@ -5442,37 +5541,51 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       finally{po.disabled=false;}
     };
 
-    const apBtn=$("autopush-toggle");
-    if(apBtn){
+    if($("autopush-toggle")){
       loadAutoPushState(gid, s);
-      apBtn.onclick=async()=>{
-        const want=!apBtn.classList.contains("on");
-        const m=$("autopush-msg");
-        apBtn.disabled=true; if(m)m.textContent="";
-        try{
-          const r=await api("/api/auto-push",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,enabled:want,auto_push_ft:want})});
-          if(r.status===404||r.status===501){
-            if(m){m.textContent="API pending deploy";m.style.color="var(--faint)";}
-            toast("Deploy needed — TipBot /api/auto-push isn't live yet.");
-            return;
-          }
-          const j=await r.json().catch(()=>({}));
-          if(r.ok&&j.ok){
-            const on=j.enabled!=null?!!(j.enabled===true||j.enabled===1)
-              :(j.auto_push_ft!=null?!!(j.auto_push_ft===true||j.auto_push_ft===1):want);
-            apBtn.classList.toggle("on", on);
-            apBtn.setAttribute("aria-pressed", String(on));
-            s.auto_push_ft=on?1:0;
-            const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid)); if(g)g.auto_push_ft=s.auto_push_ft;
+      FT_GRADE_TOGGLES.forEach(function(spec){
+        const btn=$(spec.id); if(!btn) return;
+        btn.onclick=async()=>{
+          const want=!btn.classList.contains("on");
+          const m=$("autopush-msg");
+          const req=ftGradeWrite(gid, spec.key, want);
+          btn.disabled=true; if(m)m.textContent="";
+          try{
+            const r=await api(req.path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(req.body)});
+            if(spec.key==="feat.auto_push_ft"&&(r.status===404||r.status===501)){
+              if(m){m.textContent="API pending deploy";m.style.color="var(--faint)";}
+              toast("Deploy needed — TipBot /api/auto-push isn't live yet.");
+              return;
+            }
+            const j=await r.json().catch(()=>({}));
+            if(!(r.ok&&j.ok)){
+              if(m){m.textContent=j.message||"error";m.style.color="var(--loss)";}
+              return;
+            }
+            let on;
+            if(spec.key==="feat.auto_push_ft"){
+              on=ftGradeFromAutoPush(j);
+              if(on==null) on=!!want;
+            }else{
+              on=ftGradeFromFlags(j.flags, spec.key);
+              if(on==null){
+                if(m){m.textContent="This needs TipBot's latest deploy.";m.style.color="var(--faint)";}
+                return;
+              }
+            }
+            setFtSwitch(btn, on);
+            const field=ftGradeStateField(spec.key);
+            if(s&&field) s[field]=on?1:0;
+            if(spec.key==="feat.auto_push_ft"){
+              const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid)); if(g)g.auto_push_ft=s.auto_push_ft;
+            }
             if(m){m.textContent="✓ saved";m.style.color="var(--win)";}
-          }else{
-            if(m){m.textContent=j.message||"error";m.style.color="var(--loss)";}
-          }
-        }catch(e){
-          if(e&&e.unauth)return renderLogin("Session expired.");
-          if(m){m.textContent="couldn't save";m.style.color="var(--loss)";}
-        }finally{ apBtn.disabled=false; }
-      };
+          }catch(e){
+            if(e&&e.unauth)return renderLogin("Session expired.");
+            if(m){m.textContent="couldn't save";m.style.color="var(--loss)";}
+          }finally{ btn.disabled=false; }
+        };
+      });
     }
 
   }
@@ -6341,7 +6454,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").querySelectorAll(".tile.clk").forEach(el=>el.onclick=()=>{const a=el.dataset.act;
       if(a==="queued"){const fp=$("finished-panel"); const up=(fp&&!fp.hidden)?fp:($("upcoming-panel")||fp); if(up){ TDSec.open(up); up.scrollIntoView({behavior:"smooth",block:"start"}); }}
       else if(a==="followers"){openFollowers(s.guild_id,s.display_name);}});
-    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle"||b.id==="trialtoggle")return; b.onclick=()=>toggle(b); });
+    $("detail").querySelectorAll("button.toggle").forEach(b=>{ if(b.id==="godtoggle"||b.id==="autopush-toggle"||b.id==="autopush-nfl-toggle"||b.id==="autopush-nba-toggle"||b.id==="trialtoggle"||b.dataset.ftGrade)return; b.onclick=()=>toggle(b); });
     wireTrialControls(s);
     wireTipRows($("recent-box"),s.guild_id);
     // Lazy: Recent Results (previous tips) hydrate legs/odds/live over the network only once opened.
@@ -6581,11 +6694,14 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       html+='<div style="display:flex;flex-direction:column;gap:8px">';
       keys.forEach(k=>{
         const on=flags[k]!==false&&flags[k]!==0;
-        const lab=labels[k]||k;
+        const lab=ftGradeLabel(k, labels[k]);
+        const note=ftGradeRowNote(d, k);
         html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card2)">'
           +'<input type="checkbox" class="feat-cb" data-k="'+k+'" '+(on?'checked':'')+' style="width:16px;height:16px">'
           +'<span style="flex:1"><span style="font-weight:600;font-size:var(--t-sub)">'+esc(lab)+'</span>'
-          +'<span style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(k)+'</span></span></label>';
+          +'<span style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(k)+'</span>'
+          +(note?'<span class="ft-grade-note" style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(note)+'</span>':'')
+          +'</span></label>';
       });
       html+='</div>';
       box.innerHTML=html;

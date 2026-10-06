@@ -1,5 +1,13 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.2 · 2026-10-06 · `ft-autograde` · AFL, NFL and NBA/WNBA full-time auto-grade are separate switches
+
+Needs TipBot 0.47.1. Nothing is turned on: each flag still defaults off.
+
+- **Settings → General** (server admins): the full-time control is three switches, the same toggle as before. **Auto-grade AFL at full time** still saves `feat.auto_push_ft` through `/api/auto-push`. **Auto-grade NFL at full time** (`feat.auto_push_ft_nfl`) and **Auto-grade NBA/WNBA at full time** (`feat.auto_push_ft_nba`) each save only that flag through `/api/feature-flags`.
+- **Admin Tools → Features** (platform owner): the list still follows TipBot's registry order. Those three rows use the same Auto-grade labels, with NFL and NBA/WNBA next to AFL. A note says NFL also needs `ESPN_AUTO_PUSH_FT` and NBA/WNBA also needs `ESPN_AUTO_PUSH_FT_NBA`; the toggle alone won't grade if that server env switch is off. If the API includes the env-gate state, the note shows on or off.
+- Tests: `tests/ft_autograde.test.js`.
+
 ## 0.43.1 · 2026-10-06 · `apple-design` · Press feedback, sheets and undo, in-app Back, and the design system
 
 One feature release on top of 0.42.3 (the simple TipBot tile stays the mark).
