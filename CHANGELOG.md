@@ -1,5 +1,10 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.3 · 2026-10-06 · `ft-grade-load` · Full-time auto-grade switches stay unknown when the read fails
+
+- **Settings → General:** a failed, 503 `db_busy`, or missing-flag read of the full-time switches is retried (honouring `retry_after`). If it still doesn't load, that switch stays disabled with "Couldn't load, retry" and is never shown as off, so a reload can't be saved as off by mistake. A toggle does nothing until that sport's real on or off state has loaded. AFL still comes from `/api/auto-push`; NFL and NBA/WNBA still come from `/api/feature-flags`. A late auto-push response can't paint the other two off.
+- Tests: `tests/ft_autograde.test.js`.
+
 ## 0.43.2 · 2026-10-06 · `ft-autograde` · AFL, NFL and NBA/WNBA full-time auto-grade are separate switches
 
 Needs TipBot 0.47.1. Nothing is turned on: each flag still defaults off.

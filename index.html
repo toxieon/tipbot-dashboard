@@ -21,7 +21,7 @@
 <script src="./assets/routing.js"></script>
 <script src="./assets/scheduled-tips.js"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.43.2"></script>
+<script src="./assets/tb-motion.js?v=0.43.3"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -280,6 +280,7 @@
   .switch{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px}
   .toggle{width:44px;height:25px;border-radius:999px;background:#43506b;position:relative;cursor:pointer;border:none;flex:none;transition:background .15s}
   .toggle.on{background:var(--win)}.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .15s ease}.toggle.on::after{left:3px;transform:translateX(19px)}
+  .toggle[data-ft-loaded="0"]{cursor:not-allowed;opacity:.5}
   .tips-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:760px){.tips-cols{grid-template-columns:1fr}}
   .tip{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.tip:last-child{border-bottom:none}
   .tip .g{font-weight:600;font-size:var(--t-callout)}.tip .meta{color:var(--faint);font-size:var(--t-foot)}
@@ -1001,7 +1002,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.43.3</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1383,7 +1384,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.43.2";
+  TD.version="0.43.3";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -4292,53 +4293,181 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const gate=st==null?"":(" Server env is "+(st?"on":"off")+".");
     return "Also needs "+name+" on the server."+gate+" The toggle alone won't grade if that's off.";
   }
+  // A read that fails, is 503/db_busy, or lacks the flag is not off. Retry, then leave it unknown.
+  const FT_GRADE_LOAD_NOTE="Couldn't load, retry";
+  const FT_GRADE_LOAD_TRIES=4;
+  function ftGradeRetryMs(body){
+    // Same 2–10s window as Scheduled Tips' 503 wait. retry_after is seconds.
+    return Math.min(10, Math.max(2, Number(body&&body.retry_after)||4))*1000;
+  }
+  function ftGradeCanSave(loaded){
+    return loaded===true||loaded==="1"||loaded===1;
+  }
+  function ftGradeSlot(status){
+    const st=status==="on"||status==="off"?status:"unknown";
+    return {status:st, on:st==="on", off:st==="off", unknown:st==="unknown", loaded:st!=="unknown"};
+  }
+  function ftGradeBlank(){
+    return {afl:ftGradeSlot("unknown"), nfl:ftGradeSlot("unknown"), nba:ftGradeSlot("unknown"), note:"", pending:false, env:null, attempts:{auto:0, flags:0}};
+  }
+  function ftGradeBusy(status, body){
+    if(status===503) return true;
+    const code=body&&body.error?String(body.error):"";
+    return code==="db_busy"||code==="warming";
+  }
+  async function ftGradeLoadPanel(opts){
+    opts=opts||{};
+    const apiFn=opts.api;
+    const sleepFn=opts.sleep||function(){ return Promise.resolve(); };
+    const gid=opts.gid;
+    const onApply=opts.onApply;
+    const state=ftGradeBlank();
+    // The guild row from /api/server often has no NFL/NBA flag (or a stale 0). Never paint from it.
+    let autoAttempts=0, flagAttempts=0;
+    async function readBody(path){
+      const r=await apiFn(path);
+      let body=null;
+      if(r&&typeof r.json==="function"){ try{ body=await r.json(); }catch(e){ body=null; } }
+      return {status:(r&&r.status)||0, body:body};
+    }
+    async function readAuto(){
+      let last=null;
+      for(let attempt=0; attempt<FT_GRADE_LOAD_TRIES; attempt++){
+        autoAttempts++;
+        let status=0, body=null;
+        try{
+          const got=await readBody("/api/auto-push?guild_id="+encodeURIComponent(gid));
+          status=got.status; body=got.body;
+        }catch(e){
+          if(e&&e.unauth) throw e;
+          status=0;
+        }
+        if(status===404||status===501){ last={pending:true}; break; }
+        const busy=ftGradeBusy(status, body);
+        const httpOk=status>=200&&status<300&&!busy;
+        if(httpOk){
+          const value=ftGradeFromAutoPush(body);
+          if(value===true||value===false){
+            state.afl=ftGradeSlot(value?"on":"off");
+            if(typeof onApply==="function") onApply(state);
+            return;
+          }
+          last={missing:true, body:body};
+        }else last={failed:true, body:body};
+        if(attempt<FT_GRADE_LOAD_TRIES-1) await sleepFn(ftGradeRetryMs(body));
+      }
+      state.afl=ftGradeSlot("unknown");
+      state.pending=!!(last&&last.pending);
+      if(typeof onApply==="function") onApply(state);
+    }
+    async function readFlags(){
+      let lastBody=null;
+      for(let attempt=0; attempt<FT_GRADE_LOAD_TRIES; attempt++){
+        flagAttempts++;
+        let status=0, body=null;
+        try{
+          const got=await readBody("/api/feature-flags?guild_id="+encodeURIComponent(gid));
+          status=got.status; body=got.body;
+        }catch(e){
+          if(e&&e.unauth) throw e;
+          status=0;
+        }
+        if(status===404||status===501) break;
+        const busy=ftGradeBusy(status, body);
+        const httpOk=status>=200&&status<300&&!busy;
+        if(httpOk&&body){
+          lastBody=body;
+          const flags=body.flags;
+          const nfl=ftGradeFromFlags(flags, "feat.auto_push_ft_nfl");
+          const nba=ftGradeFromFlags(flags, "feat.auto_push_ft_nba");
+          if(nfl!==null&&nba!==null){
+            state.nfl=ftGradeSlot(nfl?"on":"off");
+            state.nba=ftGradeSlot(nba?"on":"off");
+            state.env=body;
+            if(typeof onApply==="function") onApply(state);
+            return;
+          }
+          // A key we did learn stays. A missing key is not on, and not off — retry the read.
+          if(nfl!==null) state.nfl=ftGradeSlot(nfl?"on":"off");
+          if(nba!==null) state.nba=ftGradeSlot(nba?"on":"off");
+        }
+        if(attempt<FT_GRADE_LOAD_TRIES-1) await sleepFn(ftGradeRetryMs(body));
+      }
+      if(state.nfl.status!=="on"&&state.nfl.status!=="off") state.nfl=ftGradeSlot("unknown");
+      if(state.nba.status!=="on"&&state.nba.status!=="off") state.nba=ftGradeSlot("unknown");
+      if(lastBody) state.env=lastBody;
+      if(typeof onApply==="function") onApply(state);
+    }
+    await Promise.all([readAuto(), readFlags()]);
+    const needsNote=state.nfl.unknown||state.nba.unknown||(state.afl.unknown&&!state.pending);
+    state.note=needsNote?FT_GRADE_LOAD_NOTE:"";
+    state.attempts={auto:autoAttempts, flags:flagAttempts};
+    return state;
+  }
   /*__FT_GRADE_END__*/
+  function ftGradeShown(status){
+    return status==="on"?true:(status==="off"?false:null);
+  }
   function ftGradeSwitchHtml(spec, on){
-    const onCls=on?" on":"";
-    const checked=on?"true":"false";
-    return '<div class="switch"><button type="button" class="toggle'+onCls+'" id="'+spec.id+'" role="switch" aria-checked="'+checked+'" aria-label="'+esc(spec.label)+'" data-ft-grade="1"></button><span>'+esc(spec.label)+'</span></div>';
+    const known=on===true||on===false;
+    const onCls=on===true?" on":"";
+    const checked=on===true?"true":"false";
+    const state=on===true?"on":(on===false?"off":"unknown");
+    const dis=known?"":" disabled";
+    const ariaDis=known?"":' aria-disabled="true"';
+    const loaded=known?"1":"0";
+    return '<div class="switch"><button type="button" class="toggle'+onCls+'" id="'+spec.id+'" role="switch" aria-checked="'+checked+'"'+ariaDis+' aria-label="'+esc(spec.label)+'" data-ft-grade="1" data-ft-loaded="'+loaded+'" data-ft-state="'+state+'"'+dis+'></button><span>'+esc(spec.label)+'</span></div>';
   }
   function setFtSwitch(btn, on){
     if(!btn) return;
-    btn.classList.toggle("on", !!on);
-    btn.setAttribute("aria-checked", on?"true":"false");
-    btn.disabled=false;
+    const known=on===true||on===false;
+    btn.classList.toggle("on", on===true);
+    btn.setAttribute("aria-checked", on===true?"true":"false");
+    btn.disabled=!known;
+    if(known) btn.removeAttribute("aria-disabled");
+    else btn.setAttribute("aria-disabled","true");
+    if(btn.dataset){
+      btn.dataset.ftLoaded=known?"1":"0";
+      btn.dataset.ftState=on===true?"on":(on===false?"off":"unknown");
+    }
   }
+  let ftGradeGen=0;
   async function loadAutoPushState(gid, s){
-    const afl=$("autopush-toggle"); if(!afl) return;
-    FT_GRADE_TOGGLES.forEach(function(spec){
-      const field=ftGradeStateField(spec.key);
-      setFtSwitch($(spec.id), !!(s&&field&&(s[field]===true||s[field]===1)));
-    });
-    const msg=$("autopush-msg");
-    try{
-      const ar=await api("/api/auto-push?guild_id="+encodeURIComponent(gid));
-      if(ar.status===404||ar.status===501){
-        if(msg){ msg.textContent="API pending deploy"; msg.style.color="var(--faint)"; }
-      }else if(ar.ok){
-        const j=await ar.json().catch(()=>({}));
-        const on=ftGradeFromAutoPush(j);
-        if(on!=null){ setFtSwitch(afl, on); if(s) s.auto_push_ft=on?1:0; }
-      }
-    }catch(e){
-      if(e&&e.unauth)return renderLogin("Session expired.");
+    if(!$("autopush-toggle")) return;
+    const gen=++ftGradeGen;
+    const noteEl=$("autopush-load");
+    if(noteEl) noteEl.hidden=true;
+    // Each read paints only its own slot. A late auto-push result must not rewrite NFL/NBA,
+    // and a newer open of General drops this one's result.
+    function paint(panel){
+      if(gen!==ftGradeGen || !$("autopush-toggle")) return;
+      const slots={"feat.auto_push_ft":panel.afl, "feat.auto_push_ft_nfl":panel.nfl, "feat.auto_push_ft_nba":panel.nba};
+      FT_GRADE_TOGGLES.forEach(function(spec){
+        const slot=slots[spec.key];
+        const shown=ftGradeShown(slot&&slot.status);
+        setFtSwitch($(spec.id), shown);
+        if(!(slot&&slot.loaded)||!s) return;
+        const field=ftGradeStateField(spec.key);
+        if(field) s[field]=shown?1:0;
+        if(spec.key==="feat.auto_push_ft"){
+          const g=(STATE.servers||[]).find(x=>String(x.guild_id)===String(gid));
+          if(g) g.auto_push_ft=s.auto_push_ft;
+        }
+      });
+      if(panel.env){ const env=$("autopush-env"); if(env) env.textContent=ftGradeEnvText(panel.env); }
+      if(panel.pending){ const msg=$("autopush-msg"); if(msg){ msg.textContent="API pending deploy"; msg.style.color="var(--faint)"; } }
+      if(noteEl){ noteEl.hidden=!panel.note; if(panel.note) noteEl.textContent=panel.note; }
     }
+    let panel;
     try{
-      const fr=await api("/api/feature-flags?guild_id="+encodeURIComponent(gid));
-      if(fr.ok){
-        const d=await fr.json().catch(()=>({}));
-        const flags=d.flags||{};
-        ["feat.auto_push_ft_nfl","feat.auto_push_ft_nba"].forEach(function(key){
-          const on=ftGradeFromFlags(flags, key);
-          const field=ftGradeStateField(key);
-          const spec=FT_GRADE_TOGGLES.filter(function(t){ return t.key===key; })[0];
-          if(on!=null&&spec){ setFtSwitch($(spec.id), on); if(s&&field) s[field]=on?1:0; }
-        });
-        const env=$("autopush-env"); if(env) env.textContent=ftGradeEnvText(d);
-      }
+      // retries:1 so this panel owns the 503/retry_after loop (api() would stack another).
+      panel=await ftGradeLoadPanel({api:function(path){ return api(path,{retries:1}); }, sleep:sleep, gid:gid, onApply:paint});
     }catch(e){
-      if(e&&e.unauth)return renderLogin("Session expired.");
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      panel=ftGradeBlank();
+      panel.note=FT_GRADE_LOAD_NOTE;
     }
+    paint(panel);
   }
 
 
@@ -5488,12 +5617,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<div class="admin-row" style="min-width:0"><div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">Auto-grade at full time</div>'
         +'<div style="color:var(--faint);font-size:var(--t-foot);line-height:1.45">When ON, TipBot auto-grades that sport\'s pending tips at full time and posts settle results to Discord — no click needed. <b>Push all</b> on finished games still works as a manual override. AFL, NFL and NBA/WNBA are separate.</div></div>'
         +'<div class="switches" id="ft-grade-switches" style="margin-top:10px">'+FT_GRADE_TOGGLES.map(function(spec){
-          const field=ftGradeStateField(spec.key);
-          const on=!!(field&&(s[field]===1||s[field]===true));
-          return ftGradeSwitchHtml(spec, on);
+          return ftGradeSwitchHtml(spec, null);
         }).join("")+'</div>'
         +'<div id="autopush-env" style="color:var(--faint);font-size:var(--t-foot);line-height:1.45;margin-top:8px">'+esc(FT_GRADE_ENV_NOTE)+'</div>'
-        +'<span id="autopush-msg" style="font-size:var(--t-foot)"></span></div>';
+        +'<span id="autopush-msg" style="font-size:var(--t-foot)"></span>'
+        +'<button type="button" id="autopush-load" hidden style="display:block;margin-top:6px;padding:0;border:0;background:transparent;color:var(--loss);font:inherit;font-size:var(--t-foot);cursor:pointer;text-decoration:underline">Couldn\'t load, retry</button></div>';
     }
 
     const fsv=$("femoji-save");
@@ -5542,10 +5670,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     };
 
     if($("autopush-toggle")){
+      const again=$("autopush-load");
+      if(again) again.onclick=()=>loadAutoPushState(gid, s);
       loadAutoPushState(gid, s);
       FT_GRADE_TOGGLES.forEach(function(spec){
         const btn=$(spec.id); if(!btn) return;
         btn.onclick=async()=>{
+          if(!ftGradeCanSave(btn.dataset.ftLoaded)) return;
           const want=!btn.classList.contains("on");
           const m=$("autopush-msg");
           const req=ftGradeWrite(gid, spec.key, want);
