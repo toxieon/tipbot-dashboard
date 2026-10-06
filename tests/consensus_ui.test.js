@@ -63,3 +63,131 @@ test("master page loads the consensus tab (no placeholder)", () => {
   assert.match(html, /S\.tab==="consensus"\?cons\.view\(\)/);
   assert.doesNotMatch(html, /\["consensus","Consensus","3"\]/);
 });
+
+// Enough of a document for bind(): the settings inputs the real view() prints.
+function attr(s, name) {
+  const m = String(s).match(new RegExp("\\b" + name + '="([^"]*)"'));
+  return m ? m[1] : "";
+}
+function mountConsensus(html) {
+  const els = [];
+  for (const m of html.matchAll(/<button\b([^>]*)>/gi)) {
+    els.push({id: attr(m[1], "id"), className: attr(m[1], "class"), onclick: null});
+  }
+  for (const m of html.matchAll(/<input\b([^>]*)>/gi)) {
+    const a = m[1];
+    const el = {
+      id: attr(a, "id"), className: attr(a, "class"), value: attr(a, "value"),
+      checked: /\schecked\b/.test(a), dataset: {}
+    };
+    const k = attr(a, "data-k");
+    if (k) el.dataset.k = k;
+    els.push(el);
+  }
+  const sel = html.match(/<select\b([^>]*)>([\s\S]*?)<\/select>/i);
+  let select = null;
+  if (sel) {
+    const opts = [...sel[2].matchAll(/<option\b([^>]*)>/gi)];
+    const chosen = opts.find((o) => /\sselected\b/.test(o[1])) || opts[0];
+    select = {id: attr(sel[1], "id"), value: chosen ? attr(chosen[1], "value") : ""};
+  }
+  const has = (el, c) => el.className.split(/\s+/).includes(c);
+  return {
+    getElementById(id) {
+      if (select && select.id === id) return select;
+      return els.find((e) => e.id === id) || null;
+    },
+    querySelectorAll(q) {
+      if (q === ".cons-num") return els.filter((e) => has(e, "cons-num"));
+      if (q === ".cons-bool") return els.filter((e) => has(e, "cons-bool"));
+      if (q === ".cons-sport") return els.filter((e) => has(e, "cons-sport"));
+      if (q === ".cons-sport:checked") return els.filter((e) => has(e, "cons-sport") && e.checked);
+      return [];
+    }
+  };
+}
+const SETTINGS = {enabled: false, dry_run: true, paused: false, min_servers: 3, min_pct: 0, window_hours: 24, line_tolerance: 0,
+  require_before_start: true, include_multi_legs: true, sports: ["AFL", "NFL"], show_sources: "servers_and_tipsters"};
+const GATES = {beta_enabled: true, master_verified: true, kill_switch: false};
+function consensusHarness() {
+  const calls = [];
+  let ui;
+  ui = C.create({
+    call: async (p, body) => {
+      calls.push({path: p, body: body});
+      if (String(p).startsWith("/api/consensus/settings") && body) return {ok: true, _status: 200, settings: Object.assign({}, SETTINGS, body)};
+      if (String(p).startsWith("/api/consensus/settings")) return {ok: true, _status: 200, settings: Object.assign({}, SETTINGS),
+        gates: GATES, sports_available: ["AFL", "NFL"], show_sources_options: ["servers_and_tipsters", "servers_only", "anonymous"]};
+      return {ok: true, _status: 200, qualifying: 0, needed: 3, active_servers: 2, legs_considered: 0, late_sources: 0, unmatched: {}, clusters: []};
+    },
+    paint: () => { global.document = mountConsensus(ui.view()); ui.bind(); }
+  });
+  return {ui, calls};
+}
+async function ready(ui) {
+  await ui.load();
+  await new Promise((r) => setTimeout(r, 0));
+  ui.bind();
+}
+const FULL = {min_servers: 2, min_pct: 0, window_hours: 12, line_tolerance: 0, require_before_start: true,
+  include_multi_legs: true, sports: ["AFL", "NFL"], show_sources: "servers_and_tipsters", enabled: true, dry_run: true, paused: false};
+
+test("turning consensus on saves every current field, read before the confirm", async () => {
+  const prevWin = global.window;
+  const prevDoc = global.document;
+  try {
+    global.window = {};
+    const {ui, calls} = consensusHarness();
+    await ready(ui);
+    const num = global.document.querySelectorAll(".cons-num").find((i) => i.dataset.k === "min_servers");
+    const win = global.document.querySelectorAll(".cons-num").find((i) => i.dataset.k === "window_hours");
+    num.value = "2";
+    win.value = "12";
+    const on = global.document.getElementById("cons-on");
+    on.checked = true;
+    global.window.TBSheet = {confirm: async (o) => {
+      assert.equal(o.title, "Turn consensus on?");
+      assert.equal(o.confirmLabel, "Turn on");
+      num.value = "3";
+      win.value = "24";
+      return true;
+    }};
+    await on.onchange();
+    const post = calls.filter((c) => c.body && String(c.path) === "/api/consensus/settings");
+    assert.equal(post.length, 1);
+    assert.deepEqual(post[0].body, FULL);
+  } finally {
+    global.window = prevWin;
+    global.document = prevDoc;
+  }
+});
+
+test("cancelling the consensus confirm does not save, and Save posts the switches too", async () => {
+  const prevWin = global.window;
+  const prevDoc = global.document;
+  try {
+    global.window = {TBSheet: {confirm: async () => false}};
+    const {ui, calls} = consensusHarness();
+    await ready(ui);
+    const num = global.document.querySelectorAll(".cons-num").find((i) => i.dataset.k === "min_servers");
+    num.value = "2";
+    const on = global.document.getElementById("cons-on");
+    on.checked = true;
+    await on.onchange();
+    assert.equal(calls.filter((c) => c.body).length, 0, "cancel posts nothing");
+    global.document.querySelectorAll(".cons-num").find((i) => i.dataset.k === "min_servers").value = "2";
+    global.document.getElementById("cons-save").onclick();
+    const post = calls.filter((c) => c.body);
+    assert.equal(post.length, 1);
+    assert.equal(post[0].path, "/api/consensus/settings");
+    assert.equal(post[0].body.min_servers, 2);
+    assert.equal(post[0].body.enabled, false);
+    assert.equal(post[0].body.dry_run, true);
+    assert.equal(post[0].body.paused, false);
+    assert.equal(post[0].body.window_hours, 24);
+    assert.deepEqual(post[0].body.sports, ["AFL", "NFL"]);
+  } finally {
+    global.window = prevWin;
+    global.document = prevDoc;
+  }
+});
