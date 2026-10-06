@@ -31,7 +31,7 @@ test("dots are newest-left, at most 10, win/loss/push-void", () => {
     "var(--win)", "var(--loss)", "var(--muted)",
     "var(--win)", "var(--loss)", "var(--muted)", "var(--muted)", "var(--muted)",
   ]);
-  assert.equal((htmlStr.match(/tb-form-dot/g) || []).length, 8);
+  assert.equal((htmlStr.match(/class="tb-form-dot"/g) || []).length, 8);
   const long = FB.render({last10: ["W", "W", "W", "W", "W", "W", "W", "W", "W", "W", "L"]});
   assert.deepEqual(dots(long), Array(10).fill("var(--win)"));
   const skip = FB.render({last10: ["W", "nope", "L"]});
@@ -89,7 +89,7 @@ test("the page loads the helper at this version and paints the four surfaces", (
   const detail = html.slice(html.indexOf("function renderDetail"), html.indexOf("function mountScheduled"));
   assert.match(profile, /FormBadges\.render\(d\.form\)/);
   assert.match(detail, /FormBadges\.render\(d\.form\)/);
-  const rollup = html.slice(html.indexOf("function renderFollowerAllView"), html.indexOf("function followersCacheKey"));
+  const rollup = html.slice(html.indexOf("function renderFollowerAllView"), html.indexOf("function promoChipHidden"));
   assert.doesNotMatch(rollup, /FormBadges/);
   assert.doesNotMatch(html, /formArr/);
 });
