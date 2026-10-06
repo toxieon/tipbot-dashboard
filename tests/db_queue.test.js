@@ -59,7 +59,7 @@ test("exempt paths are the cached ones, and the page wires a 2-wide queue", () =
   }
   for (const p of ["/api/server?guild_id=1", "/api/live-tips?guild_id=1", "/api/scheduled-tips?guild_id=1",
       "/api/feature-flags?guild_id=1", "/api/auto-push?guild_id=1", "/api/finished-games?guild_id=1",
-      "/api/channels?guild_id=1", "/api/mod-settings?guild_id=1"]) {
+      "/api/channels?guild_id=1", "/api/mod-settings?guild_id=1", "/api/tipster-form?guild_id=1"]) {
     assert.equal(RP.dbSlotExempt(p), false, p);
   }
   assert.match(html, /createApiQueue\(2\)/);
