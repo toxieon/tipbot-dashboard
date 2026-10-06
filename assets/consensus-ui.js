@@ -136,34 +136,58 @@
       return h + (S.msg ? '<div class="banner ' + S.msg.cls + '">' + esc(S.msg.text) + '</div>' : '');
     }
     function collect() {
-      document.querySelectorAll(".cons-num").forEach(function (i) { S.form[i.dataset.k] = i.value; });
-      document.querySelectorAll(".cons-bool").forEach(function (i) { S.form[i.dataset.k] = i.checked; });
-      S.form.sports = Array.prototype.slice.call(document.querySelectorAll(".cons-sport:checked")).map(function (i) { return i.value; });
-      var sh = document.getElementById("cons-show"); if (sh) S.form.show_sources = sh.value;
+      var nums = document.querySelectorAll(".cons-num");
+      var bools = document.querySelectorAll(".cons-bool");
+      var show = document.getElementById("cons-show");
+      if (!nums.length && !bools.length && !show) return;
+      nums.forEach(function (i) { S.form[i.dataset.k] = i.value; });
+      bools.forEach(function (i) { S.form[i.dataset.k] = i.checked; });
+      var sports = document.querySelectorAll(".cons-sport");
+      if (sports.length) S.form.sports = Array.prototype.slice.call(document.querySelectorAll(".cons-sport:checked")).map(function (i) { return i.value; });
+      if (show) S.form.show_sources = show.value;
+    }
+    // Full POST body from the inputs as they are now. Call this before a confirm:
+    // the sheet can repaint, and the boxes snap back to the last saved values.
+    function currentBody() {
+      collect();
+      var s = (S.data && S.data.settings) || {};
+      var on = document.getElementById("cons-on");
+      var dry = document.getElementById("cons-dry");
+      var paused = document.getElementById("cons-pause");
+      return Object.assign(readForm(S.form), {
+        enabled: on ? !!on.checked : !!s.enabled,
+        dry_run: dry ? !!dry.checked : !!s.dry_run,
+        paused: paused ? !!paused.checked : !!s.paused
+      });
     }
     function bind() {
       var q = function (id) { return document.getElementById(id); };
       if (q("cons-retry")) q("cons-retry").onclick = function () { S.data = null; paint(); load(); };
       if (q("cons-preview")) q("cons-preview").onclick = function () { collect(); S.msg = null; runPreview(); };
       if (q("cons-save")) q("cons-save").onclick = function () {
-        collect();
         var body;
-        try { body = readForm(S.form); } catch (e) { S.msg = {cls: "err", text: e.message}; paint(); return; }
+        try { body = currentBody(); } catch (e) { S.msg = {cls: "err", text: e.message}; paint(); return; }
         save(body, "Consensus settings saved.");
       };
       document.querySelectorAll(".cons-sport").forEach(function (i) { i.onchange = function () { collect(); paint(); }; });
       var on = q("cons-on"); if (on) on.onchange = async function () {
-        if (!(await ask({title: "Turn consensus " + (on.checked ? "on" : "off") + "?", message: on.checked ? "With dry run on, it only previews." : "",
-          confirmLabel: on.checked ? "Turn on" : "Turn off"}))) { paint(); return; }
-        save({enabled: on.checked}, "Consensus " + (on.checked ? "on" : "off") + ".");
+        var body;
+        try { body = currentBody(); } catch (e) { S.msg = {cls: "err", text: e.message}; paint(); return; }
+        if (!(await ask({title: "Turn consensus " + (body.enabled ? "on" : "off") + "?", message: body.enabled ? "With dry run on, it only previews." : "",
+          confirmLabel: body.enabled ? "Turn on" : "Turn off"}))) { paint(); return; }
+        save(body, "Consensus " + (body.enabled ? "on" : "off") + ".");
       };
       var dry = q("cons-dry"); if (dry) dry.onchange = async function () {
-        if (!dry.checked && !(await ask({title: "Turn dry run off?", message: "TipBot will create #consensus in the master and post bets that qualify.",
+        var body;
+        try { body = currentBody(); } catch (e) { S.msg = {cls: "err", text: e.message}; paint(); return; }
+        if (!body.dry_run && !(await ask({title: "Turn dry run off?", message: "TipBot will create #consensus in the master and post bets that qualify.",
           confirmLabel: "Go live"}))) { paint(); return; }
-        save({dry_run: dry.checked}, dry.checked ? "Dry run on: preview only." : "Dry run off: qualifying bets will post.");
+        save(body, body.dry_run ? "Dry run on: preview only." : "Dry run off: qualifying bets will post.");
       };
       var pz = q("cons-pause"); if (pz) pz.onchange = function () {
-        save({paused: pz.checked}, pz.checked ? "Paused." : "Resumed.");
+        var body;
+        try { body = currentBody(); } catch (e) { S.msg = {cls: "err", text: e.message}; paint(); return; }
+        save(body, body.paused ? "Paused." : "Resumed.");
       };
     }
     return {load: load, view: view, bind: bind, state: function () { return S; }};

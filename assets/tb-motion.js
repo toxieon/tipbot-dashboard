@@ -109,7 +109,8 @@
 
   /* ── Sheets ──────────────────────────────────────────────────────────────── */
   var CSS = [
-    ".tbs-root{position:fixed;inset:0;z-index:70;display:flex;align-items:flex-end;justify-content:center}",
+    ".tbs-root{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;",
+    "width:auto;height:auto;max-width:none;max-height:none;margin:0;border:0;padding:0;background:transparent;color:inherit;overflow:visible}",
     ".tbs-scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;-webkit-tap-highlight-color:transparent}",
     ".tbs-card{position:relative;width:min(560px,100%);max-height:min(86dvh,720px);display:flex;flex-direction:column;",
     "  background:var(--card);color:var(--txt);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;",
@@ -144,6 +145,21 @@
     var s = doc.createElement("style"); s.id = "tbs-css"; s.textContent = CSS;
     (doc.head || doc.documentElement).appendChild(s);
   }
+  // A transformed, filtered, or overflow-scrolling page paints over position:fixed.
+  // The top layer stays above that page; z-index covers browsers without popover.
+  function lift(root) {
+    try { root.style.zIndex = "1000"; } catch (e) {}
+    if (!root || typeof root.showPopover !== "function") return;
+    try {
+      root.setAttribute("popover", "manual");
+      root.showPopover();
+    } catch (e) {
+      try { root.removeAttribute("popover"); } catch (e2) {}
+    }
+  }
+  function drop(root) {
+    try { if (root && typeof root.hidePopover === "function") root.hidePopover(); } catch (e) {}
+  }
 
   var STACK = [];
   var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -169,6 +185,7 @@
     if (typeof opts.html === "string") body.innerHTML = opts.html;
     else if (opts.node) body.appendChild(opts.node);
     doc.body.appendChild(root);
+    lift(root);
 
     var api = { el: root, card: card, body: body, header: hd, closed: false, close: close, dismissible: opts.dismissible !== false };
     STACK.push(api);
@@ -219,6 +236,7 @@
       return new Promise(function (res) {
         var v = (reason && reason.velocity) || 0;
         animateTo(desktop ? 1 : H(), v, 1, desktop ? 0.22 : 0.3, function () {
+          drop(root);
           if (root.parentNode) root.parentNode.removeChild(root);
           if (opener && opener.isConnected && opener.focus) { try { opener.focus({ preventScroll: true }); } catch (e) {} }
           opts.onClose && opts.onClose(reason || {});
@@ -277,11 +295,15 @@
     }
 
     // Focus: the requested element, else the first control, else the card.
-    setTimeout(function () {
+    // Immediately, so a confirm is focused when it appears, then again after the
+    // enter frame in case the browser moved focus while promoting the top layer.
+    function focusInitial() {
       if (api.closed) return;
       var target = (opts.initialFocus && card.querySelector(opts.initialFocus)) || card.querySelector(FOCUSABLE) || card;
-      try { target.focus({ preventScroll: true }); } catch (e) {}
-    }, 30);
+      try { target.focus({ preventScroll: true }); } catch (e) { try { target.focus(); } catch (e2) {} }
+    }
+    focusInitial();
+    setTimeout(focusInitial, 30);
     return api;
   }
   function setOrigin() {

@@ -1,5 +1,11 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.43.5 · 2026-10-06 · `master-confirm` · Master confirms sit on top, and one consensus save keeps every field
+
+- **Master → Forwarding → Servers:** turning a server's Forward switch on opened "Turn forwarding on for this server?" behind the page, so the click looked like it did nothing. Confirms and sheets on the master page now open on top of the page, and the confirm button is focused. The same sheet is used for the other confirms there (master beta, set as master, lockdown, consensus).
+- **Master → Consensus:** setting Minimum servers to 2, turning Consensus on and confirming saved the switch but put Minimum servers back to 3. That confirm posted only the switch, before the number box was read. One save now posts every current field (on, dry run, paused, minimum servers, and the rest) to `POST /api/consensus/settings`.
+- Tests: `tests/master_sheet.test.js`, `tests/consensus_ui.test.js`.
+
 ## 0.43.4 · 2026-10-06 · `db-queue` · Server page stops crowding the bot, and Upcoming counts only upcoming tips
 
 - **One database at a time.** Opening a server fired 6–8 requests together, and the 30 s scheduled-tips poll landed on the same second as the 90 s live-tips poll. TipBot answered 503 `db_busy`, and after three tries the page said "Couldn't reach the bot". Database calls now wait in a short queue (about 2 at a time). Fixtures, upcoming, master config and odds skip that queue. A 503 waits `retry_after` plus a random 0–1 s. The two polls are offset so they don't fire together, and they pause while the tab is hidden. "Couldn't reach the bot" shows only after the retries are used up.
