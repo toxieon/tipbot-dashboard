@@ -1,5 +1,15 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.45.1 · 2026-10-06 · `public-site` · Public landing, pricing and verified tipster pages
+
+The dashboard at `/` is the same app. These pages sit beside it: static HTML, no backend, no build.
+
+- **`/welcome/`** — landing page. Hero, “Add TipBot to your server”, and short sections for verified tips, auto-grading, follower bankroll and P&L, form and streak, and leaderboards. Links to pricing and to the dashboard (`/`). tipdash has no Discord bot invite yet, so `BOT_INVITE_URL` in `assets/site/site.js` is the placeholder until an OAuth URL exists.
+- **`/pricing/`** — Free A$0, My TipBot A$29/yr (about A$2.42/mo, best value) or A$3/mo, My TipBot Pro A$8/mo, Tipster free to join and 25% of My TipBot subs from followers they bring. Each button opens a “Coming soon — join the waitlist” stub. Plans and the Stripe hook are in `assets/site/checkout.js`. Footer carries 18+ and Gambling Help Online (1800 858 858).
+- **`/t/<handle>`** — public verified tipster page (avatar, record, units chart, last-10 dots, streak, recent tips). GitHub Pages can’t rewrite, so `404.html` renders any `/t/<handle>` path and every other unknown path stays a normal 404. `/t/index.html?handle=` is the fallback that returns 200. Stats are computed from tip rows and skip historical imports. The page shows example data (labelled) until `GET /api/public/tipster/<handle>` exists.
+- Settings menu gains a Public site link. `TD.version` is 0.45.1.
+- Tests: `tests/checkout.test.js`, `tests/tipster_stats.test.js`.
+
 ## 0.44.1 · 2026-10-06 · `server-view` · Server page matches the stat cards, charts and tip list
 
 The server page (open a Discord server) now leads with the same kind of record Cinna mocked up: units, ROI, strike rate and the W–L record with pushes, form dots and the hot streak when the server sends form, a units-over-time line and a monthly P&L bar chart, then the recent tips in that tighter list. Charts are hand-drawn SVG and follow the day, night and ochre colours already in the app.

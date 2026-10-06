@@ -14,18 +14,18 @@
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
-<script src="./assets/req-pool.js?v=0.44.1"></script>
+<script src="./assets/req-pool.js?v=0.45.1"></script>
 <script src="./assets/light-data.js"></script>
 <script src="./assets/lines.js"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
-<script src="./assets/scheduled-tips.js?v=0.44.1"></script>
-<script src="./assets/upcoming-split.js?v=0.44.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.45.1"></script>
+<script src="./assets/upcoming-split.js?v=0.45.1"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.44.1"></script>
-<script src="./assets/form-badges.js?v=0.44.1"></script>
-<script src="./assets/svg-charts.js?v=0.44.1"></script>
-<script src="./assets/server-view.js?v=0.44.1"></script>
+<script src="./assets/tb-motion.js?v=0.45.1"></script>
+<script src="./assets/form-badges.js?v=0.45.1"></script>
+<script src="./assets/svg-charts.js?v=0.45.1"></script>
+<script src="./assets/server-view.js?v=0.45.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -1057,6 +1057,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
+          <a class="dd-item" href="./welcome/" style="color:inherit;text-decoration:none">Public site <span style="color:var(--faint)">›</span></a>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <a class="dd-item" id="dd-master" href="./master/" hidden>Master server (beta) <span style="color:var(--faint)">›</span></a>
           <div class="dd-item" id="dd-owner-settings" role="button" tabindex="0" hidden>Owner settings <span style="color:var(--faint)">›</span></div>
@@ -1086,7 +1087,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.44.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.45.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1468,7 +1469,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.44.1";
+  TD.version="0.45.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };

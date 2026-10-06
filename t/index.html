@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Verified tipster — TipBot</title>
+<meta name="description" content="A TipBot verified tipster record: units, ROI, strike rate, form and recent tips. Example data until the public API is live.">
+<link rel="canonical" href="https://tipdashhq.com/t/">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="TipBot">
+<meta property="og:title" content="Verified tipster — TipBot">
+<meta property="og:description" content="Units, ROI, strike rate and recent tips on TipBot.">
+<meta property="og:url" content="https://tipdashhq.com/t/">
+<meta property="og:image" content="https://tipdashhq.com/assets/icon-512.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/assets/site/site.css?v=0.45.1">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="/welcome/"><img src="/assets/favicon.svg" alt="" width="30" height="30"><span>TipBot</span></a>
+  <nav class="site-nav" aria-label="Site">
+    <a href="/welcome/">Home</a>
+    <a href="/pricing/">Pricing</a>
+    <a href="/">Dashboard</a>
+  </nav>
+</header>
+<main id="main" class="wrap">
+  <p class="loading">Loading record…</p>
+</main>
+<footer class="site-footer">
+  <p>© TipBot · tipdashhq.com · tipdash 0.45.1</p>
+  <p><strong>18+ only.</strong> Gamble responsibly. If gambling is a problem for you or someone you know, call Gambling Help Online on <a href="tel:1800858858">1800 858 858</a> or visit <a href="https://www.gamblinghelponline.org.au/" rel="noopener noreferrer">gamblinghelponline.org.au</a>.</p>
+  <p>Past results don’t guarantee future returns.</p>
+</footer>
+<script src="/assets/site/tipster-stats.js?v=0.45.1"></script>
+<script src="/assets/site/site.js?v=0.45.1"></script>
+<script src="/assets/site/tipster-page.js?v=0.45.1"></script>
+<script>
+  var handle = TipsterStats.tipsterHandleFromQuery(location.search) || "midfieldmick";
+  TipsterPage.boot(document.getElementById("main"), handle);
+</script>
+</body>
+</html>
