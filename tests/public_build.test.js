@@ -39,7 +39,8 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     assert.ok(fs.existsSync(path.join(dist, rel)), rel);
   }
   assert.equal(fs.readFileSync(path.join(dist, "CNAME"), "utf8").trim(), "tipdashhq.com");
-  assert.equal(fs.readFileSync(path.join(dist, "VERSION"), "utf8").trim(), "0.48.1");
+  const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
+  assert.equal(fs.readFileSync(path.join(dist, "VERSION"), "utf8").trim(), version);
   for (const rel of [
     "CHANGELOG.md",
     "REMAINING.md",
@@ -48,6 +49,8 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     "assets/consensus-ui.js",
     "assets/master-access.js",
     "assets/slip-ui.js",
+    "assets/admin.js",
+    "assets/owner-tools.js",
     "tests/public_build.test.js",
     "GPT/index.html",
   ]) {
@@ -116,6 +119,15 @@ test("scanner keeps only the explicit allow-list and fails closed otherwise", as
 
   writeTree(dir, { "welcome/index.html": "<p>From A$2.42</p>" });
   assert.ok(scanTree(dir).some((p) => p.rel === "welcome/index.html" && p.kind === "aud-price"));
+
+  writeTree(dir, { "leak.js": 'console.warn("nope");\n' });
+  assert.ok(scanTree(dir).some((p) => p.rel === "leak.js" && p.kind === "console"));
+
+  writeTree(dir, { "leak.js": 'var label = "God mode";\n' });
+  assert.ok(scanTree(dir).some((p) => p.rel === "leak.js" && p.kind === "owner-tool" && p.match === "God mode"));
+
+  writeTree(dir, { "leak.js": 'fetch("/api/owner/import-tips");\n' });
+  assert.ok(scanTree(dir).some((p) => p.kind === "owner-tool" && p.match === "/api/owner/import-tips"));
 
   fs.rmSync(dir, { recursive: true, force: true });
 });

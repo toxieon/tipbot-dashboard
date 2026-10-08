@@ -131,13 +131,18 @@ test("god-delete of a settled tip is hold-to-confirm", () => {
 
 // ── Phase 3 · history-nav ──────────────────────────────────────────────────────
 test("every view opener records history (navNote) so Back stays in the app", () => {
-  for (const sig of ["function enterHome(){", "async function loadDetail(guildId,month,opts){", "async function openFollowers(gid,name){",
+  for (const sig of ["async function loadDetail(guildId,month,opts){", "async function openFollowers(gid,name){",
     "async function openMyTips(fromGid,fromName,month){", "async function openDiscover(fromGid,fromName){", "async function openResults(guildId,name){",
     "async function openFollowerView(gid,name,month){", "async function openFollowerAllView(month){"]) {
     const i = HTML.indexOf(sig);
     assert.ok(i > 0, sig);
     assert.match(HTML.slice(i, i + 260), /navNote\("#\//, sig + " calls navNote first");
   }
+  const home = HTML.indexOf("function enterHome(){");
+  assert.ok(home > 0, "function enterHome(){");
+  const homeBody = HTML.slice(home, home + 700);
+  assert.match(homeBody, /navNote\("#\/"/, "enterHome records home");
+  assert.match(homeBody, /if\(ok\) return/, "a deep link is routed before the home shortcut");
   const b = read("assets/builder.js");
   for (const fn of ["openBuilder", "openEspnBuilder", "openEspnEvent", "openCustom", "openGame", "renderConfirm", "renderBatchConfirm"]) {
     const i = b.search(new RegExp("function " + fn + "\\("));
@@ -221,5 +226,5 @@ test("home-screen app: one manifest, Cinna's PNG icons (iOS ignores SVG touch ic
 
 test("switches are exposed to assistive tech", () => {
   assert.match(read("assets/tb-motion.js"), /setAttribute\("role", "switch"\)/);
-  assert.match(HTML, /id="godtoggle" aria-label="God mode"/);
+  assert.match(read("assets/owner-tools.js"), /id="godtoggle" aria-label="God mode"/);
 });

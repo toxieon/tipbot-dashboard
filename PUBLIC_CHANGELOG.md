@@ -1,5 +1,9 @@
 # Tipdash
 
+## 0.49.1
+
+Faster first load on a phone. A new version replaces the old copy instead of sticking around. Admin tools stay hidden until the session is confirmed. Narrow phone screens no longer slide sideways.
+
 ## 0.48.1
 
 Compare is back. Pick a player prop and see the best price for that line, plus nearby lines, across the bookies we have.

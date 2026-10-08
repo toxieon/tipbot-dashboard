@@ -55,8 +55,8 @@ test("TipBot's market labels win when the roster carries them", () => {
 });
 
 test("index.html loads the helper and routes basketball events to the prop picker", () => {
-  assert.match(HTML, /<script src="\.\/assets\/espn-props\.js"><\/script>/);
-  assert.ok(HTML.indexOf("espn-props.js") < HTML.indexOf("<script>\n"), "helper loads before the app script");
+  assert.match(HTML, /<script src="\.\/assets\/espn-props\.js\?v=[^"]+"><\/script>/);
+  assert.ok(HTML.indexOf("espn-props.js") < HTML.indexOf("const API="), "helper loads before the app script");
   assert.match(APP, /const NFL_PROP_TABS=TBEspnProps\.NFL_PROP_TABS;/);
   assert.match(APP, /if\(TBEspnProps\.hasProps\(BUILD\.espnLeague\)\)\{/);
   assert.match(APP, /api\(TBEspnProps\.playersUrl\(league, ev\.id\)\)/);

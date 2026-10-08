@@ -246,3 +246,27 @@ test("smoke (mocked API): home and a server open without the lazy files; each pa
   assert.match(ctx.byId("paste-sheet-msg").textContent + ctx.byId("paste-summary").textContent, /1 tip/);
   assert.equal(ctx.loadError, undefined);
 });
+
+test("a server owner without the platform session does not get platform tools", async () => {
+  const ctx = appContext(BODIES);
+  await tick(80);
+  vm.runInContext(`loadDetail("${GID}")`, ctx);
+  await tick(80);
+  const html = ctx.byId("detail").innerHTML;
+  assert.match(html, /Build a tip/);
+  assert.doesNotMatch(html, /adminpanel|godtoggle|paste-sheet-ta|Debug menu/);
+  assert.equal(ctx.fetched.some((u) => /owner-tools\.js/.test(u)), false);
+});
+
+test("the platform session loads platform tools onto the server page", async () => {
+  const bodies = BODIES.map((pair) => pair.slice());
+  bodies[0][1] = Object.assign({}, bodies[0][1], {ops: true});
+  const ctx = appContext(bodies);
+  await tick(80);
+  vm.runInContext(`loadDetail("${GID}")`, ctx);
+  await tick(150);
+  assert.equal(ctx.loadError, undefined);
+  assert.match(ctx.byId("detail").innerHTML, /godtoggle/);
+  assert.match(ctx.byId("detail").innerHTML, /paste-sheet-ta/);
+  assert.ok(ctx.fetched.some((u) => /owner-tools\.js\?v=/.test(u)));
+});

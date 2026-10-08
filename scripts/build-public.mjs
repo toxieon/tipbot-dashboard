@@ -33,7 +33,30 @@ export const ASSET_DENY = new Set([
   "assets/consensus-ui.js",
   "assets/master-access.js",
   "assets/slip-ui.js",
+  "assets/admin.js",
+  "assets/owner-tools.js",
 ]);
+
+// Phrases that must not appear in the public copy. The secret-word scan above
+// is separate and must not be widened.
+export const CONSOLE_RE = /console\.(?:log|debug|info|warn|error|trace)\s*\(/g;
+export const OWNER_PHRASES = [
+  "Debug menu",
+  "God mode",
+  "God re-grade",
+  "Paste tip sheet",
+  "/api/debug",
+  "/api/god-",
+  "/api/queue-status",
+  "/api/leave-server",
+  "/api/owner-invite",
+  "/api/owner/signup",
+  "/api/owner/follower-map",
+  "/api/owner/import-tips",
+  "/api/owner/tipsheet",
+  "Odds API markets",
+  "Australia-only sign-ups",
+];
 
 export const DENY_FILES = new Set([
   "CHANGELOG.md",
@@ -147,6 +170,19 @@ export function scanText(rel, text) {
     while ((m = aud.exec(text))) {
       const line = text.slice(0, m.index).split("\n").length;
       problems.push({ rel: posix, kind: "aud-price", match: m[0], line });
+    }
+  }
+  const cons = new RegExp(CONSOLE_RE.source, "g");
+  while ((m = cons.exec(text))) {
+    const line = text.slice(0, m.index).split("\n").length;
+    problems.push({ rel: posix, kind: "console", match: m[0], line });
+  }
+  for (const phrase of OWNER_PHRASES) {
+    let at = text.indexOf(phrase);
+    while (at !== -1) {
+      const line = text.slice(0, at).split("\n").length;
+      problems.push({ rel: posix, kind: "owner-tool", match: phrase, line });
+      at = text.indexOf(phrase, at + phrase.length);
     }
   }
   return problems;
