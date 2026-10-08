@@ -7,6 +7,7 @@ const C = require("../assets/compare-ui.js");
 
 const root = path.join(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
+const VERSION = read("VERSION").trim();
 
 test("exact line is ranked by price and the best price is marked", () => {
   const view = C.fromCompare(C.sampleCompare(), C.samplePick());
@@ -146,7 +147,7 @@ test("the builder shows Compare as a closed section and does not hide the button
   assert.match(builder, /<button type="button" class="compare-btn"/);
   assert.doesNotMatch(builder, /FEATURE_COMPARE/);
   assert.doesNotMatch(html, /FEATURE_COMPARE/);
-  assert.match(html, /<script src="\.\/assets\/compare-ui\.js\?v=0\.49\.1"><\/script>/);
+  assert.match(html, new RegExp('<script src="\\./assets/compare-ui\\.js\\?v=' + VERSION.replace(/\./g, "\\.") + '"></script>'));
   assert.match(html, /compare-lead/);
   assert.match(read("compare/index.html"), /TBCompare/);
   const fresh = read("assets/compare-ui.js") + read("compare/index.html") + read("PUBLIC_CHANGELOG.md") + read("CHANGELOG.md").split("## 0.47.1")[0];

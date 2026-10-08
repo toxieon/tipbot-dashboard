@@ -410,6 +410,203 @@
     };
   }
 
+  function ensureCustomGamesCss(){
+    if(document.getElementById("cg-css")) return;
+    const style=document.createElement("style");
+    style.id="cg-css";
+    style.textContent=""
+      +"#ops{min-width:0;max-width:100%}"
+      +"#ops .cg-panel{max-width:560px}"
+      +"#ops .cg-panel .switch{min-height:44px}"
+      +"#ops .cg-note{color:var(--muted);font-size:var(--t-foot);line-height:1.45;margin:10px 0 0}"
+      +"#ops .cg-status{min-height:1.35em;margin:10px 0 0;font-size:var(--t-sub);color:var(--muted)}"
+      +"#ops .cg-status.ok{color:var(--win)}"
+      +"#ops .cg-status.err{color:var(--loss)}"
+      +"#ops .cg-servers-label{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 0}"
+      +"#ops .cg-empty{color:var(--faint);font-size:var(--t-sub);margin:10px 0 0}"
+      +"#ops .cg-row{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 0;border-top:1px solid var(--line)}"
+      +"#ops .cg-who{min-width:0;flex:1}"
+      +"#ops .cg-name{font-weight:650;font-size:var(--t-callout);overflow-wrap:anywhere}"
+      +"#ops .cg-id{color:var(--faint);font-size:var(--t-foot);overflow-wrap:anywhere}"
+      +"#ops .cg-remove{min-height:44px;min-width:44px;flex:none}"
+      +"#ops .cg-add{display:grid;gap:8px;margin-top:16px}"
+      +"#ops .cg-add label{font-weight:650;font-size:var(--t-sub)}"
+      +"#ops .cg-add-row{display:flex;gap:8px;flex-wrap:wrap}"
+      +"#ops .cg-add-row input{flex:1 1 12rem;min-width:0;min-height:44px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit}"
+      +"#ops .cg-add-row .btn{min-height:44px}";
+    document.head.appendChild(style);
+  }
+  function clearOps(){
+    const box=$("ops"); if(box) box.innerHTML="";
+  }
+  function customGamesPanelHTML(data, status){
+    const on=!!(data&&data.enabled);
+    const rows=Array.isArray(data&&data.whitelist)?data.whitelist:[];
+    const st=status||{};
+    const kind=st.kind==="ok"||st.kind==="err"?st.kind:"";
+    const list=rows.length?rows.map(function(row){
+      const gid=String(row&&row.guild_id!=null?row.guild_id:"");
+      const name=row&&row.name!=null?String(row.name).trim():"";
+      const title=name||gid||"Server";
+      return '<div class="cg-row"><div class="cg-who"><div class="cg-name">'+esc(title)+'</div>'
+        +(name&&gid?'<div class="cg-id">'+esc(gid)+'</div>':'')
+        +'</div><button type="button" class="ghost cg-remove" data-gid="'+esc(gid)+'" data-name="'+esc(title)+'" aria-label="Remove '+esc(title)+'">Remove</button></div>';
+    }).join(""):'<p class="cg-empty">No servers yet.</p>';
+    return '<section class="panel cg-panel" data-custom-games>'
+      +'<h3>Custom games</h3>'
+      +'<div class="switch"><button type="button" class="toggle'+(on?" on":"")+'" id="cg-allow" role="switch" aria-checked="'+(on?"true":"false")+'" aria-label="Allow custom games"></button><span>Allow custom games</span></div>'
+      +'<p class="cg-note">Custom bet lines on fixture games still work when this is off.</p>'
+      +'<p id="cg-status" class="cg-status'+(kind?" "+kind:"")+'" role="status" aria-live="polite">'+esc(st.text||"")+'</p>'
+      +'<div class="cg-servers"><div class="cg-servers-label">Servers</div>'+list+'</div>'
+      +'<form id="cg-add" class="cg-add"><label for="cg-guild">Add a server</label>'
+      +'<div class="cg-add-row"><input id="cg-guild" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="Server id" aria-label="Server id">'
+      +'<button class="btn" type="submit">Add</button></div></form></section>';
+  }
+  function setCgStatus(text, kind){
+    const el=$("cg-status"); if(!el) return;
+    el.textContent=text||"";
+    el.className="cg-status"+(kind==="ok"||kind==="err"?" "+kind:"");
+  }
+  function paintCustomGames(slot, data, status){
+    if(STATE.ops!==true||!slot) return;
+    slot.innerHTML=customGamesPanelHTML(data, status);
+    wireCustomGames(slot);
+  }
+  function customGamesFailText(r, j){
+    const msg=j&&(typeof j.error==="string"?j.error:(typeof j.message==="string"?j.message:""));
+    if(msg) return msg;
+    if(r&&!r.ok) return "Couldn't update custom games ("+r.status+").";
+    return "Couldn't update custom games.";
+  }
+  async function postCustomGames(path, body){
+    if(STATE.ops!==true) return null;
+    const r=await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    let j=null; try{ j=await r.json(); }catch(e){ j=null; }
+    return {r:r, j:j};
+  }
+  let CG_BUSY=false;
+  let CG_LOAD=0;
+  function wireCustomGames(slot){
+    const sw=slot.querySelector(".switch");
+    if(sw) sw.onclick=function(){
+      const btn=$("cg-allow"); if(!btn||btn.disabled||CG_BUSY) return;
+      setCustomGamesEnabled(!btn.classList.contains("on"), slot);
+    };
+    const form=$("cg-add");
+    if(form) form.onsubmit=function(ev){
+      ev.preventDefault();
+      if(CG_BUSY) return;
+      const input=$("cg-guild");
+      const gid=(input&&input.value||"").trim();
+      if(!/^[1-9]\d{4,24}$/.test(gid)){ setCgStatus("Enter a server id.", "err"); if(input) input.focus(); return; }
+      addCustomGameServer(gid, slot);
+    };
+    slot.querySelectorAll(".cg-remove").forEach(function(btn){
+      btn.onclick=function(){ if(CG_BUSY) return; removeCustomGameServer(btn.getAttribute("data-gid")||"", btn.getAttribute("data-name")||"", slot); };
+    });
+  }
+  function cgServerLabel(data, gid, fallback){
+    const rows=Array.isArray(data&&data.whitelist)?data.whitelist:[];
+    const row=rows.find(function(item){ return String(item&&item.guild_id||"")===String(gid); });
+    const name=row&&row.name!=null?String(row.name).trim():"";
+    return name||fallback||gid;
+  }
+  async function setCustomGamesEnabled(want, slot){
+    if(STATE.ops!==true||CG_BUSY) return;
+    const on=!!want;
+    CG_BUSY=true;
+    const btn=$("cg-allow"); if(btn) btn.disabled=true;
+    setCgStatus("Saving…", "");
+    try{
+      const out=await postCustomGames("/api/ops/custom-games", {enabled:on});
+      if(!out||STATE.ops!==true) return;
+      if(out.r.status===404){ clearOps(); return; }
+      if(!out.r.ok||!out.j||out.j.ok!==true||typeof out.j.enabled!=="boolean"){
+        setCgStatus(customGamesFailText(out.r, out.j), "err");
+        return;
+      }
+      paintCustomGames(slot, out.j, {kind:"ok", text:out.j.enabled?"Custom games are on.":"Custom games are off."});
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      setCgStatus("Couldn't reach TipBot.", "err");
+    }finally{ CG_BUSY=false; const b=$("cg-allow"); if(b) b.disabled=false; }
+  }
+  async function addCustomGameServer(gid, slot){
+    if(STATE.ops!==true||CG_BUSY) return;
+    CG_BUSY=true;
+    const submit=slot.querySelector("#cg-add button"); if(submit) submit.disabled=true;
+    setCgStatus("Saving…", "");
+    try{
+      const out=await postCustomGames("/api/ops/custom-games/whitelist", {guild_id:gid, allow:true});
+      if(!out||STATE.ops!==true) return;
+      if(out.r.status===404){ clearOps(); return; }
+      if(!out.r.ok||!out.j||out.j.ok!==true){
+        setCgStatus(customGamesFailText(out.r, out.j), "err");
+        return;
+      }
+      paintCustomGames(slot, out.j, {kind:"ok", text:"Added "+cgServerLabel(out.j, gid, gid)+"."});
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      setCgStatus("Couldn't reach TipBot.", "err");
+    }finally{ CG_BUSY=false; const s=slot.querySelector("#cg-add button"); if(s) s.disabled=false; }
+  }
+  async function removeCustomGameServer(gid, name, slot){
+    if(STATE.ops!==true||CG_BUSY||!gid) return;
+    CG_BUSY=true;
+    setCgStatus("Saving…", "");
+    try{
+      const out=await postCustomGames("/api/ops/custom-games/whitelist", {guild_id:gid, allow:false});
+      if(!out||STATE.ops!==true) return;
+      if(out.r.status===404){ clearOps(); return; }
+      if(!out.r.ok||!out.j||out.j.ok!==true){
+        setCgStatus(customGamesFailText(out.r, out.j), "err");
+        return;
+      }
+      paintCustomGames(slot, out.j, {kind:"ok", text:"Removed "+(name||gid)+"."});
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      setCgStatus("Couldn't reach TipBot.", "err");
+    }finally{ CG_BUSY=false; }
+  }
+  async function loadCustomGames(slot){
+    if(STATE.ops!==true){ if(slot) slot.innerHTML=""; return; }
+    if(!slot) return;
+    const seq=++CG_LOAD;
+    const first=!slot.querySelector("[data-custom-games]");
+    if(first) slot.textContent="Loading custom games…";
+    try{
+      const r=await api("/api/ops/custom-games",{retries:1,timeoutMs:20000});
+      if(seq!==CG_LOAD||STATE.ops!==true){ if(STATE.ops!==true) slot.innerHTML=""; return; }
+      if(r.status===404){ slot.innerHTML=""; return; }
+      let j=null; try{ j=await r.json(); }catch(e){ j=null; }
+      if(seq!==CG_LOAD) return;
+      if(!r.ok||!j||j.ok!==true||typeof j.enabled!=="boolean"){
+        const msg=(j&&(j.error||j.message))||"Couldn't load custom games.";
+        if(first) slot.innerHTML='<section class="panel cg-panel"><h3>Custom games</h3><p class="cg-status err" role="status">'+esc(msg)+'</p></section>';
+        else setCgStatus(msg, "err");
+        return;
+      }
+      paintCustomGames(slot, j, null);
+    }catch(e){
+      if(seq!==CG_LOAD) return;
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      if(STATE.ops!==true){ slot.innerHTML=""; return; }
+      if(first) slot.innerHTML='<section class="panel cg-panel"><h3>Custom games</h3><p class="cg-status err" role="status">Couldn\'t reach TipBot.</p></section>';
+      else setCgStatus("Couldn't reach TipBot.", "err");
+    }
+  }
+  function paintOps(box){
+    if(STATE.ops!==true||!box) return;
+    ensureCustomGamesCss();
+    let slot=box.querySelector("[data-custom-games-slot]");
+    if(!slot){
+      slot=document.createElement("div");
+      slot.setAttribute("data-custom-games-slot","");
+      box.insertBefore(slot, box.firstChild);
+    }
+    loadCustomGames(slot);
+  }
+
   window.TBOwner={
     adminHtml:adminHtml,
     bindAdmin:bindAdmin,
@@ -418,6 +615,14 @@
     ensureSettingsMarkup:ensureSettingsMarkup,
     paintSignup:paintSignup,
     wireSignup:wireSignup,
+    paintOps:paintOps,
+    clearOps:clearOps,
+    customGamesPanelHTML:customGamesPanelHTML,
+    setCustomGamesEnabled:setCustomGamesEnabled,
+    addCustomGameServer:addCustomGameServer,
+    removeCustomGameServer:removeCustomGameServer,
+    loadCustomGames:loadCustomGames,
+    postCustomGames:postCustomGames,
     settlePath:function(){ return "/api/god-settle"; },
     gradeLabel:function(){ return "🔱 God re-grade:"; },
     settledDeleteTitle:function(){ return "God-delete & redact"; },

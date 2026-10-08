@@ -1,8 +1,12 @@
 # Tipdash
 
+## 0.49.2
+
+The tip builder now explains when a custom game isn't available in a server.
+
 ## 0.49.1
 
-Faster first load on a phone. A new version replaces the old copy instead of sticking around. Admin tools stay hidden until the session is confirmed. Narrow phone screens no longer slide sideways.
+Faster first load on a phone. A new version replaces the old copy instead of sticking around. Narrow phone screens no longer slide sideways.
 
 ## 0.48.1
 

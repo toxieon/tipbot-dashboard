@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const vm = require("node:vm");
 
 const root = path.join(__dirname, "..");
 const modP = import("../scripts/build-public.mjs");
@@ -146,4 +147,182 @@ test("--scan exits non-zero when a secret word is present", async () => {
   });
   assert.equal(ok.status, 0, ok.stderr);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+function extractFn(src, name) {
+  const start = src.indexOf("function " + name + "(");
+  if (start < 0) throw new Error("missing " + name);
+  let i = src.indexOf("{", start);
+  let depth = 0;
+  for (; i < src.length; i++) {
+    const c = src[i];
+    if (c === "{") depth++;
+    else if (c === "}") {
+      depth--;
+      if (depth === 0) return src.slice(start, i + 1);
+    }
+  }
+  throw new Error("unclosed " + name);
+}
+
+test("custom games controls stay out of the public copy", async () => {
+  const { build, scanTree } = await modP;
+  const result = build({ root, dist: path.join(root, "dist") });
+  assert.deepEqual(scanTree(result.dist), []);
+  assert.equal(fs.existsSync(path.join(result.dist, "assets/owner-tools.js")), false);
+  const banned = [
+    /\/api\/ops\/custom-games/,
+    /Allow custom games/,
+    /Custom bet lines on fixture games still work when this is off/,
+    /data-custom-games/,
+    /cg-allow/,
+    /custom-games\/whitelist/,
+  ];
+  function walk(dir) {
+    for (const name of fs.readdirSync(dir)) {
+      const abs = path.join(dir, name);
+      if (fs.statSync(abs).isDirectory()) { walk(abs); continue; }
+      if (!/\.(html|js|css|md|json|webmanifest|txt)$/.test(name)) continue;
+      const text = fs.readFileSync(abs, "utf8");
+      for (const re of banned) assert.doesNotMatch(text, re, abs);
+    }
+  }
+  walk(result.dist);
+
+  const dash = fs.readFileSync(path.join(result.dist, "index.html"), "utf8");
+  const builder = fs.readFileSync(path.join(result.dist, "assets/builder.js"), "utf8");
+  const blocked = "Custom games aren't available in this server.";
+  assert.match(dash, /<div id="ops" hidden><\/div>/);
+  assert.match(builder, /Custom games aren't available in this server\./);
+  const bctx = {};
+  vm.createContext(bctx);
+  vm.runInContext(extractFn(builder, "scheduleRefusal"), bctx);
+  assert.equal(bctx.scheduleRefusal({ ok: false, message: blocked }, ""), blocked);
+  assert.equal(bctx.scheduleRefusal({ ok: false, error: "bad_request", errors: ["tip 0: " + blocked] }, ""), blocked);
+  assert.equal(bctx.scheduleRefusal({ ok: false, message: "Odds must be greater than 1." }, ""), "");
+  assert.equal(bctx.scheduleRefusal(null, ""), "");
+  const failAt = builder.indexOf("function failMsg");
+  const doAt = builder.indexOf("async function doSchedule");
+  assert.ok(failAt > 0 && builder.indexOf("scheduleRefusal(j, raw)", failAt) < builder.indexOf("Couldn't schedule batch", failAt));
+  assert.ok(doAt > 0 && builder.indexOf("scheduleRefusal(j, raw)", doAt) < builder.indexOf("Couldn't schedule.", doAt));
+
+  const tools = fs.readFileSync(path.join(root, "assets/owner-tools.js"), "utf8");
+  const load = extractFn(tools, "loadCustomGames");
+  const post = extractFn(tools, "postCustomGames");
+  assert.ok(load.indexOf("STATE.ops!==true") >= 0);
+  assert.ok(load.indexOf("STATE.ops!==true") < load.indexOf("/api/ops/custom-games"));
+  assert.ok(post.indexOf("STATE.ops!==true") < post.indexOf("api(path"));
+  assert.match(tools, /postCustomGames\("\/api\/ops\/custom-games", \{enabled:on\}\)/);
+  assert.match(post, /JSON\.stringify\(body\)/);
+  assert.match(tools, /\{guild_id:gid, allow:true\}/);
+  assert.match(tools, /\{guild_id:gid, allow:false\}/);
+  assert.match(tools, /Custom bet lines on fixture games still work when this is off\./);
+  const open = extractFn(dash, "openOps");
+  assert.match(open, /TBOwner\.paintOps/);
+  assert.match(open, /ensureOwnerTools/);
+  assert.doesNotMatch(open, /\/api\/ops\/custom-games|Allow custom games|whitelist|data-custom-games/);
+
+  const calls = [];
+  const opsBox = { innerHTML: "sentinel" };
+  const status = { textContent: "", className: "" };
+  const ctx = {
+    STATE: { ops: false },
+    TD: { loaded: {} },
+    esc(s) { return String(s == null ? "" : s); },
+    $(id) { return id === "ops" ? opsBox : (id === "cg-status" ? status : { disabled: false }); },
+    api() { calls.push([].slice.call(arguments)); return Promise.resolve({ status: 200, ok: true, json: async () => ({}) }); },
+    renderLogin() {},
+    document: {
+      getElementById() { return null; },
+      createElement() { return { id: "", textContent: "" }; },
+      head: { appendChild() {} },
+    },
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(tools, ctx);
+  const owner = ctx.TBOwner;
+  const slot = {
+    innerHTML: "stale",
+    textContent: "",
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+  };
+  await owner.loadCustomGames(slot);
+  assert.equal(calls.length, 0, "non-owner must not request custom games");
+  assert.equal(slot.innerHTML, "");
+  owner.paintOps(opsBox);
+  assert.equal(calls.length, 0);
+
+  ctx.STATE.ops = true;
+  const sample = {
+    ok: true,
+    enabled: true,
+    whitelist: [{ guild_id: "1546102020732100658", name: "Tip2" }, { guild_id: "99", name: null }],
+  };
+  const html = owner.customGamesPanelHTML(sample, null);
+  assert.match(html, /aria-label="Allow custom games"/);
+  assert.match(html, /aria-checked="true"/);
+  assert.match(html, /class="toggle on"/);
+  assert.match(html, />Tip2</);
+  assert.match(html, /1546102020732100658/);
+  assert.match(html, /aria-label="Remove Tip2"/);
+  assert.match(html, />99</);
+  assert.equal((html.match(/cg-id/g) || []).length, 1);
+  assert.match(html, /Add a server/);
+  assert.match(html, /placeholder="Server id"/);
+  assert.match(html, /Custom bet lines on fixture games still work when this is off\./);
+  assert.doesNotMatch(html, /forward|mirror|master|consensus/i);
+
+  const off = owner.customGamesPanelHTML({ ok: true, enabled: false, whitelist: [] }, { kind: "err", text: "Couldn't update custom games." });
+  assert.match(off, /aria-checked="false"/);
+  assert.doesNotMatch(off, /class="toggle on"/);
+  assert.match(off, /cg-status err/);
+  assert.match(off, /No servers yet/);
+
+  let posted = null;
+  ctx.api = async function (path, opts) {
+    posted = { path, body: opts && opts.body ? JSON.parse(opts.body) : null, method: opts && opts.method };
+    calls.push(path);
+    return {
+      status: 200,
+      ok: true,
+      async json() {
+        return { ok: true, enabled: false, whitelist: sample.whitelist };
+      },
+    };
+  };
+  const live = {
+    innerHTML: "",
+    textContent: "",
+    querySelector() { return { onclick: null }; },
+    querySelectorAll() { return []; },
+  };
+  await owner.setCustomGamesEnabled(false, live);
+  assert.equal(posted.path, "/api/ops/custom-games");
+  assert.equal(posted.method, "POST");
+  assert.equal(typeof posted.body.enabled, "boolean");
+  assert.equal(posted.body.enabled, false);
+  assert.match(live.innerHTML, /Custom games are off/);
+  assert.match(live.innerHTML, /cg-status ok/);
+
+  await owner.addCustomGameServer("1546102020732100658", live);
+  assert.equal(posted.path, "/api/ops/custom-games/whitelist");
+  assert.equal(posted.body.allow, true);
+  assert.equal(typeof posted.body.allow, "boolean");
+  assert.equal(posted.body.guild_id, "1546102020732100658");
+  assert.match(live.innerHTML, /Added Tip2/);
+
+  await owner.removeCustomGameServer("1546102020732100658", "Tip2", live);
+  assert.equal(posted.body.allow, false);
+  assert.equal(typeof posted.body.allow, "boolean");
+  assert.match(live.innerHTML, /Removed Tip2/);
+
+  ctx.api = async function () {
+    return { status: 404, ok: false, async json() { return { ok: false, error: "not_found" }; } };
+  };
+  live.innerHTML = "<section data-custom-games>controls</section>";
+  await owner.loadCustomGames(live);
+  assert.equal(live.innerHTML, "");
+  assert.doesNotMatch(live.innerHTML, /Allow custom games/);
 });

@@ -1,5 +1,16 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.49.2 · 2026-10-08 · `custom-games` · Owner controls for custom games
+
+Needs TipBot 0.55.1. The program-owner panel lives in `assets/owner-tools.js` and loads only after `/api/me` says `ops: true`. It is left out of the public copy.
+
+- **Allow custom games** reads and sets `enabled` on `GET` and `POST /api/ops/custom-games`. The value sent is a JSON boolean.
+- **Servers.** Each listed server shows its name when TipBot knows it, plus Remove. Add a server by its id with `POST /api/ops/custom-games/whitelist`.
+- The controls are not requested or drawn for anyone else. A 404 leaves them off the page.
+- One note: custom bet lines on fixture games still work when the switch is off.
+- The tip builder shows `Custom games aren't available in this server.` when a submit is refused with that message, including a batch.
+- Tests: `tests/public_build.test.js`.
+
 ## 0.49.1 · 2026-10-08 · `audit` · Phone load, layout, and session gates
 
 - A deep link (settings, a server, results) is kept when the account has one server. The home shortcut no longer overwrites it.
