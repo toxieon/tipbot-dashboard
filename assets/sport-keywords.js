@@ -1,4 +1,4 @@
-/* Sport-routing keyword matcher (Phase 1.1). Mirrors TipBot services/sport_tags.py:
+/* Sport-routing keyword matcher (Phase 1.1). Same rules as TipBot services/sport_tags.py:
  * comma-separated terms, case-insensitive, accent-folded, whole-word, punctuation allowed.
  * Shared vectors: tests/fixtures/sport_keywords_vectors.json (identical bytes in both repos).
  * Browser global window.TBSportKeywords + CommonJS export for node --test.

@@ -1,0 +1,37 @@
+name: Deploy public site
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test
+        run: node --test tests/*.test.js
+      - name: Build public site
+        run: node scripts/build-public.mjs
+      - name: Publish dist
+        env:
+          PUBLIC_SITE_DEPLOY_KEY: ${{ secrets.PUBLIC_SITE_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$PUBLIC_SITE_DEPLOY_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PUBLIC_SITE_DEPLOY_KEY" > ~/.ssh/tipdash_deploy_key
+          chmod 600 ~/.ssh/tipdash_deploy_key
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/tipdash_deploy_key -o IdentitiesOnly=yes"
+          cd dist
+          git init -b main
+          git config user.email "deploy@tipdashhq.com"
+          git config user.name "tipdash deploy"
+          git add -A
+          git commit -m "Publish tipdash $(cat ../VERSION)"
+          git remote add origin git@github.com:toxieon/tipdashhq-site.git
+          git push --force origin main

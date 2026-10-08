@@ -39,7 +39,7 @@ test("relative post time", () => {
   assert.equal(T.rel("2026-09-30T12:00:10Z", now), "any moment");
 });
 
-test("list shows each scheduled tip with when it posts, image and forward badges", async () => {
+test("list shows each scheduled tip with when it posts and an image badge", async () => {
   const {api, calls} = fakeApi((p) => [200, {ok: true, tips: [tip(), tip({tip_id: "x", display_id: "AFL-2026-041", releasing: true, has_image: false, forward: null})]}]);
   const ui = T.create({api, gid: G, when: () => "Wed 30 Sep 10:30 pm"});
   await ui.load();
@@ -48,7 +48,8 @@ test("list shows each scheduled tip with when it posts, image and forward badges
   assert.match(html, /AFL-2026-040/);
   assert.match(html, /Posts <b>Wed 30 Sep 10:30 pm<\/b> <span[^>]*>\(in (9|10) min\)/);
   assert.match(html, /📷 image/);
-  assert.match(html, /↗ forwarded/);
+  assert.doesNotMatch(html, /↗/);
+  assert.doesNotMatch(html, /forwarded/);
   assert.match(html, /Adjust odds/);
   assert.match(html, /Cancel tip/);
   assert.match(html, /Posting now…/);                                  // the one being released: buttons disabled
@@ -76,7 +77,8 @@ test("adjust odds posts an edit, then reloads the list", async () => {
   const post = calls.find((c) => c.method === "POST");
   assert.deepEqual(post, {path: "/api/scheduled-tip", method: "POST", body: {guild_id: G, tip_id: tip().tip_id, action: "edit", odds: 2.4}});
   assert.match(ui.view(), /2\.40/);
-  assert.match(ui.view(), /master copy updates too/);
+  assert.match(ui.view(), /Updated\./);
+  assert.doesNotMatch(ui.view(), /master/);
   assert.doesNotMatch(ui.view(), /Save odds/);                           // form closed
 });
 
@@ -96,7 +98,8 @@ test("edit legs + stake, and cancel", async () => {
     {guild_id: G, tip_id: tip().tip_id, action: "edit", units: 1.5, legs: [{position: 2, description: "Hawthorn H2H"}]});
   await ui.cancel(tip().tip_id);
   assert.deepEqual(calls.filter((c) => c.method === "POST")[1].body, {guild_id: G, tip_id: tip().tip_id, action: "cancel"});
-  assert.match(ui.view(), /Cancelled\. It won’t post, and the master copy is removed\./);
+  assert.match(ui.view(), /Cancelled\. It won’t post\./);
+  assert.doesNotMatch(ui.view(), /master/);
   assert.match(ui.view(), /No scheduled tips/);
 });
 
