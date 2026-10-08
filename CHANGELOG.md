@@ -1,5 +1,15 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.50.1 · 2026-10-08 · `apex` · Apex theme
+
+Navy, day and ochre are unchanged. Apex is an extra appearance, dark by default. With Auto on, Apex is light from 7 am to 7 pm Sydney time and dark after that, until midnight hands the choice back the way the other themes already do.
+
+- Tokens live on `html[data-theme="apex"]` everywhere the other themes do, including a light set for the day-time variant. The swatch is in Settings → Appearance.
+- Motion is in `assets/theme-apex.js` and `assets/theme-apex.css`, loaded only while Apex is on. Geist and Instrument Sans are self-hosted (SIL OFL).
+- Settled win and loss cards stamp once per tip per session. Last-10 form tiles flip in, a three-win run shows a flame, the units line draws on first view, upcoming tips get a countdown ring, and ranked rows slide when their order changes.
+- If the account server does not store Apex yet, the dashboard keeps the local choice instead of clearing it.
+- Tests: `tests/apex_theme.test.js`.
+
 ## 0.49.2 · 2026-10-08 · `custom-games` · Owner controls for custom games
 
 Needs TipBot 0.55.1. The program-owner panel lives in `assets/ext.js` and loads only after `/api/me` says `ops: true`. The public copy does not include that file, and it does not name it.

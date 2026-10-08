@@ -1,5 +1,9 @@
 # Tipdash
 
+## 0.50.1
+
+Apex is a new appearance theme, with quieter space and motion you can choose in Settings.
+
 ## 0.49.2
 
 The tip builder now explains when a custom game isn't available in a server.

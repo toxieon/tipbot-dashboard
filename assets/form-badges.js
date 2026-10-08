@@ -54,7 +54,7 @@
     var dots="";
     if(letters.length){
       dots='<span class="tb-form-dots" aria-hidden="true">'+letters.map(function(L){
-        return '<span class="tb-form-dot" style="background:'+dotColor(L)+'"></span>';
+        return '<span class="tb-form-dot" data-r="'+L+'" style="background:'+dotColor(L)+'"></span>';
       }).join("")+"</span>";
     }
     var tag="";
@@ -63,7 +63,8 @@
     }else if(streak){
       tag='<span class="tb-form-streak" aria-hidden="true">'+streak.type+streak.n+"</span>";
     }
-    return '<span class="tb-form" role="img" aria-label="'+esc(describe(letters, streak, hot))+'">'+dots+tag+"</span>";
+    var streakAttr=streak?' data-streak="'+streak.type+'" data-streak-n="'+streak.n+'"':"";
+    return '<span class="tb-form"'+streakAttr+' role="img" aria-label="'+esc(describe(letters, streak, hot))+'">'+dots+tag+"</span>";
   }
   function renderList(tipsters){
     var list=Array.isArray(tipsters)?tipsters:[];
