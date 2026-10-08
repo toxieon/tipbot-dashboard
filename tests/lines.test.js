@@ -23,6 +23,6 @@ test("index.html uses the shared helper", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   // 0.40.2: the builder (which calls it) moved to the lazy assets/builder.js.
   const builder = fs.readFileSync(path.join(__dirname, "..", "assets", "builder.js"), "utf8");
-  assert.match(html, /<script src="\.\/assets\/lines\.js"><\/script>/);
+  assert.match(html, /<script src="\.\/assets\/lines\.js\?v=[^"]+"><\/script>/);
   assert.match(builder, /function applyHalfPointLine\(leg\)\{ return TBLines\.applyHalfPointLine\(leg\); \}/);
 });

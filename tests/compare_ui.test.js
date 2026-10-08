@@ -146,7 +146,7 @@ test("the builder shows Compare as a closed section and does not hide the button
   assert.match(builder, /<button type="button" class="compare-btn"/);
   assert.doesNotMatch(builder, /FEATURE_COMPARE/);
   assert.doesNotMatch(html, /FEATURE_COMPARE/);
-  assert.match(html, /<script src="\.\/assets\/compare-ui\.js\?v=0\.48\.1"><\/script>/);
+  assert.match(html, /<script src="\.\/assets\/compare-ui\.js\?v=0\.49\.1"><\/script>/);
   assert.match(html, /compare-lead/);
   assert.match(read("compare/index.html"), /TBCompare/);
   const fresh = read("assets/compare-ui.js") + read("compare/index.html") + read("PUBLIC_CHANGELOG.md") + read("CHANGELOG.md").split("## 0.47.1")[0];

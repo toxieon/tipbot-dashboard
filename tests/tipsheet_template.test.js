@@ -45,10 +45,12 @@ test("TSV sheets are read as before", () => {
   assert.equal(p.singles[0].legs[0].player, "X, Y");
 });
 
-test("the download button is only in the owner-only Admin Tools panel", () => {
+test("the download button is only in the platform tools file", () => {
+  const tools = fs.readFileSync(path.join(ROOT, "assets/owner-tools.js"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const zone = html.slice(html.indexOf("const pasteSheetZone="), html.indexOf("const adminFeatures="));
+  const zone = tools.slice(tools.indexOf("const pasteSheetZone="), tools.indexOf("const adminFeatures="));
   assert.match(zone, /id="paste-template"/);
-  assert.match(html, /const adminPanel=isAdmin\?\(/);
-  assert.match(html, /const isAdmin=STATE\.role==="owner"&&!STATE\.viewAs;/);
+  assert.match(tools, /id="adminpanel"/);
+  assert.match(html, /STATE\.ops===true&&!STATE\.viewAs/);
+  assert.doesNotMatch(html, /id="paste-template"/);
 });

@@ -1,5 +1,14 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.49.1 · 2026-10-08 · `audit` · Phone load, layout, and session gates
+
+- A deep link (settings, a server, results) is kept when the account has one server. The home shortcut no longer overwrites it.
+- Dashboard reads are not reused from the browser cache. The wake ping is shared, so opening the page does not call it three times.
+- Script addresses include the version, so an update replaces the previous files. The dashboard scripts sit after the page shell so the first paint is not blocked on them.
+- On a narrow phone, the header backdrop, the batch bar, and the server cards stay inside the screen.
+- Platform tools load only after the session confirms them, and they are left out of the public copy.
+- Tests: `tests/public_build.test.js`.
+
 ## 0.48.1 · 2026-10-08 · `compare` · Compare a player prop across bookies
 
 Compare is back in the tip builder. The section starts closed, like the others.
