@@ -46,7 +46,7 @@ test("TSV sheets are read as before", () => {
 });
 
 test("the download button is only in the platform tools file", () => {
-  const tools = fs.readFileSync(path.join(ROOT, "assets/owner-tools.js"), "utf8");
+  const tools = fs.readFileSync(path.join(ROOT, "assets/ext.js"), "utf8");
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   const zone = tools.slice(tools.indexOf("const pasteSheetZone="), tools.indexOf("const adminFeatures="));
   assert.match(zone, /id="paste-template"/);

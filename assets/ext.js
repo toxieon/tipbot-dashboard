@@ -1,5 +1,5 @@
-/* Platform session tools. Loaded only after the session is confirmed
-   (index.html TD.load("owner-tools")). Plain script, same globals as the page.
+/* Extra session tools. Loaded only after the session is confirmed
+   (index.html TD.load("ext")). Plain script, same globals as the page.
    Not part of the public copy. */
 (function(){
   function adminHtml(s, sw){
@@ -595,8 +595,45 @@
       else setCgStatus("Couldn't reach TipBot.", "err");
     }
   }
+  let opsUiP=null;
+  function loadOpsUi(container){
+    if(!container || container.dataset.ready==="1") return Promise.resolve();
+    if(!opsUiP){
+      opsUiP=(async function(){
+        const headers={};
+        const t=getToken();
+        if(t) headers.Authorization="Bearer "+t;
+        const opts={credentials:"include",headers:headers,cache:"no-store"};
+        const cssR=await fetch(API+"/api/ops/ui.css",opts);
+        const jsR=await fetch(API+"/api/ops/ui.js",opts);
+        if(!cssR.ok||!jsR.ok) throw new Error("unavailable");
+        const css=await cssR.text();
+        const js=await jsR.text();
+        let style=document.getElementById("ops-ui-css");
+        if(!style){ style=document.createElement("style"); style.id="ops-ui-css"; document.head.appendChild(style); }
+        style.textContent=css;
+        const s=document.createElement("script");
+        s.textContent=js;
+        document.head.appendChild(s);
+      })().catch(function(err){ opsUiP=null; throw err; });
+    }
+    return opsUiP.then(function(){
+      if(window.TipOps && typeof window.TipOps.mount==="function"){
+        window.TipOps.mount(container,{apiBase:API});
+        container.dataset.ready="1";
+      }
+    }).catch(function(){
+      container.textContent="Admin tools aren’t available right now.";
+    });
+  }
   function paintOps(box){
     if(STATE.ops!==true||!box) return;
+    if(!box.querySelector("[data-ops-root]")){
+      const root=document.createElement("div");
+      root.setAttribute("data-ops-root","");
+      box.appendChild(root);
+    }
+    loadOpsUi(box.querySelector("[data-ops-root]"));
     ensureCustomGamesCss();
     let slot=box.querySelector("[data-custom-games-slot]");
     if(!slot){
@@ -633,5 +670,5 @@
       return '<span id="fgodhint" style="color:var(--warn,#e0a04a);font-size:var(--t-cap);margin-left:8px;font-weight:700">🔱 God — expand a member to re-grade / settle</span>';
     }
   };
-  TD.loaded["owner-tools"]=true;
+  TD.loaded["ext"]=true;
 })();

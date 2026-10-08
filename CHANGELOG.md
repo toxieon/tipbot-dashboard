@@ -2,7 +2,7 @@
 
 ## 0.49.2 · 2026-10-08 · `custom-games` · Owner controls for custom games
 
-Needs TipBot 0.55.1. The program-owner panel lives in `assets/owner-tools.js` and loads only after `/api/me` says `ops: true`. It is left out of the public copy.
+Needs TipBot 0.55.1. The program-owner panel lives in `assets/ext.js` and loads only after `/api/me` says `ops: true`. The public copy does not include that file, and it does not name it.
 
 - **Allow custom games** reads and sets `enabled` on `GET` and `POST /api/ops/custom-games`. The value sent is a JSON boolean.
 - **Servers.** Each listed server shows its name when TipBot knows it, plus Remove. Add a server by its id with `POST /api/ops/custom-games/whitelist`.

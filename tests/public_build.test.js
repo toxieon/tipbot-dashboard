@@ -51,6 +51,7 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     "assets/master-access.js",
     "assets/slip-ui.js",
     "assets/admin.js",
+    "assets/ext.js",
     "assets/owner-tools.js",
     "tests/public_build.test.js",
     "GPT/index.html",
@@ -84,10 +85,13 @@ test("public build copies the allowlist and refuses secret terms", async () => {
   const dash = fs.readFileSync(path.join(dist, "index.html"), "utf8");
   assert.match(dash, /id="nav-ops"[^>]*hidden>Admin tools</);
   assert.match(dash, /ops===true/);
-  assert.match(dash, /\/api\/ops\/ui\.css/);
-  assert.match(dash, /\/api\/ops\/ui\.js/);
-  assert.match(dash, /credentials:"include"/);
-  assert.match(dash, /TipOps\.mount\(container,\{apiBase:API\}\)/);
+  assert.match(dash, /TD\.load\("ext"\)/);
+  assert.doesNotMatch(dash, /owner-tools|\/api\/ops|custom-games|ops:/);
+  const extSrc = fs.readFileSync(path.join(root, "assets/ext.js"), "utf8");
+  assert.match(extSrc, /\/api\/ops\/ui\.css/);
+  assert.match(extSrc, /\/api\/ops\/ui\.js/);
+  assert.match(extSrc, /credentials:"include"/);
+  assert.match(extSrc, /TipOps\.mount\(container,\{apiBase:API\}\)/);
   assert.doesNotMatch(dash, /id="dd-master"/);
   assert.doesNotMatch(dash, /1553952007923040309/);
 });
@@ -169,25 +173,33 @@ test("custom games controls stay out of the public copy", async () => {
   const { build, scanTree } = await modP;
   const result = build({ root, dist: path.join(root, "dist") });
   assert.deepEqual(scanTree(result.dist), []);
+  assert.equal(fs.existsSync(path.join(result.dist, "assets/ext.js")), false);
   assert.equal(fs.existsSync(path.join(result.dist, "assets/owner-tools.js")), false);
+  const refusal = "Custom games aren't available in this server.";
+  const leaks = ["owner-tools", "/api/ops", "custom-games", "ops:"];
   const banned = [
-    /\/api\/ops\/custom-games/,
     /Allow custom games/,
     /Custom bet lines on fixture games still work when this is off/,
     /data-custom-games/,
     /cg-allow/,
-    /custom-games\/whitelist/,
   ];
-  function walk(dir) {
+  function walk(dir, relBase) {
     for (const name of fs.readdirSync(dir)) {
       const abs = path.join(dir, name);
-      if (fs.statSync(abs).isDirectory()) { walk(abs); continue; }
-      if (!/\.(html|js|css|md|json|webmanifest|txt)$/.test(name)) continue;
-      const text = fs.readFileSync(abs, "utf8");
-      for (const re of banned) assert.doesNotMatch(text, re, abs);
+      const rel = relBase ? relBase + "/" + name : name;
+      for (const needle of leaks) assert.equal(rel.indexOf(needle), -1, rel + " path contains " + needle);
+      if (fs.statSync(abs).isDirectory()) { walk(abs, rel); continue; }
+      const text = fs.readFileSync(abs).toString("latin1").split(refusal).join("");
+      for (const needle of leaks) {
+        const at = text.indexOf(needle);
+        assert.equal(at, -1, rel + " contains " + needle + (at < 0 ? "" : " near " + JSON.stringify(text.slice(Math.max(0, at - 40), at + needle.length + 40))));
+      }
+      if (/\.(html|js|css|md|json|webmanifest|txt)$/.test(name)) {
+        for (const re of banned) assert.doesNotMatch(text, re, rel);
+      }
     }
   }
-  walk(result.dist);
+  walk(result.dist, "");
 
   const dash = fs.readFileSync(path.join(result.dist, "index.html"), "utf8");
   const builder = fs.readFileSync(path.join(result.dist, "assets/builder.js"), "utf8");
@@ -206,7 +218,7 @@ test("custom games controls stay out of the public copy", async () => {
   assert.ok(failAt > 0 && builder.indexOf("scheduleRefusal(j, raw)", failAt) < builder.indexOf("Couldn't schedule batch", failAt));
   assert.ok(doAt > 0 && builder.indexOf("scheduleRefusal(j, raw)", doAt) < builder.indexOf("Couldn't schedule.", doAt));
 
-  const tools = fs.readFileSync(path.join(root, "assets/owner-tools.js"), "utf8");
+  const tools = fs.readFileSync(path.join(root, "assets/ext.js"), "utf8");
   const load = extractFn(tools, "loadCustomGames");
   const post = extractFn(tools, "postCustomGames");
   assert.ok(load.indexOf("STATE.ops!==true") >= 0);
@@ -219,7 +231,8 @@ test("custom games controls stay out of the public copy", async () => {
   assert.match(tools, /Custom bet lines on fixture games still work when this is off\./);
   const open = extractFn(dash, "openOps");
   assert.match(open, /TBOwner\.paintOps/);
-  assert.match(open, /ensureOwnerTools/);
+  assert.match(open, /ensureExt/);
+  assert.match(dash, /TD\.load\("ext"\)/);
   assert.doesNotMatch(open, /\/api\/ops\/custom-games|Allow custom games|whitelist|data-custom-games/);
 
   const calls = [];

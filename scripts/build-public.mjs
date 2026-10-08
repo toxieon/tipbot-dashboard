@@ -34,6 +34,7 @@ export const ASSET_DENY = new Set([
   "assets/master-access.js",
   "assets/slip-ui.js",
   "assets/admin.js",
+  "assets/ext.js",
   "assets/owner-tools.js",
 ]);
 

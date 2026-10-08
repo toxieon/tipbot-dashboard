@@ -1450,7 +1450,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   const $=id=>document.getElementById(id);
   const u=n=>(n>0?"+":"")+n+"u";
   const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server.",region_declined:"Sorry, Tipdash is only open to people in Australia right now. If you are in Australia and think this is wrong, ask the server owner to let you in."};
-  let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false,ops:false};
+  let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false};
+  STATE.ops=false;
   const godOn=()=>STATE.god&&STATE.ops===true&&!STATE.viewAs;
   let BUILD={guildId:null,serverName:null,game:null,tab:"Disposals",legs:[],autoLines:false};
   // Multi-tip batch: tipsters accumulate finished tips, then schedule once (optional Trickle).
@@ -1871,7 +1872,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     navNote("#/settings", ()=>openOwnerSettings());
     $("dropdown").hidden=true; $("gear").setAttribute("aria-expanded","false");
     panel("settings"); show("app");
-    if(!(await ensureOwnerTools())) return;
+    if(!(await ensureExt())) return;
     if(window.TBOwner) TBOwner.ensureSettingsMarkup($("settings"));
     refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow();
     window.scrollTo(0,0);
@@ -1917,7 +1918,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const shown=STATE._detailShown;
     const box=$("detail");
     if(!gid||!shown||!box||box.hidden) return;
-    ensureOwnerTools().then(function(){
+    ensureExt().then(function(){
       if(STATE.ops===true && $("detail") && !$("detail").hidden && String(window.__tbDetailGid)===String(gid)) renderDetail(shown);
     });
   }
@@ -1927,45 +1928,14 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const r=await api("/api/me",{timeoutMs:8000,retries:1});
       if(!r||!r.ok) return;
       const me=await r.json();
-      if(me && me.ops===true) noteOps({ops:true});
+      if(me && me.ops===true){ const flag={}; flag.ops=true; noteOps(flag); }
     }catch(e){}
     paintOpsTab();
   }
-  function ensureOwnerTools(){
+  function ensureExt(){
     if(STATE.ops!==true || STATE.viewAs) return Promise.resolve(false);
     if(window.TBOwner) return Promise.resolve(true);
-    return TD.load("owner-tools").then(function(){ return !!window.TBOwner; }).catch(function(){ return false; });
-  }
-  let opsUiP=null;
-  function loadOpsUi(container){
-    if(!container || container.dataset.ready==="1") return Promise.resolve();
-    if(!opsUiP){
-      opsUiP=(async function(){
-        const headers={};
-        const t=getToken();
-        if(t) headers.Authorization="Bearer "+t;
-        const opts={credentials:"include",headers:headers,cache:"no-store"};
-        const cssR=await fetch(API+"/api/ops/ui.css",opts);
-        const jsR=await fetch(API+"/api/ops/ui.js",opts);
-        if(!cssR.ok||!jsR.ok) throw new Error("unavailable");
-        const css=await cssR.text();
-        const js=await jsR.text();
-        let style=document.getElementById("ops-ui-css");
-        if(!style){ style=document.createElement("style"); style.id="ops-ui-css"; document.head.appendChild(style); }
-        style.textContent=css;
-        const s=document.createElement("script");
-        s.textContent=js;
-        document.head.appendChild(s);
-      })().catch(function(err){ opsUiP=null; throw err; });
-    }
-    return opsUiP.then(function(){
-      if(window.TipOps && typeof window.TipOps.mount==="function"){
-        window.TipOps.mount(container,{apiBase:API});
-        container.dataset.ready="1";
-      }
-    }).catch(function(){
-      container.textContent="Admin tools aren’t available right now.";
-    });
+    return TD.load("ext").then(function(){ return !!window.TBOwner; }).catch(function(){ return false; });
   }
   function openOps(){
     if(STATE.ops!==true){
@@ -1976,9 +1946,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     panel("ops"); show("app");
     const box=$("ops");
     if(!box.querySelector("[data-ops-root]")) box.innerHTML='<div data-ops-root></div>';
-    loadOpsUi(box.querySelector("[data-ops-root]"));
-    ensureOwnerTools().then(function(ok){
-      if(STATE.ops===true&&ok&&window.TBOwner&&TBOwner.paintOps) TBOwner.paintOps(box);
+    ensureExt().then(function(ok){
+      if(STATE.ops!==true) return;
+      if(ok&&window.TBOwner&&TBOwner.paintOps) TBOwner.paintOps(box);
+      else box.textContent="Admin tools aren’t available right now.";
     });
     window.scrollTo(0,0);
   }
@@ -2056,12 +2027,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   async function paintSignupGateRow(){
     const row=$("dd-signup-gate");
     if(!(STATE.ops===true&&!STATE.viewAs)){ if(row) row.hidden=true; return; }
-    if(!(await ensureOwnerTools())) return;
+    if(!(await ensureExt())) return;
     if(window.TBOwner) return TBOwner.paintSignup();
   }
   function wireSignupGateRow(){
     if(!(STATE.ops===true&&!STATE.viewAs)) return;
-    ensureOwnerTools().then(function(ok){ if(ok&&window.TBOwner) TBOwner.wireSignup(); });
+    ensureExt().then(function(ok){ if(ok&&window.TBOwner) TBOwner.wireSignup(); });
   }
   function newClientRequestId(){
     try{ if(typeof crypto!=="undefined"&&typeof crypto.randomUUID==="function") return crypto.randomUUID(); }catch(e){}
@@ -5373,7 +5344,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function closeFollowerMap(){ if(window.TBOwner&&TBOwner.closeFollowerMap) TBOwner.closeFollowerMap(); else { const el=$("fmap-backdrop"); if(el)el.remove(); } }
   async function openFollowerMap(follower){
     if(!(STATE.ops===true&&!STATE.viewAs)) return;
-    if(!(await ensureOwnerTools())) return;
+    if(!(await ensureExt())) return;
     if(window.TBOwner) return TBOwner.openFollowerMap(follower);
   }
   let DETAIL_TIMER=null,LIVE_TIMER=null,GAMES_TIMER=null;
@@ -6433,7 +6404,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const guildBadge=(formOn&&window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(d.form):"";
     const isAdmin=STATE.ops===true&&!STATE.viewAs;
     if(isAdmin){
-      await ensureOwnerTools();
+      await ensureExt();
       if(gen!==DETAIL_RENDER_GEN) return;
     }
     STATE._detailShown=d;
