@@ -1,5 +1,10 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.45.3 · 2026-10-08 · `hotfix` · Pricing page kept, unlinked
+
+- `/pricing/` restored but reachable by direct URL only: nothing links to it. No prices on `/welcome/` or tipster pages.
+- `Home` link removed from the public page headers and the 404 page. Developer notes removed from public page copy.
+
 ## 0.45.2 · 2026-10-08 · `hotfix` · Pricing page removed
 
 - `/pricing/` removed, along with every link to it (nav, buttons, 404 page) and the price band on `/welcome/`. Plan stub script and its test removed.
