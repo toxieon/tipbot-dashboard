@@ -14,18 +14,19 @@
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
 <script src="./assets/tbtime.js"></script>
-<script src="./assets/req-pool.js?v=0.47.1"></script>
+<script src="./assets/req-pool.js?v=0.48.1"></script>
 <script src="./assets/light-data.js"></script>
 <script src="./assets/lines.js"></script>
+<script src="./assets/compare-ui.js?v=0.48.1"></script>
 <script src="./assets/sport-keywords.js"></script>
 <script src="./assets/routing.js"></script>
-<script src="./assets/scheduled-tips.js?v=0.47.1"></script>
-<script src="./assets/upcoming-split.js?v=0.47.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.48.1"></script>
+<script src="./assets/upcoming-split.js?v=0.48.1"></script>
 <script src="./assets/espn-props.js"></script>
-<script src="./assets/tb-motion.js?v=0.47.1"></script>
-<script src="./assets/form-badges.js?v=0.47.1"></script>
-<script src="./assets/svg-charts.js?v=0.47.1"></script>
-<script src="./assets/server-view.js?v=0.47.1"></script>
+<script src="./assets/tb-motion.js?v=0.48.1"></script>
+<script src="./assets/form-badges.js?v=0.48.1"></script>
+<script src="./assets/svg-charts.js?v=0.48.1"></script>
+<script src="./assets/server-view.js?v=0.48.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -345,6 +346,7 @@
     .ou{flex:1}
     .ou button{flex:1;padding:9px 10px}
     .addbtn{min-height:38px;padding:9px 16px}
+    .compare-btn{order:-1;flex:1 1 100%;min-height:44px;padding:10px 14px;justify-content:center}
     .builder-tools #psearch,.builder-tools #psort{min-width:0!important;width:100%}
     .builder-tools{flex-direction:column}
     .builder-tools #psearch,.builder-tools #psort{flex:0 0 auto!important} /* 0.43.1: flex-basis 160px became a 160px-tall search box in the column layout */
@@ -375,6 +377,22 @@
   .linectl-wrap .linectl{flex:1 1 auto;max-width:100%}
   .compare-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:var(--r-sm);padding:5px 10px;font:inherit;font-size:var(--t-foot);font-weight:650;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;flex:none;white-space:nowrap}
   .compare-btn:hover{border-color:#3a4772;color:var(--txt)}
+  .compare-lead{margin:0 0 12px;color:var(--muted);font-size:var(--t-sub);line-height:1.4}
+  .compare-prop{margin:0 0 12px;font-weight:800;font-size:var(--t-h3);line-height:1.25}
+  .compare-block{margin:0 0 14px}
+  .compare-block h4{margin:0 0 8px;font-size:var(--t-foot);font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+  .compare-line{margin:10px 0 6px;font-weight:750;font-size:var(--t-sub)}
+  .compare-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;margin:0 0 6px;padding:8px 12px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);color:inherit;font:inherit;text-align:left;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  .compare-row.is-best{border-color:color-mix(in srgb,var(--win) 55%,var(--line));background:color-mix(in srgb,var(--win) 16%,var(--card2))}
+  .compare-book{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .compare-price{font-weight:800;font-variant-numeric:tabular-nums;font-size:var(--t-h3);flex:none}
+  .compare-best-tag{margin-left:8px;font-size:var(--t-cap);font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--win-ink)}
+  .compare-note{margin:0 0 8px;color:var(--faint);font-size:var(--t-foot);line-height:1.4}
+  .compare-empty-title{margin:0 0 4px;font-weight:800;font-size:var(--t-callout);color:var(--txt)}
+  .compare-empty .empty{padding-top:0}
+  #compare-panel{scroll-margin-top:80px}
+  .prow.compare-on{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+  @media (hover:hover) and (pointer:fine){.compare-row:hover{border-color:#3a4772}}
   .draft-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(91,140,255,.4);border-radius:var(--r-md);background:rgba(91,140,255,.1)}
   .draft-banner .db-msg{font-size:var(--t-sub);color:var(--txt);min-width:0;flex:1}
   .draft-banner .db-acts{display:flex;gap:8px;flex-wrap:wrap}
@@ -1086,7 +1104,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.47.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.48.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1424,23 +1442,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 </script>
 <script>
   const API="https://afl-tipster-bot.onrender.com";
-  // P1-3 (2026-09-26): player "Compare" button is TEMPORARILY HIDDEN.
-  // Compare will later find the exact line (and nearby alt lines) for a player
-  // prop across Sportsbet / PointsBet / Ladbrokes via The Odds API cache and
-  // highlight the best value. Hidden until that works; the code (compareHref,
-  // ./compare/ page, .compare-btn styles) is kept intact.
-  // Dev override: add ?compare=1 to the URL (persists via localStorage
-  // "tipdash_feature_compare"; ?compare=0 clears it).
-  const FEATURE_COMPARE=(function(){
-    const DEFAULT=false;
-    try{
-      const q=new URLSearchParams(location.search).get("compare");
-      if(q==="1"){ localStorage.setItem("tipdash_feature_compare","1"); return true; }
-      if(q==="0"){ localStorage.removeItem("tipdash_feature_compare"); return DEFAULT; }
-      if(localStorage.getItem("tipdash_feature_compare")==="1") return true;
-    }catch(e){}
-    return DEFAULT;
-  })();
+  // Compare is the builder panel (assets/compare-ui.js): best price for the
+  // line you pick, plus nearby lines, from odds TipBot has already saved.
   const TOGGLES=[["enabled","Bot Enabled"],["subscription_active","Subscription"],["results_graph_enabled","Results Graph"]];
   const STATS={Disposals:[10,40,20],Goals:[0,6,2],"Fantasy Points":[40,140,80],Hitouts:[0,50,20],Marks:[2,15,5],Tackles:[2,15,5],Kicks:[5,30,12],Handballs:[3,25,10],Clearances:[1,12,4]};
   // "First/last" milestone markets — no line, pick a player. `team:true` scopes it
@@ -1469,7 +1472,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.47.1";
+  TD.version="0.48.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -7415,7 +7418,7 @@ async function loadPerms(gid){
   // localStorage; this tab hears the storage event and applies it to that
   // player's row (and remembers the book for the confirm screen).
   const COMPARE_PICK_KEY="tipdash_compare_pick";
-  function applyComparePick(pick){
+  function applyComparePick(pick, opts){
     if(!pick||!pick.player||!BUILD||!BUILD.game)return false;
     if(Date.now()-(+pick.ts||0)>10*60*1000)return false;
     const gid=TB.gameId({game:BUILD.game})||"";
@@ -7431,7 +7434,11 @@ async function loadPerms(gid){
     const ob=row.querySelector('.ou button[data-s="'+(pick.side==="Under"?"Under":"Over")+'"]'); if(ob)ob.click();
     BUILD.compareBook=pick.book||null;
     BUILD.pendingComparePick=null;
-    try{ row.scrollIntoView({block:"center",behavior:"smooth"}); row.classList.remove("cmp-flash"); void row.offsetWidth; row.classList.add("cmp-flash"); }catch(e){}
+    const quiet=opts&&opts.scroll===false;
+    try{
+      if(!quiet) row.scrollIntoView({block:"center",behavior:"smooth"});
+      row.classList.remove("cmp-flash"); void row.offsetWidth; row.classList.add("cmp-flash");
+    }catch(e){}
     toast("From Compare: "+pick.player+" "+pick.side+" "+pick.line+(pick.price?" @ "+Number(pick.price).toFixed(2):"")+(pick.book?" · "+pick.book:""));
     return true;
   }
