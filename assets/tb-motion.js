@@ -1,6 +1,6 @@
 /* tb-motion.js — TipDash motion + interaction helpers (Apple-design pass, 0.43.1+).
  *
- * Loaded eagerly from index.html (and master/index.html). No dependencies, no build step.
+ * Loaded eagerly from index.html. No dependencies, no build step.
  * Everything is feature-detected so it is safe in the test VM's fake DOM.
  *
  *   TBMotion.reduced()      true when the user asked for reduced motion

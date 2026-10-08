@@ -1,5 +1,10 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.46.1 · 2026-10-08 · `public-build` · Public build + admin tools loader
+
+- The pages that ship are an allowlisted copy in `dist/`. After sign-in, a session with admin access gets an Admin tools tab that loads its bundle from TipBot.
+- Tests: `tests/public_build.test.js`.
+
 ## 0.45.3 · 2026-10-08 · `hotfix` · Pricing page kept, unlinked
 
 - `/pricing/` restored but reachable by direct URL only: nothing links to it. No prices on `/welcome/` or tipster pages.

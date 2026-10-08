@@ -79,7 +79,6 @@
     var p=String(path||"").split("?")[0];
     if(p==="/api/fixtures" || p.indexOf("/api/fixtures/")===0) return true;
     if(p==="/api/upcoming") return true;
-    if(p==="/api/master/config") return true;
     if(p==="/api/odds" || p.indexOf("/api/odds/")===0) return true;
     return false;
   }

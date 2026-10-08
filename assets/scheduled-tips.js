@@ -1,7 +1,7 @@
 /* Server page → Scheduled Tips (0.41.1): this server's queued / scheduled tips that
  * haven't posted yet, with Cancel, Adjust odds and Edit (legs, stake, bookmaker).
- * Every action goes through TipBot (/api/scheduled-tip), which updates the queue and
- * the forwarded master copy. A tip that already posted comes back as 409 with a
+ * Every action goes through TipBot (/api/scheduled-tip), which updates the queued tip.
+ * A tip that already posted comes back as 409 with a
  * clear message. Browser global window.TBScheduled + CommonJS export for node --test.
  */
 (function (root) {
@@ -138,14 +138,14 @@
       return r;
     }
     function cancel(tipId) {
-      return act(tipId, {guild_id: String(ctx.gid), tip_id: tipId, action: "cancel"}, "Cancelled. It won’t post, and the master copy is removed.");
+      return act(tipId, {guild_id: String(ctx.gid), tip_id: tipId, action: "cancel"}, "Cancelled. It won’t post.");
     }
     function save(tipId, form) {
       var tip = find(tipId); if (!tip) return null;
       var body;
       try { body = editBody(tip, Object.assign({guild_id: ctx.gid}, form)); }
       catch (e) { S.msg = {tip: tipId, cls: "err", text: e.message}; paint(); return null; }
-      return act(tipId, body, "Updated. The master copy updates too.");
+      return act(tipId, body, "Updated.");
     }
     function openForm(tipId, mode) { S.open[tipId] = mode; S.msg = null; paint(); }
     function closeForm(tipId) { delete S.open[tipId]; paint(); }
@@ -158,7 +158,7 @@
         + '<div class="sched-when" style="font-size:13px">' + (t.releasing ? '<b>Posting now…</b>' : '⏰ Posts <b>' + esc(when(t.post_at)) + '</b> <span style="color:var(--faint)">(' + esc(rel(t.post_at)) + ')</span>') + '</div></div>'
         + '<ul style="margin:8px 0;padding-left:18px">' + (t.legs || []).map(function (l) { return '<li>' + esc(l.description) + '</li>'; }).join("") + '</ul>'
         + '<div style="font-size:13px;color:var(--muted)">@ <b class="sched-odds">' + esc(fmtOdds(t.odds)) + '</b> · ' + esc(t.units) + 'u · ' + esc(t.bookmaker || "")
-        + (t.has_image ? ' · 📷 image' : '') + (t.forward && t.forward.sent ? ' · <span title="A scheduled copy is already in the master">↗ forwarded</span>' : '') + '</div>';
+        + (t.has_image ? ' · 📷 image' : '') + '</div>';
       if (mode === "odds") {
         h += '<div class="sched-form" style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><label style="font-size:13px">New odds <input class="sched-in-odds" type="number" step="0.01" min="1.01" value="' + esc(fmtOdds(t.odds)) + '" style="width:90px"' + dis + '></label>'
           + '<button class="btn sched-save" data-tip="' + id + '"' + dis + '>Save odds</button><button class="ghost sched-close" data-tip="' + id + '"' + dis + '>Back</button></div>';
@@ -248,7 +248,7 @@
       on(".sched-save", function (id) { ui.save(id, formOf(id)); });
       on(".sched-cancel-btn", function (id) {
         var t = (ui.state().tips || []).find(function (x) { return x.tip_id === id; });
-        ask({title: "Cancel " + ((t && t.display_id) || "this tip") + "?", message: "It won’t post, and the forwarded master copy is removed.",
+        ask({title: "Cancel " + ((t && t.display_id) || "this tip") + "?", message: "It won’t post.",
           confirmLabel: "Cancel tip", cancelLabel: "Keep it", destructive: true}).then(function (ok) { if (ok) ui.cancel(id); });
       });
     }

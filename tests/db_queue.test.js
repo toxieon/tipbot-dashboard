@@ -12,7 +12,7 @@ const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const schedSrc = fs.readFileSync(path.join(__dirname, "..", "assets", "scheduled-tips.js"), "utf8");
 const tick = (ms) => new Promise((r) => setTimeout(r, ms));
 
-test("DB calls stay at 2 in flight; fixtures, upcoming, master config and odds do not wait", async () => {
+test("DB calls stay at 2 in flight; fixtures, upcoming and odds do not wait", async () => {
   const q = RP.createApiQueue(2);
   let active = 0, peak = 0;
   const jobs = [];
@@ -35,9 +35,8 @@ test("DB calls stay at 2 in flight; fixtures, upcoming, master config and odds d
   assert.equal(blocked.gate.active(), 1);
   const fx = blocked("/api/fixtures?rosters=0", async () => "fixtures");
   const up = blocked("/api/upcoming?guild_id=1", async () => "upcoming");
-  const cfg = blocked("/api/master/config", async () => "config");
   const odds = blocked("/api/odds/for-tips?guild_id=1", async () => "odds");
-  assert.deepEqual(await Promise.all([fx, up, cfg, odds]), ["fixtures", "upcoming", "config", "odds"]);
+  assert.deepEqual(await Promise.all([fx, up, odds]), ["fixtures", "upcoming", "odds"]);
   assert.equal(blocked.gate.active(), 1, "exempt routes did not take a DB slot");
   release("ok");
   assert.equal(await held, "ok");
@@ -54,7 +53,7 @@ test("a rejected DB call frees its slot", async () => {
 
 test("exempt paths are the cached ones, and the page wires a 2-wide queue", () => {
   for (const p of ["/api/fixtures", "/api/fixtures?rosters=0", "/api/fixtures/roster?game=1",
-      "/api/upcoming?guild_id=1", "/api/master/config", "/api/odds/quota", "/api/odds/markets"]) {
+      "/api/upcoming?guild_id=1", "/api/odds/quota", "/api/odds/markets"]) {
     assert.equal(RP.dbSlotExempt(p), true, p);
   }
   for (const p of ["/api/server?guild_id=1", "/api/live-tips?guild_id=1", "/api/scheduled-tips?guild_id=1",
