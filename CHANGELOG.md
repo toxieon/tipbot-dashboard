@@ -1,5 +1,12 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.47.1 · 2026-10-08 · `live-cards` · Live player cards
+
+- **`/live`** shows games in progress for the signed-in server. Each game has the score and the clock. Each active tip leg is a player card: name, market and line (such as under 19.5 disposals), the live count against that line with a progress bar, on track / at risk / hit / miss, plus the tip's units and odds.
+- The page only reads endpoints the dashboard already uses: `/api/servers`, `/api/live-tips`, `/api/server`, `/api/server/prop-counts`, `/api/fixtures` and `/api/live-stats`. A count those payloads don't include stays blank. The clock is the phase label or clock already on those payloads. Historical imports are left out.
+- Refreshes every 45s while the tab is visible, and pauses while it is hidden. Phone layout, 44px controls, no sideways scroll. `?sample=1` paints the sample cards with no sign-in.
+- Tests: `tests/live_cards.test.js`.
+
 ## 0.46.1 · 2026-10-08 · `public-build` · Public build + admin tools loader
 
 - The pages that ship are an allowlisted copy in `dist/`. After sign-in, a session with admin access gets an Admin tools tab that loads its bundle from TipBot.

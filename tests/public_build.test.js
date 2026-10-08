@@ -39,7 +39,7 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     assert.ok(fs.existsSync(path.join(dist, rel)), rel);
   }
   assert.equal(fs.readFileSync(path.join(dist, "CNAME"), "utf8").trim(), "tipdashhq.com");
-  assert.equal(fs.readFileSync(path.join(dist, "VERSION"), "utf8").trim(), "0.46.1");
+  assert.equal(fs.readFileSync(path.join(dist, "VERSION"), "utf8").trim(), "0.47.1");
   for (const rel of [
     "CHANGELOG.md",
     "REMAINING.md",
