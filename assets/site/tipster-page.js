@@ -165,7 +165,7 @@
       ? '<div id="more-tips" hidden>' + rest.map(tipLine).join("") + "</div>" +
         '<button type="button" class="btn btn-secondary view-all" id="view-all">View all ' + stats.settledCount + "</button>"
       : "";
-    var followNote = "Follow in Discord isn\u2019t wired up yet. Server invites will open here.";
+    var followNote = "Following in Discord is coming soon.";
 
     return example +
       '<section class="hero card"><div class="who"><div class="avatar" aria-hidden="true">' + esc(data && data.initials ? data.initials : initials(name)) + "</div>" +

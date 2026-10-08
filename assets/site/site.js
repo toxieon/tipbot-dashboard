@@ -82,12 +82,12 @@
         '<form id="site-waitlist" hidden>' +
           '<label for="site-waitlist-email">Email</label>' +
           '<input id="site-waitlist-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="200" required>' +
-          '<p id="site-waitlist-thanks" class="thanks" hidden>You\u2019re noted on this device. Nothing was sent \u2014 checkout is still a stub, and no payment is taken.</p>' +
+          '<p id="site-waitlist-thanks" class="thanks" hidden>Thanks \u2014 we\u2019ll let you know when it opens. No payment is taken.</p>' +
           '<div class="dialog-actions">' +
             '<button type="submit" class="btn btn-primary" id="site-waitlist-go">Join the waitlist</button>' +
             '<button type="button" class="btn btn-secondary" id="site-dialog-close">Close</button>' +
           '</div>' +
-          '<p class="fine">Stub only. This form does not contact a server.</p>' +
+          '<p class="fine">Coming soon.</p>' +
         '</form>' +
         '<div class="dialog-actions" id="site-dialog-actions">' +
           '<button type="button" class="btn btn-secondary" id="site-notice-close">Close</button>' +
@@ -165,7 +165,7 @@
           ev.preventDefault();
           openNotice(
             "Add TipBot to your server",
-            "The Discord bot invite isn\u2019t published in tipdash yet. BOT_INVITE_URL in assets/site/site.js is the placeholder \u2014 set it to the OAuth invite and this button will open Discord. If TipBot is already in your server, open the dashboard."
+            "The invite link is coming soon. If TipBot is already in your server, open the dashboard."
           );
         });
       })(links[i]);
