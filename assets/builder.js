@@ -724,6 +724,7 @@
     navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/g/"+encodeURIComponent((g&&(g.id||g.gameid))||""), ()=>openGame(g));
     clearLiveTimer();clearGamesTimer();
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
+    BUILD.compareSel=null; BUILD.compareCache=null; BUILD.compareSeq=(BUILD.compareSeq||0)+1;
     saveMultiDraft();
     // 6.1c: the games list has no players; fetch only this game's (cached per game).
     if(TBLight.needsRoster(g)){
@@ -766,6 +767,7 @@
   }
   function renderGame(){
     const g=BUILD.game;
+    if(BUILD.compareSel&&BUILD.compareSel.stat!==BUILD.tab){ BUILD.compareSel=null; BUILD.compareCache=null; }
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
@@ -786,7 +788,9 @@
       +'<span class="auto-hint">Book line + ~under from TipBot cache (Sportsbet first). Manual O/U still works.</span>'
       +'<span class="auto-status" id="auto-status"></span>'
       +(STATE.role==="owner"&&!STATE.viewAs?'<button type="button" class="ghost" id="autolines-refresh" title="Refresh TipBot cache (owner)" style="padding:6px 10px;font-size:var(--t-foot)">↻</button>':"")
-      +'</div><div id="players"></div>';
+      +'</div>'
+      +(!MARKETS[BUILD.tab]?'<div class="panel" id="compare-panel" data-sec="builder-compare"><h3>Compare</h3><div id="compare-body"></div></div>':'')
+      +'<div id="players"></div>';
     $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
     { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
     const rl=$("refreshlive"); if(rl)rl.onclick=()=>refreshLive(g);
@@ -823,6 +827,10 @@
     }
     paintAutoBarStatus();
     renderPlayers();
+    if($("compare-panel")){
+      wirePanelCollapse($("builder"));
+      paintComparePanel();
+    }
   }
   // Only ever show the NAMED side (playerListType==="selected"); before teams are
   // announced we show nothing rather than a full/มismatched squad.
@@ -997,8 +1005,8 @@
         const rowDef=(seedLine!=null&&!isNaN(seedLine))?seedLine:def;
         const formHtml=isMarket?"":formChipsHTML(p, nm, oppNm, rowDef);
         const nameCell='<div class="pname-block"><div class="pname">'+esc(p.name)+(p.captain?' <span style="color:#f0b73f;font-weight:800">(C)</span>':"")+(p.position?' <small style="color:var(--muted)">'+esc(p.position)+'</small>':"")+liveChip+'</div>'+formHtml+'</div>';
-        // Compare hidden behind FEATURE_COMPARE (see top of script). Empty string = no element, no gap.
-        const cmp=FEATURE_COMPARE?'<a class="compare-btn" data-player="'+esc(p.name)+'" href="'+esc(compareHref(p.name, BUILD.tab, g))+'" target="_blank" rel="noopener">Compare</a>':'';
+        const cmp=isMarket?'':'<button type="button" class="compare-btn" data-player="'+esc(p.name)+'">Compare</button>';
+        const cmpOn=!isMarket&&BUILD.compareSel&&BUILD.compareSel.player===p.name&&BUILD.compareSel.stat===BUILD.tab;
         if(isMarket){
           html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
             +'<div class="prow-actions" style="margin-left:auto">'+cmp+'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
@@ -1007,7 +1015,7 @@
         const step=(BUILD.autoLines || (rowDef!=null && Math.abs(rowDef-Math.round(rowDef))>1e-9))?"0.5":"1";
         const rangeMax=Math.max(mx, Math.ceil(rowDef||0)+5);
         const autoMeta=(BUILD.autoLines?autoPriceHtml(hit):"");
-        html+='<div class="prow" data-player="'+esc(p.name)+'"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
+        html+='<div class="prow'+(cmpOn?' compare-on':'')+'" data-player="'+esc(p.name)+'"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
           +'<div class="linectl-wrap"><div class="linectl"><input type="range" min="0" max="'+rangeMax+'" step="'+step+'" value="'+rowDef+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="'+step+'" value="'+rowDef+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +autoMeta+'</div>'
           +'<div class="prow-actions">'+cmp+'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
@@ -1033,6 +1041,8 @@
       sl.oninput=()=>{vv.value=sl.value;tint();};
       vv.oninput=()=>{ let n=parseFloat(vv.value); if(isNaN(n)){tint();return;} if(n<0){n=0;vv.value=0;} sl.value=Math.min(n,+sl.max); tint(); };
       ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");tint();});
+      const cmpBtn=row.querySelector(".compare-btn");
+      if(cmpBtn) cmpBtn.onclick=function(){ openPlayerCompare(p.name, curLine(), side); };
       $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side,assumed:teamAssumed});
     });});
     if(BUILD.pendingComparePick) applyComparePick(BUILD.pendingComparePick);
@@ -1558,5 +1568,122 @@
         $("scherr").textContent=m; prog.fail(m);
       }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; prog.fail("Couldn't reach the bot."); }
+  }
+  function compareCacheKey(sel){
+    return [sel.player, sel.stat, sel.line, sel.side, sel.game].join("|");
+  }
+  function compareWhen(data){
+    try{
+      if(data&&data.scraped_at&&window.TBTime) return TBTime.fmtWhen(data.scraped_at)||"";
+    }catch(e){}
+    return "";
+  }
+  function setCompareSum(text){
+    const panel=$("compare-panel"); if(!panel) return;
+    const hd=panel.querySelector(".panel-hd-main"); if(!hd) return;
+    let sm=hd.querySelector(".panel-hd-sum");
+    if(!sm){
+      sm=document.createElement("span");
+      sm.className="panel-hd-sum";
+      hd.appendChild(sm);
+    }
+    sm.textContent=text||"";
+  }
+  function paintCompareFromView(view){
+    const body=$("compare-body"); if(!body||!window.TBCompare) return;
+    body.innerHTML=TBCompare.html(view);
+    setCompareSum(TBCompare.summary(view));
+    wireCompareRows();
+  }
+  function paintComparePanel(){
+    if(!window.TBCompare) return;
+    const sel=BUILD.compareSel;
+    if(!sel){ paintCompareFromView(TBCompare.prompt()); return; }
+    const key=compareCacheKey(sel);
+    if(BUILD.compareCache&&BUILD.compareCache.key===key&&BUILD.compareCache.view){
+      paintCompareFromView(BUILD.compareCache.view);
+      return;
+    }
+    paintCompareFromView(TBCompare.loading(sel));
+  }
+  function compareFromSessionLines(sel){
+    const g=BUILD.game; if(!g||!window.TBCompare) return null;
+    const key=playerLinesCacheKey(BUILD.guildId, g);
+    const pack=STATE._playerLinesCache[key];
+    if(!pack||!pack.raw) return null;
+    const when=compareWhen(pack.raw);
+    const view=TBCompare.fromPlayerLines(pack.raw, Object.assign({}, sel, {when:when}));
+    if(!view||view.kind!=="prices") return null;
+    return view;
+  }
+  function wireCompareRows(){
+    const body=$("compare-body"); if(!body) return;
+    body.querySelectorAll(".compare-row").forEach(function(btn){
+      btn.onclick=function(){
+        const sel=BUILD.compareSel||{};
+        applyComparePick({
+          player:sel.player, stat:sel.stat, line:+btn.dataset.line,
+          side:btn.dataset.side||sel.side||"Over", book:btn.dataset.book,
+          price:+btn.dataset.price, game:sel.game,
+          game_id:(window.TB&&TB.gameId({game:BUILD.game}))||"",
+          ts:Date.now()
+        }, {scroll:false});
+      };
+    });
+    const retry=$("compare-retry");
+    if(retry) retry.onclick=function(){ fetchPlayerCompare(true); };
+  }
+  function openPlayerCompare(player, line, side){
+    BUILD.compareSel={
+      player:player, stat:BUILD.tab, line:line,
+      side:side==="Under"?"Under":"Over",
+      game:builderGameName(BUILD.game)
+    };
+    document.querySelectorAll("#players .prow.compare-on").forEach(function(el){ el.classList.remove("compare-on"); });
+    const row=[...document.querySelectorAll("#players .prow[data-player]")].find(function(r){ return r.dataset.player===player; });
+    if(row) row.classList.add("compare-on");
+    const panel=$("compare-panel");
+    if(panel&&window.TDSec) TDSec.open(panel);
+    setCompareSum(window.TBCompare?TBCompare.summary(TBCompare.loading(BUILD.compareSel)):"");
+    try{ if(panel) panel.scrollIntoView({block:"nearest", behavior:"smooth"}); }catch(e){}
+    fetchPlayerCompare(false);
+  }
+  async function fetchPlayerCompare(force){
+    const sel=BUILD.compareSel;
+    if(!sel||!BUILD.game||!window.TBCompare) return;
+    const key=compareCacheKey(sel);
+    if(!force&&BUILD.compareCache&&BUILD.compareCache.key===key&&BUILD.compareCache.view){
+      paintCompareFromView(BUILD.compareCache.view);
+      return;
+    }
+    const seq=(BUILD.compareSeq=(BUILD.compareSeq||0)+1);
+    paintCompareFromView(TBCompare.loading(sel));
+    let view=null;
+    try{
+      const q=new URLSearchParams();
+      q.set("game", builderGameName(BUILD.game));
+      q.set("player", sel.player);
+      q.set("stat", sel.stat);
+      if(sel.line!=null&&sel.line!=="") q.set("line", String(sel.line));
+      if(BUILD.guildId) q.set("guild_id", String(BUILD.guildId));
+      const r=await api("/api/compare?"+q.toString(), {timeoutMs:20000, retries:1});
+      if(BUILD.compareSeq!==seq) return;
+      let data=null;
+      try{ data=await r.json(); }catch(e){ data=null; }
+      const picked=Object.assign({}, sel, {when:compareWhen(data)});
+      if(r.ok){
+        view=TBCompare.fromCompare(data, picked)||compareFromSessionLines(sel)||TBCompare.empty(picked);
+      }else{
+        view=compareFromSessionLines(sel)||((r.status===404||r.status===501)?TBCompare.empty(picked):TBCompare.error(picked));
+      }
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      if(BUILD.compareSeq!==seq) return;
+      view=compareFromSessionLines(sel)||TBCompare.error(sel);
+    }
+    if(BUILD.compareSeq!==seq) return;
+    if(!BUILD.compareSel||compareCacheKey(BUILD.compareSel)!==key) return;
+    BUILD.compareCache={key:key, view:view};
+    paintCompareFromView(view);
   }
   TD.loaded.builder=true;

@@ -1,5 +1,16 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.48.1 · 2026-10-08 · `compare` · Compare a player prop across bookies
+
+Compare is back in the tip builder. The section starts closed, like the others.
+
+- Pick a player and a line, such as Errol Gulden 25+ disposals, then tap Compare.
+- The panel ranks each bookie's price for that exact line and highlights the best one.
+- Nearby lines, such as 20+ or 30+, sit underneath so you can see where the value is.
+- A bookie with no price is left out. If nothing is saved for the prop, the panel says so.
+- One line at the top of the panel explains what Compare does.
+- Tests: `tests/compare_ui.test.js`.
+
 ## 0.47.1 · 2026-10-08 · `live-cards` · Live player cards
 
 - **`/live`** shows games in progress for the signed-in server. Each game has the score and the clock. Each active tip leg is a player card: name, market and line (such as under 19.5 disposals), the live count against that line with a progress bar, on track / at risk / hit / miss, plus the tip's units and odds.
