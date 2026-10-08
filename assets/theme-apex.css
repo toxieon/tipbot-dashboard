@@ -53,11 +53,15 @@ html[data-theme="apex"] .cd b{
 }
 
 /* Header: solid wash, hairline once content is underneath, no blur. */
+html[data-theme="apex"]{
+  scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));
+}
 html[data-theme="apex"] #app > .top{
   transition:padding 320ms cubic-bezier(.22,1,.36,1);
+  z-index:40;
 }
 html[data-theme="apex"] #app > .top::before{
-  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  background:var(--bg);
   -webkit-backdrop-filter:none;
   backdrop-filter:none;
 }
@@ -67,6 +71,59 @@ html[data-theme="apex"] #app > .top.is-scrolled{
 }
 html[data-theme="apex"] #app > .top.is-scrolled::before{
   border-bottom-color:var(--line);
+}
+html[data-theme="apex"] #app > .top .brand .logo{
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] #app > .top.is-scrolled .brand .logo{
+  transform:scale(.86);
+}
+@media(max-width:420px){
+  html[data-theme="apex"] #app > .top{
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+    margin-bottom:12px;
+  }
+  html[data-theme="apex"] .brand{
+    flex:none;
+    font-size:0;
+    gap:0;
+    overflow:visible;
+  }
+  html[data-theme="apex"] .brand .logo{
+    width:28px;
+    height:28px;
+  }
+  html[data-theme="apex"] .topnav{
+    flex:1 1 auto;
+    width:auto;
+    margin-left:auto;
+    margin-right:4px;
+    justify-content:flex-end;
+    min-width:0;
+    gap:4px;
+  }
+  html[data-theme="apex"] .topnav a{
+    padding:5px 8px!important;
+    font-size:12px!important;
+    line-height:1.2;
+    border-radius:999px!important;
+    border:1px solid var(--line)!important;
+    white-space:nowrap;
+  }
+  html[data-theme="apex"] .menu{flex:none}
+  html[data-theme="apex"] .gear{
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    font-size:15px;
+  }
+}
+html[data-theme="apex"] #upcoming-panel,
+html[data-theme="apex"] .panel,
+html[data-theme="apex"] .game-group{
+  scroll-margin-top:calc(64px + env(safe-area-inset-top,0px));
 }
 html[data-theme="apex"] header.top{
   background:color-mix(in srgb,var(--bg) 94%,transparent);
@@ -80,19 +137,20 @@ html[data-theme="apex"] header.top.is-scrolled{
   border-bottom-color:var(--line);
 }
 
-/* One glow behind the hero. Two colours, one layer. */
+/* One glow behind the title. Two colours, one layer, no box in the flow. */
 .apex-glow{display:none}
 html[data-theme="apex"] .apex-glow{
   display:block;
   position:absolute;
   z-index:0;
-  left:0;right:0;top:0;
-  height:280px;
+  left:-12%;
+  right:-12%;
+  top:-48px;
+  height:200px;
   pointer-events:none;
-  overflow:hidden;
   background:
-    radial-gradient(42% 70% at 18% 40%, var(--apex-glow-a, rgba(91,140,255,.18)), transparent 70%),
-    radial-gradient(36% 64% at 78% 30%, var(--apex-glow-b, rgba(52,211,153,.10)), transparent 72%);
+    radial-gradient(ellipse 46% 70% at 22% 55%, var(--apex-glow-a, rgba(91,140,255,.18)), transparent 68%),
+    radial-gradient(ellipse 40% 64% at 76% 48%, var(--apex-glow-b, rgba(52,211,153,.10)), transparent 70%);
   will-change:transform;
 }
 html[data-theme="apex"] #overview,
@@ -101,9 +159,9 @@ html[data-theme="apex"] #builder,
 html[data-theme="apex"] main{
   position:relative;
 }
-html[data-theme="apex"] #overview > *,
-html[data-theme="apex"] #detail > *,
-html[data-theme="apex"] #builder > *{
+html[data-theme="apex"] #overview > :not(.apex-glow),
+html[data-theme="apex"] #detail > :not(.apex-glow),
+html[data-theme="apex"] #builder > :not(.apex-glow){
   position:relative;
   z-index:1;
 }
@@ -141,6 +199,18 @@ html.apex-hidden[data-theme="apex"] .cd.apex-live{
 @keyframes apex-hero{
   from{opacity:0;transform:translateY(12px)}
   to{opacity:1;transform:none}
+}
+
+/* Home tier badge stays a small pill, not a stretched box. */
+html[data-theme="apex"] .scard .row1{align-items:flex-start}
+html[data-theme="apex"] .plan{
+  align-self:flex-start;
+  flex:none;
+  height:auto;
+  line-height:1.3;
+  padding:3px 8px;
+  border-radius:999px;
+  white-space:nowrap;
 }
 
 /* Cards, pills, tables. */
@@ -282,18 +352,33 @@ html[data-theme="apex"] .apex-confetti{
   from{opacity:0;transform:rotateX(90deg)}
   to{opacity:1;transform:none}
 }
+html[data-theme="apex"] .tb-form-dot,
+html[data-theme="apex"] .sv-form .tb-form-dot{
+  width:20px;
+  height:20px;
+  border-radius:6px;
+}
+html[data-theme="apex"] .tb-form-dots{gap:4px}
+html[data-theme="apex"] .tb-form-hot{
+  font-size:var(--t-sub);
+  font-weight:750;
+  line-height:1;
+  padding:4px 8px;
+  border-radius:999px;
+}
+html[data-theme="apex"] .sv-stat.sv-form{
+  justify-content:center;
+}
+html[data-theme="apex"] .sv-form-body,
+html[data-theme="apex"] .sv-form .tb-form{
+  align-items:center;
+}
 html[data-theme="apex"] .tb-form-dot.apex-newest{
   box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
 }
-html[data-theme="apex"] .apex-flame{
-  display:inline-flex;
-  margin-left:6px;
-  color:var(--win);
-  vertical-align:middle;
-}
-html[data-theme="apex"] .apex-flame svg{display:block;fill:currentColor}
+html[data-theme="apex"] .apex-flame{display:none}
 @media (prefers-reduced-motion:no-preference){
-  html[data-theme="apex"] .apex-flame{
+  html[data-theme="apex"] .tb-form-hot{
     animation:apex-flame 1.1s ease-in-out infinite;
     transform-origin:50% 80%;
   }
@@ -365,6 +450,7 @@ html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
 @media (prefers-reduced-motion:reduce){
   html[data-theme="apex"] .apex-glow,
   html[data-theme="apex"] .apex-flame,
+  html[data-theme="apex"] .tb-form-hot,
   html[data-theme="apex"] .sv-end.apex-pulse,
   html[data-theme="apex"] .cd.apex-live,
   html[data-theme="apex"] .apex-stamp,

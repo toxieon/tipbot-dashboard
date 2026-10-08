@@ -252,7 +252,6 @@
     var played = false;
     try { played = root.sessionStorage.getItem(formKey) === "1"; } catch (e) {}
     try { root.sessionStorage.setItem(formKey, "1"); } catch (e2) {}
-    var lead = 0;
     var i;
     for (i = 0; i < dots.length; i++) {
       if (!played && !reduced()) {
@@ -260,16 +259,6 @@
         dots[i].style.setProperty("--apex-i", String(i));
       }
       if (i === 0) dots[i].classList.add("apex-newest");
-      if (lead === i && dots[i].getAttribute("data-r") === "W") lead++;
-    }
-    var streakN = Number(form.getAttribute("data-streak-n") || 0);
-    var hot = form.getAttribute("data-streak") === "W" && streakN >= 3;
-    if ((lead >= 3 || hot) && !form.querySelector(".apex-flame")) {
-      var flame = doc.createElement("span");
-      flame.className = "apex-flame";
-      flame.setAttribute("aria-hidden", "true");
-      flame.innerHTML = '<svg viewBox="0 0 16 20" width="14" height="18"><path d="M8 1c1 3-2 4-2 7 0 1 .5 2 1.2 2.4C6 8 6 6 8 5c0 3 3 4 3 7a4.5 4.5 0 1 1-9 0c0-3 2-4.5 3-7 .3 1.2.8 2 1.4 2.6C6 6 6.2 4 8 1z"/></svg>';
-      form.appendChild(flame);
     }
   }
 

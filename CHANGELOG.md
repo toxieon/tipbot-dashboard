@@ -8,6 +8,7 @@ Navy, day and ochre are unchanged. Apex is an extra appearance, dark by default.
 - Motion is in `assets/theme-apex.js` and `assets/theme-apex.css`, loaded only while Apex is on. Geist and Instrument Sans are self-hosted (SIL OFL).
 - Settled win and loss cards stamp once per tip per session. Last-10 form tiles flip in, a three-win run shows a flame, the units line draws on first view, upcoming tips get a countdown ring, and ranked rows slide when their order changes.
 - If the account server does not store Apex yet, the dashboard keeps the local choice instead of clearing it.
+- The glow sits behind the title and does not push the page down. On a phone the header is one row. Form tiles are squares with the streak chip, and the home tier mark is a small pill.
 - Tests: `tests/apex_theme.test.js`.
 
 ## 0.49.2 · 2026-10-08 · `custom-games` · Owner controls for custom games
