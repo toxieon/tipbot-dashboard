@@ -87,7 +87,7 @@
     return tabs;
   }
   var API = {
-    NFL_PROP_TABS: NFL_PROP_TABS, NBA_PROP_TABS: NBA_PROP_TABS, hasProps: hasProps, isBasketball: isBasketball,
+    NFL_PROP_TABS: NFL_PROP_TABS, NBA_PROP_TABS: NBA_PROP_TABS, "hasProps": hasProps, isBasketball: isBasketball,
     propTabs: propTabs, playersUrl: playersUrl, propPlayers: propPlayers, visiblePlayers: visiblePlayers,
     buildLeg: buildLeg, applyMarketLabels: applyMarketLabels
   };

@@ -1348,6 +1348,8 @@
       return { j:j, raw:raw };
     }
     function failMsg(r, j, raw){
+      const blocked=scheduleRefusal(j, raw);
+      if(blocked) return blocked;
       if(r && r.status===404){
         return "Bot is updating — Trickle API not live yet. Try again in a minute.";
       }
@@ -1496,6 +1498,19 @@
       img.src=url;
     });
   }
+  // TipBot 0.55.1: a handmade game is refused with this sentence.
+  function scheduleRefusal(j, raw){
+    const exact="Custom games aren't available in this server.";
+    const bits=[];
+    if(j&&typeof j==="object"){
+      if(j.message!=null) bits.push(String(j.message));
+      if(j.error!=null) bits.push(String(j.error));
+      if(j.detail!=null) bits.push(String(j.detail));
+      if(Array.isArray(j.errors)) bits.push(j.errors.map(function(e){ return e==null?"":String(e); }).join("\n"));
+    }
+    if(raw) bits.push(String(raw));
+    return bits.join("\n").indexOf(exact)>=0?exact:"";
+  }
   function scheduleTip(){
     const go=$("schedbtn");
     if(go && (go.disabled || go.dataset.busy==="1")) return;
@@ -1557,14 +1572,17 @@
         body:JSON.stringify(payload),
         idempotent:true, retries:4, onAttempt:prog.onAttempt,
       });
-      let j=null; try{ j=await r.json(); }catch(e){ j=null; }
+      let raw=""; let j=null;
+      try{ raw=await r.text(); }catch(e){ raw=""; }
+      try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
       if(r.ok&&j&&j.ok){
         prog.ok("Tip scheduled");
         if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
         BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
       }
       else{
-        const m=(j&&(j.message||j.error))||"Couldn't schedule.";
+        const blocked=scheduleRefusal(j, raw);
+        const m=blocked||(j&&(j.message||j.error))||"Couldn't schedule.";
         $("scherr").textContent=m; prog.fail(m);
       }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; prog.fail("Couldn't reach the bot."); }

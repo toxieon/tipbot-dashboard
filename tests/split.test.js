@@ -255,7 +255,7 @@ test("a server owner without the platform session does not get platform tools", 
   const html = ctx.byId("detail").innerHTML;
   assert.match(html, /Build a tip/);
   assert.doesNotMatch(html, /adminpanel|godtoggle|paste-sheet-ta|Debug menu/);
-  assert.equal(ctx.fetched.some((u) => /owner-tools\.js/.test(u)), false);
+  assert.equal(ctx.fetched.some((u) => /ext\.js/.test(u)), false);
 });
 
 test("the platform session loads platform tools onto the server page", async () => {
@@ -268,5 +268,5 @@ test("the platform session loads platform tools onto the server page", async () 
   assert.equal(ctx.loadError, undefined);
   assert.match(ctx.byId("detail").innerHTML, /godtoggle/);
   assert.match(ctx.byId("detail").innerHTML, /paste-sheet-ta/);
-  assert.ok(ctx.fetched.some((u) => /owner-tools\.js\?v=/.test(u)));
+  assert.ok(ctx.fetched.some((u) => /ext\.js\?v=/.test(u)));
 });
