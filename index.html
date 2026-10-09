@@ -2023,7 +2023,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
   $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
-  // A tipster only ever has one server, so drop them straight into it — no picker.
   function enterHome(){
     const deep=NAV.initial && !NAV.routedInitial && NAV.initial!=="#" && NAV.initial!=="#/";
     if(deep){
@@ -2036,8 +2035,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     navNote("#/", ()=>enterHome());
     const admin=visibleServers();
     const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
-    if(admin.length===1 && !follows.length){ return loadDetail(admin[0].guild_id); }
-    if(!admin.length && follows.length===1){ return openFollowerView(follows[0].guild_id, follows[0].display_name); }
     renderOverview();
   }
 
@@ -2376,6 +2373,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
     box.appendChild(it);});}
   const visibleServers=()=>STATE.viewAs?STATE.servers.filter(s=>String(s.guild_id)===String(STATE.viewAs.guild_id)):STATE.servers;
+  // First server used when opening Racing from Home (managed server, else a followed community).
+  function racingBuildServer(){
+    const list=visibleServers();
+    if(list.length) return list[0];
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    return follows[0]||null;
+  }
 
   function renderOverview(){
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
@@ -2393,7 +2397,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     statsTile.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openStats(); } };
     ov.appendChild(statsTile);
     }
-    if(list.length) ov.appendChild(homeRacingTile(list[0]));
+    const racingSrv=racingBuildServer();
+    if(racingSrv) ov.appendChild(homeRacingTile(racingSrv));
     if(list.length){
       const lead=document.createElement("p");
       lead.style.cssText="color:var(--muted);margin:18px 0 16px";
@@ -2453,7 +2458,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 
   // Home Racing tile: a small next-to-go strip (gallops/harness only, start times, no
-  // polling). Opens Racing in Build for the first server you manage.
+  // polling). Opens Racing in Build for racingBuildServer()'s guild.
   function homeRacingTile(srv){
     const t=document.createElement("div");
     t.className="scard home-racing-tile";
@@ -2536,7 +2541,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         catch(e){ if(e&&e.unauth) throw e; return {server:s, detail:{tips:{settled:[]}}}; }
       }));
       adminPacks.forEach(p=>packs.push(p));
-      const followPacks=await Promise.all(follows.map(async s=>{
+      const adminGids=new Set(admin.map(s=>String(s.guild_id)));
+      const followOnly=follows.filter(s=>!adminGids.has(String(s.guild_id)));
+      const followPacks=await Promise.all(followOnly.map(async s=>{
         try{ return {server:s, detail:await fetchFollowerDetail(s.guild_id)}; }
         catch(e){ if(e&&e.unauth) throw e; return {server:s, detail:{feed:[]}}; }
       }));
