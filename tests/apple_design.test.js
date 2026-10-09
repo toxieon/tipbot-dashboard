@@ -226,5 +226,4 @@ test("home-screen app: one manifest, Cinna's PNG icons (iOS ignores SVG touch ic
 
 test("switches are exposed to assistive tech", () => {
   assert.match(read("assets/tb-motion.js"), /setAttribute\("role", "switch"\)/);
-  assert.match(read("assets/ext.js"), /id="godtoggle" aria-label="God mode"/);
 });

@@ -14,6 +14,28 @@ const VERSION = read("VERSION").trim();
 const FILES = {builder: read("assets/builder.js"), admin: read("assets/admin.js")};
 const ENTRY = {builder: ["openBuilder", "openCustom"], admin: ["pasteSheetPreview", "pasteSheetConfirm", "pasteSheetTemplate"]};
 
+// Stand-in for the program-owner panel TipBot serves at GET /api/ops/ext.js
+// (program-owner-only; this repo never ships that file). Just enough of the
+// window.TBOwner contract renderDetail() expects, so these tests can exercise
+// the fetch -> blob -> <script> wiring without a real session or the bot.
+const EXT_FIXTURE = `
+window.TBOwner = {
+  adminHtml: function(s, sw) {
+    return '<div class="panel" id="adminpanel"><div class="switches">' + sw + '</div>'
+      + '<button id="godtoggle" aria-label="God mode"></button>'
+      + '<textarea id="paste-sheet-ta"></textarea></div>';
+  },
+  bindAdmin: function(){},
+  ensureSettingsMarkup: function(){},
+  paintSignup: function(){},
+  wireSignup: function(){},
+  paintOps: function(){},
+  clearOps: function(){},
+  closeFollowerMap: function(){},
+  openFollowerMap: function(){},
+};
+`;
+
 // Top-level declarations: every file here indents its top level by two spaces.
 function topNames(src) {
   const out = [];
@@ -146,6 +168,21 @@ function mockResponse(body, status = 200) {
     text: async () => JSON.stringify(body), clone() { return mockResponse(body, status); }};
 }
 
+function textResponse(text, status = 200) {
+  return {ok: status < 400, status, headers: {get: () => "text/javascript"}, text: async () => text,
+    json: async () => { try { return JSON.parse(text); } catch (e) { return {}; } }, clone() { return textResponse(text, status); }};
+}
+
+// The program-owner panel is fetched as text and run from a blob-URL <script>
+// (index.html ensureExt()), not a <script src="assets/…">. These stubs let
+// that path run inside a fake DOM without a real Blob/URL implementation.
+const extBlobs = new Map();
+let extBlobSeq = 0;
+class FakeBlob { constructor(parts) { this._text = Array.isArray(parts) ? parts.join("") : String(parts || ""); } }
+class FakeURL extends URL {}
+FakeURL.createObjectURL = (blob) => { const id = "blob:node-" + (extBlobSeq++); extBlobs.set(id, (blob && blob._text) || ""); return id; };
+FakeURL.revokeObjectURL = (id) => { extBlobs.delete(id); };
+
 function appContext(apiBodies) {
   const {document, els, byId} = fakeDom();
   const store = new Map([["tipbot_auth_epoch", "2"], ["tipbot_token", "t." + Buffer.from('{"exp":4102444800}').toString("base64") + ".x"]]);
@@ -166,24 +203,34 @@ function appContext(apiBodies) {
     IntersectionObserver: class { observe() {} disconnect() {} unobserve() {} },
     ResizeObserver: class { observe() {} disconnect() {} unobserve() {} },
     MutationObserver: class { observe() {} disconnect() {} },
-    URLSearchParams, URL, AbortController, Intl, Date, Math, JSON, Promise, Blob: class {}, FormData: class {},
+    URLSearchParams, URL: FakeURL, AbortController, Intl, Date, Math, JSON, Promise, Blob: FakeBlob, FormData: class {},
     btoa: (s) => Buffer.from(s, "binary").toString("base64"), atob: (s) => Buffer.from(s, "base64").toString("binary"),
     Image: class {}, CustomEvent: class {}, Event: class {}, performance: {now: () => Date.now(), getEntriesByType: () => []},
     confirm: () => true, alert() {}, prompt: () => null, crypto: {randomUUID: () => "uuid-" + Math.random()},
     fetched, els, byId,
   };
   ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx;
-  ctx.fetch = async (url) => {
+  ctx.fetch = async (url, opts) => {
     const u = String(url);
     fetched.push(u);
+    if (/\/api\/ops\/ext\.js/.test(u)) {
+      ctx._lastExtFetchOpts = opts;
+      return ctx._extSrc ? textResponse(ctx._extSrc) : mockResponse({error: "not_found"}, 404);
+    }
     const api = u.replace("https://afl-tipster-bot.onrender.com", "");
     for (const [prefix, body] of apiBodies) if (api.startsWith(prefix) || u.includes(prefix)) return mockResponse(body);
     return mockResponse({ok: true});
   };
-  // <script src="./assets/x.js?v=…">: run the file into this context, like a browser would.
+  // <script src="./assets/x.js?v=…"> and the program-owner panel's blob-URL
+  // <script>: run the matching source into this context, like a browser would.
   document.head.appendChild = (s) => {
-    const m = String(s.src || "").match(/assets\/([\w-]+)\.js/);
-    fetched.push(String(s.src));
+    const src = String(s.src || "");
+    fetched.push(src);
+    if (src.startsWith("blob:")) {
+      setTimeout(() => { try { vm.runInContext(extBlobs.get(src) || "", ctx, {filename: "ext-blob.js"}); s.onload && s.onload(); } catch (e) { ctx.loadError = e; s.onerror && s.onerror(); } }, 1);
+      return s;
+    }
+    const m = src.match(/assets\/([\w-]+)\.js/);
     setTimeout(() => { try { vm.runInContext(read("assets/" + m[1] + ".js"), ctx, {filename: m[1] + ".js"}); s.onload && s.onload(); } catch (e) { ctx.loadError = e; s.onerror && s.onerror(); } }, 1);
     return s;
   };
@@ -269,11 +316,32 @@ test("the platform session loads platform tools onto the server page", async () 
   const bodies = BODIES.map((pair) => pair.slice());
   bodies[0][1] = Object.assign({}, bodies[0][1], {ops: true});
   const ctx = appContext(bodies);
+  ctx._extSrc = EXT_FIXTURE; // stand-in for what GET /api/ops/ext.js would return
   await tick(80);
   vm.runInContext(`loadDetail("${GID}")`, ctx);
   await tick(150);
   assert.equal(ctx.loadError, undefined);
   assert.match(ctx.byId("detail").innerHTML, /godtoggle/);
   assert.match(ctx.byId("detail").innerHTML, /paste-sheet-ta/);
-  assert.ok(ctx.fetched.some((u) => /ext\.js\?v=/.test(u)));
+  assert.ok(ctx.fetched.some((u) => u.includes("/api/ops/ext.js")));
+  assert.ok(ctx.fetched.some((u) => /^blob:/.test(u)), "panel script runs from a blob URL, not a public asset");
+  assert.equal(ctx._lastExtFetchOpts && ctx._lastExtFetchOpts.credentials, "include");
+  assert.match((ctx._lastExtFetchOpts && ctx._lastExtFetchOpts.headers && ctx._lastExtFetchOpts.headers.Authorization) || "", /^Bearer /);
+});
+
+test("a 404 fetching the owner panel fails silently: no console output, no visible error", async () => {
+  const bodies = BODIES.map((pair) => pair.slice());
+  bodies[0][1] = Object.assign({}, bodies[0][1], {ops: true});
+  const ctx = appContext(bodies);
+  // ctx._extSrc stays unset: GET /api/ops/ext.js behaves like the 404 everyone
+  // but the program owner gets.
+  const consoleCalls = [];
+  for (const k of ["log", "info", "warn", "error", "debug"]) ctx.console[k] = (...args) => consoleCalls.push([k, ...args]);
+  await tick(80);
+  vm.runInContext(`loadDetail("${GID}")`, ctx);
+  await tick(150);
+  assert.equal(ctx.loadError, undefined);
+  assert.ok(ctx.fetched.some((u) => u.includes("/api/ops/ext.js")));
+  assert.doesNotMatch(ctx.byId("detail").innerHTML, /godtoggle|paste-sheet-ta/);
+  assert.deepEqual(consoleCalls, []);
 });

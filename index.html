@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.51.2"></script>
+<script src="./assets/tbtime.js?v=0.51.3"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -1140,7 +1140,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.51.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.51.3</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1161,20 +1161,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.51.2"></script>
-<script src="./assets/light-data.js?v=0.51.2"></script>
-<script src="./assets/lines.js?v=0.51.2"></script>
-<script src="./assets/compare-ui.js?v=0.51.2"></script>
-<script src="./assets/sport-keywords.js?v=0.51.2"></script>
-<script src="./assets/sport-marks.js?v=0.51.2"></script>
-<script src="./assets/routing.js?v=0.51.2"></script>
-<script src="./assets/scheduled-tips.js?v=0.51.2"></script>
-<script src="./assets/upcoming-split.js?v=0.51.2"></script>
-<script src="./assets/espn-props.js?v=0.51.2"></script>
-<script src="./assets/tb-motion.js?v=0.51.2"></script>
-<script src="./assets/form-badges.js?v=0.51.2"></script>
-<script src="./assets/svg-charts.js?v=0.51.2"></script>
-<script src="./assets/server-view.js?v=0.51.2"></script>
+<script src="./assets/req-pool.js?v=0.51.3"></script>
+<script src="./assets/light-data.js?v=0.51.3"></script>
+<script src="./assets/lines.js?v=0.51.3"></script>
+<script src="./assets/compare-ui.js?v=0.51.3"></script>
+<script src="./assets/sport-keywords.js?v=0.51.3"></script>
+<script src="./assets/sport-marks.js?v=0.51.3"></script>
+<script src="./assets/routing.js?v=0.51.3"></script>
+<script src="./assets/scheduled-tips.js?v=0.51.3"></script>
+<script src="./assets/upcoming-split.js?v=0.51.3"></script>
+<script src="./assets/espn-props.js?v=0.51.3"></script>
+<script src="./assets/tb-motion.js?v=0.51.3"></script>
+<script src="./assets/form-badges.js?v=0.51.3"></script>
+<script src="./assets/svg-charts.js?v=0.51.3"></script>
+<script src="./assets/server-view.js?v=0.51.3"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1523,7 +1523,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.51.2";
+  TD.version="0.51.3";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1992,10 +1992,44 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){}
     paintOpsTab();
   }
+  // The program-owner panel (TBOwner) is not shipped in this repo — this repo is
+  // public on GitHub. The bot itself serves that script, only to the program
+  // owner's own session, after this dashboard already confirmed STATE.ops===true
+  // via /api/me. It's fetched with the same session auth this dashboard already
+  // sends on that path, then run from a blob URL (no inline eval, CSP-friendly).
+  // Anyone else gets a 404 there; that, and any network failure, fails silently —
+  // no console output, no visible error (callers already show a plain fallback).
+  let EXT_PENDING=null;
+  function loadExtPanel(){
+    if(EXT_PENDING) return EXT_PENDING;
+    EXT_PENDING=(async function(){
+      const headers={};
+      const t=getToken();
+      if(t) headers.Authorization="Bearer "+t;
+      const path="/api/"+"ops/ext.js";
+      const r=await fetch(API+path,{credentials:"include",headers:headers,cache:"no-store"});
+      if(!r.ok) return false;
+      const code=await r.text();
+      const url=URL.createObjectURL(new Blob([code],{type:"text/javascript"}));
+      try{
+        await new Promise(function(resolve,reject){
+          const s=document.createElement("script");
+          s.src=url;
+          s.onload=function(){ resolve(); };
+          s.onerror=function(){ reject(new Error("ext load failed")); };
+          document.head.appendChild(s);
+        });
+      }finally{
+        try{ URL.revokeObjectURL(url); }catch(e){}
+      }
+      return !!window.TBOwner;
+    })().catch(function(){ return false; }).finally(function(){ EXT_PENDING=null; });
+    return EXT_PENDING;
+  }
   function ensureExt(){
     if(STATE.ops!==true || STATE.viewAs) return Promise.resolve(false);
     if(window.TBOwner) return Promise.resolve(true);
-    return TD.load("ext").then(function(){ return !!window.TBOwner; }).catch(function(){ return false; });
+    return loadExtPanel();
   }
   function openOps(){
     if(STATE.ops!==true){
@@ -6649,7 +6683,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.51.2');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.51.3');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
