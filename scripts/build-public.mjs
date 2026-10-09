@@ -65,7 +65,7 @@ export const DENY_FILES = new Set([
   "VERSIONING.md",
 ]);
 
-export const DENY_DIRS = new Set(["master", "tests", "design", "docs", "GPT"]);
+export const DENY_DIRS = new Set(["master", "tests", "design", "docs", "GPT", "logo-lab"]);
 
 export const SECRET_RE = /forward|mirror|master|consensus/gi;
 

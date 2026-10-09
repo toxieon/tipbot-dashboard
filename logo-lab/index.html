@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Logo Lab</title>
+  <style>
+    :root {
+      --bg-dark: #0F1420;
+      --bg-light: #F4F6FA;
+      --accent: #5B8CFF;
+      --text-dark: #F4F6FA;
+      --text-light: #0F1420;
+    }
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #1a1f2e;
+      color: #fff;
+    }
+    h1 {
+      margin-top: 0;
+      font-weight: 600;
+      font-size: 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 40px;
+    }
+    .concept-card {
+      background: #2a3040;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .concept-title {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      font-weight: 500;
+      color: #a0b0d0;
+    }
+    .previews {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .preview-row {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .preview-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+    }
+    .preview-box.dark {
+      background: var(--bg-dark);
+    }
+    .preview-box.light {
+      background: var(--bg-light);
+    }
+    .size-160 {
+      width: 200px;
+      height: 200px;
+    }
+    .size-160 svg {
+      width: 160px;
+      height: 160px;
+    }
+    .size-40 {
+      width: 60px;
+      height: 60px;
+    }
+    .size-40 svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    /* Concept 1: Shimmer */
+    .c-shimmer .shimmer-bar {
+      transform: rotate(30deg) translateX(-150%);
+      animation: shimmer 5s infinite ease-in-out;
+    }
+    @keyframes shimmer {
+      0%, 40% { transform: rotate(30deg) translateX(-150%); }
+      70%, 100% { transform: rotate(30deg) translateX(150%); }
+    }
+    @media (prefers-reduced-motion) { .c-shimmer .shimmer-bar { animation: none; display: none; } }
+
+    /* Concept 2: Pulse Ring */
+    .c-pulse {
+      overflow: visible;
+    }
+    .c-pulse .pulse-ring {
+      transform-origin: center;
+      animation: pulse 4s infinite cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 0; }
+      10% { opacity: 0.6; }
+      50%, 100% { transform: scale(1.4); opacity: 0; }
+    }
+    @media (prefers-reduced-motion) { .c-pulse .pulse-ring { animation: none; display: none; } }
+
+    /* Concept 3: Subtle 3D Tilt */
+    .c-tilt-wrapper {
+      perspective: 800px;
+      display: flex;
+    }
+    .c-tilt .tilt-group {
+      transform-origin: 256px 256px;
+      animation: tilt 6s infinite ease-in-out;
+    }
+    @keyframes tilt {
+      0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+      25% { transform: rotateX(12deg) rotateY(-12deg); }
+      75% { transform: rotateX(-12deg) rotateY(12deg); }
+    }
+    @media (prefers-reduced-motion) { .c-tilt .tilt-group { animation: none; } }
+
+    /* Concept 4: Stroke Assembly */
+    .c-stroke .stroke-t, .c-stroke .stroke-b {
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      animation: stroke-draw 5s infinite ease-in-out;
+    }
+    .c-stroke .stroke-b {
+      animation-delay: 0.2s;
+    }
+    @keyframes stroke-draw {
+      0%, 10% { stroke-dashoffset: 100; fill-opacity: 0; }
+      35% { stroke-dashoffset: 0; fill-opacity: 0; }
+      45%, 85% { stroke-dashoffset: 0; fill-opacity: 1; }
+      100% { stroke-dashoffset: 0; fill-opacity: 1; }
+    }
+    @media (prefers-reduced-motion) {
+      .c-stroke .stroke-t, .c-stroke .stroke-b { animation: none; stroke-dashoffset: 0; fill-opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Logo Lab</h1>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const svgPaths = `
+      <g transform="translate(59.22 369.21) scale(0.15196 -0.15196)">
+        <path class="path-t" fill="var(--accent)" d="M44.6002197265625 1226.32421875V1490H1256.15771484375V1226.32421875H804.556396484375V0H497.12158203125V1226.32421875Z"/>
+        <path class="path-b" fill="#F4F6FA" transform="translate(1281 0)" d="M111.281494140625 0V1490H707.59912109375Q868.398681640625 1490 980.4884948730469 1441.7699890136719Q1092.5783081054688 1393.5399780273438 1150.8882751464844 1307.7398681640625Q1209.1982421875 1221.9397583007812 1209.1982421875 1106.95947265625Q1209.1982421875 1021.4194946289062 1176.4183959960938 954.9096374511719Q1143.6385498046875 888.3997802734375 1083.9687805175781 844.2798461914062Q1024.2990112304688 800.159912109375 942.3592529296875 779.0197143554688V777.0197143554688Q1033.2990112304688 768.95947265625 1106.1188354492188 724.299560546875Q1178.9386596679688 679.6396484375 1221.5985717773438 602.8598022460938Q1264.2584838867188 526.0799560546875 1264.2584838867188 420.159912109375Q1264.2584838867188 295.85980224609375 1204.4085388183594 201.04983520507812Q1144.55859375 106.2398681640625 1027.9485168457031 53.11993408203125Q911.3384399414062 0 741.51806640625 0ZM412.236572265625 242.07666015625H699.3997802734375Q818.1818237304688 242.07666015625 884.1128234863281 292.8871765136719Q950.0438232421875 343.69769287109375 950.0438232421875 436.9189453125Q950.0438232421875 499.3997802734375 920.8034057617188 544.5903625488281Q891.56298828125 589.7809448242188 836.6221313476562 614.4512634277344Q781.6812744140625 639.12158203125 704 639.12158203125H412.236572265625ZM412.236572265625 870.55859375H685.4403076171875Q753.0613403320312 870.55859375 801.7820434570312 893.5388793945312Q850.5027465820312 916.5191650390625 876.5931091308594 959.0596923828125Q902.6834716796875 1001.6002197265625 902.6834716796875 1059.240966796875Q902.6834716796875 1145.7020874023438 844.6626586914062 1196.8127136230469Q786.641845703125 1247.92333984375 685.4403076171875 1247.92333984375H412.236572265625Z"/>
+      </g>
+    `;
+
+    const concepts = [
+      {
+        name: "1. Shimmer",
+        svg: `
+          <svg class="concept c-shimmer" viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true">
+            <defs>
+              <clipPath id="shimmer-clip"><rect width="512" height="512" rx="88"/></clipPath>
+              <linearGradient id="shimmer-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="white" stop-opacity="0" />
+                <stop offset="50%" stop-color="white" stop-opacity="0.4" />
+                <stop offset="100%" stop-color="white" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="88" fill="#0F1420"/>
+            ${svgPaths}
+            <rect class="shimmer-bar" width="200%" height="200%" x="-50%" y="-50%" fill="url(#shimmer-grad)" clip-path="url(#shimmer-clip)" />
+          </svg>
+        `
+      },
+      {
+        name: "2. Pulse Ring",
+        svg: `
+          <svg class="concept c-pulse" viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true">
+            <rect class="pulse-ring" width="512" height="512" rx="88" fill="none" stroke="var(--accent)" stroke-width="24"/>
+            <rect width="512" height="512" rx="88" fill="#0F1420"/>
+            ${svgPaths}
+          </svg>
+        `
+      },
+      {
+        name: "3. Subtle 3D Tilt",
+        wrapperClass: "c-tilt-wrapper",
+        svg: `
+          <svg class="concept c-tilt" viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true">
+            <rect width="512" height="512" rx="88" fill="#0F1420"/>
+            <g class="tilt-group">
+              ${svgPaths}
+            </g>
+          </svg>
+        `
+      },
+      {
+        name: "4. Stroke Assembly",
+        svg: `
+          <svg class="concept c-stroke" viewBox="0 0 512 512" width="100%" height="100%" aria-hidden="true">
+            <rect width="512" height="512" rx="88" fill="#0F1420"/>
+            <g transform="translate(59.22 369.21) scale(0.15196 -0.15196)">
+              <path class="stroke-t" fill="var(--accent)" stroke="var(--accent)" stroke-width="40" pathLength="100" d="M44.6002197265625 1226.32421875V1490H1256.15771484375V1226.32421875H804.556396484375V0H497.12158203125V1226.32421875Z"/>
+              <path class="stroke-b" fill="#F4F6FA" stroke="#F4F6FA" stroke-width="40" pathLength="100" transform="translate(1281 0)" d="M111.281494140625 0V1490H707.59912109375Q868.398681640625 1490 980.4884948730469 1441.7699890136719Q1092.5783081054688 1393.5399780273438 1150.8882751464844 1307.7398681640625Q1209.1982421875 1221.9397583007812 1209.1982421875 1106.95947265625Q1209.1982421875 1021.4194946289062 1176.4183959960938 954.9096374511719Q1143.6385498046875 888.3997802734375 1083.9687805175781 844.2798461914062Q1024.2990112304688 800.159912109375 942.3592529296875 779.0197143554688V777.0197143554688Q1033.2990112304688 768.95947265625 1106.1188354492188 724.299560546875Q1178.9386596679688 679.6396484375 1221.5985717773438 602.8598022460938Q1264.2584838867188 526.0799560546875 1264.2584838867188 420.159912109375Q1264.2584838867188 295.85980224609375 1204.4085388183594 201.04983520507812Q1144.55859375 106.2398681640625 1027.9485168457031 53.11993408203125Q911.3384399414062 0 741.51806640625 0ZM412.236572265625 242.07666015625H699.3997802734375Q818.1818237304688 242.07666015625 884.1128234863281 292.8871765136719Q950.0438232421875 343.69769287109375 950.0438232421875 436.9189453125Q950.0438232421875 499.3997802734375 920.8034057617188 544.5903625488281Q891.56298828125 589.7809448242188 836.6221313476562 614.4512634277344Q781.6812744140625 639.12158203125 704 639.12158203125H412.236572265625ZM412.236572265625 870.55859375H685.4403076171875Q753.0613403320312 870.55859375 801.7820434570312 893.5388793945312Q850.5027465820312 916.5191650390625 876.5931091308594 959.0596923828125Q902.6834716796875 1001.6002197265625 902.6834716796875 1059.240966796875Q902.6834716796875 1145.7020874023438 844.6626586914062 1196.8127136230469Q786.641845703125 1247.92333984375 685.4403076171875 1247.92333984375H412.236572265625Z"/>
+            </g>
+          </svg>
+        `
+      }
+    ];
+
+    const grid = document.getElementById('grid');
+    concepts.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'concept-card';
+      
+      const title = document.createElement('h2');
+      title.className = 'concept-title';
+      title.textContent = c.name;
+      card.appendChild(title);
+
+      const previews = document.createElement('div');
+      previews.className = 'previews';
+
+      // 160px row
+      const row160 = document.createElement('div');
+      row160.className = 'preview-row';
+      
+      const box160Dark = document.createElement('div');
+      box160Dark.className = 'preview-box dark size-160 ' + (c.wrapperClass || '');
+      box160Dark.innerHTML = c.svg;
+      
+      const box160Light = document.createElement('div');
+      box160Light.className = 'preview-box light size-160 ' + (c.wrapperClass || '');
+      box160Light.innerHTML = c.svg;
+      
+      row160.appendChild(box160Dark);
+      row160.appendChild(box160Light);
+
+      // 40px row
+      const row40 = document.createElement('div');
+      row40.className = 'preview-row';
+      
+      const box40Dark = document.createElement('div');
+      box40Dark.className = 'preview-box dark size-40 ' + (c.wrapperClass || '');
+      box40Dark.innerHTML = c.svg;
+      
+      const box40Light = document.createElement('div');
+      box40Light.className = 'preview-box light size-40 ' + (c.wrapperClass || '');
+      box40Light.innerHTML = c.svg;
+      
+      row40.appendChild(box40Dark);
+      row40.appendChild(box40Light);
+
+      previews.appendChild(row160);
+      previews.appendChild(row40);
+      card.appendChild(previews);
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>
