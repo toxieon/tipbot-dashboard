@@ -10,23 +10,23 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" sizes="180x180">
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
-<script src="../assets/tbtime.js?v=0.52.3"></script>
+<script src="../assets/tbtime.js?v=0.52.4"></script>
 <script src="../assets/master-access.js"></script>
-<script src="../assets/sport-marks.js?v=0.52.3"></script>
+<script src="../assets/sport-marks.js?v=0.52.4"></script>
 <script src="../assets/consensus-ui.js"></script>
 <script src="../assets/slip-ui.js"></script>
-<script src="../assets/tb-motion.js?v=0.52.3"></script>
+<script src="../assets/tb-motion.js?v=0.52.4"></script>
 <script>
 (function(){
   try {
     var day=TBTime.dayKey(Date.now());
     var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
-    var valid=['navy','day','ochre','apex'].indexOf(name)!==-1;
+    var valid=['navy','day','ochre','apex','apex-light','apex-oled','apex-mono'].indexOf(name)!==-1;
     var root=document.documentElement;
     var APEX_DEFAULT=true;
     var manual=localStorage.getItem('tipbot_theme_manual_date')===day;
     var theme=valid&&(!auto||manual)?name:auto?((APEX_DEFAULT&&!valid)?'apex':(TBTime.isDaytime(Date.now())?'day':'navy')):(valid?name:(APEX_DEFAULT?'apex':'navy'));
-    root.dataset.theme=theme;
+    var apexV=theme.indexOf('apex-')===0?theme.slice(5):'';root.dataset.theme=apexV?'apex':theme;if(apexV)root.dataset.apexVariant=apexV;if(apexV==='light')root.dataset.apexLight='1';
     if(theme==='apex'&&auto&&TBTime.isDaytime(Date.now())) root.dataset.apexLight='1';
     if(theme==='apex'){
       var meta=document.querySelector('meta[name="theme-color"]');

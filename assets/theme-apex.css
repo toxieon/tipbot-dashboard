@@ -983,3 +983,8 @@ html[data-theme="apex"] .apex-flame-icon {
   0% { transform: scale(0.95) rotate(-2deg); opacity: 0.8; }
   100% { transform: scale(1.05) rotate(2deg); opacity: 1; }
 }
+
+/* 0.52.4: the tab indicator slide (with overshoot) stops under reduced motion. */
+@media (prefers-reduced-motion:reduce){
+  html[data-theme="apex"] .apex-indicator{transition:none}
+}
