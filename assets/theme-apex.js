@@ -47,10 +47,14 @@
     try { auto = root.localStorage.getItem("tipbot_theme_auto") === "true"; } catch (e) {}
     var day = false;
     try { day = !!(root.TBTime && root.TBTime.isDaytime(Date.now())); } catch (e2) {}
-    if (el.dataset.theme === "apex" && auto && day) el.dataset.apexLight = "1";
-    else delete el.dataset.apexLight;
+    var v = el.dataset.theme === "apex" ? (el.dataset.apexVariant || "") : "";
+    // Only write on change: the theme observer watches data-apex-light, so a same-value write would loop.
+    var wantLight = v === "light" || (el.dataset.theme === "apex" && !v && auto && day);
+    if (wantLight && el.dataset.apexLight !== "1") el.dataset.apexLight = "1";
+    else if (!wantLight && "apexLight" in el.dataset) delete el.dataset.apexLight;
     var meta = doc.querySelector('meta[name="theme-color"]');
     if (!meta) return;
+    if (el.dataset.apexVariant) return; // pre-paint / Settings set the variant colour
     if (el.dataset.theme === "apex") meta.setAttribute("content", el.dataset.apexLight === "1" ? "#F4F6F8" : "#07090F");
     else if (meta.getAttribute("content") === "#07090F" || meta.getAttribute("content") === "#F4F6F8") meta.setAttribute("content", "#0b0f1a");
   }
@@ -1216,7 +1220,7 @@
         mo.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-settled", "data-live", "data-ts", "hidden"] });
       }
       var themeMO = new root.MutationObserver(function () { syncTone(); if (active()) pass(); });
-      themeMO.observe(doc.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-apex-light"] });
+      themeMO.observe(doc.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-apex-light", "data-apex-variant"] });
       pass();
       setInterval(function () {
         if (doc.hidden || !active()) return;

@@ -200,7 +200,7 @@ test("translucent materials have reduced-transparency and high-contrast fallback
 
 test("theme changes cross-fade via View Transitions (not on first paint, not with reduced motion)", () => {
   assert.match(HTML, /document\.startViewTransition\(apply\)/);
-  assert.match(HTML, /if\(root\.dataset\.theme&&root\.dataset\.theme!==next&&document\.startViewTransition&&!rm/);
+  assert.match(HTML, /if\(root\.dataset\.theme&&current\(\)!==next&&document\.startViewTransition&&!rm/);
 });
 
 test("home-screen app: one manifest, Cinna's PNG icons (iOS ignores SVG touch icons)", () => {

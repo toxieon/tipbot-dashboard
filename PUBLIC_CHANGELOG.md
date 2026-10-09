@@ -1,3 +1,7 @@
+## 0.52.4
+
+Apex Light, OLED and Mono now use the full Apex layout.
+
 # Tipdash
 
 ## 0.52.3
