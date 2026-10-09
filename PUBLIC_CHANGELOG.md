@@ -1,3 +1,7 @@
+## 0.54.3
+
+Faster, smoother loading on phones.
+
 ## 0.54.2
 
 Home now always opens first, with Stats and Racing one tap away.

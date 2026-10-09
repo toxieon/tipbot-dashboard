@@ -14,6 +14,9 @@
   var rankPrev = typeof WeakMap === "function" ? new WeakMap() : null;
   var busy = false;
   var queued = false;
+  var railNav = null;
+  var tabsNav = null;
+  var resizeQueued = false;
 
   function reduced() {
     try { return !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches); }
@@ -431,13 +434,15 @@
     if (!box || box.hidden) return;
     var nodes = box.querySelectorAll(".gcard, .panel, .teamplayers");
     var active = null;
-    nodes.forEach(function (el) {
+    var i;
+    for (i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
       el.classList.add("apex-step");
-      if (!el.hidden) active = el;
-    });
-    var open = box.querySelector(".teamplayers:not([hidden])") || box.querySelector(".panel");
-    if (open) active = open;
-    nodes.forEach(function (el) { el.classList.toggle("is-active", el === active); });
+      if (!el.hidden && el.classList.contains("teamplayers")) active = el;
+      else if (!el.hidden && !active && el.classList.contains("panel")) active = el;
+      else if (!el.hidden && !active) active = el;
+    }
+    for (i = 0; i < nodes.length; i++) nodes[i].classList.toggle("is-active", nodes[i] === active);
   }
 
   function wireScroll() {
@@ -653,7 +658,12 @@
   function mountShell() {
     if (!active() || !doc.body || shellReady) return;
     var host = doc.getElementById("app") || doc.body;
-    if (host.querySelector(".apex-rail")) { shellReady = true; return; }
+    if (host.querySelector(".apex-rail")) {
+      railNav = host.querySelector(".apex-rail");
+      tabsNav = host.querySelector(".apex-tabs");
+      shellReady = true;
+      return;
+    }
     var rail = doc.createElement("nav");
     rail.className = "apex-rail";
     rail.setAttribute("aria-label", "Sections");
@@ -666,6 +676,8 @@
     tabs.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(tabItems, "");
     host.insertBefore(rail, host.firstChild);
     host.appendChild(tabs);
+    railNav = rail;
+    tabsNav = tabs;
     host.addEventListener("click", function (ev) {
       var btn = ev.target && ev.target.closest ? ev.target.closest("[data-apex-nav]") : null;
       if (!btn || !host.contains(btn)) return;
@@ -693,8 +705,8 @@
       if (on) btn.setAttribute("aria-current", "page");
       else btn.removeAttribute("aria-current");
     });
-    moveIndicator(doc.querySelector(".apex-rail"));
-    moveIndicator(doc.querySelector(".apex-tabs"));
+    moveIndicator(railNav || doc.querySelector(".apex-rail"));
+    moveIndicator(tabsNav || doc.querySelector(".apex-tabs"));
   }
   function sparkD(values, w, h) {
     if (!values.length) return "";
@@ -1214,9 +1226,14 @@
         }
       }, true);
       root.addEventListener("resize", function () {
-        if (!active()) return;
-        paintNav();
-        placePill(doc.getElementById("monthsel"));
+        if (!active() || resizeQueued) return;
+        resizeQueued = true;
+        raf(function () {
+          resizeQueued = false;
+          if (!active()) return;
+          paintNav();
+          placePill(doc.getElementById("monthsel"));
+        });
       });
       if (doc.body && root.MutationObserver) {
         var mo = new root.MutationObserver(function () {

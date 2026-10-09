@@ -428,3 +428,50 @@ test("a 404 fetching the owner panel fails silently: no console output, no visib
   assert.doesNotMatch(ctx.byId("detail").innerHTML, /godtoggle|paste-sheet-ta/);
   assert.deepEqual(consoleCalls, []);
 });
+
+test("navRoute opens Upcoming for #/s/<gid>/upcoming and #/upcoming", async () => {
+  const ctx = appContext(BODIES);
+  await tick(80);
+  vm.runInContext(`navRoute("#/s/${GID}/upcoming")`, ctx);
+  assert.equal(ctx.byId("upcoming").hidden, false);
+  assert.equal(ctx.byId("detail").hidden, true);
+  vm.runInContext('navRoute("#/upcoming")', ctx);
+  assert.equal(ctx.byId("upcoming").hidden, false);
+});
+
+test("leaving Build mid-flow via enterHome hides builder but keeps tray legs", async () => {
+  const ctx = appContext(BODIES);
+  await tick(80);
+  await vm.runInContext(`(async function(){
+    await openBuilder("${GID}","Toxieon-Tipping");
+    await openSportsBuilder("${GID}","Toxieon-Tipping");
+    BUILD.legs=[{custom:true,desc:"Test leg",price:2,units:1}];
+    enterHome();
+  })()`, ctx);
+  await tick(120);
+  assert.equal(ctx.byId("builder").hidden, true);
+  const legsAfterHome = await vm.runInContext("BUILD && BUILD.legs ? BUILD.legs.length : -1", ctx);
+  assert.equal(legsAfterHome, 1);
+  await vm.runInContext(`openBuilder("${GID}","Toxieon-Tipping")`, ctx);
+  await tick(80);
+  const legsAfterReopen = await vm.runInContext("BUILD.legs.length", ctx);
+  assert.equal(legsAfterReopen, 1);
+});
+
+test("racing 503 and greyhound errors surface in the UI (mocked fetchRacingApi)", async () => {
+  const ctx = {
+    fetch: async (path) => ({ ok: false, status: String(path).includes("evt-g") ? 400 : 503 }),
+    API: "https://afl-tipster-bot.onrender.com",
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  const fn = FILES.builder.match(/async function fetchRacingApi\(path\)\{[\s\S]*?\n  \}/)[0];
+  vm.runInContext(
+    "async function api(path){ return fetch(path); }\n" + fn,
+    ctx
+  );
+  const unavailable = await vm.runInContext('fetchRacingApi("/api/racing/next")', ctx);
+  const grey = await vm.runInContext('fetchRacingApi("/api/racing/event/evt-g")', ctx);
+  assert.match(unavailable.error, /Racing data is currently unavailable/);
+  assert.match(grey.error, /Greyhounds aren't listed/);
+});
