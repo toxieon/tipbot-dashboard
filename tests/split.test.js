@@ -304,15 +304,10 @@ test("smoke (mocked API): home and a server open without the lazy files; each pa
   await tick(40);
   assert.deepEqual(lazyFetches(ctx), ["./assets/builder.js?v=" + VERSION]);
   assert.equal(ctx.byId("builder").hidden, false);
-  assert.match(ctx.byId("builder").innerHTML, /Ready to build/);
-  assert.match(ctx.byId("builder").innerHTML, /Sports/);
-  assert.match(ctx.byId("builder").innerHTML, /Racing/);
-  assert.match(ctx.byId("builder").innerHTML, /Gallops/);
-  assert.match(ctx.byId("builder").innerHTML, /Next to go/);
-  await tick(40);
-  assert.match(ctx.byId("next-to-go-list").innerHTML, /Randwick/);
-  assert.match(ctx.byId("next-to-go-list").innerHTML, /Menangle/);
-  assert.doesNotMatch(ctx.byId("next-to-go-list").innerHTML, /Townsville|Greys/);
+  assert.match(ctx.byId("builder").innerHTML, /Build a tip/);
+  assert.match(ctx.byId("builder").innerHTML, /build-racing-switch/);
+  assert.doesNotMatch(ctx.byId("builder").innerHTML, /Ready to build/);
+  assert.doesNotMatch(ctx.byId("builder").innerHTML, /tile-sports/);
 
   await vm.runInContext(`openRacingBuilder("${GID}","Toxieon-Tipping")`, ctx);
   await tick(40);
