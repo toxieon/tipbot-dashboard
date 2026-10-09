@@ -1,3 +1,7 @@
+## 0.52.5 · 2026-10-09 · P0: dashboard API base restored
+
+- 0.52.3 set `const API=""` in index.html, so every dashboard call went to tipdashhq.com and failed ("Couldn't load that server."). Restored `https://afl-tipster-bot.onrender.com` and added a test.
+
 ## 0.52.4 · 2026-10-09 · Apex variants get the Apex shell
 
 - apex-light, apex-oled and apex-mono now render as `data-theme="apex"` plus `data-apex-variant` (light, oled, mono), so the tab bar, glow and animations apply. Saved names and TipBot theme prefs are unchanged.
