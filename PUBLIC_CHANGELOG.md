@@ -1,3 +1,7 @@
+## 0.54.2
+
+Home now always opens first, with Stats and Racing one tap away.
+
 ## 0.54.1
 
 Build now has a Racing section for gallops and harness.
