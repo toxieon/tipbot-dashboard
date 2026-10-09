@@ -1,7 +1,10 @@
-## Unreleased
+## 0.54.4 · 2026-10-10 · `lists` · Only listed guilds on Home
 
+- Defence in depth for TipBot 0.58.6: `listedOnly()` filters `/api/servers` `servers` and `follower_servers` (both the lite and full loads), dropping any entry without a `guild_id` or flagged `hidden` / `listed:false`, before Home, Stats, the Racing tile or the pickers see them.
 - **Build:** Removed the Sport / Game / Market / Confirm step bar in Apex (step logic unchanged). Build opens straight into Sports; Racing is on the Home tile and a **Racing** chip in the sports picker.
 - **Phone tabs:** Home | Build | Upcoming stay hidden until a server is selected; Build and Upcoming tab taps are ignored without server context.
+
+Tests: `tests/listed_guilds.test.js`.
 
 ## 0.54.3 · 2026-10-10 · `quality` · Tests and perf pass, no visual change
 
