@@ -113,6 +113,104 @@ test("apex motion is deferred and keeps a local choice the server dropped", () =
   assert.match(css, /\.apex-day/);
 });
 
+function ys(d) {
+  return d.split(/[ML]/).filter(Boolean).map((part) => Number(part.trim().split(/\s+/)[1]));
+}
+
+function loadApex() {
+  const js = read("assets/theme-apex.js");
+  const ctx = {
+    matchMedia: function () { return { matches: false }; },
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    requestAnimationFrame: function () { return 1; },
+    performance: { now: function () { return 1000; } }
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(js, ctx);
+  return ctx.ApexTheme;
+}
+
+test("home profit keeps the unit and one decimal", () => {
+  const apex = loadApex();
+  assert.equal(apex.fmtUnits(14.9), "+14.9u");
+  assert.equal(apex.fmtUnits(18.4), "+18.4u");
+  assert.equal(apex.fmtUnits(-3.5), "-3.5u");
+  assert.equal(apex.fmtUnits(0), "0.0u");
+  assert.equal(apex.fmtUnits(null), "\u2014");
+});
+
+test("a positive profit sparkline rises left to right", () => {
+  const apex = loadApex();
+  const up = ys(apex.sparkD([0, 18.4], 120, 36));
+  assert.equal(up.length, 2);
+  assert.ok(up[1] < up[0], "higher profit is higher on the chart");
+  const total = ys(apex.sparkD([0, 14.9], 280, 72));
+  assert.ok(total[1] < total[0]);
+  const down = ys(apex.sparkD([0, -4.2], 120, 36));
+  assert.ok(down[1] > down[0], "a loss falls left to right");
+  const bankroll = Array.from(apex.cumulative([18.4, -3.5]), (n) => Math.round(n * 10));
+  assert.equal(bankroll[0], 0);
+  assert.equal(bankroll[1], 184);
+  assert.equal(bankroll[2], 149);
+  const bank = ys(apex.sparkD(apex.cumulative([18.4, -3.5]), 280, 72));
+  assert.ok(bank[0] > bank[bank.length - 1], "a positive bankroll ends above where it started");
+  const js = read("assets/theme-apex.js");
+  assert.match(js, /svgLine\("apex-mini", \[0, st\.profit\]/);
+  assert.match(js, /var running = profits\.length \? \[0, sum\] : \[\]/);
+});
+
+test("the server hero keeps the settled units figure while the tile is counting", () => {
+  const apex = loadApex();
+  const tile = { textContent: "+18.4u", dataset: {} };
+  apex.countEl(tile, 640);
+  assert.equal(tile.dataset.apexFinal, "+18.4u");
+  assert.equal(tile.dataset.apexBusy, "1");
+  tile.textContent = "+1.8u";
+  assert.equal(apex.settledText(tile), "+18.4u");
+  tile.textContent = "+18.4u";
+  delete tile.dataset.apexBusy;
+  tile.dataset.apexGen = "1";
+  const hero = { textContent: "+18.4u", dataset: { apexGen: "2" } };
+  let finished = false;
+  const ctxNow = 5000;
+  const themeSrc = read("assets/theme-apex.js");
+  assert.match(themeSrc, /exactUnits\(settledText\(units\)\)/);
+  const clock = {
+    matchMedia: function () { return { matches: false }; },
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    requestAnimationFrame: function (fn) { fn(ctxNow); return 1; },
+    performance: { now: function () { return 1000; } }
+  };
+  clock.window = clock;
+  vm.createContext(clock);
+  vm.runInContext(themeSrc, clock);
+  clock.ApexTheme.countEl(hero, 640);
+  finished = hero.dataset.apexSettled === "1";
+  assert.equal(finished, true);
+  assert.equal(hero.textContent, "+18.4u");
+});
+
+test("next start counts down, and an empty slate says No games", () => {
+  const apex = loadApex();
+  assert.equal(apex.leadText(2 * 86400000 + 3 * 3600000), "2d 3h");
+  assert.equal(apex.leadText(90 * 60000), "1h 30m");
+  assert.equal(apex.leadText(5 * 60000), "5m");
+  assert.equal(apex.leadText(15000), "<1m");
+  assert.equal(apex.leadText(null), null);
+  const js = read("assets/theme-apex.js");
+  const css = read("assets/theme-apex.css");
+  assert.match(js, /No games/);
+  assert.match(js, /apex-muted/);
+  assert.match(css, /\.apex-facts b\.apex-muted/);
+  assert.match(css, /"units units strike"/);
+  assert.match(css, /"units units record"/);
+  assert.match(css, /"form form roi"/);
+  assert.doesNotMatch(js, /series\.push\(st\.won\)/);
+});
+
 test("apex is the default when a visitor has not chosen a theme", () => {
   for (const f of PAGES) {
     const src = read(f);

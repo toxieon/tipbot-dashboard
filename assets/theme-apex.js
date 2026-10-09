@@ -121,39 +121,62 @@
     if (!el || el.dataset.apexCounted === "1") return;
     var raw = el.textContent || "";
     var numText = oneNumber(raw);
+    el.dataset.apexFinal = raw;
     if (numText == null) {
       el.dataset.apexCounted = "1";
       el.dataset.apexLast = raw;
+      el.dataset.apexSettled = "1";
       return;
     }
     el.dataset.apexCounted = "1";
     el.dataset.apexLast = raw;
-    if (reduced()) return;
+    el.dataset.apexGen = String((+el.dataset.apexGen || 0) + 1);
+    var gen = el.dataset.apexGen;
+    if (reduced()) {
+      el.textContent = raw;
+      el.dataset.apexSettled = "1";
+      return;
+    }
     el.dataset.apexBusy = "1";
+    delete el.dataset.apexSettled;
     var neg = numText.charAt(0) === "-";
     var pos = numText.charAt(0) === "+";
     var abs = parseFloat(pos || neg ? numText.slice(1) : numText);
-    if (!isFinite(abs)) { delete el.dataset.apexBusy; return; }
+    if (!isFinite(abs)) {
+      delete el.dataset.apexBusy;
+      el.dataset.apexSettled = "1";
+      return;
+    }
     var at = raw.indexOf(numText);
     var prefix = raw.slice(0, at);
     var suffix = raw.slice(at + numText.length);
     var decimals = (numText.split(".")[1] || "").length;
+    if (!decimals && /u/.test(suffix)) decimals = 1;
     var t0 = root.performance && root.performance.now ? root.performance.now() : Date.now();
     function frame(now) {
+      if (el.dataset.apexGen !== gen) return;
       var t = now == null ? Date.now() : now;
       var p = Math.min(1, (t - t0) / ms);
       var e = 1 - Math.pow(1 - p, 3);
       var v = abs * e;
       var body = decimals ? v.toFixed(decimals) : String(Math.round(v));
-      el.textContent = prefix + (neg ? "-" : pos ? "+" : "") + body + suffix;
-      if (p < 1) raf(frame);
-      else {
-        el.textContent = raw;
-        el.dataset.apexLast = raw;
-        delete el.dataset.apexBusy;
+      if (p < 1) {
+        el.textContent = prefix + (neg ? "-" : pos ? "+" : "") + body + suffix;
+        raf(frame);
+        return;
       }
+      el.textContent = raw;
+      el.dataset.apexLast = raw;
+      el.dataset.apexFinal = raw;
+      delete el.dataset.apexBusy;
+      el.dataset.apexSettled = "1";
     }
     raf(frame);
+  }
+  function settledText(el) {
+    if (!el) return "";
+    if (el.dataset.apexBusy === "1" && el.dataset.apexFinal) return el.dataset.apexFinal;
+    return (el.textContent || "").trim();
   }
 
   function armCounts(scope) {
@@ -174,13 +197,14 @@
   function drawLine(path) {
     if (!path || path.dataset.apexDrawn === "1") return;
     var len = 0;
-    try { len = path.getTotalLength(); } catch (e) { return; }
-    if (!(len > 0)) return;
+    try { len = path.getTotalLength(); } catch (e) { path.dataset.apexSettled = "1"; return; }
+    if (!(len > 0)) { path.dataset.apexSettled = "1"; return; }
     path.dataset.apexDrawn = "1";
     var svg = path.ownerSVGElement || path.parentNode;
     var end = svg && svg.querySelector ? svg.querySelector(".sv-end") : null;
     if (reduced()) {
       path.style.strokeDashoffset = "0";
+      path.dataset.apexSettled = "1";
       return;
     }
     path.style.strokeDasharray = String(len);
@@ -190,9 +214,17 @@
         [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
         { duration: 640, easing: EASE, fill: "both" }
       );
-      anim.onfinish = function () { path.style.strokeDashoffset = "0"; };
+      anim.onfinish = function () {
+        path.style.strokeDashoffset = "0";
+        path.dataset.apexSettled = "1";
+      };
+      setTimeout(function () {
+        path.style.strokeDashoffset = "0";
+        path.dataset.apexSettled = "1";
+      }, 700);
     } catch (e2) {
       path.style.strokeDashoffset = "0";
+      path.dataset.apexSettled = "1";
     }
     if (end) end.classList.add("apex-pulse");
   }
@@ -423,10 +455,17 @@
   function fmtUnits(n) {
     if (n == null || !isFinite(n)) return "\u2014";
     var r = Math.round(n * 10) / 10;
-    var body = (Math.abs(r % 1) > 0.001) ? Math.abs(r).toFixed(1) : String(Math.abs(Math.round(r)));
-    if (r > 0) return "+" + body;
-    if (r < 0) return "-" + body;
-    return "0";
+    var body = Math.abs(r).toFixed(1);
+    if (r > 0) return "+" + body + "u";
+    if (r < 0) return "-" + body + "u";
+    return "0.0u";
+  }
+  function exactUnits(text) {
+    var raw = String(text == null ? "" : text).trim();
+    if (!raw || raw === "\u2014" || /updating/i.test(raw)) return raw || "\u2014";
+    var n = numOf(raw);
+    if (n == null) return raw;
+    return fmtUnits(n);
   }
   function initials(name) {
     var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
@@ -630,8 +669,8 @@
   }
   function sparkD(values, w, h) {
     if (!values.length) return "";
-    var min = Math.min.apply(null, values);
-    var max = Math.max.apply(null, values);
+    var min = Math.min.apply(null, values.concat([0]));
+    var max = Math.max.apply(null, values.concat([0]));
     var span = (max - min) || 1;
     var pad = 4;
     return values.map(function (v, i) {
@@ -639,6 +678,15 @@
       var y = pad + (1 - (v - min) / span) * (h - pad * 2);
       return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
     }).join(" ");
+  }
+  function cumulative(values) {
+    var running = [0];
+    var acc = 0;
+    (values || []).forEach(function (p) {
+      acc = Math.round((acc + p) * 10) / 10;
+      running.push(acc);
+    });
+    return running;
   }
   function svgLine(cls, values, w, h) {
     var svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -675,24 +723,103 @@
     delete el.dataset.apexCounted;
     delete el.dataset.apexCount;
     delete el.dataset.apexLast;
+    delete el.dataset.apexFinal;
+    delete el.dataset.apexSettled;
+    delete el.dataset.apexBusy;
   }
-  function nextStart() {
-    var best = null;
-    doc.querySelectorAll(".cd[data-ts]").forEach(function (cd) {
-      var ts = +cd.dataset.ts;
-      if (!ts) return;
-      var ms = ts * 1000 - Date.now();
-      if (ms <= 0) return;
-      if (best == null || ms < best) best = ms;
-    });
-    if (best == null) return "\u2014";
-    var s = Math.round(best / 1000);
+  function asMs(ts) {
+    var n = +ts;
+    if (!n) return 0;
+    return n > 1e12 ? n : n * 1000;
+  }
+  function leadText(ms) {
+    if (!(ms > 0)) return null;
+    var s = Math.max(0, Math.round(ms / 1000));
     var d = Math.floor(s / 86400);
     var h = Math.floor((s % 86400) / 3600);
     var m = Math.floor((s % 3600) / 60);
     if (d) return d + "d " + h + "h";
     if (h) return h + "h " + m + "m";
-    return m + "m";
+    if (m) return m + "m";
+    return "<1m";
+  }
+  var nextFetch = {};
+  function considerStart(best, ts, skip) {
+    if (skip) return best;
+    var ms = asMs(ts) - Date.now();
+    if (!(ms > 0)) return best;
+    if (best == null || ms < best) return ms;
+    return best;
+  }
+  function nextStart() {
+    var best = null;
+    if (doc) {
+      doc.querySelectorAll("[data-ts]").forEach(function (cd) {
+        best = considerStart(best, cd.dataset.ts, false);
+      });
+    }
+    try {
+      var all = JSON.parse(root.localStorage.getItem("tipdash_upctx_v1") || "{}") || {};
+      Object.keys(all).forEach(function (gid) {
+        var starts = (all[gid] && all[gid].starts) || {};
+        Object.keys(starts).forEach(function (name) {
+          var g = starts[name] || {};
+          var done = !!(g.finished || g.concluded || Number(g.complete) >= 100);
+          best = considerStart(best, g.ts, done);
+        });
+      });
+    } catch (e) {}
+    Object.keys(nextFetch).forEach(function (gid) {
+      var v = nextFetch[gid];
+      if (typeof v === "number") best = considerStart(best, v, false);
+    });
+    return leadText(best);
+  }
+  function tickNext() {
+    if (!doc) return;
+    var ov = doc.getElementById("overview");
+    if (!ov || ov.hidden) return;
+    var nEl = doc.querySelector('.apex-facts [data-fact="next"]');
+    paintNext(nEl);
+  }
+  function paintNext(nEl) {
+    if (!nEl) return;
+    var label = nextStart();
+    var text = label || "No games";
+    if (nEl.textContent !== text) nEl.textContent = text;
+    nEl.classList.toggle("apex-muted", !label);
+    if (!label) requestUpcoming();
+  }
+  function requestUpcoming() {
+    if (!doc || typeof root.api !== "function") return;
+    var nodes = doc.querySelectorAll("#overview .sgid");
+    nodes.forEach(function (el) {
+      var gid = String(el.textContent || "").trim();
+      if (!/^\d{8,}$/.test(gid) || nextFetch[gid]) return;
+      nextFetch[gid] = "pending";
+      var finish = function (ts) {
+        nextFetch[gid] = ts || "empty";
+        if (active()) tickNext();
+      };
+      try {
+        Promise.resolve(root.api("/api/upcoming?guild_id=" + encodeURIComponent(gid), { timeoutMs: 8000, retries: 1 })).then(function (r) {
+          if (!r || !r.ok || typeof r.json !== "function") return null;
+          return r.json();
+        }).then(function (data) {
+          var best = null;
+          var games = data && data.games;
+          if (!Array.isArray(games)) { finish(null); return; }
+          games.forEach(function (g) {
+            if (!g || g.finished || g.concluded || Number(g.complete) >= 100) return;
+            var ts = +g.unixtime || +g.ts || 0;
+            if (!ts) return;
+            if (asMs(ts) <= Date.now()) return;
+            if (best == null || asMs(ts) < asMs(best)) best = ts;
+          });
+          finish(best);
+        }).catch(function () { finish(null); });
+      } catch (e2) { finish(null); }
+    });
   }
   function armHome() {
     var ov = doc.getElementById("overview");
@@ -714,12 +841,8 @@
       if (st.queued != null) { queuedN += st.queued; queuedKnown = true; }
       if (st.won != null) won += st.won;
       if (st.lost != null) lost += st.lost;
-      if (!card.querySelector(".apex-mini") && (st.won != null || st.profit != null)) {
-        var series = [];
-        if (st.won != null) series.push(st.won);
-        if (st.lost != null) series.push(st.lost);
-        if (st.profit != null) series.push(Math.max(st.profit, 0));
-        if (series.length >= 2) card.appendChild(svgLine("apex-mini", series, 120, 36));
+      if (!card.querySelector(".apex-mini") && st.profit != null) {
+        card.appendChild(svgLine("apex-mini", [0, st.profit], 120, 36));
       }
       if (!card.querySelector(".apex-record") && st.won != null && st.lost != null && (st.won + st.lost) > 0) {
         var rec = doc.createElement("div");
@@ -733,7 +856,7 @@
       var grid = card.parentNode;
       if (grid && grid.classList && grid.classList.contains("grid") && !grid.id) grid.id = "apex-servers";
     });
-    var sum = profits.reduce(function (a, b) { return a + b; }, 0);
+    var sum = Math.round(profits.reduce(function (a, b) { return a + b; }, 0) * 10) / 10;
     var hero = ov.querySelector(".apex-hero");
     if (!hero) {
       hero = doc.createElement("section");
@@ -752,9 +875,7 @@
     }
     setFigure(num, text);
     var slot = hero.querySelector(".apex-spark-slot");
-    var running = [];
-    var acc = 0;
-    profits.forEach(function (p) { acc += p; running.push(acc); });
+    var running = profits.length ? [0, sum] : [];
     if (slot && running.length && slot.dataset.apexSpark !== running.join(",")) {
       slot.dataset.apexSpark = running.join(",");
       slot.textContent = "";
@@ -770,7 +891,7 @@
     var nEl = hero.querySelector('[data-fact="next"]');
     if (qEl) qEl.textContent = queuedKnown ? String(queuedN) : "\u2014";
     if (lEl) lEl.textContent = String(liveN);
-    if (nEl) nEl.textContent = nextStart();
+    paintNext(nEl);
     if (won || lost) hero.dataset.apexRecord = won + "-" + lost;
   }
   function armServerHero() {
@@ -788,7 +909,7 @@
       head.appendChild(hero);
     }
     var num = hero.querySelector(".apex-hero-num");
-    var raw = (units.textContent || "").trim();
+    var raw = exactUnits(settledText(units));
     if (num) {
       num.classList.toggle("pos", units.classList.contains("pos") || raw.charAt(0) === "+");
       num.classList.toggle("neg", units.classList.contains("neg") || raw.charAt(0) === "-" || raw.charAt(0) === "\u2212");
@@ -1059,6 +1180,7 @@
         if (doc.hidden || !active()) return;
         armRings();
         syncTone();
+        tickNext();
       }, 1000);
       setTimeout(function () {
         doc.querySelectorAll(".apex-rise:not(.apex-in)").forEach(function (el) { el.classList.add("apex-in"); });
@@ -1068,6 +1190,16 @@
     else start();
   }
 
-  root.ApexTheme = { boot: boot, reduced: reduced, syncTone: syncTone };
+  root.ApexTheme = {
+    boot: boot,
+    reduced: reduced,
+    syncTone: syncTone,
+    fmtUnits: fmtUnits,
+    sparkD: sparkD,
+    cumulative: cumulative,
+    leadText: leadText,
+    countEl: countEl,
+    settledText: settledText
+  };
   if (doc && doc.documentElement && doc.documentElement.dataset.theme === "apex") boot();
 })(typeof window !== "undefined" ? window : globalThis);

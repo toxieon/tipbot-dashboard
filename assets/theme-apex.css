@@ -655,6 +655,12 @@ html[data-theme="apex"] .apex-facts b{
   letter-spacing:-.04em;
   font-variant-numeric:tabular-nums;
 }
+html[data-theme="apex"] .apex-facts b.apex-muted{
+  color:var(--faint);
+  font-size:1.05rem;
+  font-weight:650;
+  letter-spacing:-.02em;
+}
 html[data-theme="apex"] .apex-facts span{color:var(--muted);font-size:var(--t-foot)}
 html[data-theme="apex"] .scard{
   padding:22px 20px 18px;
@@ -698,28 +704,53 @@ html[data-theme="apex"] .apex-hero-roi{
   letter-spacing:-.02em;
 }
 html[data-theme="apex"] .sv-big{display:none}
-html[data-theme="apex"] .sv-stats{
-  grid-template-columns:repeat(4, minmax(0, 1fr));
+html[data-theme="apex"] .sv-stats,
+html[data-theme="apex"] .sv-stats:has(.sv-form){
+  grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "units units strike"
+    "units units record"
+    "form form roi";
   grid-auto-rows:minmax(108px, auto);
   gap:12px;
 }
-html[data-theme="apex"] .sv-stat:nth-child(1){
-  grid-column:span 2;
-  grid-row:span 2;
+html[data-theme="apex"] .sv-stats:not(:has(.sv-form)){
+  grid-template-areas:
+    "units units strike"
+    "units units record"
+    "roi roi roi";
 }
+html[data-theme="apex"] .sv-stat:nth-child(1){grid-area:units}
+html[data-theme="apex"] .sv-stat:nth-child(2){grid-area:roi}
+html[data-theme="apex"] .sv-stat:nth-child(3){grid-area:strike}
+html[data-theme="apex"] .sv-stat:nth-child(4){grid-area:record}
+html[data-theme="apex"] .sv-stat.sv-form{grid-area:form}
 html[data-theme="apex"] .sv-stat:nth-child(1) .v{
   font-size:clamp(2rem, 4vw, 3rem);
   letter-spacing:-.045em;
 }
-html[data-theme="apex"] .sv-stat.sv-form{grid-column:span 2}
 html[data-theme="apex"] .sv-av{
   width:36px;
   height:36px;
   border-radius:999px;
 }
 @media (max-width:700px){
-  html[data-theme="apex"] .sv-stats{grid-template-columns:1fr 1fr}
-  html[data-theme="apex"] .sv-stat:nth-child(1){grid-row:auto}
+  html[data-theme="apex"] .sv-stats,
+  html[data-theme="apex"] .sv-stats:has(.sv-form){
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "units units"
+      "roi strike"
+      "record record"
+      "form form";
+  }
+  html[data-theme="apex"] .sv-stats:not(:has(.sv-form)){
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "units units"
+      "roi strike"
+      "record record";
+  }
   html[data-theme="apex"] #detail .dhead{grid-template-columns:minmax(0, 1fr)}
   html[data-theme="apex"] #detail .dhead-actions{
     grid-column:1 / -1;
