@@ -1,5 +1,9 @@
 # Tipdash
 
+## 0.51.3
+
+Minor fixes.
+
 ## 0.51.2
 
 Fixed the settings panel on phones.

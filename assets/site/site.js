@@ -1,4 +1,4 @@
-/* Tipdash 0.51.2 — shared public-site behaviour.
+/* Tipdash 0.51.3 — shared public-site behaviour.
  * BOT_INVITE_URL: tipdash has no Discord bot invite or OAuth URL yet
  * (checked the dashboard and Live). Set this to the real
  * https://discord.com/oauth2/authorize?client_id=… link when it exists.

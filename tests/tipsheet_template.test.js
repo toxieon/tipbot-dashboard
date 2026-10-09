@@ -45,12 +45,11 @@ test("TSV sheets are read as before", () => {
   assert.equal(p.singles[0].legs[0].player, "X, Y");
 });
 
-test("the download button is only in the platform tools file", () => {
-  const tools = fs.readFileSync(path.join(ROOT, "assets/ext.js"), "utf8");
+test("the download button is not duplicated into the public dashboard shell", () => {
+  // Paste sheet (with its download button) lives entirely in the program-owner
+  // panel the bot serves at session-auth time; nothing in this repo's shell
+  // should carry it or the admin-only gate's absence.
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-  const zone = tools.slice(tools.indexOf("const pasteSheetZone="), tools.indexOf("const adminFeatures="));
-  assert.match(zone, /id="paste-template"/);
-  assert.match(tools, /id="adminpanel"/);
   assert.match(html, /STATE\.ops===true&&!STATE\.viewAs/);
   assert.doesNotMatch(html, /id="paste-template"/);
 });

@@ -1,5 +1,13 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.51.3 · 2026-10-09 · `ext-fix` · Program-owner panel loads from the bot, not a public file
+
+`assets/ext.js` 404'd on the live site: `scripts/build-public.mjs` has always excluded it, so `window.TBOwner` (and the custom games controls) never loaded for the program owner. The file is now deleted from this repo — it's public on GitHub — and the companion endpoint `GET {API_BASE}/api/ops/ext.js` (TipBot, program-owner-only, 404 to everyone else, `Authorization: Bearer` session auth same as `/api/ops/ui.js`) replaces it.
+
+- `ensureExt()` still gates on `/api/me` returning `ops===true` first. On a go-ahead it fetches that endpoint and runs the response from a blob URL (no inline eval). A 404 or any network failure fails silently — no console output, no visible error.
+- TipBot's matching endpoint is live.
+- Tests: `tests/public_build.test.js` now asserts `assets/ext.js` is gone and no public file names it.
+
 ## 0.51.2 · 2026-10-09 · `settings-drawer` · Settings panel on phones
 
 The settings menu was opening off the left edge of a phone when the header wrapped, so Appearance could not be reached. The server tier mark was a stretched box outside Apex.
