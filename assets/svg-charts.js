@@ -94,11 +94,11 @@
       var anchor=k===0?"start":(k===xLabels.length-1?"end":"middle");
       g+='<text x="'+r1(X(i))+'" y="'+(h-6)+'" text-anchor="'+anchor+'" fill="var(--faint)" font-size="'+font+'">'+esc(lab)+'</text>';
     });
-    g+='<path d="'+area+'" fill="url(#'+id+')"/><path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="'+(opts.strokeW||2.2)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+    g+='<path d="'+area+'" fill="url(#'+id+')"/><path class="sv-line" d="'+line+'" fill="none" stroke="'+color+'" stroke-width="'+(opts.strokeW||2.2)+'" stroke-linejoin="round" stroke-linecap="round"/>';
     if(opts.endDot!==false){
       var p=pts[pts.length-1];
       g+='<circle cx="'+r1(p[0])+'" cy="'+r1(p[1])+'" r="6" fill="'+color+'" opacity="0.22"/>';
-      g+='<circle cx="'+r1(p[0])+'" cy="'+r1(p[1])+'" r="3.2" fill="'+color+'" stroke="var(--card)" stroke-width="1.5"/>';
+      g+='<circle class="sv-end" cx="'+r1(p[0])+'" cy="'+r1(p[1])+'" r="3.2" fill="'+color+'" stroke="var(--card)" stroke-width="1.5"/>';
     }
     return g+"</svg>";
   }

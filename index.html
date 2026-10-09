@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.49.2"></script>
+<script src="./assets/tbtime.js?v=0.51.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -21,10 +21,25 @@
   try {
     var day=TBTime.dayKey(Date.now());
     var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
-    var valid=['navy','day','ochre'].indexOf(name)!==-1;
-    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(TBTime.isDaytime(Date.now())?'day':'navy'):'navy';
+    var valid=['navy','day','ochre','apex'].indexOf(name)!==-1;
+    var root=document.documentElement;
+    var APEX_DEFAULT=true;
+    var manual=localStorage.getItem('tipbot_theme_manual_date')===day;
+    var theme=valid&&(!auto||manual)?name:auto?((APEX_DEFAULT&&!valid)?'apex':(TBTime.isDaytime(Date.now())?'day':'navy')):(valid?name:(APEX_DEFAULT?'apex':'navy'));
+    root.dataset.theme=theme;
+    if(theme==='apex'&&auto&&TBTime.isDaytime(Date.now())) root.dataset.apexLight='1';
     var accent=localStorage.getItem('tipbot_theme_accent');
-    if(/^#[0-9a-f]{6}$/i.test(accent||''))document.documentElement.style.setProperty('--accent',accent);
+    if(/^#[0-9a-f]{6}$/i.test(accent||'')) root.style.setProperty('--accent',accent);
+    if(theme==='apex'){
+      var meta=document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute('content', root.dataset.apexLight==='1'?'#F4F6F8':'#07090F');
+      var tb=document.querySelector('script[src*="tbtime.js"]');
+      var src=(tb&&tb.getAttribute('src'))||'./assets/tbtime.js';
+      var s=document.createElement('script');
+      s.src=src.replace(/tbtime\.js/,'theme-apex.js');
+      s.async=true; s.setAttribute('data-apex','1');
+      document.head.appendChild(s);
+    }
   }catch(e){document.documentElement.dataset.theme='navy';}
 }());
 </script>
@@ -525,6 +540,28 @@ html[data-theme="ochre"] {
   --win:#2eaf62;--loss:#e5595f;--push:#5c6785;--void:#6b7280;--radius:16px;
   --win-ink:#65d38f;--loss-ink:#ff9a9e;--push-ink:#b3bdd6;--void-ink:#bfc5d0;
 }
+html[data-theme="apex"] {
+  color-scheme:dark;
+  --bg:#07090F;--bg2:#0C1018;--card:#11141C;--card2:#11141C;--line:#1E2430;
+  --txt:#F5F7FA;--muted:#8B93A7;--faint:#6E768C;
+  --accent:#5B8CFF;--accent2:#3B6FE8;--on-accent:#07090F;
+  --win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;
+  --win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;
+  --warn:#FBBF24;--warn-ink:#FBBF24;--api:#5B8CFF;--api-ink:#B7C9FF;
+  --t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;
+  --apex-glow-a:rgba(91,140,255,.18);--apex-glow-b:rgba(52,211,153,.10);
+}
+html[data-theme="apex"][data-apex-light="1"] {
+  color-scheme:light;
+  --bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;
+  --txt:#0E1116;--muted:#5C6578;--faint:#6A7386;
+  --accent:#3B6FE8;--accent2:#2F5AD0;--on-accent:#FFFFFF;
+  --win:#34D399;--loss:#F87171;--push:#8B93A7;--void:#8B93A7;--radius:16px;
+  --win-ink:#047857;--loss-ink:#B91C1C;--push-ink:#3F4758;--void-ink:#3F4758;
+  --warn:#FBBF24;--warn-ink:#92400E;--api:#3B6FE8;--api-ink:#2455B5;
+  --t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;
+  --apex-glow-a:rgba(59,111,232,.08);--apex-glow-b:rgba(52,211,153,.08);
+}
 :root {
   --nd-surface:var(--card2);--nd-border:var(--line);--nd-text:var(--txt);--nd-muted:var(--muted);
   --nd-skeleton:var(--card2);
@@ -564,7 +601,7 @@ body {background:var(--bg);font-variant-numeric:tabular-nums;}
 button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(--txt);outline-offset:3px;}
 .tb-appearance {border-top:1px solid var(--line);padding:14px 10px 8px;margin-top:6px;}
 .tb-appearance h3 {font-size:var(--t-sub);margin:0 0 10px;color:var(--txt);}
-.tb-swatches {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.tb-swatches {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
 .tb-swatch {border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:var(--r-md);padding:6px;font:inherit;font-size:var(--t-foot);cursor:pointer;text-align:left;}
 .tb-swatch[aria-pressed="true"] {border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
 .tb-swatch-label {display:flex;justify-content:space-between;padding-top:5px;}
@@ -575,6 +612,7 @@ button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(
 .tb-swatch[data-tb-theme="navy"] {--preview-bg:#0b0f1a;--preview-accent:#5b8cff;}
 .tb-swatch[data-tb-theme="day"] {--preview-bg:#f5f7fb;--preview-accent:#245ad6;}
 .tb-swatch[data-tb-theme="ochre"] {--preview-bg:#17110c;--preview-accent:#e0a04a;}
+.tb-swatch[data-tb-theme="apex"] {--preview-bg:#07090F;--preview-accent:#5B8CFF;}
 .tb-setting {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:var(--t-sub);}
 .tb-setting input[type="checkbox"] {width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
 .tb-setting input[type="color"] {height:30px;width:44px;padding:2px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-xs);cursor:pointer;}
@@ -1081,7 +1119,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.49.2</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.51.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1102,19 +1140,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.49.2"></script>
-<script src="./assets/light-data.js?v=0.49.2"></script>
-<script src="./assets/lines.js?v=0.49.2"></script>
-<script src="./assets/compare-ui.js?v=0.49.2"></script>
-<script src="./assets/sport-keywords.js?v=0.49.2"></script>
-<script src="./assets/routing.js?v=0.49.2"></script>
-<script src="./assets/scheduled-tips.js?v=0.49.2"></script>
-<script src="./assets/upcoming-split.js?v=0.49.2"></script>
-<script src="./assets/espn-props.js?v=0.49.2"></script>
-<script src="./assets/tb-motion.js?v=0.49.2"></script>
-<script src="./assets/form-badges.js?v=0.49.2"></script>
-<script src="./assets/svg-charts.js?v=0.49.2"></script>
-<script src="./assets/server-view.js?v=0.49.2"></script>
+<script src="./assets/req-pool.js?v=0.51.1"></script>
+<script src="./assets/light-data.js?v=0.51.1"></script>
+<script src="./assets/lines.js?v=0.51.1"></script>
+<script src="./assets/compare-ui.js?v=0.51.1"></script>
+<script src="./assets/sport-keywords.js?v=0.51.1"></script>
+<script src="./assets/sport-marks.js?v=0.51.1"></script>
+<script src="./assets/routing.js?v=0.51.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.51.1"></script>
+<script src="./assets/upcoming-split.js?v=0.51.1"></script>
+<script src="./assets/espn-props.js?v=0.51.1"></script>
+<script src="./assets/tb-motion.js?v=0.51.1"></script>
+<script src="./assets/form-badges.js?v=0.51.1"></script>
+<script src="./assets/svg-charts.js?v=0.51.1"></script>
+<script src="./assets/server-view.js?v=0.51.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1463,7 +1502,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.49.2";
+  TD.version="0.51.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -3791,7 +3830,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(group){
         const left=group.querySelectorAll(".betrow").length;
         const gsub=group.querySelector(".gsub");
-        if(gsub && left){ gsub.textContent=left+" bet"+(left>1?"s":"")+" · confirm tips"; }
+        if(gsub && left){
+          const sport=group.getAttribute("data-sport")||"";
+          const sportBit=sport?(sportLabel(sport)+" · "):"";
+          gsub.textContent=sportBit+left+" bet"+(left>1?"s":"")+" · confirm tips";
+        }
         if(!left){
           group.remove();
           const finBox=$("finished-box");
@@ -5414,8 +5457,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return '<div class="panel" data-sec="profit-month"><h3>Profit by month</h3><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
       +'<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" style="max-width:100%">'
       +'<line x1="'+pad+'" y1="'+y(0)+'" x2="'+(w-pad)+'" y2="'+y(0)+'" stroke="var(--line)" stroke-dasharray="3 3"/>'
-      +'<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
-      +series.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.profit)+'" r="2.6" fill="'+(p.profit>=0?"var(--win)":"var(--loss)")+'"><title>'+esc(fmtMonth(p.month))+": "+u(p.profit)+'</title></circle>').join("")
+      +'<polyline class="sv-line" points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      +series.map((p,i)=>'<circle'+(i===series.length-1?' class="sv-end"':'')+' cx="'+x(i)+'" cy="'+y(p.profit)+'" r="2.6" fill="'+(p.profit>=0?"var(--win)":"var(--loss)")+'"><title>'+esc(fmtMonth(p.month))+": "+u(p.profit)+'</title></circle>').join("")
       +'</svg><div style="color:var(--muted);font-size:var(--t-foot)">'+series.length+' months · net <b class="'+(tot>=0?"pos":"neg")+'">'+u(tot)+'</b></div></div></div>';
   }
   // ── Day settle sheet (calendar tap) ──────────────────────────────────────
@@ -5838,6 +5881,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function tipLooksFinished(t, starts, finished){
     return TBUpcoming.tipLooksFinished(t, starts, finished);
   }
+  function sportLabel(name){
+    const TB=window.TBSports;
+    return (TB&&typeof TB.label==="function")?TB.label(name):String(name==null?"":name);
+  }
+  function groupSport(list){
+    let found="";
+    (list||[]).forEach(t=>{
+      if(found) return;
+      const s=t&&(t.sport||t.league||t.comp);
+      if(s&&String(s).trim()) found=String(s).trim();
+    });
+    return found;
+  }
   function renderGameGroups(box, gid, groups, starts, finishedMap, mode){
     let html="";
     const keys=Object.keys(groups);
@@ -5878,9 +5934,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           +'<button type="button" class="btn sm ft-push-all" data-match="'+esc(String(mid))+'" data-game="'+esc(game)+'" title="Auto-grade pending tips for this match and post to Discord">Push all</button>'
           +'</div>';
       }
-      html+='<div class="game-group" id="'+cid+'">'
+      const sport=groupSport(list);
+      const sportBit=sport?esc(sportLabel(sport))+" · ":"";
+      html+='<div class="game-group" id="'+cid+'"'+(sport?' data-sport="'+esc(sport)+'"':"")+'>'
         +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle">'+esc(game)+'</div>'
-        +'<div class="gsub">'+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
+        +'<div class="gsub">'+sportBit+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
         +'<div class="gright">'+right+'</div></div>'
         +'<div class="game-group-bd">'+list.map(t=>{
           const tipSettled=/^settled$/i.test(String(t.status||""))||!!(t.result&&/^(win|loss|push|void)$/i.test(String(t.result).trim()));
@@ -6230,6 +6288,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         const mid=esc(midRaw);
         const score=(g.hscore!=null&&g.ascore!=null)?(" · "+g.hscore+"–"+g.ascore):"";
         const venue=g.venue?(" · "+g.venue):"";
+        const sportRaw=String(g.sport||g.league||g.comp||"").trim();
+        const sportBit=sportRaw?esc(sportLabel(sportRaw))+" · ":"";
         const pid="live-prev-"+gi;
         const hasCopy=!!(g.preview_texts||g.preview_text);
         const rawQ=(ui.q==="Q4"?"FT":ui.q)||(g.preview_quarter==="Q4"?"FT":g.preview_quarter);const defQ=QS.indexOf(rawQ)>=0?rawQ:"Q1";
@@ -6244,7 +6304,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           :'<div class="leg" style="color:var(--faint);margin-top:8px">Copy preview needs the latest TipBot deploy.</div>';
         return '<div class="live-tips-row" data-match="'+mid+'">'
           +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
-          +'<div class="meta">'+esc(phase)+esc(score)+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
+          +'<div class="meta">'+sportBit+esc(phase)+esc(score)+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
           +'<div class="live-tips-actions">'
           +'<button type="button" class="ghost sm live-toggle-prev" data-pid="'+pid+'">'+(ui.open?"Hide preview":"Preview")+'</button>'
           +(hasCopy?'<button type="button" class="ghost sm live-copy-quick" data-gi="'+gi+'" title="Copy the exact Discord post text">Copy preview</button>':'')
@@ -6515,8 +6575,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   'use strict';
   var TB = window.TB = window.TB || {};
   var root = document.documentElement;
-  var names = ['navy', 'day', 'ochre'];
-  var defaults = {navy:'#5b8cff', day:'#245ad6', ochre:'#e0a04a'};
+  var names = ['navy', 'day', 'ochre', 'apex'];
+  var APEX_DEFAULT = true;
+  var defaults = {navy:'#5b8cff', day:'#245ad6', ochre:'#e0a04a', apex:'#5b8cff'};
   var memory = Object.create(null), hosts = [], listening = false, timer;
   function read(key) { try {var value=localStorage.getItem(key);if(value!==null)return value;} catch(e) {} return memory[key] || null; }
   function write(key,value) {memory[key]=value;try {if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);} catch(e) {}}
@@ -6525,8 +6586,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function auto() {return read('tipbot_theme_auto')==='true';}
   function resolve(d) {
     var saved=read('tipbot_theme');
-    if(valid(saved)&&(!auto()||read('tipbot_theme_manual_date')===today(d)))return saved;
-    return auto()?(TBTime.isDaytime(d)?'day':'navy'):(valid(saved)?saved:'navy');
+    var savedOk=valid(saved);
+    if(savedOk&&(!auto()||read('tipbot_theme_manual_date')===today(d)))return saved;
+    if(auto()) return (APEX_DEFAULT&&!savedOk)?'apex':(TBTime.isDaytime(d)?'day':'navy');
+    return savedOk?saved:(APEX_DEFAULT?'apex':'navy');
   }
   function luminance(rgb) {return rgb.map(function(v){v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);}).reduce(function(s,v,i){return s+v*[.2126,.7152,.0722][i];},0);}
   function ink(rgb) {return luminance(rgb)>.179?'#000000':'#ffffff';}
@@ -6547,12 +6610,32 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       host.querySelector('[data-tb-accent]').value=read('tipbot_theme_accent')||defaults[root.dataset.theme];
       host.querySelector('[data-tb-reset]').disabled=!read('tipbot_theme_accent');
       var manual=read('tipbot_theme_manual_date')===today(new Date())&&valid(read('tipbot_theme'));
-      host.querySelector('[data-tb-note]').textContent=auto()?(manual?'Your choice stays until midnight. Auto resumes tomorrow.':'Day from 7 am to 7 pm. Navy overnight, on Sydney time.'):'Your selected theme stays on until you change it.';
+      var note;
+      if(auto()&&manual) note=root.dataset.theme==='apex'?'Apex stays until midnight. Light from 7 am to 7 pm, dark after that.':'Your choice stays until midnight. Auto resumes tomorrow.';
+      else if(auto()) note='Day from 7 am to 7 pm. Navy overnight, on Sydney time.';
+      else note='Your selected theme stays on until you change it.';
+      host.querySelector('[data-tb-note]').textContent=note;
     });
+  }
+  function paintChrome() {
+    var apex=root.dataset.theme==='apex';
+    if(apex&&auto()&&TBTime.isDaytime(Date.now())) root.dataset.apexLight='1';
+    else delete root.dataset.apexLight;
+    var meta=document.querySelector('meta[name="theme-color"]');
+    if(meta){
+      if(apex) meta.setAttribute('content', root.dataset.apexLight==='1'?'#F4F6F8':'#07090F');
+      else if(meta.getAttribute('content')==='#07090F'||meta.getAttribute('content')==='#F4F6F8') meta.setAttribute('content','#0b0f1a');
+    }
+    if(!apex||document.querySelector('script[data-apex]')) return;
+    var s=document.createElement('script');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.51.1');
+    s.async=true;
+    s.setAttribute('data-apex','1');
+    document.head.appendChild(s);
   }
   function refresh() {
     var next=resolve(new Date());
-    var apply=function(){root.dataset.theme=next;accent();sync();};
+    var apply=function(){root.dataset.theme=next;paintChrome();accent();sync();};
     var rm=false; try{rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
     // 0.43.1: cross-fade a real theme change (avoids an abrupt brightness jump); first paint stays instant.
     if(root.dataset.theme&&root.dataset.theme!==next&&document.startViewTransition&&!rm&&!document.hidden){ try{document.startViewTransition(apply);return;}catch(e){} }
@@ -6960,8 +7043,8 @@ async function loadPerms(gid){
       +'<div class="dhead"><h1 style="margin:0">Recent scores</h1><button class="ghost" id="rrefresh">↻ Refresh</button></div>'
       +'<p style="color:var(--muted);margin:0 0 14px">Final AFL'+(hasMulti?" & AFLW":"")+' scores — tap a game to see every player\'s goals, disposals and more.</p>';
     if(hasMulti){
-      const chip=(v,l)=>'<button class="compchip'+(RESULTS.comp===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
-      html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'+chip("All","All")+comps.map(c=>chip(c,c)).join("")+'</div>';
+      const chip=(v,l)=>'<button class="compchip'+(RESULTS.comp===v?" on":"")+'" data-c="'+esc(v)+'">'+esc(l)+'</button>';
+      html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'+chip("All","All")+comps.map(c=>chip(c,sportLabel(c))).join("")+'</div>';
     }
     const shown=games.filter(g=>RESULTS.comp==="All"||(g.comp||"AFL")===RESULTS.comp);
     RESULTS._shown=shown;
@@ -6969,7 +7052,8 @@ async function loadPerms(gid){
     else{ html+=shown.map((g,i)=>{
       const mid=g.aflMatchId||""; const open=!!RESULTS._open[mid];
       const hw=g.hscore>g.ascore,aw=g.ascore>g.hscore;
-      const compBadge=hasMulti?' <span class="compbadge'+((g.comp||"AFL")==="AFLW"?" aflw":"")+'">'+(g.comp||"AFL")+'</span>':'';
+      const compName=g.comp||"AFL";
+      const compBadge=hasMulti?' <span class="compbadge'+(compName==="AFLW"?" aflw":"")+'">'+esc(sportLabel(compName))+'</span>':'';
       return '<div class="panel" style="padding:0;overflow:hidden;margin-bottom:10px">'
         +'<div class="reshdr" role="button" tabindex="0" aria-expanded="'+open+'" aria-controls="resbody_'+i+'" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
           +'<div style="flex:1;min-width:0">'
@@ -7222,12 +7306,22 @@ async function loadPerms(gid){
   });
   function hydrateTheme(tp){
     // Server prefs win over the local cache, then get cached locally.
+    // A server that does not list Apex yet stores an empty theme. Keep the local choice.
     if(tp){
       try{
-        if(tp.theme){localStorage.setItem("tipbot_theme",tp.theme);}
+        var localTheme=localStorage.getItem("tipbot_theme");
+        var incoming=tp.theme;
+        var keepLocalApex=localTheme==="apex" && (incoming==null || incoming==="");
+        if(!keepLocalApex && incoming){localStorage.setItem("tipbot_theme",incoming);}
         localStorage.setItem("tipbot_theme_auto",tp.auto?"true":"false");
         if(tp.accent){localStorage.setItem("tipbot_theme_accent",tp.accent);}else{localStorage.removeItem("tipbot_theme_accent");}
-        localStorage.removeItem("tipbot_theme_manual_date");
+        if(keepLocalApex){
+          if(tp.auto && !localStorage.getItem("tipbot_theme_manual_date")){
+            localStorage.setItem("tipbot_theme_manual_date", TBTime.dayKey(Date.now()));
+          }
+        }else{
+          localStorage.removeItem("tipbot_theme_manual_date");
+        }
       }catch(e){}
       try{TB.theme.init();TB.theme.mount($("tb-appearance"));}catch(e){}
     }

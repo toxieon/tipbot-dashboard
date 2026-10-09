@@ -10,17 +10,32 @@
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" sizes="180x180">
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
-<script src="../assets/tbtime.js?v=0.49.2"></script>
-<script src="../assets/compare-ui.js?v=0.49.2"></script>
+<script src="../assets/tbtime.js?v=0.51.1"></script>
+<script src="../assets/compare-ui.js?v=0.51.1"></script>
 <script>
 (function(){
   try {
     var day=TBTime.dayKey(Date.now());
     var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
-    var valid=['navy','day','ochre'].indexOf(name)!==-1;
-    document.documentElement.dataset.theme=valid&&(!auto||localStorage.getItem('tipbot_theme_manual_date')===day)?name:auto?(TBTime.isDaytime(Date.now())?'day':'navy'):'navy';
+    var valid=['navy','day','ochre','apex'].indexOf(name)!==-1;
+    var root=document.documentElement;
+    var APEX_DEFAULT=true;
+    var manual=localStorage.getItem('tipbot_theme_manual_date')===day;
+    var theme=valid&&(!auto||manual)?name:auto?((APEX_DEFAULT&&!valid)?'apex':(TBTime.isDaytime(Date.now())?'day':'navy')):(valid?name:(APEX_DEFAULT?'apex':'navy'));
+    root.dataset.theme=theme;
+    if(theme==='apex'&&auto&&TBTime.isDaytime(Date.now())) root.dataset.apexLight='1';
     var accent=localStorage.getItem('tipbot_theme_accent');
-    if(/^#[0-9a-f]{6}$/i.test(accent||''))document.documentElement.style.setProperty('--accent',accent);
+    if(/^#[0-9a-f]{6}$/i.test(accent||'')) root.style.setProperty('--accent',accent);
+    if(theme==='apex'){
+      var meta=document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute('content', root.dataset.apexLight==='1'?'#F4F6F8':'#07090F');
+      var tb=document.querySelector('script[src*="tbtime.js"]');
+      var src=(tb&&tb.getAttribute('src'))||'../assets/tbtime.js';
+      var s=document.createElement('script');
+      s.src=src.replace(/tbtime\.js/,'theme-apex.js');
+      s.async=true; s.setAttribute('data-apex','1');
+      document.head.appendChild(s);
+    }
   }catch(e){document.documentElement.dataset.theme='navy';}
 }());
 </script>
@@ -28,6 +43,8 @@
 :root,html[data-theme="navy"]{color-scheme:dark;--bg:#0b0f1a;--card:#151b2b;--card2:#1a2133;--line:#26304a;--txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;--accent:#5b8cff;--on-accent:#0b0f1a;--win:#2eaf62;--loss:#e5595f;--win-ink:#65d38f;--radius:16px;--r-md:12px;--t-sub:14px;--t-foot:12px;--t-cap:11px;--t-h3:18px;--t-callout:15px}
 html[data-theme="day"]{color-scheme:light;--bg:#f5f7fb;--card:#ffffff;--card2:#eef2f9;--line:#dbe2ee;--txt:#0f1726;--muted:#5a6577;--faint:#626d7f;--accent:#245ad6;--on-accent:#ffffff;--win:#2eaf62;--win-ink:#166536}
 html[data-theme="ochre"]{color-scheme:dark;--bg:#17110c;--card:#241a10;--card2:#2c2015;--line:#4a3927;--txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;--accent:#e0a04a;--on-accent:#17110c;--win:#2eaf62;--win-ink:#65d38f}
+html[data-theme="apex"]{color-scheme:dark;--bg:#07090F;--bg2:#0C1018;--card:#11141C;--card2:#11141C;--line:#1E2430;--txt:#F5F7FA;--muted:#8B93A7;--faint:#6E768C;--accent:#5B8CFF;--accent2:#3B6FE8;--on-accent:#07090F;--win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;--win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;--warn:#FBBF24;--warn-ink:#FBBF24;--api:#5B8CFF;--api-ink:#B7C9FF;--t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;--apex-glow-a:rgba(91,140,255,.18);--apex-glow-b:rgba(52,211,153,.10)}
+html[data-theme="apex"][data-apex-light="1"]{color-scheme:light;--bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;--txt:#0E1116;--muted:#5C6578;--faint:#6A7386;--accent:#3B6FE8;--accent2:#2F5AD0;--on-accent:#FFFFFF;--win:#34D399;--loss:#F87171;--push:#8B93A7;--void:#8B93A7;--radius:16px;--win-ink:#047857;--loss-ink:#B91C1C;--push-ink:#3F4758;--void-ink:#3F4758;--warn:#FBBF24;--warn-ink:#92400E;--api:#3B6FE8;--api-ink:#2455B5;--apex-glow-a:rgba(59,111,232,.08);--apex-glow-b:rgba(52,211,153,.08)}
 *{box-sizing:border-box}
 html,body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
 a{color:var(--accent);text-decoration:none}

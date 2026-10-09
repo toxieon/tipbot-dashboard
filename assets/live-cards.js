@@ -48,6 +48,21 @@
     return (g && g.ServerView) || null;
   }
 
+  function sportsApi() {
+    var g = typeof globalThis !== "undefined" ? globalThis : null;
+    if (g && g.TBSports) return g.TBSports;
+    if (typeof require === "function") {
+      try { return require("./sport-marks.js"); } catch (e) {}
+    }
+    return null;
+  }
+
+  function sportLabel(name) {
+    var api = sportsApi();
+    var raw = name == null ? "" : String(name);
+    return api && api.label ? api.label(raw) : raw;
+  }
+
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c];
@@ -578,7 +593,7 @@
     } else {
       teams = '<div class="tm"><span class="nm">' + esc(g.title) + "</span><b class=\"sc\"></b></div>";
     }
-    var sport = g.sport ? '<span class="sport">' + esc(g.sport) + "</span>" : "";
+    var sport = g.sport ? '<span class="sport">' + esc(sportLabel(g.sport)) + "</span>" : "";
     var cards = g.legs.map(cardHtml).join("");
     return '<section class="game" id="g-' + esc(g.id) + '">'
       + '<header class="ghead"><div class="teams">' + teams + "</div>"

@@ -65,6 +65,8 @@ test("sample board keeps live legs and drops imports and finished games", () => 
   assert.match(html, />Miss</);
   assert.match(html, /role="progressbar"/);
   assert.match(html, /2u · @ 1\.85/);
+  assert.match(html, /🏉 AFL/);
+  assert.match(html, /🏀 NBA/);
   assert.doesNotMatch(html, /Imported Player|Finished Player/);
 });
 

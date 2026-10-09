@@ -227,6 +227,13 @@ test("smoke (mocked API): home and a server open without the lazy files; each pa
   assert.deepEqual(lazyFetches(ctx), ["./assets/builder.js?v=" + VERSION]);
   assert.equal(ctx.byId("builder").hidden, false);
   assert.match(ctx.byId("builder").innerHTML, /Build a tip/);
+  assert.match(ctx.byId("builder").innerHTML, /🏉 AFL/);
+  assert.match(ctx.byId("builder").innerHTML, /🏈 NFL/);
+  assert.match(ctx.byId("builder").innerHTML, /🏀 NBA/);
+  assert.match(ctx.byId("builder").innerHTML, /🏀 WNBA/);
+  assert.match(ctx.byId("builder").innerHTML, /⚽ Soccer/);
+  assert.match(ctx.byId("builder").innerHTML, /🏉 NRL/);
+  assert.match(ctx.byId("builder").innerHTML, /➕ Other/);
 
   await vm.runInContext(`openCustom("${GID}","Toxieon-Tipping")`, ctx);
   assert.match(ctx.byId("builder").innerHTML, /Custom tip/);
