@@ -180,7 +180,7 @@
   }
 
   function armCounts(scope) {
-    (scope || doc).querySelectorAll(".apex-display, .sv-stat .v, .sv-big b, .apex-facts b").forEach(function (el) {
+    (scope || doc).querySelectorAll(".apex-display, .sv-stat .v, .sv-big b, .apex-facts b, .mini .mv, .tile .tv").forEach(function (el) {
       var now = el.textContent || "";
       if (el.dataset.apexCount === "1") {
         if (el.dataset.apexBusy === "1") return;
@@ -282,6 +282,17 @@
     card.classList.add("apex-flip");
     if (win) {
       burst(mark);
+      var profitTile = Array.prototype.slice.call(doc.querySelectorAll(".tile")).filter(function(t) {
+        var tl = t.querySelector(".tl");
+        return tl && tl.textContent.indexOf("Profit") !== -1;
+      })[0];
+      if (profitTile) {
+        var tv = profitTile.querySelector(".tv");
+        if (tv) {
+          tv.classList.add("apex-pulse-win");
+          setTimeout(function() { tv.classList.remove("apex-pulse-win"); }, 1200);
+        }
+      }
       try { if (root.navigator && root.navigator.vibrate) root.navigator.vibrate(12); } catch (e3) {}
     }
     setTimeout(function () { card.classList.remove("apex-flip"); }, 700);
@@ -294,7 +305,9 @@
   function formStrip(form) {
     if (!form || form.dataset.apexForm === "1") return;
     var dots = form.querySelectorAll(".tb-form-dot");
-    if (!dots.length && !(form.getAttribute("data-streak") === "W" && Number(form.getAttribute("data-streak-n")) >= 3)) return;
+    var isW = form.getAttribute("data-streak") === "W";
+    var n = Number(form.getAttribute("data-streak-n")) || 0;
+    if (!dots.length && !(isW && n >= 3)) return;
     form.dataset.apexForm = "1";
     var formKey = "apex-form:" + (form.getAttribute("aria-label") || "");
     var played = false;
@@ -307,6 +320,13 @@
         dots[i].style.setProperty("--apex-i", String(i));
       }
       if (i === 0) dots[i].classList.add("apex-newest");
+    }
+    if (isW && n >= 3) {
+      var tag = form.querySelector(".tb-form-streak, .tb-form-hot");
+      if (tag) {
+        tag.innerHTML = '<span class="apex-flame-icon">🔥</span> ' + n + 'W';
+        tag.classList.add("apex-flame-chip");
+      }
     }
   }
 
@@ -1081,6 +1101,27 @@
     } else if (note && note.parentNode) note.parentNode.removeChild(note);
   }
 
+  function armEmptyStates(scope) {
+    (scope || doc).querySelectorAll(".empty").forEach(function (el) {
+      if (el.dataset.apexEmpty) return;
+      var text = el.textContent || "";
+      var svg = "";
+      if (text.indexOf("Nothing here yet") !== -1) {
+        svg = `<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><rect x="20" y="30" width="80" height="60" rx="12" fill="var(--card2)" stroke="var(--line)" stroke-width="2"/><circle cx="60" cy="60" r="16" fill="var(--bg)" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 52v16M52 60h16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
+      } else if (text.indexOf("No upcoming bets") !== -1) {
+        svg = `<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><rect x="24" y="28" width="72" height="64" rx="10" fill="var(--card2)" stroke="var(--line)" stroke-width="2"/><path d="M36 20v16M84 20v16M24 48h72" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/><rect x="40" y="60" width="16" height="16" rx="4" fill="var(--accent)" opacity="0.2"/><rect x="64" y="60" width="16" height="16" rx="4" fill="var(--line)" opacity="0.5"/></svg>`;
+      } else if (text.indexOf("No settled tips yet") !== -1 || text.indexOf("No results yet") !== -1 || text.indexOf("No finished games") !== -1) {
+        svg = `<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><path d="M20 90h80" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/><path d="M30 80l20-30 15 10 25-35" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="90" cy="25" r="5" fill="var(--accent)"/><rect x="25" y="50" width="10" height="30" rx="2" fill="var(--line)" opacity="0.3"/><rect x="45" y="30" width="10" height="50" rx="2" fill="var(--line)" opacity="0.3"/><rect x="65" y="40" width="10" height="40" rx="2" fill="var(--line)" opacity="0.3"/></svg>`;
+      }
+      if (svg) {
+        el.dataset.apexEmpty = "1";
+        el.innerHTML = svg + "<div style=\"color:var(--muted)\">" + el.innerHTML + "</div>";
+        el.style.textAlign = "center";
+        el.style.padding = "32px 16px";
+      }
+    });
+  }
+
   function pass() {
     if (!active() || !doc.body) return;
     if (busy) { queued = true; return; }
@@ -1102,6 +1143,7 @@
       flipLists();
       markSteps();
       armPeriod();
+      armEmptyStates(doc);
       armDays(doc.getElementById("upcoming-box"));
       armDays(doc.getElementById("live-tips-box"));
       armDays(doc.getElementById("finished-box"));
@@ -1199,7 +1241,10 @@
     cumulative: cumulative,
     leadText: leadText,
     countEl: countEl,
-    settledText: settledText
+    settledText: settledText,
+    formStrip: formStrip,
+    stamp: stamp,
+    armEmptyStates: armEmptyStates
   };
   if (doc && doc.documentElement && doc.documentElement.dataset.theme === "apex") boot();
 })(typeof window !== "undefined" ? window : globalThis);

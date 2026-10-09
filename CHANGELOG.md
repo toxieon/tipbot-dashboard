@@ -1,8 +1,21 @@
+# Changelog: toxieon/tipbot-dashboard (tipdash)
+
+## 0.52.3 · 2026-10-09 · `apex-delight` · Apex theme delight layer
+
+Added a delight layer to the Apex theme, enhancing the premium feel without compromising performance or accessibility.
+
+- **Win moment**: Settled wins now trigger a subtle celebratory burst (confetti) and a green pulse on the profit number.
+- **Streak flame**: A small animated flame chip appears on the home screen and server tiles for 3+ consecutive wins.
+- **Skeleton loaders**: Replaced spinners and blank states on home, server tiles, and Upcoming with shimmering skeletons matching the final layout to remove layout shift.
+- **Micro-interactions**: Added press-scale on buttons and tiles, spring easing on the bottom-tab indicator, a pull-to-refresh style shimmer on Upcoming, and smooth count-up on stat tiles.
+- **Empty states**: Added friendly illustrated empty states (inline SVGs) for no upcoming tips, no results yet, and no servers.
+- **Accessibility**: All animations respect `prefers-reduced-motion` and use only transform/opacity for performance. Tests added for streak calculation and reduced-motion handling.
+
 ## 0.52.2 · 2026-10-09 · Apex glow fits phone screens
 
 - Keep the Apex hero glow inside the screen on phones (scrollWidth was 455 at 390px)
 
-## 0.52.1
+## 0.52.1 · 2026-10-09 · `theme-variants` · Theme variants and accent picker
 
 - Add Apex Light, Apex OLED, and Apex Mono theme variants
 - Add Accent colour picker (Blue, Green, Orange, Crimson, Violet, Gold)
@@ -10,9 +23,7 @@
 - Support short View Transitions on theme and accent changes
 - Fix horizontal scroll overflow on narrow screens caused by the Apex hero background glow
 
-# Changelog: toxieon/tipbot-dashboard (tipdash)
-
-## 0.52.1 · 2026-10-09 · `ext-fix` · Program-owner panel loads from the bot, not a public file
+## 0.51.3 · 2026-10-09 · `ext-fix` · Program-owner panel loads from the bot, not a public file
 
 `assets/ext.js` 404'd on the live site: `scripts/build-public.mjs` has always excluded it, so `window.TBOwner` (and the custom games controls) never loaded for the program owner. The file is now deleted from this repo — it's public on GitHub — and the companion endpoint `GET {API_BASE}/api/ops/ext.js` (TipBot, program-owner-only, 404 to everyone else, `Authorization: Bearer` session auth same as `/api/ops/ui.js`) replaces it.
 

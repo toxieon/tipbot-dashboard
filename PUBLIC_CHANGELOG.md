@@ -1,3 +1,9 @@
+# Tipdash
+
+## 0.52.3
+
+Smoother animations and loading.
+
 ## 0.52.2
 
 Fixed sideways scrolling on phones in Apex.
@@ -6,9 +12,7 @@ Fixed sideways scrolling on phones in Apex.
 
 New theme options and accent colours.
 
-# Tipdash
-
-## 0.52.1
+## 0.51.3
 
 Minor fixes.
 

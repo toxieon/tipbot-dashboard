@@ -219,3 +219,71 @@ test("apex is the default when a visitor has not chosen a theme", () => {
   }
   assert.match(read("index.html"), /return savedOk\?saved:\(APEX_DEFAULT\?'apex':'navy'\)/);
 });
+
+test("streak flame chip is added for 3+ consecutive wins", () => {
+  const js = read("assets/theme-apex.js");
+  const ctx = {
+    matchMedia: function () { return { matches: false }; },
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    requestAnimationFrame: function () { return 1; },
+    performance: { now: function () { return 1000; } }
+  };
+  ctx.window = ctx;
+  const doc = {
+    createElement: function(tag) { return { className: "", dataset: {}, setAttribute: function(k,v){ this[k]=v; }, innerHTML: "", classList: { add: function(c){ this.className += " " + c; } }, querySelector: function(s){ return { innerHTML: "", classList: { add: function(c){ this.className += " " + c; } } }; }, getAttribute: function(k){ return this[k]; }, querySelectorAll: function(){ return []; } }; },
+    documentElement: { dataset: {} }
+  };
+  ctx.document = doc;
+  vm.createContext(ctx);
+  vm.runInContext(js, ctx);
+
+  const form = doc.createElement("span");
+  form.setAttribute("data-streak", "W");
+  form.setAttribute("data-streak-n", "3");
+  const tag = { className: "", innerHTML: "", classList: { add: (c) => tag.className = c } };
+  form.querySelector = function() { return tag; };
+  form.querySelectorAll = function() { return []; };
+  ctx.ApexTheme.formStrip(form);
+  assert.match(tag.className, /apex-flame-chip/);
+  assert.match(tag.innerHTML, /apex-flame-icon/);
+
+  const form2 = doc.createElement("span");
+  form2.setAttribute("data-streak", "W");
+  form2.setAttribute("data-streak-n", "2");
+  const tag2 = { className: "", innerHTML: "", classList: { add: (c) => tag2.className = c } };
+  form2.querySelector = function() { return tag2; };
+  form2.querySelectorAll = function() { return []; };
+  ctx.ApexTheme.formStrip(form2);
+  assert.doesNotMatch(tag2.className, /apex-flame-chip/);
+});
+
+test("reduced-motion handling in countEl and stamp", () => {
+  const js = read("assets/theme-apex.js");
+  const ctx = {
+    matchMedia: function () { return { matches: true }; },
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    requestAnimationFrame: function () { return 1; },
+    performance: { now: function () { return 1000; } }
+  };
+  ctx.window = ctx;
+  ctx.document = { createElement: function() { return { setAttribute: function(){}, classList: { add: function(){} } }; }, documentElement: { dataset: {} }, querySelectorAll: function(){ return []; } };
+  vm.createContext(ctx);
+  vm.runInContext(js, ctx);
+  
+  const el = { textContent: "100", dataset: {} };
+  ctx.ApexTheme.countEl(el, 1000);
+  assert.equal(el.dataset.apexSettled, "1");
+  assert.equal(el.textContent, "100");
+
+  const card = {
+    dataset: { settled: "1" },
+    getAttribute: function() { return "123"; },
+    querySelector: function(s) { return s === ".tbchip--win" ? {} : null; },
+    appendChild: function() {},
+    classList: { add: function(c){ this.className = c; }, remove: function(){} }
+  };
+  ctx.ApexTheme.stamp(card);
+  assert.notEqual(card.className, "apex-flip");
+});
