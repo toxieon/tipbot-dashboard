@@ -1,0 +1,1194 @@
+/* Apex theme motion and type. Loaded only while data-theme=apex.
+   Transform and opacity only. One drifting glow layer. No blur on scroll. */
+
+@font-face{
+  font-family:Geist;
+  src:url("./fonts/geist-latin.woff2") format("woff2");
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:"Instrument Sans";
+  src:url("./fonts/instrument-sans-latin.woff2") format("woff2");
+  font-weight:400 700;
+  font-style:normal;
+  font-display:swap;
+}
+
+html[data-theme="apex"]{
+  --apex-display:clamp(3.25rem, 8vw, 5.75rem);
+  --t-h1:clamp(2rem, 1.1rem + 2.2vw, 3.25rem);
+  --t-h2:1.5rem;
+  --t-h3:1.25rem;
+  --t-body:1.0625rem;
+}
+@media(max-width:700px){
+  html[data-theme="apex"]{--apex-display:clamp(2.75rem, 14vw, 3.5rem)}
+}
+
+html[data-theme="apex"] body{
+  font-family:Geist,system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:var(--bg);
+  min-height:100%;
+  min-height:100dvh;
+}
+html[data-theme="apex"] h1,
+html[data-theme="apex"] h2,
+html[data-theme="apex"] .sname,
+html[data-theme="apex"] .sv-ph h2,
+html[data-theme="apex"] .apex-display,
+html[data-theme="apex"] .sv-big b{
+  font-family:"Instrument Sans",Geist,system-ui,sans-serif;
+}
+html[data-theme="apex"] .apex-display{
+  font-size:var(--apex-display,3rem);
+  font-weight:560;
+  letter-spacing:-.045em;
+  line-height:.95;
+  font-variant-numeric:tabular-nums;
+}
+html[data-theme="apex"] .num,
+html[data-theme="apex"] .mv,
+html[data-theme="apex"] .leg-odds,
+html[data-theme="apex"] .tb-quote,
+html[data-theme="apex"] .sv-pl,
+html[data-theme="apex"] .sv-stat .v,
+html[data-theme="apex"] .cd b{
+  font-variant-numeric:tabular-nums;
+}
+
+/* Header: solid wash, hairline once content is underneath, no blur. */
+html[data-theme="apex"]{
+  scroll-padding-top:calc(64px + env(safe-area-inset-top,0px));
+}
+html[data-theme="apex"] #app > .top{
+  transition:padding 320ms cubic-bezier(.22,1,.36,1);
+  z-index:40;
+}
+html[data-theme="apex"] #app > .top::before{
+  background:var(--bg);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+html[data-theme="apex"] #app > .top.is-scrolled{
+  padding-top:calc(4px + env(safe-area-inset-top,0px));
+  padding-bottom:4px;
+}
+html[data-theme="apex"] #app > .top.is-scrolled::before{
+  border-bottom-color:var(--line);
+}
+html[data-theme="apex"] #app > .top .brand .logo{
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] #app > .top.is-scrolled .brand .logo{
+  transform:scale(.86);
+}
+@media(max-width:420px){
+  html[data-theme="apex"] #app > .top{
+    flex-wrap:nowrap;
+    align-items:center;
+    gap:6px;
+    margin-bottom:12px;
+  }
+  html[data-theme="apex"] .brand{
+    flex:none;
+    font-size:0;
+    gap:0;
+    overflow:visible;
+  }
+  html[data-theme="apex"] .brand .logo{
+    width:28px;
+    height:28px;
+  }
+  html[data-theme="apex"] .topnav{
+    flex:1 1 auto;
+    width:auto;
+    margin-left:auto;
+    margin-right:4px;
+    justify-content:flex-end;
+    min-width:0;
+    gap:4px;
+  }
+  html[data-theme="apex"] .topnav a{
+    padding:5px 8px!important;
+    font-size:12px!important;
+    line-height:1.2;
+    border-radius:999px!important;
+    border:1px solid var(--line)!important;
+    white-space:nowrap;
+  }
+  html[data-theme="apex"] .menu{flex:none}
+  html[data-theme="apex"] .gear{
+    width:44px;
+    height:44px;
+    min-width:44px;
+    min-height:44px;
+    border-radius:999px;
+    font-size:15px;
+  }
+}
+html[data-theme="apex"] #upcoming-panel,
+html[data-theme="apex"] .panel,
+html[data-theme="apex"] .game-group,
+html[data-theme="apex"] .ghead{
+  scroll-margin-top:calc(88px + env(safe-area-inset-top,0px));
+}
+html[data-theme="apex"] header.top{
+  background:var(--bg);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  transition:padding 320ms cubic-bezier(.22,1,.36,1);
+  z-index:35;
+}
+html[data-theme="apex"] header.top.is-scrolled{
+  padding-top:calc(2px + env(safe-area-inset-top,0px));
+  padding-bottom:2px;
+  border-bottom-color:var(--line);
+}
+
+/* One glow behind the title. Two colours, one layer, no box in the flow. */
+.apex-glow{display:none}
+html[data-theme="apex"] .apex-glow{
+  display:block;
+  position:absolute;
+  z-index:0;
+  left:-12%;
+  right:-12%;
+  top:-48px;
+  height:200px;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 46% 70% at 22% 55%, var(--apex-glow-a, rgba(91,140,255,.18)), transparent 68%),
+    radial-gradient(ellipse 40% 64% at 76% 48%, var(--apex-glow-b, rgba(52,211,153,.10)), transparent 70%);
+  will-change:transform;
+}
+html[data-theme="apex"] #overview,
+html[data-theme="apex"] #detail,
+html[data-theme="apex"] #builder,
+html[data-theme="apex"] main{
+  position:relative;
+}
+html[data-theme="apex"] #overview > :not(.apex-glow),
+html[data-theme="apex"] #detail > :not(.apex-glow),
+html[data-theme="apex"] #builder > :not(.apex-glow){
+  position:relative;
+  z-index:1;
+}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .apex-glow{
+    animation:apex-drift 18s cubic-bezier(.22,1,.36,1) infinite alternate;
+  }
+}
+@keyframes apex-drift{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(6%,10px,0)}
+}
+html[data-theme="apex"] .apex-glow.apex-paused,
+html.apex-hidden[data-theme="apex"] .apex-glow,
+html.apex-hidden[data-theme="apex"] .apex-flame,
+html.apex-hidden[data-theme="apex"] .sv-end.apex-pulse,
+html.apex-hidden[data-theme="apex"] .cd.apex-live{
+  animation-play-state:paused;
+}
+
+/* Sections rise once. Numbers and the hero figure use the same ease. */
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .apex-rise{
+    transition:opacity 320ms cubic-bezier(.22,1,.36,1), transform 320ms cubic-bezier(.22,1,.36,1);
+    transition-delay:calc(var(--apex-i, 0) * 40ms);
+  }
+  html[data-theme="apex"] .apex-rise:not(.apex-in){
+    opacity:0;
+    transform:translateY(12px);
+  }
+  html[data-theme="apex"] .apex-display.apex-in{
+    animation:apex-hero 640ms cubic-bezier(.22,1,.36,1) both;
+  }
+}
+@keyframes apex-hero{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:none}
+}
+
+/* Home tier badge stays a small pill, not a stretched box. */
+html[data-theme="apex"] .scard .row1{align-items:flex-start}
+html[data-theme="apex"] .plan{
+  align-self:flex-start;
+  flex:none;
+  height:auto;
+  line-height:1.3;
+  padding:3px 8px;
+  border-radius:999px;
+  white-space:nowrap;
+}
+
+/* Cards, pills, tables. */
+@media (hover:hover) and (pointer:fine){
+  html[data-theme="apex"] .scard:hover,
+  html[data-theme="apex"] .gcard:hover,
+  html[data-theme="apex"] .dc-card:hover,
+  html[data-theme="apex"] .betcard:hover,
+  html[data-theme="apex"] .sv-panel:hover{
+    transform:translateY(-2px);
+    border-color:color-mix(in srgb, var(--txt) 22%, var(--line));
+    transition:transform 320ms cubic-bezier(.22,1,.36,1), border-color 320ms cubic-bezier(.22,1,.36,1), background-color 320ms cubic-bezier(.22,1,.36,1);
+  }
+}
+html[data-theme="apex"] .btn,
+html[data-theme="apex"] .ghost,
+html[data-theme="apex"] .tbs-btn{
+  border-radius:999px;
+}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .btn:active:not(:disabled),
+  html[data-theme="apex"] .ghost:active,
+  html[data-theme="apex"] .tab:active,
+  html[data-theme="apex"] .compchip:active,
+  html[data-theme="apex"] .tbs-btn:active,
+  html[data-theme="apex"] .scard:active,
+  html[data-theme="apex"] .tile.clk:active{
+    transform:scale(.98);
+    transition-duration:160ms;
+  }
+}
+html[data-theme="apex"] .btn:active:not(:disabled){
+  background:var(--accent2);
+}
+html[data-theme="apex"] table thead th{
+  position:sticky;
+  top:calc(48px + env(safe-area-inset-top, 0px));
+  background:var(--card);
+  z-index:2;
+}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme="apex"] tbody tr:hover,
+  html[data-theme="apex"] .sv-rank:hover,
+  html[data-theme="apex"] .prow:hover{
+    background:color-mix(in srgb, var(--txt) 5%, transparent);
+  }
+}
+
+/* Tip builder: one column. The active step opens up. Chips ease in. */
+html[data-theme="apex"] #builder{max-width:720px}
+html[data-theme="apex"] #builder .gcards{grid-template-columns:minmax(0,1fr)}
+html[data-theme="apex"] #builder .gcard,
+html[data-theme="apex"] #builder .panel,
+html[data-theme="apex"] #builder .teamplayers{
+  transition:padding 320ms cubic-bezier(.22,1,.36,1), border-color 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] #builder .apex-step.is-active{
+  padding:18px 16px;
+  border-color:color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .chip{
+    animation:apex-chip 320ms cubic-bezier(.22,1,.36,1) both;
+  }
+}
+@keyframes apex-chip{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:none}
+}
+
+/* Ticket stamp. */
+.apex-stamp,.apex-confetti,.apex-ring,.apex-flame,.apex-delta{display:none}
+html[data-theme="apex"] .betcard{position:relative}
+html[data-theme="apex"] .apex-stamp{
+  display:inline-flex;
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  z-index:0;
+  opacity:0.15;
+  align-items:center;
+  justify-content:center;
+  min-width:64px;
+  padding:4px 8px;
+  border:2px solid currentColor;
+  border-radius:4px;
+  font-family:"Instrument Sans",Geist,sans-serif;
+  font-size:var(--t-sub,13px);
+  font-weight:750;
+  letter-spacing:.14em;
+  line-height:1;
+  transform:rotate(-8deg);
+  pointer-events:none;
+}
+html[data-theme="apex"] .apex-stamp-win{color:var(--win)}
+html[data-theme="apex"] .apex-stamp-loss{color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .betcard.apex-flip{
+    animation:apex-card-flip 320ms cubic-bezier(.22,1,.36,1) both;
+  }
+  html[data-theme="apex"] .apex-stamp{
+    animation:apex-stamp-in 320ms cubic-bezier(.22,1,.36,1) 120ms both;
+  }
+}
+@keyframes apex-card-flip{
+  0%{transform:rotateY(0deg)}
+  42%{transform:rotateY(86deg)}
+  100%{transform:rotateY(0deg)}
+}
+@keyframes apex-stamp-in{
+  from{opacity:0;transform:scale(1.35) rotate(-8deg)}
+  to{opacity:0.15;transform:scale(1) rotate(-8deg)}
+}
+html[data-theme="apex"] .apex-confetti{
+  display:block;
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:6px;
+  height:6px;
+  margin:-3px 0 0 -3px;
+  border-radius:1px;
+  pointer-events:none;
+}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .apex-confetti{
+    animation:apex-confetti 900ms cubic-bezier(.22,1,.36,1) both;
+  }
+}
+@keyframes apex-confetti{
+  to{opacity:0;transform:translate3d(var(--dx), var(--dy), 0) rotate(var(--rot))}
+}
+
+/* Form strip. */
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .tb-form-dot.apex-tile{
+    animation:apex-tile 320ms cubic-bezier(.22,1,.36,1) both;
+    animation-delay:calc(var(--apex-i, 0) * 40ms);
+  }
+}
+@keyframes apex-tile{
+  from{opacity:0;transform:rotateX(90deg)}
+  to{opacity:1;transform:none}
+}
+html[data-theme="apex"] .tb-form-dot,
+html[data-theme="apex"] .sv-form .tb-form-dot{
+  width:20px;
+  height:20px;
+  border-radius:6px;
+}
+html[data-theme="apex"] .tb-form-dots{gap:4px}
+html[data-theme="apex"] .tb-form-hot{
+  font-size:var(--t-sub);
+  font-weight:750;
+  line-height:1;
+  padding:4px 8px;
+  border-radius:999px;
+}
+html[data-theme="apex"] .sv-stat.sv-form{
+  justify-content:center;
+}
+html[data-theme="apex"] .sv-form-body,
+html[data-theme="apex"] .sv-form .tb-form{
+  align-items:center;
+}
+html[data-theme="apex"] .tb-form-dot.apex-newest{
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+html[data-theme="apex"] .apex-flame{display:none}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .tb-form-hot{
+    animation:apex-flame 1.1s ease-in-out infinite;
+    transform-origin:50% 80%;
+  }
+}
+@keyframes apex-flame{
+  0%,100%{transform:scale(1) translateY(0);opacity:1}
+  50%{transform:scale(1.08) translateY(-1px);opacity:.8}
+}
+
+/* Bankroll line heartbeat on the latest point. */
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .sv-end.apex-pulse{
+    transform-box:fill-box;
+    transform-origin:center;
+    animation:apex-beat 1.6s ease-in-out infinite;
+  }
+}
+@keyframes apex-beat{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.45);opacity:.7}
+}
+
+/* Countdown ring and live pill. */
+html[data-theme="apex"] .gright{display:flex;align-items:center;gap:8px}
+html[data-theme="apex"] .apex-ring{display:block;width:28px;height:28px;flex:none}
+html[data-theme="apex"] .apex-ring[hidden]{display:none}
+html[data-theme="apex"] .apex-ring svg{display:block;width:100%;height:100%}
+html[data-theme="apex"] .apex-ring-track{fill:none;stroke:var(--line);stroke-width:2}
+html[data-theme="apex"] .apex-ring-value{
+  fill:none;
+  stroke:var(--accent);
+  stroke-width:2;
+  stroke-linecap:round;
+  transform:rotate(-90deg);
+  transform-origin:18px 18px;
+}
+html[data-theme="apex"] .cd.apex-live{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:3px 8px;
+  background:color-mix(in srgb, var(--loss) 16%, transparent);
+  font-weight:750;
+  letter-spacing:.04em;
+}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .cd.apex-live{animation:apex-live 1.4s ease-in-out infinite}
+}
+@keyframes apex-live{
+  0%,100%{opacity:1}
+  50%{opacity:.55}
+}
+
+/* Rank change chip. */
+html[data-theme="apex"] .apex-delta{
+  display:inline-flex;
+  margin-left:6px;
+  padding:1px 6px;
+  border-radius:999px;
+  font-size:var(--t-cap,11px);
+  font-weight:750;
+  font-variant-numeric:tabular-nums;
+  background:var(--card2);
+  border:1px solid var(--line);
+}
+html[data-theme="apex"] .apex-delta-up{color:var(--win)}
+html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){
+  html[data-theme="apex"] .apex-glow,
+  html[data-theme="apex"] .apex-flame,
+  html[data-theme="apex"] .tb-form-hot,
+  html[data-theme="apex"] .sv-end.apex-pulse,
+  html[data-theme="apex"] .cd.apex-live,
+  html[data-theme="apex"] .apex-stamp,
+  html[data-theme="apex"] .betcard.apex-flip,
+  html[data-theme="apex"] .chip,
+  html[data-theme="apex"] .tb-form-dot.apex-tile,
+  html[data-theme="apex"] .apex-display.apex-in,
+  html[data-theme="apex"] .nd-sk::after,
+  html[data-theme="apex"] #builder[data-apex-step="1"] .gcards{
+    animation:none;
+  }
+  html[data-theme="apex"] .apex-rise,
+  html[data-theme="apex"] .apex-rise:not(.apex-in){
+    opacity:1;
+    transform:none;
+    transition:none;
+  }
+  html[data-theme="apex"] .apex-indicator,
+  html[data-theme="apex"] .apex-seg-pill,
+  html[data-theme="apex"] .apex-flow-bar,
+  html[data-theme="apex"] .tb-toast{
+    transition:none;
+  }
+}
+
+/* App shell. The rail and the phone tab bar are the only blur surfaces. */
+.apex-rail,.apex-tabs{display:none}
+html[data-theme="apex"] .apex-rail,
+html[data-theme="apex"] .apex-tabs{
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(16px);
+}
+html[data-theme="apex"] .apex-rail{
+  position:fixed;
+  z-index:40;
+  top:0;
+  left:0;
+  bottom:0;
+  width:92px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:calc(12px + env(safe-area-inset-top, 0px)) 8px 12px;
+  border-right:1px solid var(--line);
+}
+html[data-theme="apex"] .apex-navbtn{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  min-height:56px;
+  padding:6px 4px;
+  border:0;
+  border-radius:16px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:.6875rem;
+  font-weight:650;
+  letter-spacing:-.01em;
+  cursor:pointer;
+}
+html[data-theme="apex"] .apex-navbtn svg{
+  width:22px;
+  height:22px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+html[data-theme="apex"] .apex-navbtn[aria-current="page"]{color:var(--txt)}
+html[data-theme="apex"] .apex-indicator{
+  position:absolute;
+  z-index:0;
+  left:0;
+  top:0;
+  border-radius:16px;
+  background:var(--card);
+  pointer-events:none;
+  transition:transform 400ms cubic-bezier(0.4, 1.2, 0.5, 1);
+}
+html[data-theme="apex"] .topnav,
+html[data-theme="apex"] .top-in > .nav{display:none}
+@media (min-width:900px){
+  html[data-theme="apex"] header.top{padding-left:104px}
+  html[data-theme="apex"] .wrap{
+    max-width:none;
+    margin-left:92px;
+    padding-left:32px;
+    padding-right:40px;
+  }
+  html[data-theme="apex"] .topnav{display:none}
+}
+@media (max-width:899px){
+  html[data-theme="apex"] .apex-rail{display:none}
+  html[data-theme="apex"] .apex-tabs{
+    position:fixed;
+    z-index:45;
+    left:0;
+    right:0;
+    bottom:0;
+    /* 0.53.3: three columns, Build in the middle column, so it is centred and never at an edge. */
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:end;
+    justify-items:stretch;
+    gap:2px;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    border-top:1px solid var(--line);
+  }
+  html[data-theme="apex"] .apex-tabs .apex-navbtn{flex:1;min-height:48px}
+  html[data-theme="apex"] .apex-tabs .apex-tab-build{
+    flex:none;
+    justify-self:center;
+    width:58px;
+    height:58px;
+    min-height:58px;
+    margin-top:-22px;
+    border-radius:999px;
+    background:var(--accent);
+    color:var(--on-accent);
+    box-shadow:0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  html[data-theme="apex"] .apex-tabs .apex-tab-build[aria-current="page"]{color:var(--on-accent)}
+  html[data-theme="apex"] .wrap{
+    padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-theme="apex"] .topnav,
+  html[data-theme="apex"] .top-in > .nav{display:none}
+  html[data-theme="apex"] .tray,
+  html[data-theme="apex"] .batchtray{
+    bottom:calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-theme="apex"] .tb-toast{
+    bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+html[data-theme="apex"] .tb-toast{
+  transition:opacity 320ms cubic-bezier(.22,1,.36,1), transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] .tb-toast:not(.in){transform:translate(-50%, 16px)}
+html[data-theme="apex"] .tb-toast.in{transform:translate(-50%, 0)}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .apex-navbtn:active{transform:scale(.98)}
+  html[data-theme="apex"] .nd-sk::after{
+    background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--txt) 16%, transparent), transparent)!important;
+    animation:nd-sk 1.3s cubic-bezier(.22,1,.36,1) infinite!important;
+  }
+}
+
+/* Home */
+html[data-theme="apex"] .apex-hero{padding:8px 0 28px}
+html[data-theme="apex"] .apex-kicker{
+  margin:0 0 8px;
+  color:var(--muted);
+  font-size:var(--t-foot);
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+html[data-theme="apex"] .apex-hero-num{
+  margin:0;
+  font-family:"Instrument Sans", Geist, system-ui, sans-serif;
+  font-size:var(--apex-display);
+  font-weight:650;
+  letter-spacing:-.055em;
+  line-height:.9;
+}
+html[data-theme="apex"] .apex-spark{display:block;width:min(100%, 440px);height:72px;margin:8px 0 18px}
+html[data-theme="apex"] .apex-spark .sv-line,
+html[data-theme="apex"] .apex-mini .sv-line{
+  stroke:var(--accent);
+  stroke-width:2.5;
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+html[data-theme="apex"] .apex-facts{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+html[data-theme="apex"] .apex-facts div{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px 14px 12px;
+}
+html[data-theme="apex"] .apex-facts b{
+  display:block;
+  font-size:1.35rem;
+  letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;
+}
+html[data-theme="apex"] .apex-facts b.apex-muted{
+  color:var(--faint);
+  font-size:1.05rem;
+  font-weight:650;
+  letter-spacing:-.02em;
+}
+html[data-theme="apex"] .apex-facts span{color:var(--muted);font-size:var(--t-foot)}
+html[data-theme="apex"] .scard{
+  padding:22px 20px 18px;
+  border-radius:22px;
+}
+html[data-theme="apex"] .scard .sname{
+  font-size:1.35rem;
+  letter-spacing:-.035em;
+}
+html[data-theme="apex"] .apex-mini{display:block;width:120px;height:36px;margin-top:12px}
+html[data-theme="apex"] .apex-record{
+  display:flex;
+  height:8px;
+  margin-top:12px;
+  border-radius:999px;
+  overflow:hidden;
+  background:var(--card2);
+}
+html[data-theme="apex"] .apex-record .apex-w{background:var(--win)}
+html[data-theme="apex"] .apex-record .apex-l{background:var(--loss)}
+html[data-theme="apex"] #detail h1{
+  font-size:var(--t-h1);
+  letter-spacing:-.045em;
+  line-height:1;
+}
+html[data-theme="apex"] #detail .dhead{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:10px 16px;
+  align-items:end;
+}
+html[data-theme="apex"] #detail .dhead > h1,
+html[data-theme="apex"] #detail .dhead > .tb-form-title{grid-column:1;grid-row:1}
+html[data-theme="apex"] #detail .dhead-actions{grid-column:2;grid-row:1;justify-self:end}
+html[data-theme="apex"] .apex-server-hero{grid-column:1 / -1;grid-row:2}
+html[data-theme="apex"] .apex-hero-roi{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:1.05rem;
+  font-weight:650;
+  letter-spacing:-.02em;
+}
+html[data-theme="apex"] .sv-big{display:none}
+html[data-theme="apex"] .sv-stats,
+html[data-theme="apex"] .sv-stats:has(.sv-form){
+  grid-template-columns:minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "units units strike"
+    "units units record"
+    "form form roi";
+  grid-auto-rows:minmax(108px, auto);
+  gap:12px;
+}
+html[data-theme="apex"] .sv-stats:not(:has(.sv-form)){
+  grid-template-areas:
+    "units units strike"
+    "units units record"
+    "roi roi roi";
+}
+html[data-theme="apex"] .sv-stat:nth-child(1){grid-area:units}
+html[data-theme="apex"] .sv-stat:nth-child(2){grid-area:roi}
+html[data-theme="apex"] .sv-stat:nth-child(3){grid-area:strike}
+html[data-theme="apex"] .sv-stat:nth-child(4){grid-area:record}
+html[data-theme="apex"] .sv-stat.sv-form{grid-area:form}
+html[data-theme="apex"] .sv-stat:nth-child(1) .v{
+  font-size:clamp(2rem, 4vw, 3rem);
+  letter-spacing:-.045em;
+}
+html[data-theme="apex"] .sv-av{
+  width:36px;
+  height:36px;
+  border-radius:999px;
+}
+@media (max-width:700px){
+  html[data-theme="apex"] .sv-stats,
+  html[data-theme="apex"] .sv-stats:has(.sv-form){
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "units units"
+      "roi strike"
+      "record record"
+      "form form";
+  }
+  html[data-theme="apex"] .sv-stats:not(:has(.sv-form)){
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "units units"
+      "roi strike"
+      "record record";
+  }
+  html[data-theme="apex"] #detail .dhead{grid-template-columns:minmax(0, 1fr)}
+  html[data-theme="apex"] #detail .dhead-actions{
+    grid-column:1 / -1;
+    grid-row:3;
+    display:flex;
+    flex-wrap:wrap;
+    overflow-x:visible;
+    max-width:100%;
+  }
+  html[data-theme="apex"] .apex-spark{height:48px;margin:4px 0 12px}
+  html[data-theme="apex"] .apex-hero{padding-bottom:16px}
+  html[data-theme="apex"] .apex-facts div{padding:10px 12px}
+}
+
+/* Timeframe pill */
+html[data-theme="apex"] .apex-seg{
+  position:relative;
+  display:flex;
+  gap:2px;
+  max-width:100%;
+  overflow-x:auto;
+  padding:4px;
+  border-radius:999px;
+  background:var(--card);
+  border:1px solid var(--line);
+}
+html[data-theme="apex"] .apex-seg-btn{
+  position:relative;
+  z-index:1;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  border-radius:999px;
+  padding:8px 14px;
+  font:inherit;
+  font-weight:650;
+  white-space:nowrap;
+  cursor:pointer;
+}
+html[data-theme="apex"] .apex-seg-btn[aria-pressed="true"]{color:var(--bg)}
+html[data-theme="apex"] .apex-seg-pill{
+  position:absolute;
+  z-index:0;
+  left:0;
+  top:0;
+  border-radius:999px;
+  background:var(--txt);
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] select.apex-native-period{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0 0 0 0);
+  border:0;
+}
+
+/* Timeline */
+html[data-theme="apex"] .apex-day{
+  position:sticky;
+  top:calc(76px + env(safe-area-inset-top, 0px));
+  z-index:3;
+  margin:16px 0 8px;
+  padding:8px 2px;
+  background:color-mix(in srgb, var(--bg) 94%, transparent);
+  font-family:"Instrument Sans", Geist, sans-serif;
+  font-size:1.05rem;
+  font-weight:650;
+  letter-spacing:-.03em;
+}
+html[data-theme="apex"] .apex-lockup{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+html[data-theme="apex"] .apex-logo{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--card2);
+  border:1px solid var(--line);
+  font-size:.75rem;
+  font-weight:750;
+  letter-spacing:-.03em;
+}
+html[data-theme="apex"] .apex-vs{color:var(--faint);font-size:var(--t-foot);font-weight:700}
+html[data-theme="apex"] .graderow{
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  padding:3px;
+  border-radius:999px;
+  background:var(--card2);
+  border:1px solid var(--line);
+}
+html[data-theme="apex"] .graderow .gradebtn{
+  border:0!important;
+  background:transparent!important;
+  color:var(--muted)!important;
+  border-radius:999px!important;
+  min-height:36px;
+  padding:6px 12px!important;
+}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme="apex"] .graderow .gradebtn[data-r="Win"]:hover{color:var(--win-ink)!important}
+  html[data-theme="apex"] .graderow .gradebtn[data-r="Loss"]:hover{color:var(--loss-ink)!important}
+  html[data-theme="apex"] .graderow .gradebtn[data-r="Push"]:hover{color:var(--txt)!important}
+}
+
+/* Builder steps */
+html[data-theme="apex"] .apex-flow{
+  display:flex;
+  gap:8px;
+  margin:0 0 18px;
+  padding:0;
+  list-style:none;
+  position:relative;
+}
+html[data-theme="apex"] .apex-flow li{
+  position:relative;
+  z-index:1;
+  flex:1;
+  padding:8px 0 10px;
+  color:var(--faint);
+  font-size:var(--t-foot);
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+html[data-theme="apex"] .apex-flow li.is-on,
+html[data-theme="apex"] .apex-flow li.is-done{color:var(--txt)}
+html[data-theme="apex"] .apex-flow-bar{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;
+  border-radius:999px;
+  background:var(--accent);
+  transform-origin:left center;
+  transform:scaleX(.25);
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] .apex-step-note{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:1.25rem;
+  font-weight:650;
+  letter-spacing:-.03em;
+}
+html[data-theme="apex"] #builder .apex-sports{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fill, minmax(128px, 1fr));
+  gap:10px!important;
+}
+html[data-theme="apex"] #builder .compchip{
+  min-height:56px;
+  padding:14px 16px;
+  border-radius:16px;
+  font-size:1.05rem;
+}
+html[data-theme="apex"] #builder[data-apex-step="0"] .gcards{display:none}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] #builder[data-apex-step="1"] .gcards{
+    animation:apex-in 320ms cubic-bezier(.22,1,.36,1) both;
+  }
+}
+@keyframes apex-out{to{opacity:0;transform:translateY(-8px)}}
+@keyframes apex-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:no-preference){
+  ::view-transition-old(apex-page){animation:apex-out 220ms cubic-bezier(.22,1,.36,1) both}
+  ::view-transition-new(apex-page){animation:apex-in 320ms cubic-bezier(.22,1,.36,1) both}
+}
+
+html[data-theme="apex"] #overview,
+html[data-theme="apex"] #detail,
+html[data-theme="apex"] #upcoming,
+html[data-theme="apex"] #builder { overflow-x: clip; }
+
+/* 0.52.2: on phones the glow's -12% sides widened the page past the screen
+   (scrollWidth 455 at 390). Keep it, and its 6% drift, inside the viewport. */
+@media (max-width:430px){
+  html[data-theme="apex"] .apex-glow{left:0;right:7%}
+}
+
+html[data-theme="apex"] .apex-ptr-shimmer .nd-sk::after {
+  transform: translateY(-100%);
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.09), transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="apex"] .apex-ptr-shimmer .nd-sk::after {
+    animation: apex-ptr 1.3s infinite;
+  }
+}
+@keyframes apex-ptr {
+  100% { transform: translateY(100%); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="apex"] .apex-pulse-win {
+    animation: apex-pulse-win 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+@keyframes apex-pulse-win {
+  0% { transform: scale(1); text-shadow: none; color: var(--win); }
+  20% { transform: scale(1.15); text-shadow: 0 0 16px var(--win); color: var(--win); }
+  100% { transform: scale(1); text-shadow: none; color: var(--win); }
+}
+
+html[data-theme="apex"] .apex-flame-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 100, 0, 0.1);
+  color: #ff6400;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: var(--t-cap);
+}
+html[data-theme="apex"] .apex-flame-icon {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="apex"] .apex-flame-icon {
+    animation: apex-flicker 1.5s ease-in-out infinite alternate;
+  }
+}
+@keyframes apex-flicker {
+  0% { transform: scale(0.95) rotate(-2deg); opacity: 0.8; }
+  100% { transform: scale(1.05) rotate(2deg); opacity: 1; }
+}
+
+/* 0.52.5: the tab indicator slide (with overshoot) stops under reduced motion. */
+@media (prefers-reduced-motion:reduce){
+  html[data-theme="apex"] .apex-indicator{transition:none}
+  html[data-theme="apex"] .ds-win-btn{transition:none}
+}
+
+html[data-theme="apex"] #stats .ds-v,
+html[data-theme="apex"] #stats h1{
+  font-family:"Instrument Sans",Geist,system-ui,sans-serif;
+}
+html[data-theme="apex"] .ds-win{
+  background:var(--card);
+}
+html[data-theme="apex"] .ds-win-btn[aria-pressed="true"]{
+  background:var(--txt);
+  color:var(--bg);
+}
+html[data-theme="apex"] .home-stats-tile{margin-bottom:14px}
+
+
+/* Racing lists sit on the chooser / meetings views. Do not use .gcards there:
+   Apex hides #builder[data-apex-step="0"] .gcards (sport step, before a game). */
+#builder .race-list{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:14px;
+}
+#builder .race-ntg,
+#builder .race-mtg,
+#builder .race-evt{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:16px;
+  cursor:pointer;
+}
+#builder:has(#race-app) > .apex-flow,
+#builder:has(#tile-racing) > .apex-flow,
+#builder:has(#racing-cat-tabs) > .apex-flow,
+#builder:has(#racing-meeting-detail) > .apex-flow{
+  display:none;
+}
+
+/* Racing (scoped to #race-app so .card/.chip/.row never leak into the dashboard) */
+#race-app {
+  /* Map the racing mock's tokens onto tipdash's own (they were undefined here). */
+  --surface:var(--card); --hairline:var(--line); --text:var(--txt); --font:"Instrument Sans",Geist,system-ui,sans-serif;
+  --stride:.55s; --ground-speed:340px; --hero-h:360px; --hero-h-compact:180px; --header-h:56px;
+  --horse-top:#F5F7FA; --horse-bot:#C6CDDA; --horse-far:#5D6578; --breeches:#E3E7EE; --jdark:#1A1F2B; --cut:#07090F;
+  --turf-a:#0C1A14; --turf-b:#0F2219; --stripe:rgba(255,255,255,.035); --rail:#E9EDF3; --rail-post:#C9D0DC;
+  --race-glow:rgba(91,140,255,.22); --race-shadow:rgba(0,0,0,.65); --speed:rgba(245,247,250,.22);
+  position:relative; width:100%; height:min(100dvh, 920px); min-height:640px; overflow:hidden; background:var(--bg);
+}
+html[data-theme="apex"][data-apex-variant="oled"] #race-app {
+  --horse-top:#F5F5F7; --horse-bot:#C4C7CF; --horse-far:#5A5D66; --breeches:#E2E4E8; --jdark:#16181D; --cut:#000000;
+  --turf-a:#07120D; --turf-b:#0A1912; --stripe:rgba(255,255,255,.03); --rail:#E8E9EC; --rail-post:#C2C5CC;
+  --race-glow:rgba(91,140,255,.18); --race-shadow:rgba(0,0,0,.8); --speed:rgba(245,245,247,.2);
+}
+html[data-theme="apex"][data-apex-variant="mono"] #race-app {
+  --horse-top:#F2F2F3; --horse-bot:#BEBEC4; --horse-far:#5B5B61; --breeches:#9C9CA3; --jdark:#1C1C1F; --cut:#0B0B0C;
+  --turf-a:#141416; --turf-b:#18181B; --stripe:rgba(255,255,255,.035); --rail:#E8E8EA; --rail-post:#BDBDC2;
+  --race-glow:rgba(255,255,255,.08); --race-shadow:rgba(0,0,0,.7); --speed:rgba(242,242,243,.2);
+}
+html[data-theme="apex"][data-apex-variant="light"] #race-app,
+html[data-theme="apex"][data-apex-light="1"] #race-app {
+  --horse-top:#1A1F29; --horse-bot:#0E1116; --horse-far:#9AA2B2; --breeches:#FFFFFF; --jdark:#2A303C; --cut:#F4F6F8;
+  --turf-a:#DCE9DF; --turf-b:#D2E3D6; --stripe:rgba(255,255,255,.45); --rail:#FFFFFF; --rail-post:#B9C1CE;
+  --race-glow:rgba(59,111,232,.14); --race-shadow:rgba(14,17,22,.28); --speed:rgba(14,17,22,.16);
+}
+html[data-theme="ochre"] #race-app {
+  --horse-top:#F6EFE6; --horse-bot:#D8CBB8; --horse-far:#6E5D48; --breeches:#EFE6D8; --jdark:#2A1F14; --cut:#17110C;
+  --turf-a:#1C1A0E; --turf-b:#222010; --stripe:rgba(246,239,230,.035); --rail:#F3EBDF; --rail-post:#CDBFAA;
+  --race-glow:rgba(224,160,74,.2); --race-shadow:rgba(0,0,0,.6); --speed:rgba(246,239,230,.2);
+}
+
+
+
+/* ---------- hero ---------- */
+#race-app .hero { position:absolute; left:0; right:0; top:var(--header-h); height:var(--hero-h); z-index:1; pointer-events:none;
+  opacity:0; transform:translateY(18px); transition:opacity .5s var(--ease), transform .6s var(--ease); }
+#race-app.is-in .hero { opacity:1; transform:none; }
+#race-app .hero > * { position:absolute; left:0; right:0; will-change:transform; transition:transform .64s var(--ease), opacity .64s var(--ease); }
+#race-app .glow { inset:0; background:radial-gradient(60% 55% at 52% 58%, var(--race-glow), transparent 70%); }
+#race-app .eyebrow { top:6px; padding:0 20px; display:flex; justify-content:space-between; font:600 var(--t-cap)/1 var(--font); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+#race-app .eyebrow b { color:var(--accent); font-weight:700; }
+
+#race-app .rail { top:206px; height:44px; overflow:hidden; }
+#race-app .rail .strip { position:absolute; inset:0 auto 0 0; width:calc(100% + 96px);
+  background:
+    linear-gradient(var(--rail),var(--rail)) 0 4px / 100% 5px no-repeat,
+    linear-gradient(var(--rail),var(--rail)) 0 16px / 100% 2px no-repeat,
+    repeating-linear-gradient(90deg, var(--rail-post) 0 3px, transparent 3px 96px) 0 4px / 100% 40px no-repeat;
+  opacity:.9; animation:scroll .362s linear infinite; }
+#race-app .marker { top:160px; height:90px; left:auto; right:auto; width:44px; transform:translateX(420px); }
+#race-app .marker > div { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; animation:marker 3.4s linear infinite; }
+#race-app .marker span { font:700 var(--t-cap)/1 "Geist Mono", ui-monospace, monospace; color:var(--on-accent); background:var(--accent); border-radius:999px; padding:6px 7px; letter-spacing:.02em; box-shadow:0 0 0 3px var(--bg); }
+#race-app .marker i { width:3px; flex:1; background:var(--rail); margin-top:4px; border-radius:2px; }
+#race-app .turf { top:248px; height:76px; overflow:hidden;
+  -webkit-mask:linear-gradient(#000 55%, transparent); mask:linear-gradient(#000 55%, transparent);
+  background:linear-gradient(var(--turf-b), var(--turf-a)); }
+#race-app .turf .strip { position:absolute; inset:0 auto 0 0; width:calc(100% + 72px);
+  background:repeating-linear-gradient(105deg, var(--stripe) 0 36px, transparent 36px 72px);
+  animation:scroll72 .212s linear infinite; }
+#race-app .turf::before { content:""; position:absolute; inset:0 0 auto 0; height:1px; background:linear-gradient(90deg, transparent, var(--hairline) 20%, var(--hairline) 80%, transparent); }
+#race-app .speed { top:140px; height:120px; }
+#race-app .speed i { position:absolute; height:2px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--speed)); left:0; width:70px; opacity:0; animation:speed 1.1s linear infinite; }
+#race-app .speed i:nth-child(1){ top:8px;  animation-delay:-.1s; width:90px }
+#race-app .speed i:nth-child(2){ top:44px; animation-delay:-.55s }
+#race-app .speed i:nth-child(3){ top:78px; animation-delay:-.3s; width:110px }
+#race-app .speed i:nth-child(4){ top:102px; animation-delay:-.85s; width:60px }
+#race-app .shadow { top:274px; height:14px; left:50%; right:auto; width:230px; margin-left:-108px; border-radius:50%;
+  background:radial-gradient(closest-side, var(--race-shadow), transparent); }
+#race-app .shadow > i { display:block; width:100%; height:100%; border-radius:50%; background:inherit; animation:pulse var(--stride) ease-in-out infinite; }
+#race-app .shadow { background:none; }
+#race-app .horse { top:90px; height:238px; left:50%; right:auto; width:306px; margin-left:-153px; transform-origin:50% 96%; }
+#race-app .horse .win { position:absolute; inset:0; overflow:hidden; }
+#race-app .horse .sprite { position:absolute; top:0; left:0; height:100%; width:600%; display:block; animation:gallop var(--stride) steps(6) infinite; }
+#race-app .horse svg { width:100%; height:100%; display:block; overflow:visible; }
+#race-app .runners { top:318px; height:34px; padding:0 20px; display:flex; align-items:center; gap:8px; }
+#race-app .runners .lbl { font:600 var(--t-cap)/1.25 var(--font); letter-spacing:.1em; text-transform:uppercase; color:var(--muted); width:46px; flex:none; }
+#race-app .chips { position:relative; flex:1; height:34px; }
+#race-app .chip { position:absolute; top:0; width:34px; height:34px; border-radius:10px; background:var(--surface); border:1px solid var(--hairline);
+  display:grid; place-items:center; transform:translateX(calc(var(--from) * 37px)) translateY(10px) scale(.9); opacity:0;
+  transition:transform .6s var(--ease), opacity .35s var(--ease), box-shadow .4s var(--ease); transition-delay:calc(var(--i) * 40ms + 180ms); }
+#race-app .chip svg { width:24px; height:24px; }
+#race-app .chip b { position:absolute; right:-5px; bottom:-5px; min-width:15px; height:15px; padding:0 3px; border-radius:6px; box-shadow:0 0 0 2px var(--bg); background:var(--text); color:var(--bg); font:700 var(--t-cap)/15px var(--font); text-align:center; }
+#race-app.is-in .chip { transform:translateX(calc(var(--to) * 37px)); opacity:1; }
+#race-app .chip.sel { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent); }
+#race-app .chip.sel b { background:var(--accent); color:var(--on-accent); }
+#race-app.is-compact .rail, #race-app.is-compact .turf, #race-app.is-compact .speed, #race-app.is-compact .glow { transform:translateY(-150px); }
+#race-app.is-compact .shadow { transform:translateY(-162px) scale(.62); }
+#race-app.is-compact .horse { transform:translateY(-162px) scale(.62); }
+#race-app.is-compact .runners { opacity:0; transform:translateY(-150px); }
+#race-app.is-compact .eyebrow { opacity:0; transform:translateY(-8px); }
+#race-app.is-compact .marker { transform:translateX(420px) translateY(-150px); }
+#race-app .race-card { position:absolute; left:0; right:0; top:calc(var(--header-h) + var(--hero-h-compact)); bottom:0; z-index:3; background:var(--bg);
+  padding:16px 16px 120px; transform:translateY(calc(var(--hero-h) - var(--hero-h-compact) + 40px)); opacity:0; overflow-y:auto;
+  transition:transform .64s var(--ease), opacity .5s var(--ease) .15s; }
+#race-app.no-hero .race-card { top:var(--header-h); transform:none; opacity:1; }
+#race-app.is-in .race-card { opacity:1; }
+#race-app .race-card::before { content:""; position:absolute; left:0; right:0; top:-28px; height:28px; background:linear-gradient(transparent, var(--bg)); }
+#race-app.is-compact .race-card { transform:none; opacity:1; transition:transform .64s var(--ease), opacity .5s var(--ease); }
+#race-app .race-eyebrow { font:600 var(--t-cap)/1 var(--font); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:2px 4px 8px; }
+#race-app .race-eyebrow b { color:var(--text); font-weight:700; }
+#race-app .race-card h1 { font:700 var(--t-h1)/1.08 var(--font); letter-spacing:-.025em; margin:0 4px 8px; }
+#race-app .meta { color:var(--muted); font:500 var(--t-sub)/1 var(--font); margin:0 4px 16px; display:flex; gap:8px; }
+#race-app .cols { display:flex; justify-content:flex-end; align-items:baseline; gap:6px; padding:0 14px 8px; font:600 var(--t-cap)/1 var(--font); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+#race-app .cols em { flex:1; font-style:normal; }
+#race-app .cols span { width:62px; text-align:center; flex:none; }
+#race-app .race-row { display:flex; align-items:center; gap:12px; padding:12px; border-radius:16px; background:var(--surface); border:1px solid var(--hairline); margin-bottom:10px;
+  opacity:0; transform:translateY(16px); transition:transform .6s var(--ease), opacity .5s var(--ease); transition-delay:calc(var(--i) * 70ms + 300ms); }
+#race-app.is-in .race-row { opacity:1; transform:none; }
+#race-app .race-row.sel { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+#race-app .silk { position:relative; flex:none; width:42px; height:42px; border-radius:12px; background:var(--bg); border:1px solid var(--hairline); display:grid; place-items:center; }
+#race-app .silk svg, #race-app .silk img { width:28px; height:28px; }
+#race-app .silk b { position:absolute; right:-5px; bottom:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:6px; background:var(--text); color:var(--bg); font:700 var(--t-cap)/17px var(--font); text-align:center; box-shadow:0 0 0 2px var(--surface); }
+#race-app .race-row.sel .silk b { background:var(--accent); color:var(--on-accent); }
+#race-app .who { flex:1; min-width:0; }
+#race-app .who strong { display:block; font:700 var(--t-h3)/1.2 var(--font); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#race-app .race-row.sel .who strong { color:var(--accent); }
+#race-app .who small { display:block; margin-top:4px; color:var(--muted); font:500 var(--t-foot)/1 var(--font); white-space:nowrap; }
+#race-app .odds { width:62px; height:50px; border-radius:12px; border:1px solid var(--hairline); background:var(--bg); display:grid; place-items:center; font:700 var(--t-h3)/1 var(--font); font-variant-numeric:tabular-nums; }
+#race-app .odds.on { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+#race-app .rg { text-align:center; color:var(--muted); font:500 var(--t-cap)/1 var(--font); letter-spacing:.02em; margin-top:14px; }
+#race-app .top { position:absolute; inset:0 0 auto 0; height:var(--header-h); display:flex; align-items:center; gap:10px; padding:0 16px 0 10px; z-index:6; }
+#race-app .top .back { width:36px; height:36px; display:grid; place-items:center; color:var(--text); cursor:pointer; }
+#race-app .top h2 { font:700 var(--t-h2)/1 var(--font); margin:0; letter-spacing:-.01em; flex:1; }
+
+/* ---------- keyframes (transform + opacity only) ---------- */
+@keyframes gallop { to { transform:translateX(-100%); } }
+@keyframes scroll { to { transform:translateX(-96px); } }
+@keyframes scroll72 { to { transform:translateX(-72px); } }
+@keyframes marker { 0% { transform:translateX(0); } 62% { transform:translateX(-520px); } 100% { transform:translateX(-520px); } }
+@keyframes speed { 0% { transform:translateX(260px); opacity:0; } 20% { opacity:1; } 100% { transform:translateX(-40px); opacity:0; } }
+@keyframes pulse { 0%,100% { transform:scaleX(.72); opacity:.45; } 50% { transform:scaleX(1); opacity:1; } }
+
+#race-app.is-paused .hero * { animation-play-state:paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  #race-app .hero, #race-app .hero > *, #race-app .chip, #race-app .race-card, #race-app .race-row { transition:none !important; }
+  #race-app .hero *, #race-app .hero { animation:none !important; }
+  #race-app .sprite { transform:translateX(-66.6667%) !important; }
+  #race-app .speed { display:none; }
+}
+[data-motion="reduce"] #race-app .hero, [data-motion="reduce"] #race-app .hero > *, [data-motion="reduce"] #race-app .chip, [data-motion="reduce"] #race-app .race-card, [data-motion="reduce"] #race-app .race-row { transition:none !important; }
+[data-motion="reduce"] #race-app .hero * { animation:none !important; }
+[data-motion="reduce"] #race-app .sprite { transform:translateX(-66.6667%) !important; }
+[data-motion="reduce"] #race-app .speed { display:none; }
+#race-app .h-body { fill:url(#coat); } #race-app .h-far { fill:var(--horse-far); }
+#race-app .h-cut { fill:var(--cut); } #race-app .h-tack { fill:none; stroke:var(--cut); stroke-width:1.6; stroke-linecap:round; opacity:.5; }
+#race-app .h-rein { fill:none; stroke:var(--jdark); stroke-width:1.7; stroke-linecap:round; }
+html[data-theme="apex"][data-apex-variant="light"] #race-app .h-rein,
+html[data-theme="apex"][data-apex-light="1"] #race-app .h-rein { stroke:var(--horse-far); }
+#race-app .h-cloth { fill:var(--accent); stroke:var(--cut); stroke-width:1.6; }
+#race-app .h-num { fill:var(--on-accent); font:800 var(--t-h3) Geist, Inter, system-ui, sans-serif; }
+#race-app .h-iron { fill:none; stroke:var(--jdark); stroke-width:2; stroke-linecap:round; }
+html[data-theme="apex"][data-apex-variant="light"] #race-app .h-iron,
+html[data-theme="apex"][data-apex-light="1"] #race-app .h-iron { stroke:var(--cut); }
+#race-app .j-halo { fill:var(--cut); stroke:var(--cut); stroke-width:3.4; stroke-linejoin:round; }
+#race-app .j-breeches { fill:var(--breeches); } #race-app .j-dark { fill:var(--jdark); } #race-app .j-silk { fill:var(--accent); } #race-app .j-silk2 { fill:var(--on-accent); opacity:.92; } #race-app .j-face { fill:#C99A7A; }

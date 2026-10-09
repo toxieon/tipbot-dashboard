@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Compare · Tipdash</title>
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
+<script src="../assets/tbtime.js?v=0.54.1"></script>
+<script src="../assets/compare-ui.js?v=0.54.1"></script>
+<script>
+(function(){
+  try {
+    var day=TBTime.dayKey(Date.now());
+    var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
+    var valid=['navy','day','ochre','apex','apex-light','apex-oled','apex-mono'].indexOf(name)!==-1;
+    var root=document.documentElement;
+    var APEX_DEFAULT=true;
+    var manual=localStorage.getItem('tipbot_theme_manual_date')===day;
+    var theme=valid&&(!auto||manual)?name:auto?((APEX_DEFAULT&&!valid)?'apex':(TBTime.isDaytime(Date.now())?'day':'navy')):(valid?name:(APEX_DEFAULT?'apex':'navy'));
+    var apexV=theme.indexOf('apex-')===0?theme.slice(5):'';root.dataset.theme=apexV?'apex':theme;if(apexV)root.dataset.apexVariant=apexV;if(apexV==='light')root.dataset.apexLight='1';
+    if(theme==='apex'&&auto&&TBTime.isDaytime(Date.now())) root.dataset.apexLight='1';
+    var accent=localStorage.getItem('tipbot_theme_accent');
+    if(/^#[0-9a-f]{6}$/i.test(accent||'')) root.style.setProperty('--accent',accent);
+    if(theme==='apex'){
+      var meta=document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute('content', root.dataset.apexLight==='1'?'#F4F6F8':'#07090F');
+      var tb=document.querySelector('script[src*="tbtime.js"]');
+      var src=(tb&&tb.getAttribute('src'))||'../assets/tbtime.js';
+      var s=document.createElement('script');
+      s.src=src.replace(/tbtime\.js/,'theme-apex.js');
+      s.async=true; s.setAttribute('data-apex','1');
+      document.head.appendChild(s);
+    }
+  }catch(e){document.documentElement.dataset.theme='navy';}
+}());
+</script>
+<style>
+:root,html[data-theme="navy"]{color-scheme:dark;--bg:#0b0f1a;--card:#151b2b;--card2:#1a2133;--line:#26304a;--txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;--accent:#5b8cff;--on-accent:#0b0f1a;--win:#2eaf62;--loss:#e5595f;--win-ink:#65d38f;--radius:16px;--r-md:12px;--t-sub:14px;--t-foot:12px;--t-cap:11px;--t-h3:18px;--t-callout:15px}
+html[data-theme="day"]{color-scheme:light;--bg:#f5f7fb;--card:#ffffff;--card2:#eef2f9;--line:#dbe2ee;--txt:#0f1726;--muted:#5a6577;--faint:#626d7f;--accent:#245ad6;--on-accent:#ffffff;--win:#2eaf62;--win-ink:#166536}
+html[data-theme="ochre"]{color-scheme:dark;--bg:#17110c;--card:#241a10;--card2:#2c2015;--line:#4a3927;--txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;--accent:#e0a04a;--on-accent:#17110c;--win:#2eaf62;--win-ink:#65d38f}
+html[data-theme="apex"]{color-scheme:dark;--bg:#07090F;--bg2:#0C1018;--card:#11141C;--card2:#11141C;--line:#1E2430;--txt:#F5F7FA;--muted:#8B93A7;--faint:#6E768C;--accent:#5B8CFF;--accent2:#3B6FE8;--on-accent:#07090F;--win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;--win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;--warn:#FBBF24;--warn-ink:#FBBF24;--api:#5B8CFF;--api-ink:#B7C9FF;--t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;--apex-glow-a:rgba(91,140,255,.18);--apex-glow-b:rgba(52,211,153,.10)}
+html[data-theme="apex"][data-apex-light="1"]{color-scheme:light;--bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;--txt:#0E1116;--muted:#5C6578;--faint:#6A7386;--accent:#3B6FE8;--accent2:#2F5AD0;--on-accent:#FFFFFF;--win:#34D399;--loss:#F87171;--push:#8B93A7;--void:#8B93A7;--radius:16px;--win-ink:#047857;--loss-ink:#B91C1C;--push-ink:#3F4758;--void-ink:#3F4758;--warn:#FBBF24;--warn-ink:#92400E;--api:#3B6FE8;--api-ink:#2455B5;--apex-glow-a:rgba(59,111,232,.08);--apex-glow-b:rgba(52,211,153,.08)}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+a{color:var(--accent);text-decoration:none}
+button{font:inherit;color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding:16px max(12px, env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));min-width:0}
+.back{display:inline-flex;align-items:center;min-height:44px;color:var(--muted);font-size:14px;margin-bottom:8px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:22px;min-width:0}
+.panel h3{margin:0;font-size:var(--t-sub);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-18px -20px 0;padding:14px 20px;min-height:48px;box-sizing:border-box;border-radius:var(--radius);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.panel-hd-main{min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.panel-hd-sum{color:var(--faint);font-size:var(--t-foot);font-weight:600}
+.panel-caret{color:var(--muted);flex:none;display:inline-block;transition:transform .15s ease}
+.panel.is-open .panel-caret{transform:rotate(90deg)}
+.panel.is-open .panel-hd{margin-bottom:4px}
+.panel:not(.is-open){padding-bottom:0}
+.panel:not(.is-open) .panel-body{display:none}
+.panel-hd:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.compare-lead{margin:0 0 12px;color:var(--muted);font-size:var(--t-sub);line-height:1.4}
+.compare-prop{margin:0 0 12px;font-weight:800;font-size:var(--t-h3);line-height:1.25}
+.compare-block{margin:0 0 14px}
+.compare-block h4{margin:0 0 8px;font-size:var(--t-foot);font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.compare-line{margin:10px 0 6px;font-weight:750;font-size:var(--t-sub)}
+.compare-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;margin:0 0 6px;padding:8px 12px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);color:inherit;font:inherit;text-align:left;cursor:pointer;touch-action:manipulation}
+.compare-row.is-best{border-color:color-mix(in srgb,var(--win) 55%,var(--line));background:color-mix(in srgb,var(--win) 16%,var(--card2))}
+.compare-book{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-price{font-weight:800;font-variant-numeric:tabular-nums;font-size:var(--t-h3);flex:none}
+.compare-best-tag{margin-left:8px;font-size:var(--t-cap);font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--win-ink)}
+.compare-note{margin:0 0 8px;color:var(--faint);font-size:var(--t-foot);line-height:1.4}
+.compare-empty-title{margin:0 0 4px;font-weight:800;font-size:var(--t-callout);color:var(--txt)}
+.empty{color:var(--faint);font-size:var(--t-sub);padding:8px 0;margin:0}
+.ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:var(--r-md);padding:8px 14px;min-height:44px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13.5px;box-shadow:0 10px 30px -10px rgb(0 0 0 / 60%);max-width:calc(100vw - 24px)}
+@media (prefers-reduced-motion:reduce){.panel-caret{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="../">← Tipdash</a>
+  <div class="panel" id="compare-panel">
+    <div class="panel-hd" id="compare-hd" role="button" tabindex="0" aria-expanded="false" aria-controls="compare-body">
+      <div class="panel-hd-main"><h3>Compare</h3><span class="panel-hd-sum" id="compare-sum"></span></div>
+      <span class="panel-caret" aria-hidden="true">▸</span>
+    </div>
+    <div class="panel-body" id="compare-body"></div>
+  </div>
+</main>
+<script>
+(function(){
+  "use strict";
+  var API=(function(){
+    var d="https://afl-tipster-bot.onrender.com";
+    try{var q=new URLSearchParams(location.search).get("api");if(q&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname))return q.replace(/\/$/,"");}catch(e){}
+    return d;
+  })();
+  var PICK_KEY="tipdash_compare_pick";
+  var qs=new URLSearchParams(location.search);
+  var sample=qs.get("sample");
+  var S={player:qs.get("player")||"",stat:qs.get("stat")||"Disposals",game:qs.get("game")||"",line:qs.get("line")||"",side:qs.get("side")||"Over",guild:qs.get("guild")||qs.get("guild_id")||"",eventId:qs.get("event_id")||""};
+  var panel=document.getElementById("compare-panel");
+  var body=document.getElementById("compare-body");
+  var sum=document.getElementById("compare-sum");
+  var hd=document.getElementById("compare-hd");
+  var open=false;
+  function setOpen(on){
+    open=!!on;
+    panel.classList.toggle("is-open", open);
+    hd.setAttribute("aria-expanded", open?"true":"false");
+  }
+  function toast(m){
+    var t=document.createElement("div");
+    t.className="toast"; t.setAttribute("role","status"); t.textContent=m;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 3200);
+  }
+  function pick(){
+    return {player:S.player, stat:S.stat, line:S.line, side:S.side==="Under"?"Under":"Over", game:S.game};
+  }
+  function whenOf(data){
+    try{ if(data&&data.scraped_at) return TBTime.fmtWhen(data.scraped_at)||""; }catch(e){}
+    return "";
+  }
+  function paint(view){
+    body.innerHTML=TBCompare.html(view);
+    sum.textContent=TBCompare.summary(view)||"";
+    if(view&&view.player) document.title=view.player+" · Compare · Tipdash";
+    body.querySelectorAll(".compare-row").forEach(function(btn){
+      btn.addEventListener("click", function(){ usePick(btn); });
+    });
+    var retry=document.getElementById("compare-retry");
+    if(retry) retry.addEventListener("click", function(){ load(true); });
+  }
+  function usePick(btn){
+    var p=pick();
+    var sent={player:p.player, stat:p.stat, line:+btn.dataset.line, side:btn.dataset.side||p.side, book:btn.dataset.book, price:+btn.dataset.price, game:S.game, ts:Date.now()};
+    try{ localStorage.setItem(PICK_KEY, JSON.stringify(sent)); }catch(e){}
+    toast("Sent to the builder: "+sent.side+" "+sent.line+" @ "+Number(sent.price).toFixed(2)+" · "+sent.book);
+    try{ if(window.opener&&!window.opener.closed){ window.opener.focus(); setTimeout(function(){ window.close(); }, 400); } }catch(e){}
+  }
+  function token(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
+  async function load(){
+    var p=pick();
+    if(sample==="1"||sample==="data"){
+      var demo=TBCompare.fromCompare(TBCompare.sampleCompare(), TBCompare.samplePick());
+      paint(demo); setOpen(true); return;
+    }
+    if(sample==="empty"){
+      paint(TBCompare.empty(TBCompare.samplePick())); setOpen(true); return;
+    }
+    if(!p.player){ paint(TBCompare.prompt()); return; }
+    if(!token()){
+      paint(TBCompare.error(p));
+      body.querySelector(".empty").textContent="Sign in on Tipdash first. Compare uses your session.";
+      var retry=document.getElementById("compare-retry"); if(retry) retry.remove();
+      setOpen(true); return;
+    }
+    paint(TBCompare.loading(p));
+    setOpen(true);
+    var q=new URLSearchParams();
+    if(S.game) q.set("game", S.game);
+    if(S.eventId) q.set("event_id", S.eventId);
+    q.set("player", p.player);
+    if(p.stat) q.set("stat", p.stat);
+    if(p.line!==""&&p.line!=null) q.set("line", String(p.line));
+    if(S.guild) q.set("guild_id", S.guild);
+    try{
+      var r=await fetch(API+"/api/compare?"+q.toString(),{headers:{Authorization:"Bearer "+token()},cache:"no-store"});
+      var data=null;
+      try{ data=await r.json(); }catch(e){ data=null; }
+      var picked=Object.assign({}, p, {when:whenOf(data)});
+      if(r.status===401){ paint(TBCompare.error(picked)); body.querySelector(".empty").textContent="Your session expired. Open Tipdash to sign in again."; var b=document.getElementById("compare-retry"); if(b) b.remove(); return; }
+      if(!r.ok){ paint(TBCompare.error(picked)); return; }
+      paint(TBCompare.fromCompare(data, picked)||TBCompare.empty(picked));
+    }catch(e){ paint(TBCompare.error(p)); }
+  }
+  hd.addEventListener("click", function(){ setOpen(!open); });
+  hd.addEventListener("keydown", function(e){
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setOpen(!open); }
+  });
+  load();
+})();
+</script>
+</body>
+</html>

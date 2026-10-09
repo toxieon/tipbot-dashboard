@@ -1,0 +1,37 @@
+{
+  "_readme": "Edit this file to control which players appear in the multi builder. Keys are the exact AFL team names Squiggle uses. Each player is {\"name\":\"First Last\",\"number\":12}. Number is optional. Injured/omitted players still show until you remove them (known limitation for now).",
+  "Adelaide": [],
+  "Brisbane Lions": [],
+  "Carlton": [],
+  "Collingwood": [],
+  "Essendon": [],
+  "Fremantle": [
+    {"name":"Caleb Serong","number":3},
+    {"name":"Andrew Brayshaw","number":8},
+    {"name":"Shai Bolton","number":10},
+    {"name":"Hayden Young","number":7},
+    {"name":"Luke Jackson","number":23},
+    {"name":"Josh Treacy","number":30},
+    {"name":"Jordan Clark","number":5},
+    {"name":"Sean Darcy","number":11}
+  ],
+  "Geelong": [],
+  "Gold Coast": [],
+  "Greater Western Sydney": [],
+  "Hawthorn": [
+    {"name":"Jai Newcombe","number":3},
+    {"name":"James Sicily","number":6},
+    {"name":"Will Day","number":26},
+    {"name":"Dylan Moore","number":19},
+    {"name":"Jack Ginnivan","number":11},
+    {"name":"Massimo D'Ambrosio","number":18}
+  ],
+  "Melbourne": [],
+  "North Melbourne": [],
+  "Port Adelaide": [],
+  "Richmond": [],
+  "St Kilda": [],
+  "Sydney": [],
+  "West Coast": [],
+  "Western Bulldogs": []
+}

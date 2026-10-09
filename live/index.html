@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Live · Tipdash</title>
+<meta name="description" content="Player cards for games in progress, with the score, the clock, and each live tip.">
+<link rel="icon" href="../assets/favicon.ico" sizes="any">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="../manifest.webmanifest">
+<script src="../assets/tbtime.js?v=0.54.1"></script>
+<script>
+(function(){
+  try {
+    var day=TBTime.dayKey(Date.now());
+    var name=localStorage.getItem('tipbot_theme'),auto=localStorage.getItem('tipbot_theme_auto')==='true';
+    var valid=['navy','day','ochre','apex','apex-light','apex-oled','apex-mono'].indexOf(name)!==-1;
+    var root=document.documentElement;
+    var APEX_DEFAULT=true;
+    var manual=localStorage.getItem('tipbot_theme_manual_date')===day;
+    var theme=valid&&(!auto||manual)?name:auto?((APEX_DEFAULT&&!valid)?'apex':(TBTime.isDaytime(Date.now())?'day':'navy')):(valid?name:(APEX_DEFAULT?'apex':'navy'));
+    var apexV=theme.indexOf('apex-')===0?theme.slice(5):'';root.dataset.theme=apexV?'apex':theme;if(apexV)root.dataset.apexVariant=apexV;if(apexV==='light')root.dataset.apexLight='1';
+    if(theme==='apex'&&auto&&TBTime.isDaytime(Date.now())) root.dataset.apexLight='1';
+    var accent=localStorage.getItem('tipbot_theme_accent');
+    if(/^#[0-9a-f]{6}$/i.test(accent||'')) root.style.setProperty('--accent',accent);
+    if(theme==='apex'){
+      var meta=document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute('content', root.dataset.apexLight==='1'?'#F4F6F8':'#07090F');
+      var tb=document.querySelector('script[src*="tbtime.js"]');
+      var src=(tb&&tb.getAttribute('src'))||'../assets/tbtime.js';
+      var s=document.createElement('script');
+      s.src=src.replace(/tbtime\.js/,'theme-apex.js');
+      s.async=true; s.setAttribute('data-apex','1');
+      document.head.appendChild(s);
+    }
+  }catch(e){document.documentElement.dataset.theme='navy';}
+})();
+</script>
+<style>
+:root,html[data-theme="navy"]{color-scheme:dark;--bg:#0b0f1a;--bg2:#0f1420;--card:#151b2b;--card2:#1a2133;--line:#26304a;--txt:#eef2fa;--muted:#8a95ad;--faint:#8591ab;--accent:#5b8cff;--on-accent:#0b0f1a;--win:#2eaf62;--loss:#e5595f;--warn:#e0a04a;--win-ink:#65d38f;--loss-ink:#ff9a9e;--warn-ink:#f0bf79;--radius:16px}
+html[data-theme="day"]{color-scheme:light;--bg:#f5f7fb;--bg2:#eef2f8;--card:#ffffff;--card2:#eef2f9;--line:#dbe2ee;--txt:#0f1726;--muted:#5a6577;--faint:#626d7f;--accent:#245ad6;--on-accent:#ffffff;--win:#2eaf62;--loss:#e5595f;--warn:#c9861f;--win-ink:#166536;--loss-ink:#a8252d;--warn-ink:#775018}
+html[data-theme="ochre"]{color-scheme:dark;--bg:#17110c;--bg2:#1e160e;--card:#241a10;--card2:#2c2015;--line:#4a3927;--txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;--accent:#e0a04a;--on-accent:#17110c;--win:#2eaf62;--loss:#e5595f;--warn:#e0a04a;--win-ink:#65d38f;--loss-ink:#ff9a9e;--warn-ink:#f0bf79}
+html[data-theme="apex"]{color-scheme:dark;--bg:#07090F;--bg2:#0C1018;--card:#11141C;--card2:#11141C;--line:#1E2430;--txt:#F5F7FA;--muted:#8B93A7;--faint:#6E768C;--accent:#5B8CFF;--accent2:#3B6FE8;--on-accent:#07090F;--win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;--win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;--warn:#FBBF24;--warn-ink:#FBBF24;--api:#5B8CFF;--api-ink:#B7C9FF;--t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;--apex-glow-a:rgba(91,140,255,.18);--apex-glow-b:rgba(52,211,153,.10)}
+html[data-theme="apex"][data-apex-light="1"]{color-scheme:light;--bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;--txt:#0E1116;--muted:#5C6578;--faint:#6A7386;--accent:#3B6FE8;--accent2:#2F5AD0;--on-accent:#FFFFFF;--win:#34D399;--loss:#F87171;--push:#8B93A7;--void:#8B93A7;--radius:16px;--win-ink:#047857;--loss-ink:#B91C1C;--push-ink:#3F4758;--void-ink:#3F4758;--warn:#FBBF24;--warn-ink:#92400E;--api:#3B6FE8;--api-ink:#2455B5;--apex-glow-a:rgba(59,111,232,.08);--apex-glow-b:rgba(52,211,153,.08)}
+:root{
+  --t-cap:.6875rem;--t-foot:.75rem;--t-sub:.8125rem;--t-callout:.875rem;--t-body:.9375rem;
+  --t-h3:1.0625rem;--t-h2:1.25rem;--t-h1:clamp(1.375rem,1.1rem + 1.6vw,1.75rem);
+  --r-sm:8px;--r-md:12px;--r-lg:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--txt);font:var(--t-body)/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+@supports (overflow:clip){html,body{overflow-x:clip}}
+img,svg{max-width:100%}
+a{color:var(--accent);text-decoration:none}
+button,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(6px + env(safe-area-inset-top)) 12px 8px}
+.top-in,.sub,.wrap{max-width:760px;margin:0 auto;min-width:0}
+.top-in{display:flex;align-items:center;gap:8px}
+.brand{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:800;color:var(--txt);letter-spacing:-.02em}
+.brand img{width:18px;height:18px;display:block}
+.nav{display:flex;gap:2px;min-width:0}
+.nav a{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:var(--r-md);color:var(--muted);font-weight:650;font-size:var(--t-callout)}
+.nav a[aria-current="page"]{color:var(--txt);background:var(--card)}
+.spacer{flex:1;min-width:0}
+.ago{color:var(--faint);font-size:var(--t-foot);white-space:nowrap;margin-left:auto}
+.iconbtn{width:44px;height:44px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;background:none;border:1px solid var(--line);border-radius:var(--r-md);color:var(--muted);cursor:pointer;touch-action:manipulation}
+.iconbtn.spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sub{display:flex;align-items:center;gap:8px;margin-top:4px;min-width:0;flex-wrap:wrap}
+.srv{flex:1;min-width:0;font-weight:700;font-size:var(--t-callout);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+select{flex:1;width:100%;max-width:100%;min-width:0;min-height:44px;font-size:1rem;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-md);padding:0 10px}
+.sample{flex:none;font-size:var(--t-cap);font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--warn-ink);border:1px solid color-mix(in srgb,var(--warn) 55%,var(--line));border-radius:999px;padding:6px 10px;min-height:32px;display:inline-flex;align-items:center}
+.wrap{padding:12px 12px calc(28px + env(safe-area-inset-bottom))}
+.banner{margin:0 0 10px;padding:10px 12px;border-radius:var(--r-md);background:var(--card2);border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));color:var(--warn-ink);font-size:var(--t-sub)}
+.signin{margin:0 0 12px;padding:14px;border-radius:var(--radius);background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.signin p{margin:0;flex:1;min-width:0;color:var(--muted);font-size:var(--t-sub)}
+.signin b{color:var(--txt)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:var(--r-md);background:var(--accent);color:var(--on-accent);font-weight:750;touch-action:manipulation}
+.game{margin-top:14px;min-width:0;max-width:100%}
+.ghead{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px;min-width:0}
+.teams{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:2px;column-gap:10px;align-items:center}
+.tm{display:contents}
+.nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750;font-size:var(--t-callout)}
+.sc{font-weight:800;font-size:var(--t-h3);text-align:right}
+.clock{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:46%}
+.sport{font-size:var(--t-cap);font-weight:800;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+.pchip{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;font-weight:800;font-size:var(--t-sub);text-align:right;min-width:0;overflow-wrap:anywhere}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--loss);box-shadow:0 0 0 0 color-mix(in srgb,var(--loss) 55%,transparent);animation:pulse 1.8s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 6px transparent}}
+.legs{display:grid;gap:10px;margin-top:10px;grid-template-columns:minmax(0,1fr)}
+.pcard{min-width:0;max-width:100%;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px}
+.st-track,.st-hit{border-color:color-mix(in srgb,var(--win) 55%,var(--line))}
+.st-risk{border-color:color-mix(in srgb,var(--warn) 60%,var(--line))}
+.st-miss{border-color:color-mix(in srgb,var(--loss) 45%,var(--line));opacity:.72}
+.prow{display:flex;align-items:center;gap:10px;min-width:0}
+.av{width:44px;height:44px;flex:none;border-radius:50%;background:var(--card2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:var(--t-sub);color:var(--muted)}
+.who{flex:1;min-width:0}
+.pname{font-weight:750;font-size:var(--t-h3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mkt{color:var(--muted);font-size:var(--t-sub);overflow-wrap:anywhere}
+.chip{flex:none;font-size:var(--t-cap);font-weight:800;border-radius:999px;padding:4px 8px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.st-track .chip,.st-hit .chip{color:var(--win-ink);border-color:var(--win);background:color-mix(in srgb,var(--win) 14%,transparent)}
+.st-risk .chip{color:var(--warn-ink);border-color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+.st-miss .chip{color:var(--loss-ink);border-color:color-mix(in srgb,var(--loss) 60%,var(--line))}
+.nums{display:flex;align-items:baseline;gap:6px;margin-top:10px}
+.nums b{font-size:var(--t-h1);font-weight:800;letter-spacing:-.03em;line-height:1}
+.nums span{color:var(--muted);font-weight:700;font-size:var(--t-callout)}
+.bar{position:relative;height:8px;border-radius:99px;background:color-mix(in srgb,var(--muted) 22%,transparent);margin-top:8px;overflow:hidden}
+.bar > i{display:block;height:100%;border-radius:99px;background:var(--accent);max-width:100%}
+.st-track .bar > i,.st-hit .bar > i{background:var(--win)}
+.st-risk .bar > i{background:var(--warn)}
+.st-miss .bar > i{background:var(--loss)}
+.bar > .mark{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--txt);opacity:.7}
+.note,.stake{margin:8px 0 0;font-size:var(--t-foot);color:var(--faint)}
+.stake{color:var(--muted);font-weight:650}
+.empty{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:28px 16px;text-align:center;color:var(--muted)}
+.empty h2{margin:0 0 6px;font-size:var(--t-h3);color:var(--txt)}
+.empty p{margin:0;font-size:var(--t-sub)}
+.sk{height:92px;border-radius:var(--r-lg);background:var(--card);border:1px solid var(--line);margin-top:10px}
+.foot{text-align:center;color:var(--faint);font-size:var(--t-foot);margin-top:18px}
+@media (min-width:760px){
+  .legs{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:420px){
+  .brand span{display:none}
+  .nav a{padding:0 8px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="../"><img src="../assets/favicon.svg" alt="" width="18" height="18"><span>Tipdash</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="../">Dashboard</a>
+      <a href="./" aria-current="page">Live</a>
+      <a href="./board/" title="All live games and the heatmap">Board</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="refresh" type="button" aria-label="Refresh now">↻</button>
+  </div>
+  <div class="sub">
+    <div class="srv" id="srv-name"></div>
+    <select id="guild" aria-label="Server" hidden></select>
+    <span class="sample" id="sample" hidden>Sample</span>
+    <span class="ago" id="ago"></span>
+  </div>
+</header>
+<main class="wrap">
+  <div id="banner"></div>
+  <div id="signin" hidden></div>
+  <div id="content"><div class="sk"></div><div class="sk"></div></div>
+  <p class="foot" id="foot"></p>
+</main>
+<script src="../assets/server-view.js?v=0.54.1"></script>
+<script src="../assets/req-pool.js?v=0.54.1"></script>
+<script src="../assets/sport-marks.js?v=0.54.1"></script>
+<script src="../assets/live-cards.js?v=0.54.1"></script>
+<script>
+(function(){
+  "use strict";
+  var LC = window.LiveCards;
+  var API = (function(){
+    var d = "https://afl-tipster-bot.onrender.com";
+    try {
+      var q = new URLSearchParams(location.search).get("api");
+      if (q && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return q.replace(/\/$/, "");
+    } catch (e) {}
+    return d;
+  })();
+  var GUILD_KEY = "tipdash_live_guild";
+  var $=function(id){return document.getElementById(id);};
+  var S = {guild:"", servers:[], model:null, at:0, busy:false, sample:false, name:"", banner:"", expired:false};
+
+  function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+  function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+  function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
+  function token(){return lsGet("tipbot_token");}
+  (function takeToken(){
+    try {
+      var h = new URLSearchParams(location.hash.slice(1));
+      if (h.get("token")) { lsSet("tipbot_token", h.get("token")); history.replaceState(null, "", location.pathname + location.search); }
+    } catch (e) {}
+  })();
+  (function epoch(){
+    try {
+      if (lsGet("tipbot_auth_epoch") !== "2") { lsDel("tipbot_token"); lsSet("tipbot_auth_epoch", "2"); }
+    } catch (e) {}
+  })();
+
+  function loginUrl(){
+    var rt = /^\/live(\/|$)/.test(location.pathname) ? "?return_to=" + encodeURIComponent("/live/") : "";
+    return API + "/auth/login" + rt;
+  }
+  function sleep(ms){return new Promise(function(r){setTimeout(r, ms);});}
+
+  async function api(path){
+    var tries = 2, last = null;
+    for (var i = 1; i <= tries; i++) {
+      var ac = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var timer = ac ? setTimeout(function(){ try { ac.abort(); } catch (e) {} }, 45000) : null;
+      try {
+        var headers = token() ? {Authorization: "Bearer " + token()} : {};
+        var r = await fetch(API + path, {headers: headers, cache: "no-store", signal: ac ? ac.signal : undefined});
+        if (timer) clearTimeout(timer);
+        if ((r.status === 502 || r.status === 503) && i < tries) { last = r; await sleep(1200 * i); continue; }
+        return r;
+      } catch (e) {
+        if (timer) clearTimeout(timer);
+        last = e;
+        if (i < tries) { await sleep(1200 * i); continue; }
+        throw e;
+      }
+    }
+    if (last && last.status) return last;
+    throw last;
+  }
+
+  async function getJson(path){
+    var r = await api(path);
+    if (r.status === 401) { var err = new Error("auth"); err.unauth = true; throw err; }
+    if (!r.ok) return null;
+    try { return await r.json(); } catch (e) { return null; }
+  }
+
+  function paintChrome(){
+    $("banner").innerHTML = S.banner ? '<div class="banner">' + S.banner + "</div>" : "";
+    var box = $("signin");
+    if (S.sample || (token() && !S.expired)) { box.hidden = true; box.innerHTML = ""; }
+    else {
+      box.hidden = false;
+      var msg = S.expired ? "<b>Your session expired.</b> Sign in again to see live tips." : "<b>Sign in</b> to see live tips for your server.";
+      box.innerHTML = '<div class="signin"><p>' + msg + '</p><a class="btn" href="' + loginUrl() + '">Sign in with Discord</a></div>';
+    }
+    $("sample").hidden = !S.sample;
+    var sel = $("guild"), name = $("srv-name");
+    if (S.servers.length > 1) {
+      name.hidden = true;
+      sel.hidden = false;
+      sel.innerHTML = S.servers.map(function(s){
+        return '<option value="' + s.id + '"' + (s.id === S.guild ? " selected" : "") + ">" + s.name.replace(/[&<>"]/g, "") + "</option>";
+      }).join("");
+      if (S.guild && !S.servers.some(function(s){return s.id === S.guild;})) {
+        sel.insertAdjacentHTML("afterbegin", '<option value="' + S.guild + '" selected>This server</option>');
+      }
+      sel.value = S.guild || "";
+    } else {
+      sel.hidden = true;
+      name.hidden = false;
+      var hit = S.servers[0];
+      name.textContent = S.name || (hit && hit.name) || (S.sample ? "Saturday server" : "");
+    }
+    var ago = $("ago");
+    if (!S.at) ago.textContent = S.busy ? "Loading…" : "";
+    else {
+      var s = Math.max(0, Math.round((Date.now() - S.at) / 1000));
+      ago.textContent = (s < 5 ? "Updated just now" : ("Updated " + s + "s ago")) + (S.busy ? " · refreshing" : "");
+    }
+    $("foot").textContent = S.sample ? "Sample players, so you can see the cards." : ("Refreshes every " + Math.round(LC.POLL_MS / 1000) + "s while this tab is open.");
+  }
+
+  function paint(){
+    paintChrome();
+    if (!S.model) return;
+    $("content").innerHTML = LC.render(S.model);
+    if (S.model.serverName) S.name = S.model.serverName;
+    paintChrome();
+  }
+
+  function showSample(){
+    S.sample = true;
+    S.model = LC.buildModel(LC.sampleInput());
+    S.name = S.model.serverName;
+    S.at = Date.now();
+    paint();
+  }
+
+  async function refresh(){
+    if (S.sample || S.busy) return;
+    if (!token()) { S.expired = false; S.model = null; $("content").innerHTML = ""; paintChrome(); return; }
+    S.busy = true;
+    $("refresh").classList.add("spin");
+    paintChrome();
+    try {
+      var queue = window.ReqPool && ReqPool.createApiQueue ? ReqPool.createApiQueue(2) : {run: function(_p, fn){ return fn(); }};
+      var serversBody = await queue.run("/api/servers?lite=1", function(){ return getJson("/api/servers?lite=1"); });
+      var list = [];
+      if (serversBody) {
+        list = [].concat(serversBody.servers || [], (serversBody.servers && serversBody.servers.length) ? [] : (serversBody.follower_servers || []));
+      }
+      var qs = new URLSearchParams(location.search).get("guild");
+      var picked = LC.pickGuild(list, qs, lsGet(GUILD_KEY));
+      S.servers = picked.servers;
+      S.guild = picked.id;
+      if (!S.guild) {
+        S.banner = "";
+        S.model = {games: []};
+        $("content").innerHTML = '<div class="empty"><h2>No server on this account</h2><p>Open a server from the dashboard, then come back to Live.</p></div>';
+        return;
+      }
+      lsSet(GUILD_KEY, S.guild);
+      var paths = LC.endpointPaths(S.guild);
+      var pack = await Promise.all([
+        queue.run(paths.liveTips, function(){ return getJson(paths.liveTips); }),
+        queue.run(paths.server, function(){ return getJson(paths.server); }),
+        queue.run(paths.propCounts, function(){ return getJson(paths.propCounts); }),
+        queue.run(paths.fixtures, function(){ return getJson(paths.fixtures); })
+      ]);
+      var input = {liveTips: pack[0], server: pack[1], propCounts: pack[2], fixtures: pack[3], liveStats: {}};
+      var queries = LC.statQueries(input).slice(0, 6);
+      await Promise.all(queries.map(function(q){
+        var path = LC.liveStatsPath(q.match, q.complete);
+        return queue.run(path, function(){ return getJson(path); }).then(function(body){
+          if (body) input.liveStats[q.match] = body;
+        });
+      }));
+      if (!input.liveTips && !input.server && !input.fixtures) throw new Error("empty");
+      S.model = LC.buildModel(input);
+      S.name = S.model.serverName || S.name;
+      S.at = Date.now();
+      S.banner = "";
+      S.expired = false;
+      paint();
+    } catch (e) {
+      if (e && e.unauth) {
+        lsDel("tipbot_token");
+        S.expired = true;
+        S.model = null;
+        $("content").innerHTML = "";
+        paintChrome();
+        return;
+      }
+      S.banner = S.model ? "Couldn't refresh. Showing the last update." : "Couldn't reach TipBot. It may be waking up — try again in a moment.";
+      if (S.model) paint(); else { paintChrome(); if (!$("content").querySelector(".empty")) $("content").innerHTML = ""; }
+    } finally {
+      S.busy = false;
+      $("refresh").classList.remove("spin");
+      paintChrome();
+    }
+  }
+
+  var timer = null;
+  function stop(){ if (timer) { clearTimeout(timer); timer = null; } }
+  function arm(){
+    stop();
+    if (document.hidden || S.sample) return;
+    timer = setTimeout(function(){ timer = null; refresh().then(arm, arm); }, LC.POLL_MS);
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden) { stop(); return; }
+    if (!S.sample) { refresh(); arm(); }
+  });
+  $("refresh").onclick = function(){ if (S.sample) showSample(); else refresh(); };
+  $("guild").onchange = function(){
+    S.guild = this.value;
+    lsSet(GUILD_KEY, S.guild);
+    try {
+      var u = new URL(location.href);
+      u.searchParams.set("guild", S.guild);
+      history.replaceState(null, "", u.pathname + u.search);
+    } catch (e) {}
+    refresh();
+  };
+
+  if (!LC) {
+    $("content").innerHTML = '<div class="empty"><h2>Live cards did not load</h2><p>Check your connection and refresh.</p></div>';
+  } else if (new URLSearchParams(location.search).get("sample") === "1") {
+    showSample();
+  } else {
+    refresh();
+    arm();
+  }
+  setInterval(function(){ if (S.at) paintChrome(); }, 5000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Brownlow Predictor · Tipdash</title>
+<meta name="description" content="Umpire-style 3-2-1 Brownlow votes for AFL matches.">
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='%23c9a227'/><text x='32' y='40' text-anchor='middle' font-size='28' font-family='system-ui' font-weight='900' fill='%231a1406'>3</text></svg>">
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const API = "https://afl-tipster-bot.onrender.com";
+
+const TopBar = (function(){
+  let el=null, fill=null, pending=0, hardTimer=null;
+  function ensure(){
+    if(el) return;
+    el=document.createElement("div");
+    el.id="tb-loadbar";
+    el.innerHTML="<i></i>";
+    document.body.appendChild(el);
+    fill=el.firstElementChild;
+  }
+  function start(indeterminate){
+    ensure();
+    pending++;
+    el.classList.add("on");
+    if(indeterminate!==false) el.classList.add("indeterminate");
+    else el.classList.remove("indeterminate");
+    if(fill && indeterminate===false) fill.style.width="12%";
+    clearTimeout(hardTimer);
+    hardTimer=setTimeout(()=>{ pending=0; done(true); }, 120000);
+  }
+  function set(pct){
+    ensure();
+    el.classList.add("on");
+    el.classList.remove("indeterminate");
+    if(fill) fill.style.width=Math.max(5, Math.min(98, pct))+"%";
+  }
+  function done(force){
+    if(!force){ pending=Math.max(0, pending-1); if(pending>0) return; }
+    pending=0;
+    ensure();
+    el.classList.remove("indeterminate");
+    if(fill) fill.style.width="100%";
+    setTimeout(()=>{
+      if(pending) return;
+      el.classList.remove("on");
+      if(fill) fill.style.width="0%";
+    }, 280);
+    clearTimeout(hardTimer);
+  }
+  return { start, set, done };
+})();
+
+const SEASON_SNAP_URL = "./2026.json";
+
+const state = {
+  user: null,
+  apiNote: "",
+  tab: "vote",
+  year: null,
+  rounds: [],
+  round: null,
+  teamsByName: {},
+  teamsById: {},
+  matches: [],
+  matchesLoading: false,
+  matchId: null,
+  matchMeta: null,
+  squads: null,
+  squadsLoading: false,
+  votes: { 3: null, 2: null, 1: null },
+  myVotes: [],
+  playerNames: {},
+  leaderboard: [],
+  leaderboardStub: false,
+  toast: null,
+  booting: true,
+  submitting: false,
+};
+
+function getToken(){ try{ return localStorage.getItem("tipbot_token"); }catch(e){ return null; } }
+function setToken(t){ try{ localStorage.setItem("tipbot_token", t); }catch(e){} }
+function clearToken(){ try{ localStorage.removeItem("tipbot_token"); }catch(e){} }
+
+(function absorbHash(){
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const t = hash.get("token");
+  if(t){ setToken(t); history.replaceState(null, "", location.pathname + location.search); }
+})();
+
+async function api(path, opts){
+  opts = opts || {};
+  const timeoutMs = opts.timeoutMs != null ? opts.timeoutMs : 4000;
+  delete opts.timeoutMs;
+  opts.headers = Object.assign({ Authorization: "Bearer " + getToken() }, opts.headers || {});
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  opts.signal = opts.signal || ctrl.signal;
+  try{
+    const r = await fetch(API + path, opts);
+    if(r.status === 401){ clearToken(); throw { unauth: true }; }
+    return r;
+  }catch(e){
+    if(e && e.name === "AbortError") throw { timeout: true, message: "TipBot timed out" };
+    throw e;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+
+function teamInfo(name){
+  if(!name) return { name: "—", abbrev: "", logo: null };
+  const key = String(name).toLowerCase();
+  const t = state.teamsByName[key];
+  if(t) return t;
+  // fuzzy: "Brisbane" vs "Brisbane Lions"
+  for(const [k,v] of Object.entries(state.teamsByName||{})){
+    if(k.includes(key) || key.includes(k)) return v;
+  }
+  return { name: String(name), abbrev: "", logo: null };
+}
+function squiggleLogo(path){
+  if(!path) return null;
+  if(/^https?:/i.test(path)) return path;
+  return "https://squiggle.com.au" + (path.startsWith("/") ? path : "/"+path);
+}
+
+function teamSideHtml(name, side){
+  const info = teamInfo(name);
+  const logo = info.logo ? `<img class="tlogo" src="${escAttr(info.logo)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="tlogo" aria-hidden="true"></span>`;
+  return `<div class="side ${side}">${logo}<div class="tname">${esc(info.name)}${info.abbrev?`<span class="tabbrev">${esc(info.abbrev)}</span>`:""}</div></div>`;
+}
+
+function isPlatformOwner(){
+  const u = state.user;
+  if(!u) return false;
+  if(u.is_platform_owner === true) return true;
+  return String(u.role||"").toLowerCase() === "owner";
+}
+const $ = (s, el=document) => el.querySelector(s);
+const app = () => $("#app");
+function esc(s) {
+  return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+function escAttr(s){ return esc(s); }
+function toast(msg) {
+  state.toast = msg; render();
+  setTimeout(() => { state.toast = null; render(); }, 2200);
+}
+function rememberPlayers(squads){
+  if(!squads) return;
+  for(const side of ["home","away"]){
+    const t = squads[side];
+    if(!t || !Array.isArray(t.players)) continue;
+    for(const p of t.players){
+      if(p && p.id) state.playerNames[String(p.id)] = p.name || String(p.id);
+    }
+  }
+}
+function playerLabel(id){
+  if(id==null) return "—";
+  const s = String(id);
+  return state.playerNames[s] || s;
+}
+function findMatch(id){
+  return (state.matches||[]).find(m => String(m.id)===String(id)) || state.matchMeta || null;
+}
+
+async function loadRounds(){
+  // Prefer local 2026 snapshot — instant. Live TipBot is optional overlay later.
+  if(state.rounds && state.rounds.length) return;
+  await applySeasonSnapshot(true);
+}
+
+async function loadMatches(roundId){
+  const rid = String(roundId||"");
+  if(!rid){ state.matches = []; return; }
+  // Snapshot path: next to instant
+  if(state.matchesByRound && state.matchesByRound[rid]){
+    state.matches = state.matchesByRound[rid].slice();
+    state.matchesLoading = false;
+    return;
+  }
+  state.matchesLoading = true; render();
+  try{
+    const r = await api("/api/brownlow/rounds/"+encodeURIComponent(rid)+"/matches", { timeoutMs: 4000 });
+    if(!r.ok) throw new Error("matches "+r.status);
+    const data = await r.json();
+    state.matches = Array.isArray(data.matches) ? data.matches : [];
+  }catch(e){
+    if(e && e.unauth) throw e;
+    // fall back empty rather than hang
+    state.matches = (state.matchesByRound && state.matchesByRound[rid]) ? state.matchesByRound[rid].slice() : [];
+  } finally {
+    state.matchesLoading = false;
+  }
+}
+
+async function loadSquads(matchId){
+  state.squadsLoading = true; state.squads = null; render();
+  TopBar.start();
+  try{
+    const r = await api("/api/brownlow/matches/"+encodeURIComponent(matchId)+"/squads", { timeoutMs: 8000 });
+    if(!r.ok) throw new Error("squads "+r.status);
+    const data = await r.json();
+    state.squads = data;
+    rememberPlayers(data);
+  } finally {
+    state.squadsLoading = false;
+    TopBar.done(true);
+  }
+}
+
+async function loadMeVotes(){
+  try{
+    const r = await api("/api/brownlow/me/votes", { timeoutMs: 4000 });
+    if(!r.ok) throw new Error("me/votes "+r.status);
+    const data = await r.json();
+    state.myVotes = Array.isArray(data.votes) ? data.votes : [];
+    const voted = new Set(state.myVotes.map(v => String(v.match_id)));
+    for(const m of (state.matches||[])){
+      if(voted.has(String(m.id))) m.voted = true;
+    }
+  }catch(e){
+    if(e && e.unauth) throw e;
+    // keep browsing offline-ish
+  }
+}
+
+async function loadLeaderboard(){
+  const q = state.year ? ("?year="+encodeURIComponent(state.year)) : "";
+  const r = await api("/api/brownlow/leaderboard"+q, { timeoutMs: 4000 });
+  if(!r.ok) throw new Error("leaderboard "+r.status);
+  const data = await r.json();
+  state.leaderboard = Array.isArray(data.leaders) ? data.leaders : [];
+  state.leaderboardStub = !!data.stub;
+}
+
+function ingestTeams(teams){
+  state.teamsByName = state.teamsByName || {};
+  state.teamsById = state.teamsById || {};
+  for(const raw of teams||[]){
+    const name = raw.name || raw.team || "";
+    if(!name) continue;
+    const info = {
+      name: String(name),
+      abbrev: String(raw.abbrev || raw.ab || ""),
+      logo: squiggleLogo(raw.logo || raw.logo_url || ""),
+      id: raw.id,
+    };
+    state.teamsByName[name.toLowerCase()] = info;
+    if(raw.id != null) state.teamsById[String(raw.id)] = info;
+  }
+}
+
+async function applySeasonSnapshot(forceRound){
+  try{
+    const r = await fetch(SEASON_SNAP_URL, { cache: "force-cache" });
+    if(!r.ok) return false;
+    const SEASON = await r.json();
+    state.year = SEASON.year || 2026;
+    ingestTeams(SEASON.teams||[]);
+    state.rounds = (SEASON.rounds||[]).map(r => ({
+      id: String(r.id),
+      label: r.label || ("R"+r.id),
+      round_name: r.round_name,
+      done: !!r.done,
+    }));
+    state.matchesByRound = {};
+    for(const g of (SEASON.games||[])){
+      if(!g.played) continue;
+      const id = String(g.round);
+      (state.matchesByRound[id] = state.matchesByRound[id] || []).push({
+        id: String(g.id),
+        home: g.home,
+        away: g.away,
+        score: g.score || "—",
+        venue: g.venue || "",
+        when: g.when || "",
+        voted: false,
+      });
+    }
+    if(forceRound || !state.round){
+      const withGames = [...state.rounds].reverse().find(r => (state.matchesByRound[r.id]||[]).length);
+      state.round = (withGames || state.rounds[state.rounds.length-1] || {}).id || null;
+    }
+    if(state.round){
+      state.matches = (state.matchesByRound[state.round] || []).slice();
+    }
+    state.apiNote = "2026 season file · instant fixtures";
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+async function boot(){
+  state.booting = true; render();
+  TopBar.start();
+  TopBar.set(15);
+  // 1) Snapshot FIRST — fixtures/rounds without waiting on Render
+  await applySeasonSnapshot(true);
+  TopBar.set(55);
+  if(!getToken()){
+    state.booting = false; TopBar.done(true); state.user = null; render(); return;
+  }
+  // 2) Auth only (short timeout) — same idea as tipdash
+  try{
+    const r = await api("/api/me", { timeoutMs: 5000 });
+    if(!r.ok){ clearToken(); state.user = null; state.booting = false; TopBar.done(true); render(); return; }
+    state.user = await r.json();
+    // 3) Soft-refresh votes in background — don't block first paint
+    state.booting = false; TopBar.set(92); TopBar.done(true); render();
+    loadMeVotes().then(() => render()).catch(e => {
+      if(e && e.unauth){ clearToken(); state.user = null; render(); }
+    });
+  }catch(e){
+    if(e && e.unauth){ clearToken(); state.user = null; }
+    else if(e && e.timeout){
+      // Keep snapshot UI usable if they already have a token from tipdash
+      state.apiNote = "2026 season file · TipBot slow/cold — fixtures still instant";
+      // Don't wipe user if we have a token; tipdash session may still be valid next try
+      if(!state.user) state.user = { role: "member", name: "Tipdash user" };
+    }else{
+      state.apiNote = "2026 season file · TipBot unreachable — browsing fixtures only";
+      if(!state.user) state.user = { role: "member", name: "Tipdash user" };
+    }
+    state.booting = false; TopBar.done(true); render();
+  }
+}
+
+function render() {
+  if (state.booting) {
+    app().innerHTML = `<div class="gate"><div><div class="medal">3</div><h1>Brownlow</h1><p>Loading…</p><div class="tb-loadpanel-bar" aria-hidden="true"><i></i></div><p class="hint" style="margin-top:14px">Still working — won’t leave you guessing.</p></div></div>`;
+    return;
+  }
+  if (!state.user) return renderGate(state.apiNote && state.apiNote.indexOf("Couldn't")===0 ? state.apiNote : null);
+  if (state.matchId) return renderMatch();
+  if (state.tab === "board") { if (!isPlatformOwner()) { state.tab = "vote"; return renderHome(); } return renderBoard(); }
+  if (state.tab === "mine") return renderMine();
+  return renderHome();
+}
+
+function shell(body, { showNav = true } = {}) {
+  app().innerHTML = `
+    <header class="top">
+      <div class="brand"><div class="medal">3</div><div>Brownlow<small>Tipdash predictor</small></div></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${showNav ? `<nav class="nav">
+          <button type="button" data-tab="vote" class="${state.tab==="vote"?"on":""}">Vote</button>
+          <button type="button" data-tab="mine" class="${state.tab==="mine"?"on":""}">My votes</button>
+          ${isPlatformOwner() ? `<button type="button" data-tab="board" class="${state.tab==="board"?"on":""}">Board</button>` : ""}
+        </nav>` : ""}
+        ${state.user ? `<button type="button" class="out" id="out" title="Log out">Log out</button>` : ""}
+      </div>
+    </header>
+    ${body}
+    ${state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""}
+  `;
+  const outBtn = $("#out");
+  if(outBtn) outBtn.onclick = () => { clearToken(); state.user = null; state.tab = "vote"; render(); };
+  app().querySelectorAll("[data-tab]").forEach(b => b.onclick = async () => {
+    state.tab = b.dataset.tab; state.matchId = null;
+    if(state.tab==="mine"){
+      try{ await loadMeVotes(); }catch(e){ if(e&&e.unauth) return renderGate("Session expired."); }
+    }
+    if(state.tab==="board"){
+      try{ await loadLeaderboard(); }catch(e){ if(e&&e.unauth) return renderGate("Session expired."); }
+    }
+    render();
+  });
+}
+
+function renderGate(msg) {
+  app().innerHTML = `
+    <div class="gate"><div>
+      <div class="medal">3</div>
+      <h1>Brownlow Predictor</h1>
+      <p>Cast umpire-style <strong>3–2–1</strong> votes on players from games that have finished. Same Discord login as Tipdash.</p>
+      ${msg ? `<p class="hint" style="color:var(--loss)">${esc(msg)}</p>` : ""}
+      <a class="btn" href="${API}/auth/login?return_to=${encodeURIComponent("/brownlow")}">Log in with Discord</a>
+      <p class="hint" style="margin-top:16px">Already on Tipdash? Session is shared via <code>tipbot_token</code> — refresh after logging in there.</p>
+      <p style="margin-top:12px"><a class="btn ghost" href="/">← Tipdash</a></p>
+    </div></div>`;
+}
+
+function renderHome() {
+  const list = state.matches || [];
+  const body = `
+    <p class="hint">Scroll or use the arrows for more rounds · vote 3–2–1 on finished games</p>
+    <div class="rounds-wrap">
+      <button type="button" class="rounds-nav" id="rounds-prev" aria-label="Earlier rounds">‹</button>
+      <div class="rounds" id="rounds">
+        ${(state.rounds||[]).map(r => `<button type="button" class="chip ${String(state.round)===String(r.id)?"on":""}" data-r="${escAttr(r.id)}">${esc(r.label||r.round_name||("R"+r.id))}</button>`).join("")}
+      </div>
+      <button type="button" class="rounds-nav" id="rounds-next" aria-label="Later rounds">›</button>
+    </div>
+    <section class="section">
+      <h2>Matches played</h2>
+      ${state.matchesLoading ? `<div class="empty"><strong>Loading matches…</strong></div>` :
+        list.length ? list.map(m => `
+        <article class="mcard" data-m="${escAttr(m.id)}">
+          <div class="meta">${esc(m.when||"")} · ${esc(m.venue||"")}</div>
+          <div class="teams">
+            ${teamSideHtml(m.home, "home")}
+            <span class="score">${esc(m.score||"—")}</span>
+            ${teamSideHtml(m.away, "away")}
+          </div>
+          <div class="status ${m.voted ? "voted":""}">
+            <span class="dot"></span>
+            ${m.voted ? "Votes submitted" : "Ready to vote"}
+          </div>
+        </article>`).join("") : `<div class="empty"><strong>No completed matches yet</strong>Check back after this round’s games finish.</div>`}
+    </section>`;
+  shell(body);
+  const roundsEl = $("#rounds");
+  const selectRound = async (rid) => {
+    if(rid == null || rid === "") return;
+    state.round = String(rid);
+    state.matchId = null;
+    try{ await loadMatches(state.round); await loadMeVotes(); }
+    catch(err){ if(err&&err.unauth) return renderGate("Session expired."); toast("Couldn't load matches."); }
+    render();
+  };
+  // Direct handlers on chips — no drag layer stealing clicks
+  roundsEl && roundsEl.querySelectorAll(".chip[data-r]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      selectRound(btn.getAttribute("data-r"));
+    });
+  });
+  const prev = $("#rounds-prev");
+  const next = $("#rounds-next");
+  if(prev) prev.onclick = e => { e.preventDefault(); roundsEl.scrollBy({ left: -180, behavior: "smooth" }); };
+  if(next) next.onclick = e => { e.preventDefault(); roundsEl.scrollBy({ left: 180, behavior: "smooth" }); };
+  try{
+    const on = roundsEl && roundsEl.querySelector(".chip.on");
+    if(on) on.scrollIntoView({ inline: "center", block: "nearest" });
+  }catch(e){}
+  app().querySelectorAll("[data-m]").forEach(el => el.onclick = async () => {
+    state.matchId = el.dataset.m;
+    state.matchMeta = findMatch(state.matchId);
+    state.votes = {3:null,2:null,1:null};
+    try{ await loadSquads(state.matchId); }
+    catch(err){
+      if(err&&err.unauth) return renderGate("Session expired.");
+      state.matchId = null; toast("Couldn't load squads.");
+    }
+    render();
+  });
+}
+
+function renderMatch() {
+  const m = findMatch(state.matchId) || { id: state.matchId, home: "Home", away: "Away", score: "", venue: "", when: "" };
+  if (state.squadsLoading || !state.squads) {
+    const body = `
+      <button type="button" class="back" id="back">← Matches</button>
+      <div class="match-head">
+        <h1>${esc(m.home)} <span style="color:var(--faint);font-weight:600">vs</span> ${esc(m.away)}</h1>
+        <p>${esc(m.score||"")} · ${esc(m.venue||"")} · ${esc(m.when||"")}</p>
+      </div>
+      <div class="empty"><strong>Loading named sides…</strong></div>`;
+    shell(body, { showNav: false });
+    $("#back").onclick = () => { state.matchId = null; state.squads = null; render(); };
+    return;
+  }
+  const sq = state.squads;
+  const v = state.votes;
+  const taken = new Set([v[3]?.id, v[2]?.id, v[1]?.id].filter(Boolean));
+  const ready = v[3] && v[2] && v[1];
+
+  function teamHtml(side) {
+    const t = sq[side] || { name: side, players: [] };
+    const players = Array.isArray(t.players) ? t.players : [];
+    return `<div class="team-block"><h3>${esc(t.name||side)} <span>${players.length} named</span></h3>
+      ${players.map(p => {
+        const id = String(p.id||"");
+        const n = p.number!=null ? p.number : (p.n!=null ? p.n : "");
+        const on = v[3]?.id===id ? 3 : v[2]?.id===id ? 2 : v[1]?.id===id ? 1 : 0;
+        return `<div class="prow ${taken.has(id)&&!on?"taken":""}">
+          <div class="num">${esc(n)}</div>
+          <div class="name">${esc(p.name||id)}</div>
+          <div class="votes">
+            <button type="button" class="${on===3?"on-3":""}" data-pts="3" data-id="${escAttr(id)}" data-name="${escAttr(p.name||id)}" data-n="${escAttr(n)}" data-team="${escAttr(t.name||"")}">3</button>
+            <button type="button" class="${on===2?"on-2":""}" data-pts="2" data-id="${escAttr(id)}" data-name="${escAttr(p.name||id)}" data-n="${escAttr(n)}" data-team="${escAttr(t.name||"")}">2</button>
+            <button type="button" class="${on===1?"on-1":""}" data-pts="1" data-id="${escAttr(id)}" data-name="${escAttr(p.name||id)}" data-n="${escAttr(n)}" data-team="${escAttr(t.name||"")}">1</button>
+          </div>
+        </div>`;
+      }).join("")}</div>`;
+  }
+  const slot = (pts) => {
+    const p = v[pts];
+    return `<div class="slot ${p?"filled":""}">
+      <div class="pts">${pts} votes</div>
+      <div class="who">${p ? esc(p.name) : "—"}</div>
+      ${p ? `<button type="button" class="clr" data-clr="${pts}">Clear</button>` : ""}
+    </div>`;
+  };
+  const body = `
+    <button type="button" class="back" id="back">← Matches</button>
+    <div class="match-head">
+      <h1>${esc(m.home)} <span style="color:var(--faint);font-weight:600">vs</span> ${esc(m.away)}</h1>
+      <p>${esc(m.score||"")} · ${esc(m.venue||"")} · ${esc(m.when||"")}</p>
+    </div>
+    <div class="vote-bar">${slot(3)}${slot(2)}${slot(1)}</div>
+    <p class="hint">Tap 3, 2, or 1 beside a player. Same player can’t take two slots.</p>
+    ${teamHtml("home")}
+    ${teamHtml("away")}
+    <div class="submit-dock"><div class="inner">
+      <button class="btn block" type="button" id="submit" ${ready && !state.submitting?"":"disabled"}>${state.submitting?"Submitting…":"Submit 3–2–1 ballot"}</button>
+    </div></div>`;
+  shell(body, { showNav: false });
+  $("#back").onclick = () => { state.matchId = null; state.squads = null; render(); };
+  app().querySelectorAll("[data-clr]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); state.votes[b.dataset.clr] = null; render();
+  });
+  app().querySelectorAll(".votes button").forEach(b => b.onclick = () => {
+    const pts = +b.dataset.pts;
+    const player = { id: b.dataset.id, name: b.dataset.name, n: b.dataset.n, team: b.dataset.team };
+    for (const k of [3,2,1]) if (state.votes[k]?.id === player.id) state.votes[k] = null;
+    state.votes[pts] = player;
+    render();
+  });
+  $("#submit").onclick = async () => {
+    if (!ready || state.submitting) return;
+    state.submitting = true; render();
+    try{
+      const body = { first: v[3].id, second: v[2].id, third: v[1].id };
+      const rr = await api("/api/brownlow/matches/"+encodeURIComponent(state.matchId)+"/votes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await rr.json().catch(()=>({}));
+      if(!rr.ok || j.ok===false){
+        toast(j.message || j.error || ("Couldn't submit ("+rr.status+")"));
+        return;
+      }
+      rememberPlayers(state.squads);
+      try{ await loadMeVotes(); }catch(_){}
+      const mm = findMatch(state.matchId); if (mm) mm.voted = true;
+      state.matchId = null; state.squads = null; state.tab = "mine";
+      toast("Ballot locked in — nice pick.");
+    }catch(e){
+      if(e&&e.unauth) return renderGate("Session expired.");
+      toast("Couldn't reach TipBot.");
+    }finally{
+      state.submitting = false;
+      render();
+    }
+  };
+}
+
+function renderMine() {
+  const rows = state.myVotes || [];
+  const body = `
+    <section class="section">
+      <h2>Your ballots</h2>
+      ${rows.length ? rows.map(v => {
+        const m = findMatch(v.match_id);
+        const title = m ? (esc(m.home)+" vs "+esc(m.away)) : esc(String(v.match_id));
+        const votes = [
+          { pts:3, name: playerLabel(v.first) },
+          { pts:2, name: playerLabel(v.second) },
+          { pts:1, name: playerLabel(v.third) },
+        ];
+        return `<article class="vcard">
+          <div class="mh">${title}${v.round ? ` <span class="hint">· R${esc(v.round)}</span>` : ""}</div>
+          <div class="votes-list">${votes.map(x => `<div><span class="p">${x.pts}</span><span>${esc(x.name)}</span></div>`).join("")}</div>
+        </article>`;
+      }).join("") : `<div class="empty"><strong>No votes yet</strong>Open a finished match and cast your 3–2–1.</div>`}
+    </section>`;
+  shell(body);
+}
+
+function renderBoard() {
+  const leaders = state.leaderboard || [];
+  const body = `
+    <p class="hint">${state.leaderboardStub ? "Owner-only leaderboard (hidden from voters). Stub until ballots aggregate." : "Owner-only leaderboard — season 3–2–1 points."}</p>
+    <section class="section">
+      <h2>Season leaders</h2>
+      ${leaders.length ? leaders.map((r,i) => `
+        <div class="lrow">
+          <div class="rank ${i<3?"top":""}">${i+1}</div>
+          <div class="who">${esc(r.name||r.player_id||"—")}</div>
+          <div class="pts">${esc(r.pts)} pts</div>
+        </div>`).join("") : `<div class="empty"><strong>No leaders yet</strong>Cast some ballots and check back.</div>`}
+    </section>`;
+  shell(body);
+}
+
+boot();
+</script>
+</body>
+</html>

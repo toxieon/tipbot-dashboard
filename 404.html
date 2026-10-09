@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Page not found — TipBot</title>
+<meta name="description" content="That TipBot page isn’t here.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" sizes="180x180">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/assets/site/site.css?v=0.54.1">
+<style>
+  html[data-site="tipster"] #missing-slot { display: none !important; }
+  html[data-site="missing"] #tipster-slot,
+  html:not([data-site="tipster"]) #tipster-slot { display: none !important; }
+</style>
+<script>
+/* GitHub Pages has no rewrites. /t/<handle> is served as this 404 with the
+   original path still in the address bar. Anything else stays a normal 404. */
+(function () {
+  var path = location.pathname || "";
+  var m = path.match(/\/t\/([^/]+)\/?$/);
+  var raw = "";
+  if (m) {
+    try { raw = decodeURIComponent(m[1]); } catch (e) { raw = ""; }
+  }
+  var tipster = !!(raw && raw.toLowerCase() !== "index.html" && /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/.test(raw));
+  document.documentElement.dataset.site = tipster ? "tipster" : "missing";
+  if (tipster) {
+    document.documentElement.dataset.handle = raw.toLowerCase();
+    document.title = "Verified tipster — TipBot";
+  }
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="/welcome/"><img src="/assets/favicon.svg" alt="" width="30" height="30"><span>TipBot</span></a>
+  <nav class="site-nav" aria-label="Site">
+    <a href="/">Dashboard</a>
+  </nav>
+</header>
+<main id="main" class="wrap">
+  <section class="missing" id="missing-slot">
+    <p class="eyebrow">404</p>
+    <h1>That page isn’t here.</h1>
+    <p>The address doesn’t match a TipBot page. Check the link, or head back.</p>
+    <div class="hero-actions">
+      <a class="btn btn-secondary" href="/">Dashboard</a>
+    </div>
+  </section>
+  <div id="tipster-slot">
+    <p class="loading">Loading record…</p>
+  </div>
+</main>
+<footer class="site-footer">
+  <p>© TipBot · tipdashhq.com · tipdash 0.54.1</p>
+  <p><strong>18+ only.</strong> Gamble responsibly. If gambling is a problem for you or someone you know, call Gambling Help Online on <a href="tel:1800858858">1800 858 858</a> or visit <a href="https://www.gamblinghelponline.org.au/" rel="noopener noreferrer">gamblinghelponline.org.au</a>.</p>
+  <p>Past results don’t guarantee future returns.</p>
+</footer>
+<script src="/assets/site/tipster-stats.js?v=0.54.1"></script>
+<script src="/assets/site/site.js?v=0.54.1"></script>
+<script src="/assets/site/tipster-page.js?v=0.54.1"></script>
+<script>
+(function () {
+  var handle = document.documentElement.dataset.handle || TipsterStats.tipsterHandleFromPath(location.pathname);
+  var missing = document.getElementById("missing-slot");
+  var slot = document.getElementById("tipster-slot");
+  if (!handle) {
+    document.title = "Page not found — TipBot";
+    return;
+  }
+  missing.hidden = true;
+  slot.hidden = false;
+  document.title = "Verified tipster — TipBot";
+  var desc = document.querySelector('meta[name="description"]');
+  if (desc) desc.setAttribute("content", "A TipBot verified tipster record. Example data until the public API is live.");
+  TipsterPage.boot(slot, handle);
+})();
+</script>
+</body>
+</html>
