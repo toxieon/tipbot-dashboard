@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.52.1"></script>
+<script src="./assets/tbtime.js?v=0.52.2"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -1184,7 +1184,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.52.1</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.52.2</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1205,20 +1205,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.52.1"></script>
-<script src="./assets/light-data.js?v=0.52.1"></script>
-<script src="./assets/lines.js?v=0.52.1"></script>
-<script src="./assets/compare-ui.js?v=0.52.1"></script>
-<script src="./assets/sport-keywords.js?v=0.52.1"></script>
-<script src="./assets/sport-marks.js?v=0.52.1"></script>
-<script src="./assets/routing.js?v=0.52.1"></script>
-<script src="./assets/scheduled-tips.js?v=0.52.1"></script>
-<script src="./assets/upcoming-split.js?v=0.52.1"></script>
-<script src="./assets/espn-props.js?v=0.52.1"></script>
-<script src="./assets/tb-motion.js?v=0.52.1"></script>
-<script src="./assets/form-badges.js?v=0.52.1"></script>
-<script src="./assets/svg-charts.js?v=0.52.1"></script>
-<script src="./assets/server-view.js?v=0.52.1"></script>
+<script src="./assets/req-pool.js?v=0.52.2"></script>
+<script src="./assets/light-data.js?v=0.52.2"></script>
+<script src="./assets/lines.js?v=0.52.2"></script>
+<script src="./assets/compare-ui.js?v=0.52.2"></script>
+<script src="./assets/sport-keywords.js?v=0.52.2"></script>
+<script src="./assets/sport-marks.js?v=0.52.2"></script>
+<script src="./assets/routing.js?v=0.52.2"></script>
+<script src="./assets/scheduled-tips.js?v=0.52.2"></script>
+<script src="./assets/upcoming-split.js?v=0.52.2"></script>
+<script src="./assets/espn-props.js?v=0.52.2"></script>
+<script src="./assets/tb-motion.js?v=0.52.2"></script>
+<script src="./assets/form-badges.js?v=0.52.2"></script>
+<script src="./assets/svg-charts.js?v=0.52.2"></script>
+<script src="./assets/server-view.js?v=0.52.2"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1567,7 +1567,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.52.1";
+  TD.version="0.52.2";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -6736,7 +6736,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.52.1');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.52.2');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);

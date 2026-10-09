@@ -1,3 +1,7 @@
+## 0.52.2
+
+Fixed sideways scrolling on phones in Apex.
+
 ## 0.52.1
 
 New theme options and accent colours.

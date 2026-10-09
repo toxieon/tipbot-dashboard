@@ -1,3 +1,7 @@
+## 0.52.2 · 2026-10-09 · Apex glow fits phone screens
+
+- Keep the Apex hero glow inside the screen on phones (scrollWidth was 455 at 390px)
+
 ## 0.52.1
 
 - Add Apex Light, Apex OLED, and Apex Mono theme variants

@@ -927,3 +927,9 @@ html[data-theme="apex"] #builder[data-apex-step="0"] .gcards{display:none}
 }
 
 html[data-theme="apex"] #overview { overflow-x: clip; }
+
+/* 0.52.2: on phones the glow's -12% sides widened the page past the screen
+   (scrollWidth 455 at 390). Keep it, and its 6% drift, inside the viewport. */
+@media (max-width:430px){
+  html[data-theme="apex"] .apex-glow{left:0;right:7%}
+}
