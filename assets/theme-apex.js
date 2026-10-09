@@ -655,7 +655,8 @@
     var tabs = doc.createElement("nav");
     tabs.className = "apex-tabs";
     tabs.setAttribute("aria-label", "Sections");
-    var tabItems = NAV.filter(function (item) { return TABS.indexOf(item.id) !== -1; });
+    // 0.53.2: phone tabs follow TABS order (Home | Build | Upcoming), not NAV order.
+    var tabItems = TABS.map(function (id) { return NAV.filter(function (item) { return item.id === id; })[0]; }).filter(Boolean);
     tabs.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(tabItems, "");
     host.insertBefore(rail, host.firstChild);
     host.appendChild(tabs);

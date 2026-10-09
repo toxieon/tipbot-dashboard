@@ -1,3 +1,7 @@
+## 0.53.2
+
+The Build button now sits in the middle of the phone tab bar.
+
 ## 0.53.1
 
 Cleaner navigation and new theme names.
