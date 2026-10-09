@@ -199,51 +199,18 @@
   
   async function openBuilder(guildId, name) {
     navNote("#/s/"+encodeURIComponent(guildId)+"/build", ()=>openBuilder(guildId,name));
-    clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
-    if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
-    const preserve = BUILD && String(BUILD.guildId) === String(guildId) && BUILD.legs && BUILD.legs.length > 0;
-    if(!preserve){
-      BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
-    }
-    panel("builder");renderTray();renderBatchTray();
-    if(preserve && BUILD.game){
-      // Already rendered, just return
-      return;
-    }
-    
-    let html = '<div class="back" id="bx">← Back to ' + esc(name||"server") + '</div>'
-      + '<div class="race-eyebrow" style="margin-top:16px;font-size:var(--t-cap);font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)">Welcome back</div>'
-      + '<h1 style="margin:0 0 24px;font-size:var(--t-h1);font-weight:700;letter-spacing:-0.025em">Ready to build.</h1>'
-      + '<div style="display:flex;gap:12px;margin-bottom:32px">'
-      + '<div id="tile-sports" style="flex:1;background:var(--surface,var(--card));border:1px solid var(--hairline,var(--line));border-radius:16px;padding:16px;cursor:pointer">'
-      + '<div style="width:32px;height:32px;border-radius:8px;background:transparent;border:1px solid var(--hairline,var(--line));display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>'
-      + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">Sports</div>'
-      + '<div style="font-size:var(--t-foot);color:var(--muted)">AFL, NRL, NBA &amp; more</div>'
-      + '</div>'
-      + '<div id="tile-racing" style="flex:1;background:var(--surface,var(--card));border:1px solid var(--hairline,var(--line));border-radius:16px;padding:16px;cursor:pointer">'
-      + '<div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg></div>'
-      + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">Racing</div>'
-      + '<div style="font-size:var(--t-foot);color:var(--muted)">Gallops &amp; harness</div>'
-      + '</div>'
-      + '</div>'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
-      + '<h2 style="margin:0;font-size:var(--t-h2);font-weight:700;letter-spacing:-0.02em">Next to go</h2>'
-      + '</div>'
-      + '<div id="next-to-go-list">' + NDSkeleton.grid(3,{cols:1,tile:"72px"}) + '</div>'
-      + '<div class="rg" style="text-align:center;color:var(--muted);font-size:var(--t-cap);font-weight:500;margin-top:32px;padding-bottom:32px">18+ &middot; Gamble responsibly</div>';
-      
-    $("builder").innerHTML = html;
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(guildId);};
-    
-    $("tile-sports").onclick = () => openSportsBuilder(guildId, name);
-    $("tile-racing").onclick = () => openRacingBuilder(guildId, name);
-    
-    loadNextToGo();
+    return openSportsBuilder(guildId, name, true);
   }
 
-  async function openSportsBuilder(guildId,name){
-    navNote("#/s/"+encodeURIComponent(guildId)+"/build/sports", ()=>openSportsBuilder(guildId,name));
+  function builderBackToServer(){
+    const gid=BUILD&&BUILD.guildId;
+    $("tray").hidden=true;
+    renderBatchTray();
+    if(gid!=null) loadDetail(gid);
+  }
+
+  async function openSportsBuilder(guildId,name,skipNav){
+    if(!skipNav) navNote("#/s/"+encodeURIComponent(guildId)+"/build/sports", ()=>openSportsBuilder(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
@@ -253,8 +220,8 @@
       BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
     }else{ BUILD.game=null; }
     panel("builder");renderTray();renderBatchTray();
-    $("builder").innerHTML='<div class="back" id="bx">← Back to Ready to build</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openBuilder(guildId, name);};
+    $("builder").innerHTML='<div class="back" id="bx">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
+    $("bx").onclick=builderBackToServer;
     // players now come live from the AFL API (attached to each game); players.json
     // is only a silent fallback for a team the roster feed couldn't match.
     // 0.40.3: players.json, bookies.json and /api/fixtures load in parallel
@@ -711,7 +678,7 @@
       +'<div class="field"><label>Start day (optional)</label><input id="c_start" type="date" value="'+esc(BUILD.customStartDay||"")+'"><div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">When the event tips off — sent as <code>start_date</code> when TipBot supports it.</div></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
       +'</div>';
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openBuilder(BUILD.guildId, BUILD.serverName);};
+    $("bx").onclick=builderBackToServer;
     const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;saveMultiDraft();};
     const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;saveMultiDraft();};
     const sd=$("c_start"); if(sd)sd.onchange=()=>{BUILD.customStartDay=sd.value||"";saveMultiDraft();};
@@ -732,7 +699,7 @@
     const comps=[]; games.forEach(g=>{const c=gameComp(g); if(!comps.includes(c))comps.push(c);});
     const hasMulti=comps.length>1;
     if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
-    let html='<div class="back" id="bx">← Back to Ready to build</div>'
+    let html='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
       +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px"><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
       +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     // Sport switcher: AFL live · NFL/NBA/WNBA via TipBot ESPN · stubs → custom.
@@ -740,7 +707,8 @@
       +'<span class="compchip on" title="Live AFL/AFLW data">'+esc(sportLabel("AFL"))+' <span style="opacity:.7;font-size:var(--t-cap)">live</span></span>'
       +ESPN_SPORTS.map(s=>'<button class="compchip espnsport" data-league="'+esc(s.league)+'" title="'+esc(s.hint)+'">'+esc(sportLabel(s.k))+' <span style="opacity:.7;font-size:var(--t-cap)">ESPN</span></button>').join("")
       +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — custom tip">'+esc(sportLabel(s.k))+'</button>').join("")
-      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">'+esc(sportLabel("Other"))+'</button></div>';
+      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">'+esc(sportLabel("Other"))+'</button>'
+      +'<button type="button" class="compchip" id="build-racing-switch" title="Gallops and harness">Racing</button></div>';
     if(hasMulti){
       const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+esc(v)+'">'+esc(l)+'</button>';
       html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'
@@ -764,7 +732,8 @@
         +'<div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openBuilder(BUILD.guildId, BUILD.serverName);};
+    $("bx").onclick=builderBackToServer;
+    const rs=$("build-racing-switch"); if(rs) rs.onclick=()=>openRacingBuilder(BUILD.guildId, BUILD.serverName);
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
     const cg=$("customgames"); if(cg)cg.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName);
     $("builder").querySelectorAll(".compchip[data-c]").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
@@ -1945,7 +1914,7 @@
     panel("builder");renderTray();renderBatchTray();
     BUILD.isRacing = true;
     const cat = (category==="T"||category==="H") ? category : "";
-    $("builder").innerHTML = '<div class="back" id="bx">← Back to Ready to build</div><h1 style="margin:0 0 16px">Racing</h1>'
+    $("builder").innerHTML = '<div class="back" id="bx">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Racing</h1>'
       + '<div style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap" id="racing-cat-tabs">'
       + '<button class="compchip'+(cat===""?" on":"")+'" data-c="">All</button>'
       + '<button class="compchip'+(cat==="T"?" on":"")+'" data-c="T">Gallops</button>'
@@ -1953,7 +1922,7 @@
       + '</div>'
       + '<div id="racing-meetings-list">'+NDSkeleton.grid(6,{cols:1,tile:"72px"})+'</div>'
       + '<div class="rg" style="text-align:center;color:var(--muted);font-size:var(--t-cap);font-weight:500;margin-top:32px;padding-bottom:32px">18+ · Gamble responsibly</div>';
-    $("bx").onclick = function(){ openBuilder(guildId, name); };
+    $("bx").onclick = function(){ openSportsBuilder(guildId, name); };
     $("racing-cat-tabs").onclick = function(e){
       const btn = e.target.closest("[data-c]");
       if(!btn) return;

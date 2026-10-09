@@ -564,6 +564,10 @@ html[data-theme="apex"] .top-in > .nav{display:none}
 }
 @media (max-width:899px){
   html[data-theme="apex"] .apex-rail{display:none}
+  html[data-theme="apex"][data-apex-tabs="off"] .apex-tabs{display:none!important}
+  html[data-theme="apex"][data-apex-tabs="off"] .wrap{
+    padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+  }
   html[data-theme="apex"] .apex-tabs{
     position:fixed;
     z-index:45;
