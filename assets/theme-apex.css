@@ -16,9 +16,15 @@
   font-display:swap;
 }
 
-html[data-theme="apex"]{--apex-display:3rem}
+html[data-theme="apex"]{
+  --apex-display:clamp(3.25rem, 8vw, 5.75rem);
+  --t-h1:clamp(2rem, 1.1rem + 2.2vw, 3.25rem);
+  --t-h2:1.5rem;
+  --t-h3:1.25rem;
+  --t-body:1.0625rem;
+}
 @media(max-width:700px){
-  html[data-theme="apex"]{--apex-display:2.125rem}
+  html[data-theme="apex"]{--apex-display:clamp(2.75rem, 14vw, 3.5rem)}
 }
 
 html[data-theme="apex"] body{
@@ -457,7 +463,9 @@ html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
   html[data-theme="apex"] .betcard.apex-flip,
   html[data-theme="apex"] .chip,
   html[data-theme="apex"] .tb-form-dot.apex-tile,
-  html[data-theme="apex"] .apex-display.apex-in{
+  html[data-theme="apex"] .apex-display.apex-in,
+  html[data-theme="apex"] .nd-sk::after,
+  html[data-theme="apex"] #builder[data-apex-step="1"] .gcards{
     animation:none;
   }
   html[data-theme="apex"] .apex-rise,
@@ -466,4 +474,408 @@ html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
     transform:none;
     transition:none;
   }
+  html[data-theme="apex"] .apex-indicator,
+  html[data-theme="apex"] .apex-seg-pill,
+  html[data-theme="apex"] .apex-flow-bar,
+  html[data-theme="apex"] .tb-toast{
+    transition:none;
+  }
+}
+
+/* App shell. The rail and the phone tab bar are the only blur surfaces. */
+.apex-rail,.apex-tabs{display:none}
+html[data-theme="apex"] .apex-rail,
+html[data-theme="apex"] .apex-tabs{
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter:blur(16px);
+  backdrop-filter:blur(16px);
+}
+html[data-theme="apex"] .apex-rail{
+  position:fixed;
+  z-index:40;
+  top:0;
+  left:0;
+  bottom:0;
+  width:92px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:calc(12px + env(safe-area-inset-top, 0px)) 8px 12px;
+  border-right:1px solid var(--line);
+}
+html[data-theme="apex"] .apex-navbtn{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  min-height:56px;
+  padding:6px 4px;
+  border:0;
+  border-radius:16px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:.6875rem;
+  font-weight:650;
+  letter-spacing:-.01em;
+  cursor:pointer;
+}
+html[data-theme="apex"] .apex-navbtn svg{
+  width:22px;
+  height:22px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+html[data-theme="apex"] .apex-navbtn[aria-current="page"]{color:var(--txt)}
+html[data-theme="apex"] .apex-indicator{
+  position:absolute;
+  z-index:0;
+  left:0;
+  top:0;
+  border-radius:16px;
+  background:var(--card);
+  pointer-events:none;
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] .topnav,
+html[data-theme="apex"] .top-in > .nav{display:none}
+@media (min-width:900px){
+  html[data-theme="apex"] .wrap{
+    max-width:none;
+    margin-left:92px;
+    padding-left:32px;
+    padding-right:40px;
+  }
+  html[data-theme="apex"] .topnav{display:none}
+}
+@media (max-width:899px){
+  html[data-theme="apex"] .apex-rail{display:none}
+  html[data-theme="apex"] .apex-tabs{
+    position:fixed;
+    z-index:45;
+    left:0;
+    right:0;
+    bottom:0;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-around;
+    gap:2px;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    border-top:1px solid var(--line);
+  }
+  html[data-theme="apex"] .apex-tabs .apex-navbtn{flex:1;min-height:48px}
+  html[data-theme="apex"] .apex-tabs .apex-tab-build{
+    flex:none;
+    width:58px;
+    height:58px;
+    min-height:58px;
+    margin-top:-22px;
+    border-radius:999px;
+    background:var(--accent);
+    color:var(--on-accent);
+    box-shadow:0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  html[data-theme="apex"] .apex-tabs .apex-tab-build[aria-current="page"]{color:var(--on-accent)}
+  html[data-theme="apex"] .wrap{
+    padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-theme="apex"] .topnav,
+  html[data-theme="apex"] .top-in > .nav{display:none}
+  html[data-theme="apex"] .tray,
+  html[data-theme="apex"] .batchtray{
+    bottom:calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-theme="apex"] .tb-toast{
+    bottom:calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+html[data-theme="apex"] .tb-toast{
+  transition:opacity 320ms cubic-bezier(.22,1,.36,1), transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] .tb-toast:not(.in){transform:translate(-50%, 16px)}
+html[data-theme="apex"] .tb-toast.in{transform:translate(-50%, 0)}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] .apex-navbtn:active{transform:scale(.98)}
+  html[data-theme="apex"] .nd-sk::after{
+    background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--txt) 16%, transparent), transparent)!important;
+    animation:nd-sk 1.3s cubic-bezier(.22,1,.36,1) infinite!important;
+  }
+}
+
+/* Home */
+html[data-theme="apex"] .apex-hero{padding:8px 0 28px}
+html[data-theme="apex"] .apex-kicker{
+  margin:0 0 8px;
+  color:var(--muted);
+  font-size:var(--t-foot);
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+html[data-theme="apex"] .apex-hero-num{
+  margin:0;
+  font-family:"Instrument Sans", Geist, system-ui, sans-serif;
+  font-size:var(--apex-display);
+  font-weight:650;
+  letter-spacing:-.055em;
+  line-height:.9;
+}
+html[data-theme="apex"] .apex-spark{display:block;width:min(100%, 440px);height:72px;margin:8px 0 18px}
+html[data-theme="apex"] .apex-spark .sv-line,
+html[data-theme="apex"] .apex-mini .sv-line{
+  stroke:var(--accent);
+  stroke-width:2.5;
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+html[data-theme="apex"] .apex-facts{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+}
+html[data-theme="apex"] .apex-facts div{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px 14px 12px;
+}
+html[data-theme="apex"] .apex-facts b{
+  display:block;
+  font-size:1.35rem;
+  letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums;
+}
+html[data-theme="apex"] .apex-facts span{color:var(--muted);font-size:var(--t-foot)}
+html[data-theme="apex"] .scard{
+  padding:22px 20px 18px;
+  border-radius:22px;
+}
+html[data-theme="apex"] .scard .sname{
+  font-size:1.35rem;
+  letter-spacing:-.035em;
+}
+html[data-theme="apex"] .apex-mini{display:block;width:120px;height:36px;margin-top:12px}
+html[data-theme="apex"] .apex-record{
+  display:flex;
+  height:8px;
+  margin-top:12px;
+  border-radius:999px;
+  overflow:hidden;
+  background:var(--card2);
+}
+html[data-theme="apex"] .apex-record .apex-w{background:var(--win)}
+html[data-theme="apex"] .apex-record .apex-l{background:var(--loss)}
+html[data-theme="apex"] #detail h1{
+  font-size:var(--t-h1);
+  letter-spacing:-.045em;
+  line-height:1;
+}
+html[data-theme="apex"] #detail .dhead{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:10px 16px;
+  align-items:end;
+}
+html[data-theme="apex"] #detail .dhead-actions{grid-column:2;grid-row:1}
+html[data-theme="apex"] .apex-server-hero{grid-column:1 / -1}
+html[data-theme="apex"] .apex-hero-roi{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:1.05rem;
+  font-weight:650;
+  letter-spacing:-.02em;
+}
+html[data-theme="apex"] .sv-big{display:none}
+html[data-theme="apex"] .sv-stats{
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  grid-auto-rows:minmax(108px, auto);
+  gap:12px;
+}
+html[data-theme="apex"] .sv-stat:nth-child(1){
+  grid-column:span 2;
+  grid-row:span 2;
+}
+html[data-theme="apex"] .sv-stat:nth-child(1) .v{
+  font-size:clamp(2rem, 4vw, 3rem);
+  letter-spacing:-.045em;
+}
+html[data-theme="apex"] .sv-stat.sv-form{grid-column:span 2}
+html[data-theme="apex"] .sv-av{
+  width:36px;
+  height:36px;
+  border-radius:999px;
+}
+@media (max-width:700px){
+  html[data-theme="apex"] .sv-stats{grid-template-columns:1fr 1fr}
+  html[data-theme="apex"] .sv-stat:nth-child(1){grid-row:auto}
+  html[data-theme="apex"] #detail .dhead{grid-template-columns:minmax(0, 1fr)}
+  html[data-theme="apex"] #detail .dhead-actions{grid-column:1;grid-row:auto}
+}
+
+/* Timeframe pill */
+html[data-theme="apex"] .apex-seg{
+  position:relative;
+  display:flex;
+  gap:2px;
+  max-width:100%;
+  overflow-x:auto;
+  padding:4px;
+  border-radius:999px;
+  background:var(--card);
+  border:1px solid var(--line);
+}
+html[data-theme="apex"] .apex-seg-btn{
+  position:relative;
+  z-index:1;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  border-radius:999px;
+  padding:8px 14px;
+  font:inherit;
+  font-weight:650;
+  white-space:nowrap;
+  cursor:pointer;
+}
+html[data-theme="apex"] .apex-seg-btn[aria-pressed="true"]{color:var(--bg)}
+html[data-theme="apex"] .apex-seg-pill{
+  position:absolute;
+  z-index:0;
+  left:0;
+  top:0;
+  border-radius:999px;
+  background:var(--txt);
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] select.apex-native-period{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0 0 0 0);
+  border:0;
+}
+
+/* Timeline */
+html[data-theme="apex"] .apex-day{
+  position:sticky;
+  top:calc(60px + env(safe-area-inset-top, 0px));
+  z-index:3;
+  margin:16px 0 8px;
+  padding:8px 2px;
+  background:color-mix(in srgb, var(--bg) 94%, transparent);
+  font-family:"Instrument Sans", Geist, sans-serif;
+  font-size:1.05rem;
+  font-weight:650;
+  letter-spacing:-.03em;
+}
+html[data-theme="apex"] .apex-lockup{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+html[data-theme="apex"] .apex-logo{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--card2);
+  border:1px solid var(--line);
+  font-size:.75rem;
+  font-weight:750;
+  letter-spacing:-.03em;
+}
+html[data-theme="apex"] .apex-vs{color:var(--faint);font-size:var(--t-foot);font-weight:700}
+html[data-theme="apex"] .graderow{
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  padding:3px;
+  border-radius:999px;
+  background:var(--card2);
+  border:1px solid var(--line);
+}
+html[data-theme="apex"] .graderow .gradebtn{
+  border:0!important;
+  background:transparent!important;
+  color:var(--muted)!important;
+  border-radius:999px!important;
+  min-height:36px;
+  padding:6px 12px!important;
+}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme="apex"] .graderow .gradebtn[data-r="Win"]:hover{color:var(--win-ink)!important}
+  html[data-theme="apex"] .graderow .gradebtn[data-r="Loss"]:hover{color:var(--loss-ink)!important}
+  html[data-theme="apex"] .graderow .gradebtn[data-r="Push"]:hover{color:var(--txt)!important}
+}
+
+/* Builder steps */
+html[data-theme="apex"] .apex-flow{
+  display:flex;
+  gap:8px;
+  margin:0 0 18px;
+  padding:0;
+  list-style:none;
+  position:relative;
+}
+html[data-theme="apex"] .apex-flow li{
+  position:relative;
+  z-index:1;
+  flex:1;
+  padding:8px 0 10px;
+  color:var(--faint);
+  font-size:var(--t-foot);
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+html[data-theme="apex"] .apex-flow li.is-on,
+html[data-theme="apex"] .apex-flow li.is-done{color:var(--txt)}
+html[data-theme="apex"] .apex-flow-bar{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:2px;
+  border-radius:999px;
+  background:var(--accent);
+  transform-origin:left center;
+  transform:scaleX(.25);
+  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+}
+html[data-theme="apex"] .apex-step-note{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:1.25rem;
+  font-weight:650;
+  letter-spacing:-.03em;
+}
+html[data-theme="apex"] #builder .apex-sports{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fill, minmax(128px, 1fr));
+  gap:10px!important;
+}
+html[data-theme="apex"] #builder .compchip{
+  min-height:56px;
+  padding:14px 16px;
+  border-radius:16px;
+  font-size:1.05rem;
+}
+html[data-theme="apex"] #builder[data-apex-step="0"] .gcards{display:none}
+@media (prefers-reduced-motion:no-preference){
+  html[data-theme="apex"] #builder[data-apex-step="1"] .gcards{
+    animation:apex-in 320ms cubic-bezier(.22,1,.36,1) both;
+  }
+}
+@keyframes apex-out{to{opacity:0;transform:translateY(-8px)}}
+@keyframes apex-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:no-preference){
+  ::view-transition-old(apex-page){animation:apex-out 220ms cubic-bezier(.22,1,.36,1) both}
+  ::view-transition-new(apex-page){animation:apex-in 320ms cubic-bezier(.22,1,.36,1) both}
 }

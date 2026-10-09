@@ -36,6 +36,7 @@
     link.id = "theme-apex-css";
     link.rel = "stylesheet";
     link.href = href;
+    link.onload = function () { if (active()) pass(); };
     (doc.head || doc.documentElement).appendChild(link);
   }
 
@@ -120,13 +121,19 @@
     if (!el || el.dataset.apexCounted === "1") return;
     var raw = el.textContent || "";
     var numText = oneNumber(raw);
-    if (numText == null) return;
+    if (numText == null) {
+      el.dataset.apexCounted = "1";
+      el.dataset.apexLast = raw;
+      return;
+    }
     el.dataset.apexCounted = "1";
+    el.dataset.apexLast = raw;
     if (reduced()) return;
+    el.dataset.apexBusy = "1";
     var neg = numText.charAt(0) === "-";
     var pos = numText.charAt(0) === "+";
     var abs = parseFloat(pos || neg ? numText.slice(1) : numText);
-    if (!isFinite(abs)) return;
+    if (!isFinite(abs)) { delete el.dataset.apexBusy; return; }
     var at = raw.indexOf(numText);
     var prefix = raw.slice(0, at);
     var suffix = raw.slice(at + numText.length);
@@ -140,14 +147,23 @@
       var body = decimals ? v.toFixed(decimals) : String(Math.round(v));
       el.textContent = prefix + (neg ? "-" : pos ? "+" : "") + body + suffix;
       if (p < 1) raf(frame);
-      else el.textContent = raw;
+      else {
+        el.textContent = raw;
+        el.dataset.apexLast = raw;
+        delete el.dataset.apexBusy;
+      }
     }
     raf(frame);
   }
 
   function armCounts(scope) {
-    (scope || doc).querySelectorAll(".apex-display, .sv-stat .v, .sv-big b").forEach(function (el) {
-      if (el.dataset.apexCount === "1") return;
+    (scope || doc).querySelectorAll(".apex-display, .sv-stat .v, .sv-big b, .apex-facts b").forEach(function (el) {
+      var now = el.textContent || "";
+      if (el.dataset.apexCount === "1") {
+        if (el.dataset.apexBusy === "1") return;
+        if ((el.dataset.apexLast || "") === now) return;
+        delete el.dataset.apexCounted;
+      }
       el.dataset.apexCount = "1";
       if (reduced() || inView(el)) countEl(el, el.classList.contains("apex-display") ? 640 : 320);
       else if (seenIO) seenIO.observe(el);
@@ -381,12 +397,573 @@
     }, { passive: true });
   }
 
+  var pending = "";
+  var pendingFired = false;
+  var picked = "";
+  var shellReady = false;
+  var NAV = [
+    { id: "home", label: "Home", d: "M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z" },
+    { id: "servers", label: "Servers", d: "M4 6h16v4H4zm0 6h16v6H4z" },
+    { id: "upcoming", label: "Upcoming", d: "M7 3v2M17 3v2M4 8h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1z" },
+    { id: "live", label: "Live", d: "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-4v2m0 14v2M3 12H1m22 0h-2" },
+    { id: "build", label: "Build", d: "M12 5v14M5 12h14" },
+    { id: "settings", label: "Settings", d: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4-2.1-.6a6 6 0 0 0-.5-1.2l1.2-1.8-1.4-1.4-1.8 1.2a6 6 0 0 0-1.2-.5L12 4l-.6 2.1a6 6 0 0 0-1.2.5L8.4 5.4 7 6.8l1.2 1.8a6 6 0 0 0-.5 1.2L4 12l2.1.6a6 6 0 0 0 .5 1.2L5.4 15.6 6.8 17l1.8-1.2a6 6 0 0 0 1.2.5L12 20l.6-2.1a6 6 0 0 0 1.2-.5l1.8 1.2 1.4-1.4-1.2-1.8a6 6 0 0 0 .5-1.2z" }
+  ];
+  var TABS = ["home", "upcoming", "build", "live", "settings"];
+
+  function icon(d) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"></path></svg>';
+  }
+  function numOf(text) {
+    var m = String(text == null ? "" : text).replace(/,/g, "").match(/[+-]?\d+(?:\.\d+)?/);
+    if (!m) return null;
+    var n = parseFloat(m[0]);
+    return isFinite(n) ? n : null;
+  }
+  function fmtUnits(n) {
+    if (n == null || !isFinite(n)) return "\u2014";
+    var r = Math.round(n * 10) / 10;
+    var body = (Math.abs(r % 1) > 0.001) ? Math.abs(r).toFixed(1) : String(Math.abs(Math.round(r)));
+    if (r > 0) return "+" + body;
+    if (r < 0) return "-" + body;
+    return "0";
+  }
+  function initials(name) {
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+  function onDash() { return !!(doc.getElementById("app")); }
+  function livePath() {
+    var path = "";
+    try { path = root.location.pathname || ""; } catch (e) {}
+    return /\/live\//.test(path);
+  }
+  function dashHref() {
+    var a = doc.querySelector("a.topnav-dash");
+    if (a && a.getAttribute("href")) return a.getAttribute("href");
+    return livePath() ? "../" : "./";
+  }
+  function liveHref() {
+    var a = doc.querySelector("a.topnav-live, a.live-open-btn");
+    if (a && a.getAttribute("href")) return a.getAttribute("href");
+    return livePath() ? "./" : "./live/";
+  }
+  function withTransition(fn) {
+    namePages();
+    if (reduced() || !doc.startViewTransition || doc.hidden) { fn(); return; }
+    try { doc.startViewTransition(function () { fn(); }); }
+    catch (e) { fn(); }
+  }
+  function namePages() {
+    var ids = ["overview", "detail", "builder", "followers", "follower", "mytips", "discover", "settings"];
+    var i, el, named = false;
+    for (i = 0; i < ids.length; i++) {
+      el = doc.getElementById(ids[i]);
+      if (!el || !el.style) continue;
+      if (!el.hidden && !named) { el.style.viewTransitionName = "apex-page"; named = true; }
+      else el.style.viewTransitionName = "";
+    }
+    if (!doc.getElementById("app")) {
+      var wrap = doc.querySelector(".wrap");
+      if (wrap && wrap.style) wrap.style.viewTransitionName = "apex-page";
+    }
+  }
+  function clickSel(sel) {
+    var el = doc.querySelector(sel);
+    if (el && el.click) { el.click(); return true; }
+    return false;
+  }
+  function openPanel(el) {
+    if (!el) return;
+    el.hidden = false;
+    var body = el.querySelector(".panel-body");
+    if (body) body.hidden = false;
+    if (root.TDSec && root.TDSec.open) { try { root.TDSec.open(el); } catch (e) {} }
+    try { el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); } catch (e2) {}
+  }
+  function go(id) {
+    picked = id;
+    paintNav();
+    if (!onDash()) {
+      if (id === "live") { if (!livePath()) root.location.href = liveHref(); return; }
+      try { root.sessionStorage.setItem("apex-go", id); } catch (e) {}
+      root.location.href = dashHref();
+      return;
+    }
+    if (id === "live") { root.location.href = liveHref(); return; }
+    withTransition(function () {
+      if (id === "home") clickSel("#homelogo") || clickSel("#nav-dash");
+      else if (id === "servers") {
+        var back = doc.getElementById("backbtn");
+        if (back) back.click();
+        else clickSel("#homelogo") || clickSel("#nav-dash");
+        pending = "servers";
+        pendingFired = false;
+      } else if (id === "upcoming") {
+        var panel = doc.getElementById("upcoming-panel");
+        var detail = doc.getElementById("detail");
+        if (panel && detail && !detail.hidden) openPanel(panel);
+        else { pending = "upcoming"; pendingFired = false; }
+      } else if (id === "build") {
+        var b = doc.getElementById("buildbtn");
+        if (b) b.click();
+        else { pending = "build"; pendingFired = false; }
+      } else if (id === "settings") clickSel("#gear");
+    });
+  }
+  function flushPending() {
+    if (!pending || !onDash()) return;
+    if (pending === "servers") {
+      var grid = doc.querySelector("#overview .grid");
+      var ov = doc.getElementById("overview");
+      if (grid && ov && !ov.hidden) {
+        pending = "";
+        if (!grid.id) grid.id = "apex-servers";
+        try { grid.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); } catch (e) {}
+        return;
+      }
+      if (!pendingFired) {
+        var back = doc.getElementById("backbtn");
+        if (back) { pendingFired = true; back.click(); }
+      }
+      return;
+    }
+    if (pending === "upcoming") {
+      var panel = doc.getElementById("upcoming-panel");
+      var detail = doc.getElementById("detail");
+      if (panel && detail && !detail.hidden) { pending = ""; openPanel(panel); return; }
+      if (!pendingFired) {
+        var card = doc.querySelector("#overview:not([hidden]) .scard");
+        if (card) { pendingFired = true; card.click(); }
+      }
+      return;
+    }
+    if (pending === "build") {
+      var btn = doc.getElementById("buildbtn");
+      if (btn) { pending = ""; btn.click(); return; }
+      if (!pendingFired) {
+        var card2 = doc.querySelector("#overview:not([hidden]) .scard");
+        if (card2) { pendingFired = true; card2.click(); }
+      }
+    }
+  }
+  function readGo() {
+    var go = "";
+    try { go = root.sessionStorage.getItem("apex-go") || ""; root.sessionStorage.removeItem("apex-go"); } catch (e) {}
+    if (!go || !onDash()) return;
+    pending = go === "home" || go === "live" || go === "settings" ? "" : go;
+    pendingFired = false;
+    picked = go;
+    if (go === "settings") clickSel("#gear");
+  }
+  function sectionNow() {
+    if (livePath() && !onDash()) return "live";
+    var builder = doc.getElementById("builder");
+    if (builder && !builder.hidden) return "build";
+    var dd = doc.getElementById("dropdown");
+    if (dd && !dd.hidden && picked === "settings") return "settings";
+    if (picked === "upcoming") {
+      var up = doc.getElementById("upcoming-panel");
+      if (up) return "upcoming";
+    }
+    if (picked === "servers" || picked === "home" || picked === "settings") return picked === "settings" ? "home" : picked;
+    var ov = doc.getElementById("overview");
+    if (ov && !ov.hidden) return "home";
+    return picked || "home";
+  }
+  function buttonRow(items, extra) {
+    return items.map(function (item) {
+      var cls = "apex-navbtn" + (item.id === "build" ? " apex-tab-build" : "") + (extra || "");
+      return '<button type="button" class="' + cls + '" data-apex-nav="' + item.id + '">' + icon(item.d) + "<span>" + item.label + "</span></button>";
+    }).join("");
+  }
+  function mountShell() {
+    if (!active() || !doc.body || shellReady) return;
+    var host = doc.getElementById("app") || doc.body;
+    if (host.querySelector(".apex-rail")) { shellReady = true; return; }
+    var rail = doc.createElement("nav");
+    rail.className = "apex-rail";
+    rail.setAttribute("aria-label", "Sections");
+    rail.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(NAV, "");
+    var tabs = doc.createElement("nav");
+    tabs.className = "apex-tabs";
+    tabs.setAttribute("aria-label", "Sections");
+    var tabItems = NAV.filter(function (item) { return TABS.indexOf(item.id) !== -1; });
+    tabs.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(tabItems, "");
+    host.insertBefore(rail, host.firstChild);
+    host.appendChild(tabs);
+    host.addEventListener("click", function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest("[data-apex-nav]") : null;
+      if (!btn || !host.contains(btn)) return;
+      ev.preventDefault();
+      go(btn.getAttribute("data-apex-nav"));
+    });
+    shellReady = true;
+    readGo();
+  }
+  function moveIndicator(nav) {
+    if (!nav) return;
+    var ind = nav.querySelector(".apex-indicator");
+    var current = nav.querySelector('[aria-current="page"]');
+    if (!ind || !current) return;
+    ind.style.width = current.offsetWidth + "px";
+    ind.style.height = current.offsetHeight + "px";
+    ind.style.transform = "translate3d(" + current.offsetLeft + "px," + current.offsetTop + "px,0)";
+  }
+  function paintNav() {
+    var id = sectionNow();
+    doc.querySelectorAll("[data-apex-nav]").forEach(function (btn) {
+      var on = btn.getAttribute("data-apex-nav") === id;
+      if (on) btn.setAttribute("aria-current", "page");
+      else btn.removeAttribute("aria-current");
+    });
+    moveIndicator(doc.querySelector(".apex-rail"));
+    moveIndicator(doc.querySelector(".apex-tabs"));
+  }
+  function sparkD(values, w, h) {
+    if (!values.length) return "";
+    var min = Math.min.apply(null, values);
+    var max = Math.max.apply(null, values);
+    var span = (max - min) || 1;
+    var pad = 4;
+    return values.map(function (v, i) {
+      var x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * (w - 8) + 4;
+      var y = pad + (1 - (v - min) / span) * (h - pad * 2);
+      return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }).join(" ");
+  }
+  function svgLine(cls, values, w, h) {
+    var svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", cls);
+    svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+    svg.setAttribute("aria-hidden", "true");
+    var path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("class", "sv-line");
+    path.setAttribute("fill", "none");
+    path.setAttribute("d", sparkD(values, w, h));
+    svg.appendChild(path);
+    return svg;
+  }
+  function cardStats(card) {
+    var out = { queued: null, profit: null, won: null, lost: null };
+    card.querySelectorAll(".m").forEach(function (m) {
+      var lab = ((m.querySelector(".ml") || {}).textContent || "").toLowerCase();
+      var raw = (m.querySelector(".mv") || {}).textContent || "";
+      if (lab.indexOf("queue") !== -1) out.queued = numOf(raw);
+      else if (lab.indexOf("profit") !== -1) out.profit = numOf(raw);
+      else if (lab.indexOf("w") !== -1) {
+        var bits = raw.match(/\d+/g) || [];
+        out.won = bits.length ? +bits[0] : null;
+        out.lost = bits.length > 1 ? +bits[1] : null;
+      }
+    });
+    return out;
+  }
+  function setFigure(el, text) {
+    if (!el) return;
+    if (el.dataset.apexShow === text) return;
+    el.dataset.apexShow = text;
+    el.textContent = text;
+    delete el.dataset.apexCounted;
+    delete el.dataset.apexCount;
+    delete el.dataset.apexLast;
+  }
+  function nextStart() {
+    var best = null;
+    doc.querySelectorAll(".cd[data-ts]").forEach(function (cd) {
+      var ts = +cd.dataset.ts;
+      if (!ts) return;
+      var ms = ts * 1000 - Date.now();
+      if (ms <= 0) return;
+      if (best == null || ms < best) best = ms;
+    });
+    if (best == null) return "\u2014";
+    var s = Math.round(best / 1000);
+    var d = Math.floor(s / 86400);
+    var h = Math.floor((s % 86400) / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    if (d) return d + "d " + h + "h";
+    if (h) return h + "h " + m + "m";
+    return m + "m";
+  }
+  function armHome() {
+    var ov = doc.getElementById("overview");
+    if (!ov || ov.hidden) return;
+    var cards = ov.querySelectorAll(".scard");
+    if (!cards.length) {
+      var old = ov.querySelector(".apex-hero");
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      return;
+    }
+    var profits = [];
+    var queuedN = 0;
+    var queuedKnown = false;
+    var won = 0;
+    var lost = 0;
+    cards.forEach(function (card, i) {
+      var st = cardStats(card);
+      if (st.profit != null) profits.push(st.profit);
+      if (st.queued != null) { queuedN += st.queued; queuedKnown = true; }
+      if (st.won != null) won += st.won;
+      if (st.lost != null) lost += st.lost;
+      if (!card.querySelector(".apex-mini") && (st.won != null || st.profit != null)) {
+        var series = [];
+        if (st.won != null) series.push(st.won);
+        if (st.lost != null) series.push(st.lost);
+        if (st.profit != null) series.push(Math.max(st.profit, 0));
+        if (series.length >= 2) card.appendChild(svgLine("apex-mini", series, 120, 36));
+      }
+      if (!card.querySelector(".apex-record") && st.won != null && st.lost != null && (st.won + st.lost) > 0) {
+        var rec = doc.createElement("div");
+        rec.className = "apex-record";
+        rec.setAttribute("aria-hidden", "true");
+        var total = st.won + st.lost;
+        rec.innerHTML = '<i class="apex-w" style="width:' + (st.won / total * 100).toFixed(1) + '%"></i><i class="apex-l" style="width:' + (st.lost / total * 100).toFixed(1) + '%"></i>';
+        card.appendChild(rec);
+      }
+      card.style.setProperty("--apex-i", String(i));
+      var grid = card.parentNode;
+      if (grid && grid.classList && grid.classList.contains("grid") && !grid.id) grid.id = "apex-servers";
+    });
+    var sum = profits.reduce(function (a, b) { return a + b; }, 0);
+    var hero = ov.querySelector(".apex-hero");
+    if (!hero) {
+      hero = doc.createElement("section");
+      hero.className = "apex-hero";
+      hero.setAttribute("aria-label", "Overview");
+      hero.innerHTML = '<p class="apex-kicker">Total profit</p><p class="apex-hero-num apex-display"></p><div class="apex-spark-slot"></div><div class="apex-facts"><div><b data-fact="queued"></b><span>Bets queued</span></div><div><b data-fact="live"></b><span>Live now</span></div><div><b data-fact="next"></b><span>Next start</span></div></div>';
+      var glowEl = ov.querySelector(".apex-glow");
+      if (glowEl && glowEl.nextSibling) ov.insertBefore(hero, glowEl.nextSibling);
+      else ov.insertBefore(hero, ov.firstChild);
+    }
+    var num = hero.querySelector(".apex-hero-num");
+    var text = profits.length ? fmtUnits(sum) : "\u2014";
+    if (num) {
+      num.classList.toggle("pos", sum > 0);
+      num.classList.toggle("neg", sum < 0);
+    }
+    setFigure(num, text);
+    var slot = hero.querySelector(".apex-spark-slot");
+    var running = [];
+    var acc = 0;
+    profits.forEach(function (p) { acc += p; running.push(acc); });
+    if (slot && running.length && slot.dataset.apexSpark !== running.join(",")) {
+      slot.dataset.apexSpark = running.join(",");
+      slot.textContent = "";
+      var spark = svgLine("apex-spark", running.length === 1 ? [running[0], running[0]] : running, 280, 72);
+      spark.setAttribute("role", "img");
+      spark.setAttribute("aria-label", "Units by server");
+      spark.removeAttribute("aria-hidden");
+      slot.appendChild(spark);
+    }
+    var liveN = doc.querySelectorAll(".cd.apex-live, .cd[data-live='1']").length;
+    var qEl = hero.querySelector('[data-fact="queued"]');
+    var lEl = hero.querySelector('[data-fact="live"]');
+    var nEl = hero.querySelector('[data-fact="next"]');
+    if (qEl) qEl.textContent = queuedKnown ? String(queuedN) : "\u2014";
+    if (lEl) lEl.textContent = String(liveN);
+    if (nEl) nEl.textContent = nextStart();
+    if (won || lost) hero.dataset.apexRecord = won + "-" + lost;
+  }
+  function armServerHero() {
+    var detail = doc.getElementById("detail");
+    if (!detail || detail.hidden) return;
+    var units = detail.querySelector('[data-sv="units"]') || detail.querySelector(".sv-big b");
+    var roi = detail.querySelector('[data-sv="roi"]');
+    var head = detail.querySelector(".dhead");
+    if (!units || !head) return;
+    var hero = head.querySelector(".apex-server-hero");
+    if (!hero) {
+      hero = doc.createElement("div");
+      hero.className = "apex-server-hero";
+      hero.innerHTML = '<p class="apex-kicker">Units</p><p class="apex-hero-num apex-display"></p><p class="apex-hero-roi"></p>';
+      head.appendChild(hero);
+    }
+    var num = hero.querySelector(".apex-hero-num");
+    var raw = (units.textContent || "").trim();
+    if (num) {
+      num.classList.toggle("pos", units.classList.contains("pos") || raw.charAt(0) === "+");
+      num.classList.toggle("neg", units.classList.contains("neg") || raw.charAt(0) === "-" || raw.charAt(0) === "\u2212");
+    }
+    setFigure(num, raw);
+    var roiEl = hero.querySelector(".apex-hero-roi");
+    if (roiEl) roiEl.textContent = roi ? ("ROI " + (roi.textContent || "").trim()) : "";
+  }
+  function placePill(sel) {
+    if (!sel) return;
+    var host = sel.previousElementSibling;
+    if (!host || !host.classList || !host.classList.contains("apex-seg")) return;
+    var pill = host.querySelector(".apex-seg-pill");
+    var buttons = host.querySelectorAll(".apex-seg-btn");
+    var current = null;
+    var i;
+    for (i = 0; i < buttons.length; i++) {
+      var on = buttons[i].dataset.value === sel.value;
+      buttons[i].setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) current = buttons[i];
+    }
+    if (!pill || !current) return;
+    pill.style.width = current.offsetWidth + "px";
+    pill.style.height = current.offsetHeight + "px";
+    pill.style.transform = "translate3d(" + current.offsetLeft + "px," + current.offsetTop + "px,0)";
+  }
+  function armPeriod() {
+    var sel = doc.getElementById("monthsel");
+    if (!sel || !sel.options || typeof sel.options.length !== "number") return;
+    if (sel.dataset.apexSeg === "1") { placePill(sel); return; }
+    sel.dataset.apexSeg = "1";
+    sel.classList.add("apex-native-period");
+    var seg = doc.createElement("div");
+    seg.className = "apex-seg";
+    seg.setAttribute("role", "tablist");
+    seg.setAttribute("aria-label", "Timeframe");
+    var pill = doc.createElement("i");
+    pill.className = "apex-seg-pill";
+    pill.setAttribute("aria-hidden", "true");
+    seg.appendChild(pill);
+    var i;
+    for (i = 0; i < sel.options.length; i++) {
+      (function (opt) {
+        var b = doc.createElement("button");
+        b.type = "button";
+        b.className = "apex-seg-btn";
+        b.textContent = opt.textContent;
+        b.dataset.value = opt.value;
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-pressed", opt.selected ? "true" : "false");
+        b.addEventListener("click", function () {
+          if (sel.value === b.dataset.value) return;
+          sel.value = b.dataset.value;
+          var ev;
+          try { ev = new root.Event("change", { bubbles: true }); }
+          catch (e) { ev = doc.createEvent("Event"); ev.initEvent("change", true, true); }
+          sel.dispatchEvent(ev);
+        });
+        seg.appendChild(b);
+      })(sel.options[i]);
+    }
+    sel.parentNode.insertBefore(seg, sel);
+    raf(function () { placePill(sel); });
+  }
+  function dayLabel(group) {
+    var cd = group.querySelector(".cd");
+    var ts = cd ? +cd.dataset.ts : 0;
+    if (!ts) return "Scheduled";
+    try {
+      return new Date(ts * 1000).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    } catch (e) { return "Scheduled"; }
+  }
+  function armDays(box) {
+    if (!box) return;
+    var groups = Array.prototype.slice.call(box.querySelectorAll(":scope > .game-group"));
+    var last = "";
+    groups.forEach(function (g) {
+      var label = dayLabel(g);
+      var prev = g.previousElementSibling;
+      if (prev && prev.classList && prev.classList.contains("apex-day")) {
+        if (label === last) { if (prev.parentNode) prev.parentNode.removeChild(prev); return; }
+        prev.textContent = label;
+        last = label;
+        return;
+      }
+      if (label === last) return;
+      var h = doc.createElement("div");
+      h.className = "apex-day";
+      h.textContent = label;
+      g.parentNode.insertBefore(h, g);
+      last = label;
+    });
+  }
+  function armLockups(scope) {
+    (scope || doc).querySelectorAll(".game-group").forEach(function (g) {
+      if (g.querySelector(".apex-lockup")) return;
+      var title = g.querySelector(".gtitle");
+      if (!title) return;
+      var parts = (title.textContent || "").trim().split(/\s+(?:vs\.?|v|@)\s+/i);
+      if (parts.length < 2) return;
+      var row = doc.createElement("div");
+      row.className = "apex-lockup";
+      row.setAttribute("aria-hidden", "true");
+      var a = doc.createElement("span");
+      a.className = "apex-logo";
+      a.textContent = initials(parts[0]);
+      var mid = doc.createElement("span");
+      mid.className = "apex-vs";
+      mid.textContent = "v";
+      var b = doc.createElement("span");
+      b.className = "apex-logo";
+      b.textContent = initials(parts[1]);
+      row.appendChild(a);
+      row.appendChild(mid);
+      row.appendChild(b);
+      title.parentNode.insertBefore(row, title);
+    });
+  }
+  function builderStep(box) {
+    var h1 = box.querySelector("h1");
+    var title = h1 ? (h1.textContent || "") : "";
+    if (/confirm|schedule batch/i.test(title)) return 3;
+    if (box.querySelector("#players, .linectl, #c_leg")) return 2;
+    if (box.querySelector(".gcard")) return box.dataset.apexSport === "1" ? 1 : 0;
+    if (box.querySelector(".compchip")) return 0;
+    return 0;
+  }
+  function armBuilder() {
+    var box = doc.getElementById("builder");
+    if (!box) return;
+    if (box.hidden) { delete box.dataset.apexSport; return; }
+    var step = builderStep(box);
+    if (box.dataset.apexStep !== String(step)) box.dataset.apexStep = String(step);
+    var sport = box.querySelector(".espnsport, .sportstub");
+    if (sport && sport.parentElement) sport.parentElement.classList.add("apex-sports");
+    var flow = box.querySelector(":scope > .apex-flow");
+    if (!flow) {
+      flow = doc.createElement("ol");
+      flow.className = "apex-flow";
+      ["Sport", "Game", "Market", "Confirm"].forEach(function (label, i) {
+        var li = doc.createElement("li");
+        li.dataset.step = String(i);
+        li.textContent = label;
+        flow.appendChild(li);
+      });
+      var bar = doc.createElement("i");
+      bar.className = "apex-flow-bar";
+      bar.setAttribute("aria-hidden", "true");
+      flow.appendChild(bar);
+      box.insertBefore(flow, box.firstChild);
+    }
+    var items = flow.querySelectorAll("li");
+    var i;
+    for (i = 0; i < items.length; i++) {
+      items[i].classList.toggle("is-on", i === step);
+      items[i].classList.toggle("is-done", i < step);
+    }
+    var barEl = flow.querySelector(".apex-flow-bar");
+    if (barEl) barEl.style.transform = "scaleX(" + ((step + 1) / 4) + ")";
+    var note = box.querySelector(":scope > .apex-step-note");
+    if (step === 0 && box.querySelector(".apex-sports")) {
+      if (!note) {
+        note = doc.createElement("p");
+        note.className = "apex-step-note";
+        note.textContent = "Pick a sport";
+        var sports = box.querySelector(".apex-sports");
+        if (sports && sports.parentNode) sports.parentNode.insertBefore(note, sports);
+      }
+    } else if (note && note.parentNode) note.parentNode.removeChild(note);
+  }
+
   function pass() {
     if (!active() || !doc.body) return;
     if (busy) { queued = true; return; }
     busy = true;
     try {
       syncTone();
+      mountShell();
+      namePages();
+      armHome();
+      armServerHero();
       placeGlow();
       markDisplay();
       armRise(doc);
@@ -397,6 +974,14 @@
       armRings();
       flipLists();
       markSteps();
+      armPeriod();
+      armDays(doc.getElementById("upcoming-box"));
+      armDays(doc.getElementById("live-tips-box"));
+      armDays(doc.getElementById("finished-box"));
+      armLockups(doc);
+      armBuilder();
+      paintNav();
+      flushPending();
       wireScroll();
     } finally {
       busy = false;
@@ -440,6 +1025,21 @@
       if (!doc.body) return;
       doc.documentElement.classList.toggle("apex-hidden", !!doc.hidden);
       doc.addEventListener("visibilitychange", onVis);
+      doc.addEventListener("click", function (ev) {
+        if (!active()) return;
+        var t = ev.target && ev.target.closest ? ev.target.closest("#builder .compchip, #builder .gcard") : null;
+        if (!t) return;
+        var box = doc.getElementById("builder");
+        if (box) {
+          box.dataset.apexSport = "1";
+          if (!queued) { queued = true; raf(function () { queued = false; pass(); }); }
+        }
+      }, true);
+      root.addEventListener("resize", function () {
+        if (!active()) return;
+        paintNav();
+        placePill(doc.getElementById("monthsel"));
+      });
       if (doc.body && root.MutationObserver) {
         var mo = new root.MutationObserver(function () {
           if (!queued) { queued = true; raf(function () { queued = false; pass(); }); }

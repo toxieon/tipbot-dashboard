@@ -102,4 +102,22 @@ test("apex motion is deferred and keeps a local choice the server dropped", () =
   assert.equal(typeof ctx.ApexTheme.boot, "function");
   assert.equal(ctx.ApexTheme.reduced(), false);
   ctx.ApexTheme.boot();
+  assert.match(js, /startViewTransition/);
+  assert.match(js, /IntersectionObserver/);
+  assert.match(css, /\.apex-rail/);
+  assert.match(css, /\.apex-tabs/);
+  assert.match(css, /apex-tab-build/);
+  assert.match(css, /\.apex-flow/);
+  assert.match(css, /\.apex-seg/);
+  assert.match(css, /\.graderow/);
+  assert.match(css, /\.apex-day/);
+});
+
+test("apex is the default when a visitor has not chosen a theme", () => {
+  for (const f of PAGES) {
+    const src = read(f);
+    assert.match(src, /APEX_DEFAULT=true/, f);
+    assert.match(src, /APEX_DEFAULT\?'apex':'navy'/, f);
+  }
+  assert.match(read("index.html"), /return savedOk\?saved:\(APEX_DEFAULT\?'apex':'navy'\)/);
 });

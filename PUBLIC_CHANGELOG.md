@@ -1,5 +1,9 @@
 # Tipdash
 
+## 0.51.1
+
+Apex is the layout new accounts open on. A side rail on a large screen and a tab bar on a phone replace the old top links. Home leads with total profit, a server reads as one story, upcoming and live group by day, and building a tip steps from sport to confirm. Navy, day and ochre stay available in Settings.
+
 ## 0.50.1
 
 Apex is a new appearance theme, with quieter space and motion you can choose in Settings.
