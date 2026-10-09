@@ -640,6 +640,8 @@
     if (picked === "servers" || picked === "home" || picked === "settings") return picked === "settings" ? "home" : picked;
     var ov = doc.getElementById("overview");
     if (ov && !ov.hidden) return "home";
+    var stats = doc.getElementById("stats");
+    if (stats && !stats.hidden) return "home";
     return picked || "home";
   }
   function buttonRow(items, extra) {

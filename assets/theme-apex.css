@@ -996,4 +996,18 @@ html[data-theme="apex"] .apex-flame-icon {
 /* 0.52.5: the tab indicator slide (with overshoot) stops under reduced motion. */
 @media (prefers-reduced-motion:reduce){
   html[data-theme="apex"] .apex-indicator{transition:none}
+  html[data-theme="apex"] .ds-win-btn{transition:none}
 }
+
+html[data-theme="apex"] #stats .ds-v,
+html[data-theme="apex"] #stats h1{
+  font-family:"Instrument Sans",Geist,system-ui,sans-serif;
+}
+html[data-theme="apex"] .ds-win{
+  background:var(--card);
+}
+html[data-theme="apex"] .ds-win-btn[aria-pressed="true"]{
+  background:var(--txt);
+  color:var(--bg);
+}
+html[data-theme="apex"] .home-stats-tile{margin-bottom:14px}
