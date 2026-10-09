@@ -1,5 +1,7 @@
 ## 0.52.4 · 2026-10-09 · Apex variants get the Apex shell
 
+- Added /logo-lab/ preview page with 4 animated logo concepts.
+
 - apex-light, apex-oled and apex-mono now render as `data-theme="apex"` plus `data-apex-variant` (light, oled, mono), so the tab bar, glow and animations apply. Saved names and TipBot theme prefs are unchanged.
 - The Apex tab indicator slide stops under reduced motion.
 
