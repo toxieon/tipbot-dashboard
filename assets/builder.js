@@ -200,8 +200,15 @@
     navNote("#/s/"+encodeURIComponent(guildId)+"/build", ()=>openBuilder(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
-    BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
+    const preserve = BUILD && String(BUILD.guildId) === String(guildId) && BUILD.legs && BUILD.legs.length > 0;
+    if(!preserve){
+      BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
+    }
     panel("builder");renderTray();renderBatchTray();
+    if(preserve && BUILD.game){
+      // Already rendered, just return
+      return;
+    }
     $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(guildId);};
     // players now come live from the AFL API (attached to each game); players.json

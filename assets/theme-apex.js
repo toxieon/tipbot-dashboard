@@ -465,7 +465,7 @@
     { id: "build", label: "Build", d: "M12 5v14M5 12h14" },
     { id: "settings", label: "Settings", d: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4-2.1-.6a6 6 0 0 0-.5-1.2l1.2-1.8-1.4-1.4-1.8 1.2a6 6 0 0 0-1.2-.5L12 4l-.6 2.1a6 6 0 0 0-1.2.5L8.4 5.4 7 6.8l1.2 1.8a6 6 0 0 0-.5 1.2L4 12l2.1.6a6 6 0 0 0 .5 1.2L5.4 15.6 6.8 17l1.8-1.2a6 6 0 0 0 1.2.5L12 20l.6-2.1a6 6 0 0 0 1.2-.5l1.8 1.2 1.4-1.4-1.2-1.8a6 6 0 0 0 .5-1.2z" }
   ];
-  var TABS = ["home", "upcoming", "build", "live", "settings"];
+  var TABS = ["home", "build", "upcoming"];
 
   function icon(d) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"></path></svg>';
@@ -571,9 +571,8 @@
         pending = "servers";
         pendingFired = false;
       } else if (id === "upcoming") {
-        var panel = doc.getElementById("upcoming-panel");
-        var detail = doc.getElementById("detail");
-        if (panel && detail && !detail.hidden) openPanel(panel);
+        var u = doc.getElementById("upcomingbtn");
+        if (u) u.click();
         else { pending = "upcoming"; pendingFired = false; }
       } else if (id === "build") {
         var b = doc.getElementById("buildbtn");
@@ -600,9 +599,8 @@
       return;
     }
     if (pending === "upcoming") {
-      var panel = doc.getElementById("upcoming-panel");
-      var detail = doc.getElementById("detail");
-      if (panel && detail && !detail.hidden) { pending = ""; openPanel(panel); return; }
+      var u = doc.getElementById("upcomingbtn");
+      if (u) { pending = ""; u.click(); picked = "upcoming"; return; }
       if (!pendingFired) {
         var card = doc.querySelector("#overview:not([hidden]) .scard");
         if (card) { pendingFired = true; card.click(); }
@@ -631,12 +629,10 @@
     if (livePath() && !onDash()) return "live";
     var builder = doc.getElementById("builder");
     if (builder && !builder.hidden) return "build";
+    var upc = doc.getElementById("upcoming");
+    if (upc && !upc.hidden) return "upcoming";
     var dd = doc.getElementById("dropdown");
     if (dd && !dd.hidden && picked === "settings") return "settings";
-    if (picked === "upcoming") {
-      var up = doc.getElementById("upcoming-panel");
-      if (up) return "upcoming";
-    }
     if (picked === "servers" || picked === "home" || picked === "settings") return picked === "settings" ? "home" : picked;
     var ov = doc.getElementById("overview");
     if (ov && !ov.hidden) return "home";

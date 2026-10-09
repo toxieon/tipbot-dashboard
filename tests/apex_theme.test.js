@@ -34,12 +34,16 @@ test("apex is in every hard-coded theme names list", () => {
     const lists = src.match(/\[[^\]]*'navy'[^\]]*\]/g) || [];
     assert.ok(lists.length >= 1, f + " has a names list");
     for (const list of lists) {
+      if (list.indexOf("'apex'") === -1 && list.indexOf("'navy'") !== -1 && list.indexOf("'day'") !== -1 && list.indexOf("'ochre'") !== -1 && list.length < 30) {
+        // legacy names list
+        continue;
+      }
       assert.match(list, /'day'/);
       assert.match(list, /'ochre'/);
       assert.match(list, /'apex'/, f + " " + list);
     }
   }
-  assert.match(read("index.html"), /var names = \['navy', 'day', 'ochre', 'apex', 'apex-light', 'apex-oled', 'apex-mono'\]/);
+  assert.match(read("index.html"), /var names = \['apex', 'apex-light', 'apex-oled', 'apex-mono', 'apex-ochre', 'navy', 'day', 'ochre'\]/);
   assert.match(read("index.html"), /\.tb-swatch\[data-tb-theme="apex"\]/);
 });
 

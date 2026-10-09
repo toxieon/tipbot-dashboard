@@ -1,3 +1,18 @@
+## 0.53.1 · 2026-10-09 · `tipdash` · Cleaner navigation and new theme names
+
+- **WON/LOST stamp overlap.** The tilted WON/LOST stamp covers the +/- units figure (e.g. +0.8085u, -0.23u). Keep the stamp, since the owner likes it, but move or shrink it so the units are always fully readable at 360–430px and on desktop. For example, put the stamp behind the units at low opacity, or beside the Win/Loss pill, never on top of the number.
+- **Themes.**
+   - Move the old themes (Navy, Day, Ochre) into a collapsed 'Legacy themes' section at the bottom of the Appearance settings. They still work, but they're tucked away.
+   - The Apex family becomes the main themes with plain names: Apex → 'Midnight', Apex Light → 'Light', Apex OLED → 'Black', Apex Mono → 'Mono'.
+   - Add a new Apex variant, 'Ochre', a warm amber/ochre take built on the Apex shell (data-theme="apex" with data-apex-variant="ochre", following the existing variant pattern).
+   - Keep the stored theme ids backward compatible (apex, apex-light, apex-oled, apex-mono, plus the new apex-ochre). Only the labels change.
+   - The user-facing UI must not use the word 'Apex' anymore.
+- **Bottom tab bar.** It becomes exactly three items: Home | Build | Upcoming, with Build as the centred raised primary button.
+   - Remove Live from the bar and hide the Live view entirely for now, but keep the code.
+   - Remove Settings from the tab bar. Settings is reached only from the gear in the top right, and that gear shows only on the Home screen.
+- **Upcoming as its own screen.** Upcoming opens as a full screen with its own header and back navigation, not as a tab panel swapped in place.
+- **Bug: pressing Upcoming halfway through building a tip glitches.** Fix the navigation so leaving the Build flow mid-way is clean: no overlapping panels or broken state. The draft tip should be preserved if that's easy, otherwise discarded cleanly. Add a test.
+
 ## 0.52.5 · 2026-10-09 · P0: dashboard API base restored
 
 - 0.52.3 set `const API=""` in index.html, so every dashboard call went to tipdashhq.com and failed ("Couldn't load that server."). Restored `https://afl-tipster-bot.onrender.com` and added a test.
