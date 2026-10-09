@@ -7,6 +7,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const S = require("../assets/sport-marks.js");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
+const VERSION = read("VERSION").trim().replace(/\./g, "\\.");
 const EMOJI = /🏉|🏈|🏀|⚽|⚾|🎾|🏏|🏇|⛳|🏒|🥊|➕/;
 
 test("every listed sport uses the shared mark", () => {
@@ -61,15 +62,15 @@ test("emoji strings live in the shared map, and each surface calls it", () => {
   ];
   pages.forEach((p) => assert.doesNotMatch(read(p), EMOJI, p));
   assert.match(read("assets/sport-marks.js"), EMOJI);
-  assert.match(read("index.html"), /assets\/sport-marks\.js\?v=0\.51\.1/);
+  assert.match(read("index.html"), new RegExp("assets/sport-marks\\.js\\?v=" + VERSION));
   assert.match(read("index.html"), /function sportLabel\(name\)/);
   assert.match(read("index.html"), /sportLabel\(sport\)/);
   assert.match(read("assets/builder.js"), /sportLabel\(/);
   assert.doesNotMatch(read("assets/builder.js"), /function sportLabel/);
   assert.match(read("assets/live-cards.js"), /sport-marks\.js/);
-  assert.match(read("live/index.html"), /assets\/sport-marks\.js\?v=0\.51\.1/);
-  assert.match(read("live/board/index.html"), /assets\/sport-marks\.js\?v=0\.51\.1/);
+  assert.match(read("live/index.html"), new RegExp("assets/sport-marks\\.js\\?v=" + VERSION));
+  assert.match(read("live/board/index.html"), new RegExp("assets/sport-marks\\.js\\?v=" + VERSION));
   assert.match(read("live/board/index.html"), /sportLabel\(s\)/);
   assert.match(read("assets/consensus-ui.js"), /sport-marks\.js/);
-  assert.match(read("master/index.html"), /assets\/sport-marks\.js\?v=0\.51\.1/);
+  assert.match(read("master/index.html"), new RegExp("assets/sport-marks\\.js\\?v=" + VERSION));
 });

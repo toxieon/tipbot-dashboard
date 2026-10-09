@@ -1,5 +1,13 @@
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
+## 0.51.2 · 2026-10-09 · `settings-drawer` · Settings panel on phones
+
+The settings menu was opening off the left edge of a phone when the header wrapped, so Appearance could not be reached. The server tier mark was a stretched box outside Apex.
+
+- On a phone the drawer is fixed to the viewport, at most the screen width, and it scrolls. The gear stays on the right. This applies in navy, day, ochre, and Apex.
+- The tier mark is a small pill in every theme.
+- Tests: `tests/settings_drawer.test.js`.
+
 ## 0.51.1 · 2026-10-08 · `apex` · Apex app shell
 
 Apex is the default for a new visitor (`APEX_DEFAULT`, on). Navy, day and ochre stay selectable. The same pages, data and actions remain.
