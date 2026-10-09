@@ -111,7 +111,12 @@ test("apex motion is deferred and keeps a local choice the server dropped", () =
   assert.match(css, /\.apex-rail/);
   assert.match(css, /\.apex-tabs/);
   assert.match(css, /apex-tab-build/);
-  assert.match(css, /\.apex-flow/);
+  const armB = js.slice(js.indexOf("function armBuilder()"), js.indexOf("function armEmptyStates"));
+  assert.doesNotMatch(armB, /createElement\("ol"\)/);
+  assert.doesNotMatch(armB, /Sport", "Game", "Market", "Confirm"/);
+  assert.match(js, /function builderStep\(/);
+  assert.match(js, /hasServerContext/);
+  assert.match(css, /data-apex-tabs="off"/);
   assert.match(css, /\.apex-seg/);
   assert.match(css, /\.graderow/);
   assert.match(css, /\.apex-day/);

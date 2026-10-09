@@ -1,3 +1,8 @@
+## Unreleased
+
+- **Build:** Removed the Sport / Game / Market / Confirm step bar in Apex (step logic unchanged). Build opens straight into Sports; Racing is on the Home tile and a **Racing** chip in the sports picker.
+- **Phone tabs:** Home | Build | Upcoming stay hidden until a server is selected; Build and Upcoming tab taps are ignored without server context.
+
 ## 0.54.3 · 2026-10-10 · `quality` · Tests and perf pass, no visual change
 
 - **Tests:** mocked flows for Upcoming `navRoute` / failed server load, leaving Build mid-flow (tray legs preserved), racing 503 unavailable copy, and theme persistence across all five Apex variants plus legacy navy/day/ochre (`tests/flows_mock.test.js`).

@@ -558,6 +558,7 @@
     } catch (e2) {}
   }
   function go(id) {
+    if ((id === "build" || id === "upcoming") && !hasServerContext()) return;
     picked = id;
     paintNav();
     if (!onDash()) {
@@ -634,6 +635,27 @@
     picked = go;
     if (go === "settings") clickSel("#gear");
   }
+  function hasServerContext() {
+    if (!onDash()) return true;
+    var ov = doc.getElementById("overview");
+    if (ov && !ov.hidden) return false;
+    var stats = doc.getElementById("stats");
+    if (stats && !stats.hidden) return false;
+    var discover = doc.getElementById("discover");
+    if (discover && !discover.hidden) return false;
+    var mytips = doc.getElementById("mytips");
+    if (mytips && !mytips.hidden) return false;
+    var followers = doc.getElementById("followers");
+    if (followers && !followers.hidden) return false;
+    var upc = doc.getElementById("upcoming");
+    if (upc && !upc.hidden && upc.querySelector(".dc-empty")) return false;
+    return true;
+  }
+  function syncPhoneTabs() {
+    if (!doc || !doc.documentElement || doc.documentElement.dataset.theme !== "apex") return;
+    if (hasServerContext()) delete doc.documentElement.dataset.apexTabs;
+    else doc.documentElement.dataset.apexTabs = "off";
+  }
   function sectionNow() {
     if (livePath() && !onDash()) return "live";
     var builder = doc.getElementById("builder");
@@ -699,6 +721,7 @@
     ind.style.transform = "translate3d(" + (r.left - nr.left) + "px," + (r.top - nr.top) + "px,0)";
   }
   function paintNav() {
+    syncPhoneTabs();
     var id = sectionNow();
     doc.querySelectorAll("[data-apex-nav]").forEach(function (btn) {
       var on = btn.getAttribute("data-apex-nav") === id;
@@ -1081,45 +1104,15 @@
   function armBuilder() {
     var box = doc.getElementById("builder");
     if (!box) return;
-    if (box.hidden) { delete box.dataset.apexSport; return; }
+    if (box.hidden) { delete box.dataset.apexSport; delete box.dataset.apexStep; return; }
     var step = builderStep(box);
     if (box.dataset.apexStep !== String(step)) box.dataset.apexStep = String(step);
     var sport = box.querySelector(".espnsport, .sportstub");
     if (sport && sport.parentElement) sport.parentElement.classList.add("apex-sports");
     var flow = box.querySelector(":scope > .apex-flow");
-    if (!flow) {
-      flow = doc.createElement("ol");
-      flow.className = "apex-flow";
-      ["Sport", "Game", "Market", "Confirm"].forEach(function (label, i) {
-        var li = doc.createElement("li");
-        li.dataset.step = String(i);
-        li.textContent = label;
-        flow.appendChild(li);
-      });
-      var bar = doc.createElement("i");
-      bar.className = "apex-flow-bar";
-      bar.setAttribute("aria-hidden", "true");
-      flow.appendChild(bar);
-      box.insertBefore(flow, box.firstChild);
-    }
-    var items = flow.querySelectorAll("li");
-    var i;
-    for (i = 0; i < items.length; i++) {
-      items[i].classList.toggle("is-on", i === step);
-      items[i].classList.toggle("is-done", i < step);
-    }
-    var barEl = flow.querySelector(".apex-flow-bar");
-    if (barEl) barEl.style.transform = "scaleX(" + ((step + 1) / 4) + ")";
+    if (flow && flow.parentNode) flow.parentNode.removeChild(flow);
     var note = box.querySelector(":scope > .apex-step-note");
-    if (step === 0 && box.querySelector(".apex-sports")) {
-      if (!note) {
-        note = doc.createElement("p");
-        note.className = "apex-step-note";
-        note.textContent = "Pick a sport";
-        var sports = box.querySelector(".apex-sports");
-        if (sports && sports.parentNode) sports.parentNode.insertBefore(note, sports);
-      }
-    } else if (note && note.parentNode) note.parentNode.removeChild(note);
+    if (note && note.parentNode) note.parentNode.removeChild(note);
   }
 
   function armEmptyStates(scope) {
@@ -1270,7 +1263,8 @@
     settledText: settledText,
     formStrip: formStrip,
     stamp: stamp,
-    armEmptyStates: armEmptyStates
+    armEmptyStates: armEmptyStates,
+    hasServerContext: hasServerContext
   };
   if (doc && doc.documentElement && doc.documentElement.dataset.theme === "apex") boot();
 })(typeof window !== "undefined" ? window : globalThis);
