@@ -183,11 +183,15 @@
   }
   function taggedTips(packs) {
     var out = [];
+    var seen = {};
     (packs || []).forEach(function (pack) {
       var server = pack.server || {};
       var name = server.display_name || server.name || "Server";
       var gid = String(server.guild_id || pack.guild_id || "");
       settledList(pack.detail || pack).forEach(function (t) {
+        var tid = t && t.tip_id != null && t.tip_id !== "" ? String(t.tip_id) : "";
+        if (tid && seen[tid]) return;
+        if (tid) seen[tid] = true;
         var copy = {};
         for (var k in t) if (Object.prototype.hasOwnProperty.call(t, k)) copy[k] = t[k];
         copy._server = name;
