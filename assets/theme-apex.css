@@ -925,3 +925,5 @@ html[data-theme="apex"] #builder[data-apex-step="0"] .gcards{display:none}
   ::view-transition-old(apex-page){animation:apex-out 220ms cubic-bezier(.22,1,.36,1) both}
   ::view-transition-new(apex-page){animation:apex-in 320ms cubic-bezier(.22,1,.36,1) both}
 }
+
+html[data-theme="apex"] #overview { overflow-x: clip; }

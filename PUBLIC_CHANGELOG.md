@@ -1,6 +1,10 @@
+## 0.52.1
+
+New theme options and accent colours.
+
 # Tipdash
 
-## 0.51.3
+## 0.52.1
 
 Minor fixes.
 

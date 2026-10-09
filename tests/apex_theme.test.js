@@ -39,7 +39,7 @@ test("apex is in every hard-coded theme names list", () => {
       assert.match(list, /'apex'/, f + " " + list);
     }
   }
-  assert.match(read("index.html"), /var names = \['navy', 'day', 'ochre', 'apex'\]/);
+  assert.match(read("index.html"), /var names = \['navy', 'day', 'ochre', 'apex', 'apex-light', 'apex-oled', 'apex-mono'\]/);
   assert.match(read("index.html"), /\.tb-swatch\[data-tb-theme="apex"\]/);
 });
 
