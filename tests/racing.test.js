@@ -83,7 +83,8 @@ test("Racing UI: meetings ask TipBot for category T or H plus today's date", () 
 test("Racing entry points: Home tile, deep links, and lazy placeholders", () => {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert.match(html, /function homeRacingTile\(srv\)/);
-  assert.match(html, /if\(list\.length\) ov\.appendChild\(homeRacingTile\(list\[0\]\)\);/);
+  assert.match(html, /function racingBuildServer\(/);
+  assert.match(html, /if\(racingSrv\) ov\.appendChild\(homeRacingTile\(racingSrv\)\);/);
   assert.match(html, /if\(m\[2\]==="build" && m\[3\]==="racing"\) return openRacingBuilder\(gid,nm\), true;/);
   // Racing views render inside #builder, which panel() already lists.
   const list = JSON.parse(html.match(/const panel=p=>\{for\(const x of (\[[^\]]*\])\)/)[1]);

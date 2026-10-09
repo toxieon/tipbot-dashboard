@@ -195,6 +195,34 @@ test("fixture totals match hand-computed numbers (7d / 30d / season)", () => {
   assert.deepEqual(season.streaks, { currentType: "W", currentN: 2, longestWin: 2 });
 });
 
+test("duplicate tip_id across admin and follower packs is counted once", () => {
+  const dup = {
+    tip_id: "shared",
+    status: "Settled",
+    result: "Win",
+    units: 1,
+    odds: 2,
+    profit_units: 1,
+    settled_at: "2026-10-08T04:00:00Z",
+    sport: "AFL",
+    bet_type: "H2H"
+  };
+  const admin = {
+    server: { guild_id: "G", display_name: "Mine" },
+    detail: { tips: { settled: [dup] } }
+  };
+  const follow = {
+    server: { guild_id: "G", display_name: "Mine" },
+    detail: { feed: [Object.assign({}, dup, { profit_units: 99 })] }
+  };
+  const tips = S.taggedTips([admin, follow]);
+  assert.equal(tips.length, 1);
+  assert.equal(tips[0].profit_units, 1);
+  const out = S.compute(tips, { window: "30", now: now });
+  assert.equal(out.count, 1);
+  assert.equal(out.units, 1);
+});
+
 test("a full 25-tip server list shows the sample-size note", () => {
   const full = { server: { guild_id: "A" }, detail: { tips: { settled: Array.from({ length: 25 }, (_, i) => tip({ tip_id: String(i) })) } } };
   const small = { server: { guild_id: "B" }, detail: { tips: { settled: [tip({})] } } };

@@ -1,3 +1,10 @@
+## 0.54.2 · 2026-10-10 · `home` · Home for everyone, Stats dedupe
+
+- **Home for everyone**: Single-server tipsters and follower-only users land on Home (not straight into server or follower detail), so the Racing next-to-go tile and Stats entry are always reachable.
+- **Home Racing tile**: Shown for every signed-in user with a community (managed server or follow); uses the first managed server for Build when present.
+- **Stats dedupe**: When you both run and follow the same server, settled tips are counted once by `tip_id`.
+- **Tests**: `tests/home.test.js` covers no auto-jump, the one-tap server card, Stats and Racing tiles for single-server users; Stats dedupe fixture.
+
 ## 0.54.1 · 2026-10-09 · `racing` · Gallops and harness, opening prices
 
 - **Chooser**: Build opens on Sports vs Racing, with a next-to-go strip. Countdown chips are computed client-side; racing APIs are not polled. The countdown stops itself once no badge is on screen.
