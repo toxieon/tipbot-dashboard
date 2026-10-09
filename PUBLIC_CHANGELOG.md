@@ -1,3 +1,7 @@
+## 0.54.4
+
+Home lists only your own communities.
+
 ## 0.54.3
 
 Faster, smoother loading on phones.
