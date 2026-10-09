@@ -1,6 +1,14 @@
+## 0.52.1
+
+- Add Apex Light, Apex OLED, and Apex Mono theme variants
+- Add Accent colour picker (Blue, Green, Orange, Crimson, Violet, Gold)
+- Add Follow System theme mode
+- Support short View Transitions on theme and accent changes
+- Fix horizontal scroll overflow on narrow screens caused by the Apex hero background glow
+
 # Changelog: toxieon/tipbot-dashboard (tipdash)
 
-## 0.51.3 · 2026-10-09 · `ext-fix` · Program-owner panel loads from the bot, not a public file
+## 0.52.1 · 2026-10-09 · `ext-fix` · Program-owner panel loads from the bot, not a public file
 
 `assets/ext.js` 404'd on the live site: `scripts/build-public.mjs` has always excluded it, so `window.TBOwner` (and the custom games controls) never loaded for the program owner. The file is now deleted from this repo — it's public on GitHub — and the companion endpoint `GET {API_BASE}/api/ops/ext.js` (TipBot, program-owner-only, 404 to everyone else, `Authorization: Bearer` session auth same as `/api/ops/ui.js`) replaces it.
 
