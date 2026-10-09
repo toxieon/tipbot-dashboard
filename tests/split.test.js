@@ -12,7 +12,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const HTML = read("index.html");
 const VERSION = read("VERSION").trim();
 const FILES = {builder: read("assets/builder.js"), admin: read("assets/admin.js")};
-const ENTRY = {builder: ["openBuilder", "openCustom"], admin: ["pasteSheetPreview", "pasteSheetConfirm", "pasteSheetTemplate"]};
+const ENTRY = {builder: ["openBuilder", "openCustom", "openRacingBuilder", "openSportsBuilder"], admin: ["pasteSheetPreview", "pasteSheetConfirm", "pasteSheetTemplate"]};
 
 // Stand-in for the program-owner panel TipBot serves at GET /api/ops/ext.js
 // (program-owner-only; this repo never ships that file). Just enough of the
@@ -256,6 +256,37 @@ const BODIES = [
     competitions: [{competitors: [{homeAway: "home", team: {id: "11", displayName: "Indiana Pacers"}},
       {homeAway: "away", team: {id: "25", displayName: "Oklahoma City Thunder"}}]}]}]}],
   ["/api/owner/import-tips", {ok: true, dry_run: true, tips: [], errors: [], summary: {tips: 0}}],
+  ["/api/racing/next", {ok: true, races: [
+    {id: "evt-t-open", race_number: 8, name: "Kensington Stakes", start_time: "2099-01-01T03:00:00Z", distance: 1200, track_condition: "Good 4", status: "Open", category: "T", meeting: {name: "Randwick", category: "T"}},
+    {id: "evt-h-open", race_number: 3, name: "Pace", start_time: "2099-01-01T02:00:00Z", distance: 1609, track_condition: "Fast", status: "Open", category: "H", meeting: {name: "Menangle", category: "H"}},
+    {id: "evt-g", race_number: 1, name: "Greys", start_time: "2099-01-01T01:00:00Z", distance: 380, category: "G", meeting: {name: "Townsville", category: "G"}},
+  ]}],
+  ["/api/racing/meetings?category=T", {ok: true, category: "T", meetings: [
+    {id: "mtg-t", name: "Randwick", category: "T", races: [{id: "evt-t-open", race_number: 8, name: "Kensington Stakes"}]},
+  ]}],
+  ["/api/racing/meetings?category=H", {ok: true, category: "H", meetings: [
+    {id: "mtg-h", name: "Menangle", category: "H", races: [{id: "evt-h-open", race_number: 3, name: "Pace"}]},
+  ]}],
+  ["/api/racing/meetings", {data: {meetings: [
+    {meeting: "mtg-t", id: "mtg-t", name: "Randwick", category: "T", races: [{id: "evt-t-open", race_number: 8, name: "Kensington Stakes"}]},
+    {meeting: "mtg-h", id: "mtg-h", name: "Menangle", category: "H", races: [{id: "evt-h-open", race_number: 3, name: "Pace"}]},
+    {meeting: "mtg-g", id: "mtg-g", name: "Townsville", category: "G", races: []},
+  ]}}],
+  ["/api/racing/meeting/mtg-t", {data: {meeting: {meeting: "mtg-t", id: "mtg-t", name: "Randwick", category: "T", races: [
+    {id: "evt-t-open", race_number: 8, name: "Kensington Stakes", distance: 1200},
+    {id: "evt-t-final", race_number: 4, name: "Handicap", distance: 1400},
+  ]}}}],
+  ["/api/racing/event/evt-t-open", {ok: true, event: {id: "evt-t-open", race_number: 8, name: "Kensington Stakes", start_time: "2099-01-01T03:00:00Z", distance: 1200, track_condition: "Good 4", status: "Open", category: "T", runners: [
+    {id: "r1", number: 1, name: "Absconding", jockey_or_driver: "J. McDonald", barrier: 5, fixed: {win: 2.4, place: 1.25}, scratched: false},
+  ]}}],
+  ["/api/racing/event/evt-h-open", {ok: true, event: {id: "evt-h-open", race_number: 3, name: "Pace", start_time: "2099-01-01T02:00:00Z", distance: 1609, track_condition: "Fast", status: "Open", category: "H", runners: [
+    {id: "h1", number: 1, name: "Captain Crunch", jockey_or_driver: "L. McCarthy", barrier: 1, fixed: {win: 3.1, place: 1.45}, scratched: false},
+  ]}}],
+  ["/api/racing/event/evt-t-final", {ok: true, event: {id: "evt-t-final", race_number: 4, name: "Handicap", status: "Final", category: "T", runners: [
+    {id: "r1", number: 1, name: "Absconding", fixed: {win: 2.4, place: 1.25}},
+    {id: "r2", number: 2, name: "Second Best", fixed: {win: 5, place: 1.9}},
+  ], results: [{runner_id: "r2", position: 1}, {runner_id: "r1", position: 2}],
+    dividends: [{type: "win", runner_id: "r2", amount: 4.8}, {type: "place", runner_id: "r2", amount: 1.7}, {type: "place", runner_id: "r1", amount: 1.3}]}}],
 ];
 const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
 const lazyFetches = (ctx) => ctx.fetched.filter((u) => /assets\/(builder|admin)\.js/.test(u));
@@ -273,6 +304,58 @@ test("smoke (mocked API): home and a server open without the lazy files; each pa
   await tick(40);
   assert.deepEqual(lazyFetches(ctx), ["./assets/builder.js?v=" + VERSION]);
   assert.equal(ctx.byId("builder").hidden, false);
+  assert.match(ctx.byId("builder").innerHTML, /Ready to build/);
+  assert.match(ctx.byId("builder").innerHTML, /Sports/);
+  assert.match(ctx.byId("builder").innerHTML, /Racing/);
+  assert.match(ctx.byId("builder").innerHTML, /Gallops/);
+  assert.match(ctx.byId("builder").innerHTML, /Next to go/);
+  await tick(40);
+  assert.match(ctx.byId("next-to-go-list").innerHTML, /Randwick/);
+  assert.match(ctx.byId("next-to-go-list").innerHTML, /Menangle/);
+  assert.doesNotMatch(ctx.byId("next-to-go-list").innerHTML, /Townsville|Greys/);
+
+  await vm.runInContext(`openRacingBuilder("${GID}","Toxieon-Tipping")`, ctx);
+  await tick(40);
+  assert.match(ctx.byId("builder").innerHTML, /Gallops/);
+  assert.match(ctx.byId("builder").innerHTML, /Harness/);
+  assert.doesNotMatch(ctx.byId("builder").innerHTML, /Greys/);
+  assert.match(ctx.byId("racing-meetings-list").innerHTML, /Randwick/);
+  assert.match(ctx.byId("racing-meetings-list").innerHTML, /Menangle/);
+  assert.doesNotMatch(ctx.byId("racing-meetings-list").innerHTML, /Townsville/);
+
+  await vm.runInContext(`openRaceEvent("evt-t-open","T","Randwick")`, ctx);
+  await tick(40);
+  assert.match(ctx.byId("builder").innerHTML, /id="race-app"/);
+  assert.doesNotMatch(ctx.byId("builder").innerHTML, /no-hero/);
+  assert.match(ctx.byId("builder").innerHTML, /class="hero"/);
+  assert.match(ctx.byId("race-card-main").innerHTML, /Opening/);
+  assert.match(ctx.byId("race-card-main").innerHTML, />Win</);
+  assert.match(ctx.byId("race-card-main").innerHTML, /Absconding/);
+  assert.match(ctx.byId("race-card-main").innerHTML, /J: J\. McDonald/);
+  assert.match(ctx.byId("race-card-main").innerHTML, />2\.40<\/span><span class="odds">1\.25</);
+  assert.doesNotMatch(ctx.byId("builder").innerHTML + ctx.byId("race-card-main").innerHTML, /flucs/i);
+
+  await vm.runInContext(`openRaceEvent("evt-h-open","H","Menangle")`, ctx);
+  await tick(40);
+  assert.match(ctx.byId("builder").innerHTML, /no-hero/);
+  assert.doesNotMatch(ctx.byId("builder").innerHTML, /class="hero"/);
+  assert.match(ctx.byId("race-card-main").innerHTML, /Captain Crunch/);
+  assert.match(ctx.byId("race-card-main").innerHTML, /D: L\. McCarthy/);
+
+  await vm.runInContext(`openRaceEvent("evt-t-final","T","Randwick")`, ctx);
+  await tick(40);
+  const fin = ctx.byId("race-card-main").innerHTML;
+  assert.match(fin, /Placings/);
+  assert.ok(fin.indexOf("Second Best") < fin.indexOf("Absconding"), "placings follow results[].position");
+  assert.match(fin, />4\.8</);
+  assert.match(fin, />1\.3</);
+
+  await vm.runInContext(`openRaceEvent("evt-g","G","Townsville")`, ctx);
+  await tick(20);
+  assert.match(ctx.byId("builder").innerHTML, /Greyhounds aren't listed/);
+
+  await vm.runInContext(`openSportsBuilder("${GID}","Toxieon-Tipping")`, ctx);
+  await tick(40);
   assert.match(ctx.byId("builder").innerHTML, /Build a tip/);
   assert.match(ctx.byId("builder").innerHTML, /🏉 AFL/);
   assert.match(ctx.byId("builder").innerHTML, /🏈 NFL/);

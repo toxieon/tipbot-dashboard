@@ -1,3 +1,16 @@
+## 0.54.1 · 2026-10-09 · `racing` · Gallops and harness, opening prices
+
+- **Chooser**: Build opens on Sports vs Racing, with a next-to-go strip. Countdown chips are computed client-side; racing APIs are not polled. The countdown stops itself once no badge is on screen.
+- **Home Racing tile** (Cinna's design): a small next-to-go strip (start times, one read, no polling) for anyone who manages a server; tapping it opens Racing in Build. Deep links `#/s/<gid>/build/racing` and `/build/sports` route.
+- **Gallops & harness only**: Categories T and H. Greyhounds (G) are excluded — TipBot returns 400 and the UI says so.
+- **Opening prices**: Race-card odds are labelled Opening and read from TipBot's `runner.fixed` (the opening price it captures once). Tips lock to the opening win. No flucs sparkline and no live-odds refresh.
+- **Hero**: Galloping horse on thoroughbred (T) race cards only. Harness has no hero. Reduced motion skips the open animation.
+- **Results**: Placings and win/place dividends show after the race is final, from TipBot's `results` / `dividends` lists.
+- **Unavailable state**: while the feed is off (`/api/racing/*` 503) the strip, meetings and race cards say "Racing data is currently unavailable. Please try again later." and Home says "Racing is unavailable right now."
+- Review fixes against TipBot 0.58.1: meetings now send `category=T|H&date=<Sydney today>` (All = both, merged; it 400'd before), race cards read `{event}` (not `{race}`), jockey/driver read `jockey_or_driver`, next-to-go no longer prints a bare "m" with no distance, and opening Sports keeps legs already in the tray (the 0.53.x preserve rule).
+
+Tests: `tests/racing.test.js`, plus the `tests/split.test.js` smoke now uses TipBot's real payload shapes (incl. a final race with results and dividends).
+
 ## 0.53.4 · 2026-10-09 · Home Stats screen
 
 - **Stats screen.** A new Home Stats view (`#/stats`) with 7d / 30d / season units and ROI, a handwritten cumulative-units line, win rate by sport, best and worst markets, current and longest streaks, average odds, a monthly bar chart, and a per-server breakdown. Figures are computed in the browser from the `/api/server` and `/api/follower` payloads the dashboard already loads — no new endpoints.

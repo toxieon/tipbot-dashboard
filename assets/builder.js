@@ -196,9 +196,11 @@
   }
 
   /* ---------- BUILDER ---------- */
-  async function openBuilder(guildId,name){
+  
+  async function openBuilder(guildId, name) {
     navNote("#/s/"+encodeURIComponent(guildId)+"/build", ()=>openBuilder(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     const preserve = BUILD && String(BUILD.guildId) === String(guildId) && BUILD.legs && BUILD.legs.length > 0;
     if(!preserve){
@@ -209,8 +211,50 @@
       // Already rendered, just return
       return;
     }
-    $("builder").innerHTML='<div class="back" id="bx">← Back to '+(name||"server")+'</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
+    
+    let html = '<div class="back" id="bx">← Back to ' + esc(name||"server") + '</div>'
+      + '<div class="race-eyebrow" style="margin-top:16px;font-size:var(--t-cap);font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)">Welcome back</div>'
+      + '<h1 style="margin:0 0 24px;font-size:var(--t-h1);font-weight:700;letter-spacing:-0.025em">Ready to build.</h1>'
+      + '<div style="display:flex;gap:12px;margin-bottom:32px">'
+      + '<div id="tile-sports" style="flex:1;background:var(--surface,var(--card));border:1px solid var(--hairline,var(--line));border-radius:16px;padding:16px;cursor:pointer">'
+      + '<div style="width:32px;height:32px;border-radius:8px;background:transparent;border:1px solid var(--hairline,var(--line));display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>'
+      + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">Sports</div>'
+      + '<div style="font-size:var(--t-foot);color:var(--muted)">AFL, NRL, NBA &amp; more</div>'
+      + '</div>'
+      + '<div id="tile-racing" style="flex:1;background:var(--surface,var(--card));border:1px solid var(--hairline,var(--line));border-radius:16px;padding:16px;cursor:pointer">'
+      + '<div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;margin-bottom:12px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg></div>'
+      + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">Racing</div>'
+      + '<div style="font-size:var(--t-foot);color:var(--muted)">Gallops &amp; harness</div>'
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+      + '<h2 style="margin:0;font-size:var(--t-h2);font-weight:700;letter-spacing:-0.02em">Next to go</h2>'
+      + '</div>'
+      + '<div id="next-to-go-list">' + NDSkeleton.grid(3,{cols:1,tile:"72px"}) + '</div>'
+      + '<div class="rg" style="text-align:center;color:var(--muted);font-size:var(--t-cap);font-weight:500;margin-top:32px;padding-bottom:32px">18+ &middot; Gamble responsibly</div>';
+      
+    $("builder").innerHTML = html;
     $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(guildId);};
+    
+    $("tile-sports").onclick = () => openSportsBuilder(guildId, name);
+    $("tile-racing").onclick = () => openRacingBuilder(guildId, name);
+    
+    loadNextToGo();
+  }
+
+  async function openSportsBuilder(guildId,name){
+    navNote("#/s/"+encodeURIComponent(guildId)+"/build/sports", ()=>openSportsBuilder(guildId,name));
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
+    if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
+    // Keep legs already in the tray for this server (same rule as openBuilder).
+    const keepLegs = BUILD && String(BUILD.guildId) === String(guildId) && BUILD.legs && BUILD.legs.length > 0;
+    if(!keepLegs){
+      BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
+    }else{ BUILD.game=null; }
+    panel("builder");renderTray();renderBatchTray();
+    $("builder").innerHTML='<div class="back" id="bx">← Back to Ready to build</div><h1 style="margin:0 0 16px">Build a tip</h1>'+NDSkeleton.grid(6,{cols:3,tile:"92px"});
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openBuilder(guildId, name);};
     // players now come live from the AFL API (attached to each game); players.json
     // is only a silent fallback for a team the roster feed couldn't match.
     // 0.40.3: players.json, bookies.json and /api/fixtures load in parallel
@@ -458,9 +502,9 @@
       }).join("")+'</div>';
     }
     $("builder").innerHTML=html;
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
-    const ba=$("espnbackafl"); if(ba)ba.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
-    const ac=$("espnaflchip"); if(ac)ac.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openSportsBuilder(BUILD.guildId, BUILD.serverName);};
+    const ba=$("espnbackafl"); if(ba)ba.onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
+    const ac=$("espnaflchip"); if(ac)ac.onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
     const rr=$("espnrefresh"); if(rr)rr.onclick=()=>loadEspnScoreboard(false);
     $("builder").querySelectorAll(".espnsport").forEach(b=>b.onclick=()=>{ if(b.dataset.league!==BUILD.espnLeague) openEspnBuilder(BUILD.guildId,BUILD.serverName,b.dataset.league); });
     $("builder").querySelectorAll(".sportstub").forEach(b=>b.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName,b.dataset.s));
@@ -650,6 +694,7 @@
   function openCustom(guildId,name,presetSport){
     navNote("#/s/"+encodeURIComponent(guildId)+"/build/custom", ()=>openCustom(guildId,name,presetSport));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",customStartDay:"",unitSize:guildUnitSize(guildId),autoLines:false};
     panel("builder");renderTray();renderBatchTray();
@@ -666,7 +711,7 @@
       +'<div class="field"><label>Start day (optional)</label><input id="c_start" type="date" value="'+esc(BUILD.customStartDay||"")+'"><div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">When the event tips off — sent as <code>start_date</code> when TipBot supports it.</div></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. LeBron James 25+ points" style="flex:1"><button class="btn sm" id="c_add">Add</button></div><div style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">Add one line per leg. They collect in the tray below — then hit Review.</div></div>'
       +'</div>';
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openBuilder(BUILD.guildId, BUILD.serverName);};
     const ev=$("c_event"); if(ev)ev.oninput=()=>{BUILD.customEvent=ev.value;saveMultiDraft();};
     const sp=$("c_sport"); if(sp)sp.oninput=()=>{BUILD.customSport=sp.value;saveMultiDraft();};
     const sd=$("c_start"); if(sd)sd.onchange=()=>{BUILD.customStartDay=sd.value||"";saveMultiDraft();};
@@ -687,7 +732,7 @@
     const comps=[]; games.forEach(g=>{const c=gameComp(g); if(!comps.includes(c))comps.push(c);});
     const hasMulti=comps.length>1;
     if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
-    let html='<div class="back" id="bx">← Back to '+(BUILD.serverName||"server")+'</div>'
+    let html='<div class="back" id="bx">← Back to Ready to build</div>'
       +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px"><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
       +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     // Sport switcher: AFL live · NFL/NBA/WNBA via TipBot ESPN · stubs → custom.
@@ -719,8 +764,8 @@
         +'<div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
-    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();loadDetail(BUILD.guildId);};
-    const rg=$("refreshgames"); if(rg)rg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+    $("bx").onclick=()=>{$("tray").hidden=true;renderBatchTray();openBuilder(BUILD.guildId, BUILD.serverName);};
+    const rg=$("refreshgames"); if(rg)rg.onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
     const cg=$("customgames"); if(cg)cg.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName);
     $("builder").querySelectorAll(".compchip[data-c]").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
     $("builder").querySelectorAll(".sportstub").forEach(b=>b.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName,b.dataset.s));
@@ -737,7 +782,7 @@
     // 6.1c: the games list has no players; fetch only this game's (cached per game).
     if(TBLight.needsRoster(g)){
       $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="panel"><div class="empty">Loading players…</div></div>';
-      const bg=$("bg"); if(bg) bg.onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+      const bg=$("bg"); if(bg) bg.onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
       try{ await TBLight.loadRoster(g, function(p){ return sharedGet(p,120000); }); }
       catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); }
       if(BUILD.game!==g) return;
@@ -799,7 +844,7 @@
       +'</div>'
       +(!MARKETS[BUILD.tab]?'<div class="panel" id="compare-panel" data-sec="builder-compare"><h3>Compare</h3><div id="compare-body"></div></div>':'')
       +'<div id="players"></div>';
-    $("bg").onclick=()=>openBuilder(BUILD.guildId,BUILD.serverName);
+    $("bg").onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
     { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
     const rl=$("refreshlive"); if(rl)rl.onclick=()=>refreshLive(g);
     $("builder").querySelectorAll(".tab").forEach(t=>t.onclick=()=>{BUILD.tab=t.dataset.t;saveMultiDraft();renderGame();});
@@ -1712,4 +1757,425 @@
     BUILD.compareCache={key:key, view:view};
     paintCompareFromView(view);
   }
+
+  const RACING_HERO_HTML = '  <section class="hero" aria-label="Race 8 preview animation" role="img">\n    <div class="glow"></div>\n    <div class="eyebrow"><span><b>R8</b> · 1200m · Good 4</span><span>Kensington Stakes</span></div>\n    <div class="rail"><div class="strip"></div></div>\n    <div class="marker"><div><span>400</span><i></i></div></div>\n    <div class="turf"><div class="strip"></div></div>\n    <div class="speed"><i></i><i></i><i></i><i></i></div>\n    <div class="shadow"><i></i></div>\n    <div class="horse"><div class="win"><div class="sprite"><svg viewBox="-60 -14 2760 300" preserveAspectRatio="xMinYMin meet" aria-hidden="true"><defs><linearGradient id="coat" x1="0" y1="20" x2="0" y2="280" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="var(--horse-top)"/><stop offset="1" stop-color="var(--horse-bot)"/></linearGradient></defs><g transform="translate(0 0)"><g class="pose" data-pose="1" transform="translate(0 -9) rotate(-1.5 200 110)"><g class="h-far"><path d="M108.2 134.4L127.7 152.9A16 16 0 0 0 152 132.5L137.2 110.2A19 19 0 0 0 108.2 134.4Z"/><path d="M123.2 145.3L137.7 202.9A7.8 7.8 0 0 0 153 201.2L154.7 141.8A16 16 0 0 0 123.2 145.3Z"/><path d="M151.2 204.4L154.9 197.7A4.4 4.4 0 0 0 149.2 191.6L142.3 194.9A6.8 6.8 0 0 0 151.2 204.4Z"/><path d="M140.2 205.3L176.3 248A5.4 5.4 0 0 0 184.7 241.2L150.5 197A6.6 6.6 0 0 0 140.2 205.3Z"/><path d="M173.6 244.5a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M175.1 246.1L180.3 263.4A4.6 4.6 0 0 0 189.2 261.2L186 243.5A5.6 5.6 0 0 0 175.1 246.1Z"/><path d="M189.7 260.8L193.8 270.1L181.7 270.2L180.2 263.1Z"/><path d="M232.9 127.6L223.4 149.7A13 13 0 0 0 246.3 161.9L259.3 141.6A15 15 0 0 0 232.9 127.6Z"/><path d="M225.9 164.5L265.7 203.4A7.2 7.2 0 0 0 276.8 194.4L246.7 147.6A13.5 13.5 0 0 0 225.9 164.5Z"/><path d="M263.3 198.3a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M265.7 195L240.4 233.3A5.2 5.2 0 0 0 248.9 239.2L275.6 201.7A6 6 0 0 0 265.7 195Z"/><path d="M237.8 236.2a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M245.7 230.7L229 227.7A4.6 4.6 0 0 0 226.8 236.6L243.1 241.6A5.6 5.6 0 0 0 245.7 230.7Z"/><path d="M227 237.3L216.8 236.7L222.3 225.9L229.3 227.8Z"/><path d="M319 32C320 27.3 320.5 22 322 18C323.5 14 326 11.3 328 8C329 12.3 330 16.7 331 21C332 25.3 333 29.7 334 34C329 33.3 324 32.7 319 32Z"/></g><path class="h-body" d="M61 75.6C57.4 73.5 48.3 74.8 41.4 76.2C34.5 77.6 26.7 80.8 19.6 84.1C12.6 87.3 5.7 92.3 -1.1 95.5C-7.8 98.8 -14.3 101.5 -20.8 103.7C-27.3 105.8 -33.6 106.8 -40 108.4C-40 109.2 -43.5 109.6 -40 110.8C-36.5 112 -26.7 115.3 -19.2 115.5C-11.7 115.8 -2.9 114.5 5.1 112.5C13 110.4 21.4 106.3 28.4 103.1C35.3 100 40.9 95.9 46.6 93.4C52.4 91 60.6 91.4 63 88.4C65.4 85.5 64.6 77.6 61 75.6Z"/><g class="h-body"><path d="M60 80C65.3 73.8 76.7 65.2 88 63C99.3 60.8 115 65.2 128 67C141 68.8 154.3 73.8 166 74C177.7 74.2 188.7 70.8 198 68C207.3 65.2 212.7 60.5 222 57C231.3 53.5 243.2 51 254 47C264.8 43 277.8 36.7 287 33C296.2 29.3 304.2 26 309 25C313.8 24 313.7 26.3 316 27C322 28.7 328 28.2 334 32C340 35.8 346.3 43.3 352 50C357.7 56.7 363.3 65.3 368 72C372.7 78.7 377.8 85.5 380 90C382.2 94.5 382.5 96.7 381 99C379.5 101.3 375.2 104.2 371 104C366.8 103.8 361.2 100.7 356 98C350.8 95.3 345 91.8 340 88C335 84.2 331 75.8 326 75C321 74.2 316.2 79 310 83C303.8 87 295.8 93.5 289 99C282.2 104.5 274 109.8 269 116C264 122.2 262.8 130 259 136C255.2 142 253.2 148 246 152C238.8 156 227 159.2 216 160C205 160.8 191.3 158.7 180 157C168.7 155.3 157.3 152.5 148 150C138.7 147.5 132.7 144.7 124 142C115.3 139.3 105.3 137.7 96 134C86.7 130.3 74.7 125.7 68 120C61.3 114.3 57.3 106.7 56 100C54.7 93.3 54.7 86.2 60 80Z"/><path d="M312 30C312.3 25.3 312.2 20.3 313 16C313.8 11.7 315.7 8 317 4C319 8.3 321.2 12.5 323 17C324.8 21.5 326.3 26.3 328 31C322.7 30.7 317.3 30.3 312 30Z"/><path d="M88 121.8L130.8 153.2A17 17 0 0 0 155.2 130.4L126.8 85.6A27 27 0 0 0 88 121.8Z"/><path d="M127 147.6L157.1 198.9A7.8 7.8 0 0 0 171.3 193L156.3 135.4A16 16 0 0 0 127 147.6Z"/><path d="M170.4 196.5L172.1 189A4.4 4.4 0 0 0 164.9 184.8L159.2 189.9A6.8 6.8 0 0 0 170.4 196.5Z"/><path d="M158.9 199.4L196.7 240.7A5.4 5.4 0 0 0 204.8 233.6L168.8 190.7A6.6 6.6 0 0 0 158.9 199.4Z"/><path d="M193.8 237.1a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M195.7 239.6L203.7 255.6A4.6 4.6 0 0 0 212.2 252L205.9 235.1A5.6 5.6 0 0 0 195.7 239.6Z"/><path d="M212.6 251.5L218.3 259.9L206.3 262.1L203.6 255.4Z"/><path d="M236.9 107.2L218.7 146.6A14 14 0 0 0 241.6 162.1L271.3 130.4A21 21 0 0 0 236.9 107.2Z"/><path d="M221.4 161.5L258.6 202.8A7.2 7.2 0 0 0 270.3 194.5L243.2 145.9A13.5 13.5 0 0 0 221.4 161.5Z"/><path d="M256.6 198a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M260 193.5L225.5 223.9A5.2 5.2 0 0 0 232.2 231.8L267.8 202.7A6 6 0 0 0 260 193.5Z"/><path d="M222 227.8a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M232.9 223.8L220.9 211.8A4.6 4.6 0 0 0 214 217.9L224.5 231.3A5.6 5.6 0 0 0 232.9 223.8Z"/><path d="M213.8 218.5L205.8 212.2L216.5 206.5L221.1 212Z"/></g><path class="h-cut" d="M341 51.5c2.6-2.2 6.4-2.2 8.4.4c-2.6 1.6-6 1.6-8.4-.4Z"/><path class="h-cut" d="M371.5 86.5c1.6-1.2 3.6-.6 4.2 1c-1.6.6-3.2.4-4.2-1Z"/><path class="h-tack" d="M332 40C340 60 352 80 362 98M357 89c3 6 7 10 12 12M336 42c4-6 9-9 14-9"/><path class="h-rein" d="M275 55.2C315 73.2 326 87 372 93"/><path class="h-cloth" d="M170 72C176 66.8 197.3 70 204 70C210.7 70 208 71.3 210 72C209.3 81.3 213.7 94.7 208 100C202.3 105.3 182.7 103.8 176 104C169.3 104.2 170.7 102 168 101C168.7 91.3 164 77.2 170 72Z"/><text class="h-num" x="189" y="96" text-anchor="middle">2</text><path class="h-iron" d="M208 99.5L223 99.5M212 99L201 73"/><g class="j-halo"><path d="M242 55.8L197.5 32.5A11.8 11.8 0 0 0 187.9 54.1L235 71.5A8.6 8.6 0 0 0 242 55.8Z"/><path d="M232.4 58.6L223.3 69.3A6.4 6.4 0 0 0 232.5 78.2L242.9 68.9A7.4 7.4 0 0 0 232.4 58.6Z"/><path d="M224.8 67.7L207.2 87.7A5 5 0 0 0 214.4 94.7L233.9 76.7A6.4 6.4 0 0 0 224.8 67.7Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 55.2a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/><path d="M194.6 55.2L241.1 45.2A14.5 14.5 0 0 0 233.8 17.1L188.3 31A12.5 12.5 0 0 0 194.6 55.2Z"/><path d="M235.4 37.2L249.2 52.1A5.2 5.2 0 0 0 257.2 45.5L245 29.3A6.2 6.2 0 0 0 235.4 37.2Z"/><path d="M251.7 53.4L273.9 59.3A4.2 4.2 0 0 0 276.3 51.2L254.6 43.9A5 5 0 0 0 251.7 53.4Z"/><path d="M247.6 21a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 25L271.6 24.5A2 2 0 0 0 272.7 20.9L263.6 14.2A6 6 0 0 0 260.3 25Z"/></g><g class="j-breeches"><path d="M242 55.8L197.5 32.5A11.8 11.8 0 0 0 187.9 54.1L235 71.5A8.6 8.6 0 0 0 242 55.8Z"/><path d="M232.4 58.6L223.3 69.3A6.4 6.4 0 0 0 232.5 78.2L242.9 68.9A7.4 7.4 0 0 0 232.4 58.6Z"/></g><g class="j-dark"><path d="M224.8 67.7L207.2 87.7A5 5 0 0 0 214.4 94.7L233.9 76.7A6.4 6.4 0 0 0 224.8 67.7Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 55.2a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/></g><g class="j-silk"><path d="M194.6 55.2L241.1 45.2A14.5 14.5 0 0 0 233.8 17.1L188.3 31A12.5 12.5 0 0 0 194.6 55.2Z"/><path d="M235.4 37.2L249.2 52.1A5.2 5.2 0 0 0 257.2 45.5L245 29.3A6.2 6.2 0 0 0 235.4 37.2Z"/><path d="M251.7 53.4L273.9 59.3A4.2 4.2 0 0 0 276.3 51.2L254.6 43.9A5 5 0 0 0 251.7 53.4Z"/></g><path class="j-face" d="M259.8 32L264.3 32.2A4.2 4.2 0 0 0 266.1 24.1L261.9 22.4A5 5 0 0 0 259.8 32Z"/><g class="j-silk"><path d="M247.6 21a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 25L271.6 24.5A2 2 0 0 0 272.7 20.9L263.6 14.2A6 6 0 0 0 260.3 25Z"/></g><g class="j-silk2"><path d="M202.5 27.9L209 25.1L227.9 46L221.2 47.8Z"/><path d="M257.5 55.1L262.4 56.3A4.7 4.7 0 0 0 265.1 47.3L260.3 45.7A4.9 4.9 0 0 0 257.5 55.1Z"/><path d="M250.5 22.1L262.4 13.8A2.4 2.4 0 0 0 259.7 9.8L247.6 17.8A2.6 2.6 0 0 0 250.5 22.1Z"/></g></g></g><g transform="translate(460 0)"><g class="pose" data-pose="2" transform="translate(0 1.8) rotate(-0.5 200 110)"><g class="h-far"><path d="M105.8 134.7L123.9 154.5A16 16 0 0 0 149.6 135.8L136.4 112.5A19 19 0 0 0 105.8 134.7Z"/><path d="M119.8 144.5L122.7 203.8A7.8 7.8 0 0 0 138.1 205.2L151.3 147.3A16 16 0 0 0 119.8 144.5Z"/><path d="M135.6 207.9L140.6 202.1A4.4 4.4 0 0 0 136.2 195L128.8 196.9A6.8 6.8 0 0 0 135.6 207.9Z"/><path d="M124.7 206.7L152.2 255.5A5.4 5.4 0 0 0 161.7 250.4L136.4 200.5A6.6 6.6 0 0 0 124.7 206.7Z"/><path d="M150 252.8a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M152.7 256.6L164.6 270A4.6 4.6 0 0 0 171.8 264.3L161.4 249.6A5.6 5.6 0 0 0 152.7 256.6Z"/><path d="M172.2 263.7L179.8 270.4L168.8 275.6L164.5 269.8Z"/><path d="M237 133.5L234 157.4A13 13 0 0 0 259.3 162.8L266.2 139.7A15 15 0 0 0 237 133.5Z"/><path d="M243.9 172.2L298.2 184.4A7.2 7.2 0 0 0 302.9 170.9L252.7 146.9A13.5 13.5 0 0 0 243.9 172.2Z"/><path d="M292.4 177.4a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M293.8 178.2L299.9 223.8A5.2 5.2 0 0 0 310.2 222.6L305.7 176.8A6 6 0 0 0 293.8 178.2Z"/><path d="M298.1 223.1a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M299.5 222L296.2 238.7A4.6 4.6 0 0 0 305.1 241L310.3 224.8A5.6 5.6 0 0 0 299.5 222Z"/><path d="M305.8 240.9L305 251L294.3 245.3L296.3 238.4Z"/><path d="M319 32C320 27.3 320.5 22 322 18C323.5 14 326 11.3 328 8C329 12.3 330 16.7 331 21C332 25.3 333 29.7 334 34C329 33.3 324 32.7 319 32Z"/></g><path class="h-body" d="M60.8 75.6C57.2 73.7 48.5 75.6 41.8 76.7C35 77.7 27.7 79.4 20.6 81.9C13.4 84.4 5.8 88 -1.3 91.6C-8.4 95.2 -15.5 99.8 -22 103.6C-28.5 107.3 -34.2 110.6 -40.3 114.1C-40.1 114.8 -43.4 116.2 -39.7 116.3C-35.9 116.5 -25.5 116.2 -18 114.8C-10.5 113.5 -2.3 110.6 5.3 108.4C12.9 106.2 20.6 104.1 27.4 101.7C34.3 99.3 40.3 96.3 46.2 94.1C52.2 91.9 60.8 91.5 63.2 88.4C65.6 85.3 64.4 77.6 60.8 75.6Z"/><g class="h-body"><path d="M60 80C65.3 73.8 76.7 65.2 88 63C99.3 60.8 115 65.2 128 67C141 68.8 154.3 73.8 166 74C177.7 74.2 188.7 70.8 198 68C207.3 65.2 212.7 60.5 222 57C231.3 53.5 243.2 51 254 47C264.8 43 277.8 36.7 287 33C296.2 29.3 304.2 26 309 25C313.8 24 313.7 26.3 316 27C322 28.7 328 28.2 334 32C340 35.8 346.3 43.3 352 50C357.7 56.7 363.3 65.3 368 72C372.7 78.7 377.8 85.5 380 90C382.2 94.5 382.5 96.7 381 99C379.5 101.3 375.2 104.2 371 104C366.8 103.8 361.2 100.7 356 98C350.8 95.3 345 91.8 340 88C335 84.2 331 75.8 326 75C321 74.2 316.2 79 310 83C303.8 87 295.8 93.5 289 99C282.2 104.5 274 109.8 269 116C264 122.2 262.8 130 259 136C255.2 142 253.2 148 246 152C238.8 156 227 159.2 216 160C205 160.8 191.3 158.7 180 157C168.7 155.3 157.3 152.5 148 150C138.7 147.5 132.7 144.7 124 142C115.3 139.3 105.3 137.7 96 134C86.7 130.3 74.7 125.7 68 120C61.3 114.3 57.3 106.7 56 100C54.7 93.3 54.7 86.2 60 80Z"/><path d="M312 30C312.3 25.3 312.2 20.3 313 16C313.8 11.7 315.7 8 317 4C319 8.3 321.2 12.5 323 17C324.8 21.5 326.3 26.3 328 31C322.7 30.7 317.3 30.3 312 30Z"/><path d="M84.8 119L122.1 156.7A17 17 0 0 0 149.8 138L128.8 89.3A27 27 0 0 0 84.8 119Z"/><path d="M120 152.2L147.7 204.8A7.8 7.8 0 0 0 162.3 199.5L149.8 141.4A16 16 0 0 0 120 152.2Z"/><path d="M161.2 203L163.3 195.7A4.4 4.4 0 0 0 156.2 191.1L150.3 195.9A6.8 6.8 0 0 0 161.2 203Z"/><path d="M150.2 206L191.2 244.1A5.4 5.4 0 0 0 198.7 236.3L159.3 196.5A6.6 6.6 0 0 0 150.2 206Z"/><path d="M188 240.1a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M190 242.8L198.6 258.6A4.6 4.6 0 0 0 206.9 254.6L200 238A5.6 5.6 0 0 0 190 242.8Z"/><path d="M207.3 254.1L213.2 262.4L201.4 265L198.5 258.4Z"/><path d="M235 115L232.9 158.3A14 14 0 0 0 259.9 164.1L275.6 123.6A21 21 0 0 0 235 115Z"/><path d="M244.9 172.4L300 180.3A7.2 7.2 0 0 0 303.6 166.4L251.7 146.4A13.5 13.5 0 0 0 244.9 172.4Z"/><path d="M293.7 173.1a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M295.1 173.5L297.9 219.4A5.2 5.2 0 0 0 308.3 218.9L307 173A6 6 0 0 0 295.1 173.5Z"/><path d="M296.2 219.1a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M297.9 216.8L291 232.3A4.6 4.6 0 0 0 299.2 236.5L307.9 222A5.6 5.6 0 0 0 297.9 216.8Z"/><path d="M299.8 236.6L296.8 246.3L287.6 238.3L291.1 232Z"/></g><path class="h-cut" d="M341 51.5c2.6-2.2 6.4-2.2 8.4.4c-2.6 1.6-6 1.6-8.4-.4Z"/><path class="h-cut" d="M371.5 86.5c1.6-1.2 3.6-.6 4.2 1c-1.6.6-3.2.4-4.2-1Z"/><path class="h-tack" d="M332 40C340 60 352 80 362 98M357 89c3 6 7 10 12 12M336 42c4-6 9-9 14-9"/><path class="h-rein" d="M275 55.6C315 73.6 326 87 372 93"/><path class="h-cloth" d="M170 72C176 66.8 197.3 70 204 70C210.7 70 208 71.3 210 72C209.3 81.3 213.7 94.7 208 100C202.3 105.3 182.7 103.8 176 104C169.3 104.2 170.7 102 168 101C168.7 91.3 164 77.2 170 72Z"/><text class="h-num" x="189" y="96" text-anchor="middle">2</text><path class="h-iron" d="M208 99.5L223 99.5M212 99L201 73"/><g class="j-halo"><path d="M241.9 56L197.3 33.5A11.8 11.8 0 0 0 188.1 55.1L235.1 71.8A8.6 8.6 0 0 0 241.9 56Z"/><path d="M232.4 58.9L223.3 69.5A6.4 6.4 0 0 0 232.4 78.5L242.9 69.3A7.4 7.4 0 0 0 232.4 58.9Z"/><path d="M224.8 68L207.3 87.7A5 5 0 0 0 214.4 94.7L233.9 77A6.4 6.4 0 0 0 224.8 68Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 55.6a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/><path d="M194.6 56.2L241.1 46.2A14.5 14.5 0 0 0 233.8 18.1L188.3 32A12.5 12.5 0 0 0 194.6 56.2Z"/><path d="M235.5 38.2L249.2 52.9A5.2 5.2 0 0 0 257.1 46.1L244.9 30.2A6.2 6.2 0 0 0 235.5 38.2Z"/><path d="M251.8 54.2L274 59.7A4.2 4.2 0 0 0 276.3 51.6L254.5 44.5A5 5 0 0 0 251.8 54.2Z"/><path d="M247.6 22a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 26L271.6 25.5A2 2 0 0 0 272.7 21.9L263.6 15.2A6 6 0 0 0 260.3 26Z"/></g><g class="j-breeches"><path d="M241.9 56L197.3 33.5A11.8 11.8 0 0 0 188.1 55.1L235.1 71.8A8.6 8.6 0 0 0 241.9 56Z"/><path d="M232.4 58.9L223.3 69.5A6.4 6.4 0 0 0 232.4 78.5L242.9 69.3A7.4 7.4 0 0 0 232.4 58.9Z"/></g><g class="j-dark"><path d="M224.8 68L207.3 87.7A5 5 0 0 0 214.4 94.7L233.9 77A6.4 6.4 0 0 0 224.8 68Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 55.6a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/></g><g class="j-silk"><path d="M194.6 56.2L241.1 46.2A14.5 14.5 0 0 0 233.8 18.1L188.3 32A12.5 12.5 0 0 0 194.6 56.2Z"/><path d="M235.5 38.2L249.2 52.9A5.2 5.2 0 0 0 257.1 46.1L244.9 30.2A6.2 6.2 0 0 0 235.5 38.2Z"/><path d="M251.8 54.2L274 59.7A4.2 4.2 0 0 0 276.3 51.6L254.5 44.5A5 5 0 0 0 251.8 54.2Z"/></g><path class="j-face" d="M259.8 33L264.3 33.2A4.2 4.2 0 0 0 266.1 25.1L261.9 23.4A5 5 0 0 0 259.8 33Z"/><g class="j-silk"><path d="M247.6 22a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 26L271.6 25.5A2 2 0 0 0 272.7 21.9L263.6 15.2A6 6 0 0 0 260.3 26Z"/></g><g class="j-silk2"><path d="M202.5 28.9L209 26.1L227.9 47L221.2 48.8Z"/><path d="M257.6 55.7L262.5 56.9A4.7 4.7 0 0 0 265 47.9L260.3 46.3A4.9 4.9 0 0 0 257.6 55.7Z"/><path d="M250.5 23.1L262.4 14.8A2.4 2.4 0 0 0 259.7 10.8L247.6 18.8A2.6 2.6 0 0 0 250.5 23.1Z"/></g></g></g><g transform="translate(920 0)"><g class="pose" data-pose="3" transform="translate(0 5.8) rotate(1.2 200 110)"><g class="h-far"><path d="M97.4 134.1L110.2 157.7A16 16 0 0 0 139.6 145.8L132.4 119.9A19 19 0 0 0 97.4 134.1Z"/><path d="M109.6 143.5L85.4 197.8A7.8 7.8 0 0 0 98.5 206L136.5 160.3A16 16 0 0 0 109.6 143.5Z"/><path d="M95.1 207.3L102.2 204.4A4.4 4.4 0 0 0 101.4 196L94 194.4A6.8 6.8 0 0 0 95.1 207.3Z"/><path d="M86.3 203.2L104.6 256.1A5.4 5.4 0 0 0 114.9 252.7L98.8 199.1A6.6 6.6 0 0 0 86.3 203.2Z"/><path d="M102.8 254.3a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M106.1 258.6L119.9 270.1A4.6 4.6 0 0 0 126.2 263.4L113.8 250.4A5.6 5.6 0 0 0 106.1 258.6Z"/><path d="M126.4 262.8L134.9 268.3L124.8 275L119.7 270Z"/><path d="M243.7 138.7L248.6 162.3A13 13 0 0 0 274.4 159.2L273.4 135.1A15 15 0 0 0 243.7 138.7Z"/><path d="M253.6 170.7L299 202.8A7.2 7.2 0 0 0 308.5 192.1L271.4 150.7A13.5 13.5 0 0 0 253.6 170.7Z"/><path d="M295.8 196.9a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M297.9 199.8L320.1 240.1A5.2 5.2 0 0 0 329.3 235.2L308.5 194.2A6 6 0 0 0 297.9 199.8Z"/><path d="M317.8 237.6a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M319.3 238.9L323.4 255.4A4.6 4.6 0 0 0 332.4 253.7L330.3 236.9A5.6 5.6 0 0 0 319.3 238.9Z"/><path d="M333 253.3L336.6 262.8L324.5 262.2L323.4 255.1Z"/><path d="M319 32C320 27.3 320.5 22 322 18C323.5 14 326 11.3 328 8C329 12.3 330 16.7 331 21C332 25.3 333 29.7 334 34C329 33.3 324 32.7 319 32Z"/></g><path class="h-body" d="M60.4 75.7C56.7 74 48.2 76.8 41.6 77.9C34.9 79.1 27.8 80.3 20.6 82.8C13.4 85.2 5.6 88.8 -1.6 92.8C-8.8 96.7 -16.1 102.1 -22.6 106.6C-29.1 111.1 -34.5 115.5 -40.5 119.9C-40.2 120.6 -43.4 122.5 -39.5 122.1C-35.7 121.7 -24.9 119.6 -17.4 117.4C-9.9 115.3 -1.9 111.7 5.6 109.2C13.1 106.8 20.6 105 27.4 102.6C34.2 100.3 40.4 97.7 46.4 95.3C52.5 92.9 61.3 91.6 63.6 88.3C65.9 85 64.1 77.4 60.4 75.7Z"/><g class="h-body"><path d="M60 80C65.3 73.8 76.7 65.2 88 63C99.3 60.8 115 65.2 128 67C141 68.8 154.3 73.8 166 74C177.7 74.2 188.7 70.8 198 68C207.3 65.2 212.7 60.5 222 57C231.3 53.5 243.2 51 254 47C264.8 43 277.8 36.7 287 33C296.2 29.3 304.2 26 309 25C313.8 24 313.7 26.3 316 27C322 28.7 328 28.2 334 32C340 35.8 346.3 43.3 352 50C357.7 56.7 363.3 65.3 368 72C372.7 78.7 377.8 85.5 380 90C382.2 94.5 382.5 96.7 381 99C379.5 101.3 375.2 104.2 371 104C366.8 103.8 361.2 100.7 356 98C350.8 95.3 345 91.8 340 88C335 84.2 331 75.8 326 75C321 74.2 316.2 79 310 83C303.8 87 295.8 93.5 289 99C282.2 104.5 274 109.8 269 116C264 122.2 262.8 130 259 136C255.2 142 253.2 148 246 152C238.8 156 227 159.2 216 160C205 160.8 191.3 158.7 180 157C168.7 155.3 157.3 152.5 148 150C138.7 147.5 132.7 144.7 124 142C115.3 139.3 105.3 137.7 96 134C86.7 130.3 74.7 125.7 68 120C61.3 114.3 57.3 106.7 56 100C54.7 93.3 54.7 86.2 60 80Z"/><path d="M312 30C312.3 25.3 312.2 20.3 313 16C313.8 11.7 315.7 8 317 4C319 8.3 321.2 12.5 323 17C324.8 21.5 326.3 26.3 328 31C322.7 30.7 317.3 30.3 312 30Z"/><path d="M85.5 119.6L124.1 156.1A17 17 0 0 0 151.1 136.4L128.4 88.4A27 27 0 0 0 85.5 119.6Z"/><path d="M119.8 144.4L122.4 203.8A7.8 7.8 0 0 0 137.8 205.2L151.3 147.3A16 16 0 0 0 119.8 144.4Z"/><path d="M135.4 207.9L140.4 202.1A4.4 4.4 0 0 0 136 195L128.6 196.8A6.8 6.8 0 0 0 135.4 207.9Z"/><path d="M124.7 207.1L155.8 253.6A5.4 5.4 0 0 0 165 247.8L135.9 200A6.6 6.6 0 0 0 124.7 207.1Z"/><path d="M153.4 250.6a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M156.2 254.4L168.2 267.8A4.6 4.6 0 0 0 175.4 262L164.9 247.4A5.6 5.6 0 0 0 156.2 254.4Z"/><path d="M175.7 261.4L183.3 268.1L172.4 273.3L168 267.6Z"/><path d="M235.1 117.9L239 161.2A14 14 0 0 0 266.6 163.1L276.4 120.8A21 21 0 0 0 235.1 117.9Z"/><path d="M252.2 173.4L307.8 176.2A7.2 7.2 0 0 0 310.1 162.1L256.6 146.9A13.5 13.5 0 0 0 252.2 173.4Z"/><path d="M300.8 169a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M303 172L325.6 212A5.2 5.2 0 0 0 334.7 207.1L313.5 166.3A6 6 0 0 0 303 172Z"/><path d="M323.2 209.5a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M325.1 207L317.7 222.3A4.6 4.6 0 0 0 325.7 226.8L334.8 212.5A5.6 5.6 0 0 0 325.1 207Z"/><path d="M326.4 226.8L323 236.4L314.1 228.2L317.8 222.1Z"/></g><path class="h-cut" d="M341 51.5c2.6-2.2 6.4-2.2 8.4.4c-2.6 1.6-6 1.6-8.4-.4Z"/><path class="h-cut" d="M371.5 86.5c1.6-1.2 3.6-.6 4.2 1c-1.6.6-3.2.4-4.2-1Z"/><path class="h-tack" d="M332 40C340 60 352 80 362 98M357 89c3 6 7 10 12 12M336 42c4-6 9-9 14-9"/><path class="h-rein" d="M275 56.4C315 74.4 326 87 372 93"/><path class="h-cloth" d="M170 72C176 66.8 197.3 70 204 70C210.7 70 208 71.3 210 72C209.3 81.3 213.7 94.7 208 100C202.3 105.3 182.7 103.8 176 104C169.3 104.2 170.7 102 168 101C168.7 91.3 164 77.2 170 72Z"/><text class="h-num" x="189" y="96" text-anchor="middle">2</text><path class="h-iron" d="M208 99.5L223 99.5M212 99L201 73"/><g class="j-halo"><path d="M241.7 56.5L197.1 35.3A11.8 11.8 0 0 0 188.4 57.2L235.3 72.5A8.6 8.6 0 0 0 241.7 56.5Z"/><path d="M232.4 59.4L223.2 69.9A6.4 6.4 0 0 0 232.2 79L242.8 69.9A7.4 7.4 0 0 0 232.4 59.4Z"/><path d="M224.7 68.4L207.3 87.6A5 5 0 0 0 214.3 94.7L233.7 77.5A6.4 6.4 0 0 0 224.7 68.4Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 56.4a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/><path d="M194.6 58.2L241.1 48.2A14.5 14.5 0 0 0 233.8 20.1L188.3 34A12.5 12.5 0 0 0 194.6 58.2Z"/><path d="M235.6 40.3L249.3 54.3A5.2 5.2 0 0 0 257.1 47.5L244.8 32.1A6.2 6.2 0 0 0 235.6 40.3Z"/><path d="M251.9 55.6L274.1 60.5A4.2 4.2 0 0 0 276.2 52.4L254.4 45.9A5 5 0 0 0 251.9 55.6Z"/><path d="M247.6 24a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 28L271.6 27.5A2 2 0 0 0 272.7 23.9L263.6 17.2A6 6 0 0 0 260.3 28Z"/></g><g class="j-breeches"><path d="M241.7 56.5L197.1 35.3A11.8 11.8 0 0 0 188.4 57.2L235.3 72.5A8.6 8.6 0 0 0 241.7 56.5Z"/><path d="M232.4 59.4L223.2 69.9A6.4 6.4 0 0 0 232.2 79L242.8 69.9A7.4 7.4 0 0 0 232.4 59.4Z"/></g><g class="j-dark"><path d="M224.7 68.4L207.3 87.6A5 5 0 0 0 214.3 94.7L233.7 77.5A6.4 6.4 0 0 0 224.7 68.4Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 56.4a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/></g><g class="j-silk"><path d="M194.6 58.2L241.1 48.2A14.5 14.5 0 0 0 233.8 20.1L188.3 34A12.5 12.5 0 0 0 194.6 58.2Z"/><path d="M235.6 40.3L249.3 54.3A5.2 5.2 0 0 0 257.1 47.5L244.8 32.1A6.2 6.2 0 0 0 235.6 40.3Z"/><path d="M251.9 55.6L274.1 60.5A4.2 4.2 0 0 0 276.2 52.4L254.4 45.9A5 5 0 0 0 251.9 55.6Z"/></g><path class="j-face" d="M259.8 35L264.3 35.2A4.2 4.2 0 0 0 266.1 27.1L261.9 25.4A5 5 0 0 0 259.8 35Z"/><g class="j-silk"><path d="M247.6 24a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 28L271.6 27.5A2 2 0 0 0 272.7 23.9L263.6 17.2A6 6 0 0 0 260.3 28Z"/></g><g class="j-silk2"><path d="M202.5 30.9L209 28.1L227.9 49L221.2 50.8Z"/><path d="M257.8 57L262.7 58.1A4.7 4.7 0 0 0 265 49L260.2 47.5A4.9 4.9 0 0 0 257.8 57Z"/><path d="M250.5 25.1L262.4 16.8A2.4 2.4 0 0 0 259.7 12.8L247.6 20.8A2.6 2.6 0 0 0 250.5 25.1Z"/></g></g></g><g transform="translate(1380 0)"><g class="pose" data-pose="4" transform="translate(0 4.5) rotate(2.2 200 110)"><g class="h-far"><path d="M79.5 124.5L76.8 151.3A16 16 0 0 0 108 157.9L116.4 132.4A19 19 0 0 0 79.5 124.5Z"/><path d="M79.2 144.4L47.8 194.9A7.8 7.8 0 0 0 59.7 204.8L103.6 164.6A16 16 0 0 0 79.2 144.4Z"/><path d="M56.2 205.6L63.6 203.6A4.4 4.4 0 0 0 64 195.3L56.8 192.6A6.8 6.8 0 0 0 56.2 205.6Z"/><path d="M48.7 202.3L76.5 250.9A5.4 5.4 0 0 0 86 245.7L60.3 196A6.6 6.6 0 0 0 48.7 202.3Z"/><path d="M74.3 248.2a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M77.4 244.1L64.3 256.3A4.6 4.6 0 0 0 70.1 263.4L84.6 252.7A5.6 5.6 0 0 0 77.4 244.1Z"/><path d="M70.7 263.7L64.2 271.5L58.8 260.6L64.4 256.2Z"/><path d="M236.4 132.8L232.5 156.6A13 13 0 0 0 257.7 162.9L265.4 140A15 15 0 0 0 236.4 132.8Z"/><path d="M235.8 168.2L275.2 207.6A7.2 7.2 0 0 0 286.4 198.6L256.8 151.5A13.5 13.5 0 0 0 235.8 168.2Z"/><path d="M272.9 202.5a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M274.6 204.4L289.3 248A5.2 5.2 0 0 0 299.2 244.8L286 200.8A6 6 0 0 0 274.6 204.4Z"/><path d="M287.3 246.3a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M289.5 249.4L298.8 263.6A4.6 4.6 0 0 0 306.8 259L299.3 243.8A5.6 5.6 0 0 0 289.5 249.4Z"/><path d="M307.2 258.5L313.7 266.3L302.1 269.7L298.7 263.3Z"/><path d="M319 32C320 27.3 320.5 22 322 18C323.5 14 326 11.3 328 8C329 12.3 330 16.7 331 21C332 25.3 333 29.7 334 34C329 33.3 324 32.7 319 32Z"/></g><path class="h-body" d="M60.2 75.8C56.4 74.2 47.7 77 40.9 78.7C34.1 80.5 26.6 83.1 19.5 86.4C12.4 89.7 5.2 94.9 -1.7 98.8C-8.6 102.7 -15.4 106.5 -21.8 109.9C-28.3 113.3 -34.1 116.3 -40.3 119.4C-40.1 120.2 -43.4 121.5 -39.7 121.8C-36 122.1 -25.7 122.4 -18.2 121.3C-10.6 120.2 -2.1 117.9 5.7 115.2C13.4 112.6 21.6 108.7 28.5 105.4C35.4 102.1 41.2 98.5 47.1 95.7C53 92.8 61.6 91.6 63.8 88.2C66 84.9 64 77.3 60.2 75.8Z"/><g class="h-body"><path d="M60 80C65.3 73.8 76.7 65.2 88 63C99.3 60.8 115 65.2 128 67C141 68.8 154.3 73.8 166 74C177.7 74.2 188.7 70.8 198 68C207.3 65.2 212.7 60.5 222 57C231.3 53.5 243.2 51 254 47C264.8 43 277.8 36.7 287 33C296.2 29.3 304.2 26 309 25C313.8 24 313.7 26.3 316 27C322 28.7 328 28.2 334 32C340 35.8 346.3 43.3 352 50C357.7 56.7 363.3 65.3 368 72C372.7 78.7 377.8 85.5 380 90C382.2 94.5 382.5 96.7 381 99C379.5 101.3 375.2 104.2 371 104C366.8 103.8 361.2 100.7 356 98C350.8 95.3 345 91.8 340 88C335 84.2 331 75.8 326 75C321 74.2 316.2 79 310 83C303.8 87 295.8 93.5 289 99C282.2 104.5 274 109.8 269 116C264 122.2 262.8 130 259 136C255.2 142 253.2 148 246 152C238.8 156 227 159.2 216 160C205 160.8 191.3 158.7 180 157C168.7 155.3 157.3 152.5 148 150C138.7 147.5 132.7 144.7 124 142C115.3 139.3 105.3 137.7 96 134C86.7 130.3 74.7 125.7 68 120C61.3 114.3 57.3 106.7 56 100C54.7 93.3 54.7 86.2 60 80Z"/><path d="M312 30C312.3 25.3 312.2 20.3 313 16C313.8 11.7 315.7 8 317 4C319 8.3 321.2 12.5 323 17C324.8 21.5 326.3 26.3 328 31C322.7 30.7 317.3 30.3 312 30Z"/><path d="M80.8 113.8L107.8 159.4A17 17 0 0 0 139.2 148L130.6 95.6A27 27 0 0 0 80.8 113.8Z"/><path d="M107.1 146.3L90.6 203.4A7.8 7.8 0 0 0 104.8 209.7L136.1 159.2A16 16 0 0 0 107.1 146.3Z"/><path d="M101.6 211.5L108.2 207.6A4.4 4.4 0 0 0 106.3 199.4L98.7 198.8A6.8 6.8 0 0 0 101.6 211.5Z"/><path d="M91.8 207.4L107.2 261.2A5.4 5.4 0 0 0 117.6 258.5L104.6 204A6.6 6.6 0 0 0 91.8 207.4Z"/><path d="M105.5 259.7a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M109.3 264.4L124.2 274.4A4.6 4.6 0 0 0 129.7 267.1L116 255.5A5.6 5.6 0 0 0 109.3 264.4Z"/><path d="M129.9 266.5L138.9 271.1L129.6 278.8L124 274.3Z"/><path d="M242.8 132.4L276.7 159.6A14 14 0 0 0 297.2 141.1L273.6 104.6A21 21 0 0 0 242.8 132.4Z"/><path d="M277.1 159.3L320.7 193.8A7.2 7.2 0 0 0 330.8 183.7L296 140.2A13.5 13.5 0 0 0 277.1 159.3Z"/><path d="M317.8 188.2a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M320.4 191.8L348.5 228.2A5.2 5.2 0 0 0 356.9 222L330.1 184.7A6 6 0 0 0 320.4 191.8Z"/><path d="M345.8 225a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M347.1 224.8L346.2 241.7A4.6 4.6 0 0 0 355.4 242.7L358.2 226A5.6 5.6 0 0 0 347.1 224.8Z"/><path d="M356 242.5L356.7 252.6L345.3 248.6L346.3 241.4Z"/></g><path class="h-cut" d="M341 51.5c2.6-2.2 6.4-2.2 8.4.4c-2.6 1.6-6 1.6-8.4-.4Z"/><path class="h-cut" d="M371.5 86.5c1.6-1.2 3.6-.6 4.2 1c-1.6.6-3.2.4-4.2-1Z"/><path class="h-tack" d="M332 40C340 60 352 80 362 98M357 89c3 6 7 10 12 12M336 42c4-6 9-9 14-9"/><path class="h-rein" d="M275 56.8C315 74.8 326 87 372 93"/><path class="h-cloth" d="M170 72C176 66.8 197.3 70 204 70C210.7 70 208 71.3 210 72C209.3 81.3 213.7 94.7 208 100C202.3 105.3 182.7 103.8 176 104C169.3 104.2 170.7 102 168 101C168.7 91.3 164 77.2 170 72Z"/><text class="h-num" x="189" y="96" text-anchor="middle">2</text><path class="h-iron" d="M208 99.5L223 99.5M212 99L201 73"/><g class="j-halo"><path d="M241.6 56.8L196.9 36.3A11.8 11.8 0 0 0 188.5 58.3L235.5 72.8A8.6 8.6 0 0 0 241.6 56.8Z"/><path d="M232.5 59.7L223.2 70.1A6.4 6.4 0 0 0 232.1 79.3L242.8 70.2A7.4 7.4 0 0 0 232.5 59.7Z"/><path d="M224.7 68.7L207.3 87.6A5 5 0 0 0 214.3 94.8L233.6 77.8A6.4 6.4 0 0 0 224.7 68.7Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 56.8a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/><path d="M194.6 59.2L241.1 49.2A14.5 14.5 0 0 0 233.8 21.1L188.3 35A12.5 12.5 0 0 0 194.6 59.2Z"/><path d="M235.6 41.4L249.3 55.1A5.2 5.2 0 0 0 257 48.1L244.8 33.1A6.2 6.2 0 0 0 235.6 41.4Z"/><path d="M252 56.3L274.1 60.9A4.2 4.2 0 0 0 276.1 52.8L254.4 46.6A5 5 0 0 0 252 56.3Z"/><path d="M247.6 25a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 29L271.6 28.5A2 2 0 0 0 272.7 24.9L263.6 18.2A6 6 0 0 0 260.3 29Z"/></g><g class="j-breeches"><path d="M241.6 56.8L196.9 36.3A11.8 11.8 0 0 0 188.5 58.3L235.5 72.8A8.6 8.6 0 0 0 241.6 56.8Z"/><path d="M232.5 59.7L223.2 70.1A6.4 6.4 0 0 0 232.1 79.3L242.8 70.2A7.4 7.4 0 0 0 232.5 59.7Z"/></g><g class="j-dark"><path d="M224.7 68.7L207.3 87.6A5 5 0 0 0 214.3 94.8L233.6 77.8A6.4 6.4 0 0 0 224.7 68.7Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 56.8a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/></g><g class="j-silk"><path d="M194.6 59.2L241.1 49.2A14.5 14.5 0 0 0 233.8 21.1L188.3 35A12.5 12.5 0 0 0 194.6 59.2Z"/><path d="M235.6 41.4L249.3 55.1A5.2 5.2 0 0 0 257 48.1L244.8 33.1A6.2 6.2 0 0 0 235.6 41.4Z"/><path d="M252 56.3L274.1 60.9A4.2 4.2 0 0 0 276.1 52.8L254.4 46.6A5 5 0 0 0 252 56.3Z"/></g><path class="j-face" d="M259.8 36L264.3 36.2A4.2 4.2 0 0 0 266.1 28.1L261.9 26.4A5 5 0 0 0 259.8 36Z"/><g class="j-silk"><path d="M247.6 25a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 29L271.6 28.5A2 2 0 0 0 272.7 24.9L263.6 18.2A6 6 0 0 0 260.3 29Z"/></g><g class="j-silk2"><path d="M202.5 31.9L209 29.1L227.9 50L221.2 51.8Z"/><path d="M257.9 57.6L262.7 58.6A4.7 4.7 0 0 0 265 49.5L260.2 48.1A4.9 4.9 0 0 0 257.9 57.6Z"/><path d="M250.5 26.1L262.4 17.8A2.4 2.4 0 0 0 259.7 13.8L247.6 21.8A2.6 2.6 0 0 0 250.5 26.1Z"/></g></g></g><g transform="translate(1840 0)"><g class="pose" data-pose="5" transform="translate(0 6) rotate(2 200 110)"><g class="h-far"><path d="M74.3 117.9L65.3 143.2A16 16 0 0 0 93.8 157.1L108.2 134.4A19 19 0 0 0 74.3 117.9Z"/><path d="M71.3 135.3L22.2 168.9A7.8 7.8 0 0 0 29.1 182.7L85.4 163.7A16 16 0 0 0 71.3 135.3Z"/><path d="M25.5 182L33.1 183.2A4.4 4.4 0 0 0 36.8 175.7L31.4 170.4A6.8 6.8 0 0 0 25.5 182Z"/><path d="M20.3 177L34.9 231.1A5.4 5.4 0 0 0 45.3 228.5L33.1 173.8A6.6 6.6 0 0 0 20.3 177Z"/><path d="M33.2 229.7a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M38.8 224.2L21.3 228.3A4.6 4.6 0 0 0 22.9 237.3L40.7 235.2A5.6 5.6 0 0 0 38.8 224.2Z"/><path d="M23.3 237.9L13.7 241.4L14.4 229.3L21.6 228.2Z"/><path d="M237 133.5L234 157.4A13 13 0 0 0 259.3 162.8L266.2 139.7A15 15 0 0 0 237 133.5Z"/><path d="M234.6 164.7L258 215.2A7.2 7.2 0 0 0 271.6 210.7L260.1 156.2A13.5 13.5 0 0 0 234.6 164.7Z"/><path d="M257.2 212.2a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M259.3 209.3L237.3 249.7A5.2 5.2 0 0 0 246.4 254.8L269.7 215.2A6 6 0 0 0 259.3 209.3Z"/><path d="M235 252.2a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M238.4 256.5L251.6 267.1A4.6 4.6 0 0 0 257.8 260.3L245.9 248.2A5.6 5.6 0 0 0 238.4 256.5Z"/><path d="M258 259.7L266.6 265L256.6 271.9L251.4 267Z"/><path d="M319 32C320 27.3 320.5 22 322 18C323.5 14 326 11.3 328 8C329 12.3 330 16.7 331 21C332 25.3 333 29.7 334 34C329 33.3 324 32.7 319 32Z"/></g><path class="h-body" d="M60.3 75.7C56.4 74.1 47.4 76.4 40.5 78.6C33.5 80.9 25.6 85.1 18.6 89.3C11.6 93.5 5 100.1 -1.5 103.7C-8.1 107.3 -14.2 109.2 -20.6 111C-27 112.9 -33.5 113.5 -39.9 114.8C-40 115.6 -43.5 115.8 -40.1 117.2C-36.6 118.6 -27 122.5 -19.4 123C-11.8 123.5 -2.6 122.9 5.5 120.3C13.7 117.7 22.4 111.5 29.4 107.3C36.4 103.1 41.8 98.3 47.5 95.2C53.3 92 61.6 91.5 63.7 88.3C65.8 85 64.2 77.3 60.3 75.7Z"/><g class="h-body"><path d="M60 80C65.3 73.8 76.7 65.2 88 63C99.3 60.8 115 65.2 128 67C141 68.8 154.3 73.8 166 74C177.7 74.2 188.7 70.8 198 68C207.3 65.2 212.7 60.5 222 57C231.3 53.5 243.2 51 254 47C264.8 43 277.8 36.7 287 33C296.2 29.3 304.2 26 309 25C313.8 24 313.7 26.3 316 27C322 28.7 328 28.2 334 32C340 35.8 346.3 43.3 352 50C357.7 56.7 363.3 65.3 368 72C372.7 78.7 377.8 85.5 380 90C382.2 94.5 382.5 96.7 381 99C379.5 101.3 375.2 104.2 371 104C366.8 103.8 361.2 100.7 356 98C350.8 95.3 345 91.8 340 88C335 84.2 331 75.8 326 75C321 74.2 316.2 79 310 83C303.8 87 295.8 93.5 289 99C282.2 104.5 274 109.8 269 116C264 122.2 262.8 130 259 136C255.2 142 253.2 148 246 152C238.8 156 227 159.2 216 160C205 160.8 191.3 158.7 180 157C168.7 155.3 157.3 152.5 148 150C138.7 147.5 132.7 144.7 124 142C115.3 139.3 105.3 137.7 96 134C86.7 130.3 74.7 125.7 68 120C61.3 114.3 57.3 106.7 56 100C54.7 93.3 54.7 86.2 60 80Z"/><path d="M312 30C312.3 25.3 312.2 20.3 313 16C313.8 11.7 315.7 8 317 4C319 8.3 321.2 12.5 323 17C324.8 21.5 326.3 26.3 328 31C322.7 30.7 317.3 30.3 312 30Z"/><path d="M77 98.4L74 151.4A17 17 0 0 0 106.4 159.5L128.5 111.3A27 27 0 0 0 77 98.4Z"/><path d="M77.9 143.1L43.4 191.5A7.8 7.8 0 0 0 54.6 202.1L101 164.9A16 16 0 0 0 77.9 143.1Z"/><path d="M51 202.7L58.5 201.2A4.4 4.4 0 0 0 59.5 192.9L52.5 189.8A6.8 6.8 0 0 0 51 202.7Z"/><path d="M43.6 198.4L63.7 250.6A5.4 5.4 0 0 0 73.9 246.9L56 193.9A6.6 6.6 0 0 0 43.6 198.4Z"/><path d="M61.9 248.7a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M66 243.8L50.3 252.5A4.6 4.6 0 0 0 54.4 260.8L70.9 253.8A5.6 5.6 0 0 0 66 243.8Z"/><path d="M54.9 261.2L46.7 267.2L44 255.4L50.6 252.4Z"/><path d="M240.7 130.4L270.4 162.1A14 14 0 0 0 293.3 146.6L275.1 107.2A21 21 0 0 0 240.7 130.4Z"/><path d="M270.7 161.7L308.7 202.4A7.2 7.2 0 0 0 320.2 193.8L292.3 145.7A13.5 13.5 0 0 0 270.7 161.7Z"/><path d="M306.6 197.4a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M308.7 200.4L331.1 240.5A5.2 5.2 0 0 0 340.3 235.6L319.3 194.7A6 6 0 0 0 308.7 200.4Z"/><path d="M328.8 238a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M330.5 240.2L337.3 255.8A4.6 4.6 0 0 0 345.9 252.7L341.1 236.4A5.6 5.6 0 0 0 330.5 240.2Z"/><path d="M346.4 252.2L351.5 261L339.5 262.4L337.2 255.5Z"/></g><path class="h-cut" d="M341 51.5c2.6-2.2 6.4-2.2 8.4.4c-2.6 1.6-6 1.6-8.4-.4Z"/><path class="h-cut" d="M371.5 86.5c1.6-1.2 3.6-.6 4.2 1c-1.6.6-3.2.4-4.2-1Z"/><path class="h-tack" d="M332 40C340 60 352 80 362 98M357 89c3 6 7 10 12 12M336 42c4-6 9-9 14-9"/><path class="h-rein" d="M275 56.4C315 74.4 326 87 372 93"/><path class="h-cloth" d="M170 72C176 66.8 197.3 70 204 70C210.7 70 208 71.3 210 72C209.3 81.3 213.7 94.7 208 100C202.3 105.3 182.7 103.8 176 104C169.3 104.2 170.7 102 168 101C168.7 91.3 164 77.2 170 72Z"/><text class="h-num" x="189" y="96" text-anchor="middle">2</text><path class="h-iron" d="M208 99.5L223 99.5M212 99L201 73"/><g class="j-halo"><path d="M241.7 56.5L197.1 35.3A11.8 11.8 0 0 0 188.4 57.2L235.3 72.5A8.6 8.6 0 0 0 241.7 56.5Z"/><path d="M232.4 59.4L223.2 69.9A6.4 6.4 0 0 0 232.2 79L242.8 69.9A7.4 7.4 0 0 0 232.4 59.4Z"/><path d="M224.7 68.4L207.3 87.6A5 5 0 0 0 214.3 94.7L233.7 77.5A6.4 6.4 0 0 0 224.7 68.4Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 56.4a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/><path d="M194.6 58.2L241.1 48.2A14.5 14.5 0 0 0 233.8 20.1L188.3 34A12.5 12.5 0 0 0 194.6 58.2Z"/><path d="M235.6 40.3L249.3 54.3A5.2 5.2 0 0 0 257.1 47.5L244.8 32.1A6.2 6.2 0 0 0 235.6 40.3Z"/><path d="M251.9 55.6L274.1 60.5A4.2 4.2 0 0 0 276.2 52.4L254.4 45.9A5 5 0 0 0 251.9 55.6Z"/><path d="M247.6 24a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 28L271.6 27.5A2 2 0 0 0 272.7 23.9L263.6 17.2A6 6 0 0 0 260.3 28Z"/></g><g class="j-breeches"><path d="M241.7 56.5L197.1 35.3A11.8 11.8 0 0 0 188.4 57.2L235.3 72.5A8.6 8.6 0 0 0 241.7 56.5Z"/><path d="M232.4 59.4L223.2 69.9A6.4 6.4 0 0 0 232.2 79L242.8 69.9A7.4 7.4 0 0 0 232.4 59.4Z"/></g><g class="j-dark"><path d="M224.7 68.4L207.3 87.6A5 5 0 0 0 214.3 94.7L233.7 77.5A6.4 6.4 0 0 0 224.7 68.4Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 56.4a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/></g><g class="j-silk"><path d="M194.6 58.2L241.1 48.2A14.5 14.5 0 0 0 233.8 20.1L188.3 34A12.5 12.5 0 0 0 194.6 58.2Z"/><path d="M235.6 40.3L249.3 54.3A5.2 5.2 0 0 0 257.1 47.5L244.8 32.1A6.2 6.2 0 0 0 235.6 40.3Z"/><path d="M251.9 55.6L274.1 60.5A4.2 4.2 0 0 0 276.2 52.4L254.4 45.9A5 5 0 0 0 251.9 55.6Z"/></g><path class="j-face" d="M259.8 35L264.3 35.2A4.2 4.2 0 0 0 266.1 27.1L261.9 25.4A5 5 0 0 0 259.8 35Z"/><g class="j-silk"><path d="M247.6 24a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 28L271.6 27.5A2 2 0 0 0 272.7 23.9L263.6 17.2A6 6 0 0 0 260.3 28Z"/></g><g class="j-silk2"><path d="M202.5 30.9L209 28.1L227.9 49L221.2 50.8Z"/><path d="M257.8 57L262.7 58.1A4.7 4.7 0 0 0 265 49L260.2 47.5A4.9 4.9 0 0 0 257.8 57Z"/><path d="M250.5 25.1L262.4 16.8A2.4 2.4 0 0 0 259.7 12.8L247.6 20.8A2.6 2.6 0 0 0 250.5 25.1Z"/></g></g></g><g transform="translate(2300 0)"><g class="pose" data-pose="6" transform="translate(0 1.6) rotate(0.4 200 110)"><g class="h-far"><path d="M85.1 129.1L88.1 155.8A16 16 0 0 0 119.9 155.8L122.9 129.1A19 19 0 0 0 85.1 129.1Z"/><path d="M92.8 142.6L50.4 184.2A7.8 7.8 0 0 0 59.6 196.6L111.7 168A16 16 0 0 0 92.8 142.6Z"/><path d="M55.9 196.6L63.6 196.4A4.4 4.4 0 0 0 65.9 188.4L59.6 184.1A6.8 6.8 0 0 0 55.9 196.6Z"/><path d="M52 195.1L97.7 227.5A5.4 5.4 0 0 0 104.1 218.9L59.9 184.5A6.6 6.6 0 0 0 52 195.1Z"/><path d="M93.9 223.1a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M96.7 219.3L84.4 232.4A4.6 4.6 0 0 0 90.7 239L104.4 227.4A5.6 5.6 0 0 0 96.7 219.3Z"/><path d="M91.3 239.3L85.3 247.5L79.2 237L84.6 232.2Z"/><path d="M231 122.5L217.1 142.2A13 13 0 0 0 237 158.9L253.9 141.7A15 15 0 0 0 231 122.5Z"/><path d="M216.9 157.7L249.9 202.5A7.2 7.2 0 0 0 262.3 195.4L240.1 144.3A13.5 13.5 0 0 0 216.9 157.7Z"/><path d="M248.3 198.2a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M250.4 195.4L228.3 235.7A5.2 5.2 0 0 0 237.4 240.9L260.8 201.3A6 6 0 0 0 250.4 195.4Z"/><path d="M226 238.2a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M233.6 232.6L216.7 230.6A4.6 4.6 0 0 0 215.1 239.6L231.6 243.6A5.6 5.6 0 0 0 233.6 232.6Z"/><path d="M215.2 240.2L205.1 240.2L210 229.1L217 230.6Z"/><path d="M319 32C320 27.3 320.5 22 322 18C323.5 14 326 11.3 328 8C329 12.3 330 16.7 331 21C332 25.3 333 29.7 334 34C329 33.3 324 32.7 319 32Z"/></g><path class="h-body" d="M60.7 75.6C57 73.8 48.1 75.6 41.2 77.1C34.4 78.7 26.7 81.6 19.6 84.9C12.5 88.1 5.5 93.1 -1.3 96.6C-8.1 100.1 -14.8 103.3 -21.2 105.9C-27.7 108.6 -33.8 110.4 -40.1 112.6C-40 113.4 -43.4 114.1 -39.9 115C-36.3 115.8 -26.3 117.9 -18.8 117.7C-11.2 117.4 -2.5 115.7 5.3 113.4C13.2 111.1 21.5 107.1 28.4 103.9C35.3 100.8 41 96.9 46.8 94.3C52.6 91.7 61 91.5 63.3 88.4C65.6 85.3 64.4 77.5 60.7 75.6Z"/><g class="h-body"><path d="M60 80C65.3 73.8 76.7 65.2 88 63C99.3 60.8 115 65.2 128 67C141 68.8 154.3 73.8 166 74C177.7 74.2 188.7 70.8 198 68C207.3 65.2 212.7 60.5 222 57C231.3 53.5 243.2 51 254 47C264.8 43 277.8 36.7 287 33C296.2 29.3 304.2 26 309 25C313.8 24 313.7 26.3 316 27C322 28.7 328 28.2 334 32C340 35.8 346.3 43.3 352 50C357.7 56.7 363.3 65.3 368 72C372.7 78.7 377.8 85.5 380 90C382.2 94.5 382.5 96.7 381 99C379.5 101.3 375.2 104.2 371 104C366.8 103.8 361.2 100.7 356 98C350.8 95.3 345 91.8 340 88C335 84.2 331 75.8 326 75C321 74.2 316.2 79 310 83C303.8 87 295.8 93.5 289 99C282.2 104.5 274 109.8 269 116C264 122.2 262.8 130 259 136C255.2 142 253.2 148 246 152C238.8 156 227 159.2 216 160C205 160.8 191.3 158.7 180 157C168.7 155.3 157.3 152.5 148 150C138.7 147.5 132.7 144.7 124 142C115.3 139.3 105.3 137.7 96 134C86.7 130.3 74.7 125.7 68 120C61.3 114.3 57.3 106.7 56 100C54.7 93.3 54.7 86.2 60 80Z"/><path d="M312 30C312.3 25.3 312.2 20.3 313 16C313.8 11.7 315.7 8 317 4C319 8.3 321.2 12.5 323 17C324.8 21.5 326.3 26.3 328 31C322.7 30.7 317.3 30.3 312 30Z"/><path d="M79.9 112.1L103.7 159.5A17 17 0 0 0 135.8 150.3L130.9 97.5A27 27 0 0 0 79.9 112.1Z"/><path d="M103.7 146.8L84.6 203A7.8 7.8 0 0 0 98.4 210L132.1 161A16 16 0 0 0 103.7 146.8Z"/><path d="M95.1 211.6L101.9 208A4.4 4.4 0 0 0 100.4 199.7L92.8 198.8A6.8 6.8 0 0 0 95.1 211.6Z"/><path d="M88.9 211.4L138.3 237.6A5.4 5.4 0 0 0 143.6 228.2L95.3 199.8A6.6 6.6 0 0 0 88.9 211.4Z"/><path d="M134 232.8a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M135.3 231.9L132.5 249.7A4.6 4.6 0 0 0 141.4 251.7L146.3 234.3A5.6 5.6 0 0 0 135.3 231.9Z"/><path d="M142.1 251.5L141.7 261.7L130.8 256.4L132.5 249.4Z"/><path d="M235 115.7L234.4 159.1A14 14 0 0 0 261.6 163.9L275.8 122.9A21 21 0 0 0 235 115.7Z"/><path d="M237 166.6L267.1 213.4A7.2 7.2 0 0 0 279.9 207.1L261.1 154.8A13.5 13.5 0 0 0 237 166.6Z"/><path d="M265.8 209.5a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z"/><path d="M267.2 209.5L266.5 255.4A5.2 5.2 0 0 0 276.9 255.8L279.2 209.8A6 6 0 0 0 267.2 209.5Z"/><path d="M264.8 255.5a6.9 6.9 0 1 0 13.8 0a6.9 6.9 0 1 0 -13.8 0Z"/><path d="M267.9 259.6L280.3 271.2A4.6 4.6 0 0 0 287 264.9L276 251.9A5.6 5.6 0 0 0 267.9 259.6Z"/><path d="M287.2 264.2L295.4 270.2L284.9 276.3L280.1 271Z"/></g><path class="h-cut" d="M341 51.5c2.6-2.2 6.4-2.2 8.4.4c-2.6 1.6-6 1.6-8.4-.4Z"/><path class="h-cut" d="M371.5 86.5c1.6-1.2 3.6-.6 4.2 1c-1.6.6-3.2.4-4.2-1Z"/><path class="h-tack" d="M332 40C340 60 352 80 362 98M357 89c3 6 7 10 12 12M336 42c4-6 9-9 14-9"/><path class="h-rein" d="M275 55.6C315 73.6 326 87 372 93"/><path class="h-cloth" d="M170 72C176 66.8 197.3 70 204 70C210.7 70 208 71.3 210 72C209.3 81.3 213.7 94.7 208 100C202.3 105.3 182.7 103.8 176 104C169.3 104.2 170.7 102 168 101C168.7 91.3 164 77.2 170 72Z"/><text class="h-num" x="189" y="96" text-anchor="middle">2</text><path class="h-iron" d="M208 99.5L223 99.5M212 99L201 73"/><g class="j-halo"><path d="M241.9 56L197.3 33.5A11.8 11.8 0 0 0 188.1 55.1L235.1 71.8A8.6 8.6 0 0 0 241.9 56Z"/><path d="M232.4 58.9L223.3 69.5A6.4 6.4 0 0 0 232.4 78.5L242.9 69.3A7.4 7.4 0 0 0 232.4 58.9Z"/><path d="M224.8 68L207.3 87.7A5 5 0 0 0 214.4 94.7L233.9 77A6.4 6.4 0 0 0 224.8 68Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 55.6a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/><path d="M194.6 56.2L241.1 46.2A14.5 14.5 0 0 0 233.8 18.1L188.3 32A12.5 12.5 0 0 0 194.6 56.2Z"/><path d="M235.5 38.2L249.2 52.9A5.2 5.2 0 0 0 257.1 46.1L244.9 30.2A6.2 6.2 0 0 0 235.5 38.2Z"/><path d="M251.8 54.2L274 59.7A4.2 4.2 0 0 0 276.3 51.6L254.5 44.5A5 5 0 0 0 251.8 54.2Z"/><path d="M247.6 22a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 26L271.6 25.5A2 2 0 0 0 272.7 21.9L263.6 15.2A6 6 0 0 0 260.3 26Z"/></g><g class="j-breeches"><path d="M241.9 56L197.3 33.5A11.8 11.8 0 0 0 188.1 55.1L235.1 71.8A8.6 8.6 0 0 0 241.9 56Z"/><path d="M232.4 58.9L223.3 69.5A6.4 6.4 0 0 0 232.4 78.5L242.9 69.3A7.4 7.4 0 0 0 232.4 58.9Z"/></g><g class="j-dark"><path d="M224.8 68L207.3 87.7A5 5 0 0 0 214.4 94.7L233.9 77A6.4 6.4 0 0 0 224.8 68Z"/><path d="M209.6 95.4L222 99.2A3.4 3.4 0 0 0 224.6 93L213.2 86.9A4.6 4.6 0 0 0 209.6 95.4Z"/><path d="M270.6 55.6a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0Z"/></g><g class="j-silk"><path d="M194.6 56.2L241.1 46.2A14.5 14.5 0 0 0 233.8 18.1L188.3 32A12.5 12.5 0 0 0 194.6 56.2Z"/><path d="M235.5 38.2L249.2 52.9A5.2 5.2 0 0 0 257.1 46.1L244.9 30.2A6.2 6.2 0 0 0 235.5 38.2Z"/><path d="M251.8 54.2L274 59.7A4.2 4.2 0 0 0 276.3 51.6L254.5 44.5A5 5 0 0 0 251.8 54.2Z"/></g><path class="j-face" d="M259.8 33L264.3 33.2A4.2 4.2 0 0 0 266.1 25.1L261.9 23.4A5 5 0 0 0 259.8 33Z"/><g class="j-silk"><path d="M247.6 22a9.4 9.4 0 1 0 18.8 0a9.4 9.4 0 1 0 -18.8 0Z"/><path d="M260.3 26L271.6 25.5A2 2 0 0 0 272.7 21.9L263.6 15.2A6 6 0 0 0 260.3 26Z"/></g><g class="j-silk2"><path d="M202.5 28.9L209 26.1L227.9 47L221.2 48.8Z"/><path d="M257.6 55.7L262.5 56.9A4.7 4.7 0 0 0 265 47.9L260.3 46.3A4.9 4.9 0 0 0 257.6 55.7Z"/><path d="M250.5 23.1L262.4 14.8A2.4 2.4 0 0 0 259.7 10.8L247.6 18.8A2.6 2.6 0 0 0 250.5 23.1Z"/></g></g></g></svg></div></div></div>\n    <div class="runners"><span class="lbl">Barrier<br>order</span><div class="chips"><span class="chip" style="--i:0;--to:0;--from:3" title="No. 4, barrier 1"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j4c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#2EAF62"/><g clip-path="url(#j4c)" fill="#FFFFFF" color="#FFFFFF" style="color:#FFFFFF"><circle cx="12.5" cy="15" r="2"/><circle cx="19.5" cy="15" r="2"/><circle cx="16" cy="21.5" r="2"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>4</b></span><span class="chip sel" style="--i:1;--to:1;--from:4" title="No. 2, barrier 2"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j2c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="var(--accent)"/><g clip-path="url(#j2c)" fill="var(--on-accent)" color="var(--on-accent)" style="color:var(--on-accent)"><path d="M9 13 23 27M23 13 9 27" stroke-width="3" stroke="currentColor"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>2</b></span><span class="chip" style="--i:2;--to:2;--from:5" title="No. 6, barrier 3"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j6c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#8E6CF0"/><g clip-path="url(#j6c)" fill="#FFFFFF" color="#FFFFFF" style="color:#FFFFFF"><path d="M11.5 0h3v32h-3zM17.5 0h3v32h-3z"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>6</b></span><span class="chip" style="--i:3;--to:3;--from:6" title="No. 8, barrier 4"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j8c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#19B5A5"/><g clip-path="url(#j8c)" fill="#FFFFFF" color="#FFFFFF" style="color:#FFFFFF"><path d="M16 0h16v17H16zM0 17h16v15H0z"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>8</b></span><span class="chip" style="--i:4;--to:4;--from:7" title="No. 1, barrier 5"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j1c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#E5484D"/><g clip-path="url(#j1c)" fill="#FFFFFF" color="#FFFFFF" style="color:#FFFFFF"><circle cx="16" cy="17" r="4.6"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>1</b></span><span class="chip" style="--i:5;--to:5;--from:8" title="No. 7, barrier 6"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j7c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#FF8A3D"/><g clip-path="url(#j7c)" fill="#1B2A4A" color="#1B2A4A" style="color:#1B2A4A"><path d="M16 11.5l5 6-5 6-5-6z"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>7</b></span><span class="chip" style="--i:6;--to:6;--from:9" title="No. 3, barrier 7"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j3c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#F5F7FA"/><g clip-path="url(#j3c)" fill="#111318" color="#111318" style="color:#111318"><path d="M0 12h32v3.2H0zM0 19h32v3.2H0zM0 26h32v3H0z"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>3</b></span><span class="chip" style="--i:7;--to:7;--from:10" title="No. 5, barrier 8"><svg viewBox="0 0 32 32" aria-hidden="true"><clipPath id="j5c"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z"/></clipPath><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="#F5C542"/><g clip-path="url(#j5c)" fill="#111318" color="#111318" style="color:#111318"><path d="M9 13l7 6 7-6v4l-7 6-7-6z"/></g><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg><b>5</b></span></div></div>\n  </section>\n';
+
+  // ── Racing (gallops T + harness H; opening prices only; no odds polling) ──
+  const RACING_ALLOWED = { T:true, H:true };
+  const RACING_SILK = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="var(--accent)"/><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg>';
+  let racingTimer = null;
+  let racingHeroTimers = [];
+
+  function racingCat(item){
+    if(!item) return "";
+    const c = item.category || (item.meeting && item.meeting.category) || "";
+    return String(c).toUpperCase();
+  }
+  function racingAllowed(item){ return !!RACING_ALLOWED[racingCat(item)]; }
+  function racingPick(obj, keys){
+    if(!obj) return null;
+    for(let i=0;i<keys.length;i++){
+      const v = obj[keys[i]];
+      if(v!=null && v!=="" && v!==0 && v!=="0") return v;
+    }
+    for(let i=0;i<keys.length;i++){
+      const v = obj[keys[i]];
+      if(typeof v==="number" && Number.isFinite(v)) return v;
+    }
+    return null;
+  }
+  // TipBot 0.58.1 sends runner.fixed {win, place}: the opening price, captured once.
+  function racingOpeningWin(rn){
+    const f = rn && rn.fixed && racingPick(rn.fixed, ["win"]);
+    return f!=null ? f : racingPick(rn, ["opening_win","open_win","opening_win_odds"]);
+  }
+  function racingOpeningPlace(rn){
+    const f = rn && rn.fixed && racingPick(rn.fixed, ["place"]);
+    return f!=null ? f : racingPick(rn, ["opening_place","open_place","opening_place_odds"]);
+  }
+  // Final results: TipBot sends event.results [{runner_id, position}] and
+  // event.dividends [{type:"win"|"place", runner_id, amount}].
+  function racingPosition(r, rn){
+    if(rn && Number(rn.finishing_position)>0) return Number(rn.finishing_position);
+    const hit = ((r && r.results) || []).find(function(x){ return x && String(x.runner_id)===String(rn && rn.id); });
+    if(hit && Number(hit.position)>0) return Number(hit.position);
+    if(rn && Number(rn.result)>0) return Number(rn.result);
+    return 0;
+  }
+  function racingDividend(r, rn, type){
+    const own = rn && rn[type+"_dividend"];
+    if(own!=null && own!=="") return own;
+    const hit = ((r && r.dividends) || []).find(function(x){ return x && String(x.type).toLowerCase()===type && String(x.runner_id)===String(rn && rn.id); });
+    return hit && hit.amount!=null ? hit.amount : "—";
+  }
+  function racingFmtOdds(v){
+    const n = Number(v);
+    if(!Number.isFinite(n) || n<=0) return "—";
+    return n.toFixed(2);
+  }
+  function racingSilk(rn){
+    if(rn && rn.silk_url) return '<img src="'+esc(rn.silk_url)+'" alt="">';
+    return RACING_SILK;
+  }
+  function racingIsFinal(r){
+    return /^(final|result|official|results)$/i.test(String((r&&r.status)||""));
+  }
+  function stopRacingCountdown(){
+    if(racingTimer){ clearInterval(racingTimer); racingTimer=null; }
+  }
+  function stopRacingHero(){
+    racingHeroTimers.forEach(function(id){ clearTimeout(id); });
+    racingHeroTimers = [];
+  }
+  function tickRacingCountdown(){
+    const badges = Array.prototype.filter.call(document.querySelectorAll(".time-badge[data-time]"), function(el){ return !el.closest("[hidden]"); });
+    if(!badges.length){ stopRacingCountdown(); return; }
+    badges.forEach(function(el){
+      const time = parseInt(el.dataset.time, 10);
+      if(isNaN(time)) return;
+      const diff = Math.max(0, Math.floor((time - Date.now()) / 1000));
+      if(diff===0){
+        el.textContent = "LIVE";
+        el.className = "live-badge";
+        el.style.color = "#e5484d";
+      }else{
+        const mins = Math.floor(diff / 60);
+        const secs = diff % 60;
+        el.textContent = (mins>0 ? mins+"m " : "") + secs + "s";
+      }
+    });
+  }
+  function startRacingCountdown(){
+    stopRacingCountdown();
+    tickRacingCountdown();
+    racingTimer = setInterval(tickRacingCountdown, 1000);
+  }
+
+  async function fetchRacingApi(path){
+    try{
+      const res = await api(path);
+      if(!res.ok){
+        if(res.status===503) return { error: "Racing data is currently unavailable. Please try again later." };
+        if(res.status===400) return { error: "Greyhounds aren't listed. Gallops and harness only." };
+        return { error: "Failed to load racing data." };
+      }
+      return await res.json();
+    }catch(e){
+      if(e&&e.unauth) throw e;
+      return { error: "Failed to connect to racing service." };
+    }
+  }
+
+  function racingToday(){
+    try{ if(window.TBTime && TBTime.dayKey) return TBTime.dayKey(Date.now()); }catch(e){}
+    return new Date().toISOString().slice(0,10);
+  }
+  function racingMeetingsPath(cat){
+    return "/api/racing/meetings?category="+cat+"&date="+encodeURIComponent(racingToday());
+  }
+  // "All" asks for gallops and harness separately and merges them.
+  async function fetchRacingMeetings(cat){
+    const cats = (cat==="T" || cat==="H") ? [cat] : ["T","H"];
+    const res = await Promise.all(cats.map(function(c){ return fetchRacingApi(racingMeetingsPath(c)); }));
+    const ok = res.filter(function(d){ return d && !d.error; });
+    if(!ok.length) return res[0] || { error: "Failed to load." };
+    let meetings = [];
+    ok.forEach(function(d, i){
+      const c = cats[res.indexOf(d)];
+      ((d.data && d.data.meetings) || d.meetings || []).forEach(function(m){
+        if(!m) return;
+        if(!m.category) m.category = c;
+        const key = String(m.id || m.meeting || m.name || "");
+        if(key && meetings.some(function(x){ return String(x.id || x.meeting || x.name || "")===key; })) return;
+        meetings.push(m);
+      });
+    });
+    return { meetings: meetings };
+  }
+
+  async function loadNextToGo(){
+    const list = $("next-to-go-list");
+    if(!list) return;
+    const data = await fetchRacingApi("/api/racing/next?limit=10");
+    if(list.isConnected === false) return;
+    if(!data || data.error){
+      list.innerHTML = '<div class="empty">'+esc(data && data.error ? data.error : "Failed to load.")+'</div>';
+      return;
+    }
+    const races = ((data.data && data.data.races) || data.races || []).filter(racingAllowed);
+    if(!races.length){
+      list.innerHTML = '<div class="empty">No upcoming gallops or harness races.</div>';
+      return;
+    }
+    let html = '<div class="race-list">';
+    races.forEach(function(r){
+      const meetingName = r.meeting ? r.meeting.name : (r.meeting_name || "Unknown");
+      const cat = racingCat(r) || "T";
+      const label = cat==="H" ? "Harness" : "Gallops";
+      const time = new Date(r.start_time);
+      const ts = time.getTime();
+      html += '<div class="race-ntg" data-id="'+esc(String(r.id||""))+'" data-cat="'+esc(cat)+'" data-meeting="'+esc(meetingName)+'">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center">'
+        + '<div>'
+        + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">'+esc(meetingName)+'</div>'
+        + '<div style="font-size:var(--t-foot);color:var(--muted)">'+esc(label)+' · R'+esc(String(r.race_number||""))+(r.distance ? ' · '+esc(String(r.distance))+'m' : '')
+        + (r.track_condition ? ' · '+esc(r.track_condition) : '')+'</div>'
+        + '</div>'
+        + '<div class="time-badge" data-time="'+ts+'" style="font-size:var(--t-cap);font-weight:700;padding:4px 8px;border-radius:4px;background:var(--surface,var(--card));color:var(--accent)">—</div>'
+        + '</div></div>';
+    });
+    html += '</div>';
+    list.innerHTML = html;
+    list.querySelectorAll(".race-ntg").forEach(function(el){
+      el.onclick = function(){ openRaceEvent(el.dataset.id, el.dataset.cat, el.dataset.meeting); };
+    });
+    startRacingCountdown();
+  }
+
+  async function openRacingBuilder(guildId, name, category){
+    stopRacingCountdown();
+    stopRacingHero();
+    navNote("#/s/"+encodeURIComponent(guildId)+"/build/racing", function(){ openRacingBuilder(guildId,name,category); });
+    // Also opened straight from the Home Racing tile or a deep link, so own the panel.
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
+    if(!BUILD || String(BUILD.guildId)!==String(guildId)){
+      BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",unitSize:guildUnitSize(guildId),autoLines:false};
+    }
+    panel("builder");renderTray();renderBatchTray();
+    BUILD.isRacing = true;
+    const cat = (category==="T"||category==="H") ? category : "";
+    $("builder").innerHTML = '<div class="back" id="bx">← Back to Ready to build</div><h1 style="margin:0 0 16px">Racing</h1>'
+      + '<div style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap" id="racing-cat-tabs">'
+      + '<button class="compchip'+(cat===""?" on":"")+'" data-c="">All</button>'
+      + '<button class="compchip'+(cat==="T"?" on":"")+'" data-c="T">Gallops</button>'
+      + '<button class="compchip'+(cat==="H"?" on":"")+'" data-c="H">Harness</button>'
+      + '</div>'
+      + '<div id="racing-meetings-list">'+NDSkeleton.grid(6,{cols:1,tile:"72px"})+'</div>'
+      + '<div class="rg" style="text-align:center;color:var(--muted);font-size:var(--t-cap);font-weight:500;margin-top:32px;padding-bottom:32px">18+ · Gamble responsibly</div>';
+    $("bx").onclick = function(){ openBuilder(guildId, name); };
+    $("racing-cat-tabs").onclick = function(e){
+      const btn = e.target.closest("[data-c]");
+      if(!btn) return;
+      openRacingBuilder(guildId, name, btn.dataset.c);
+    };
+    const data = await fetchRacingMeetings(cat);
+    const list = $("racing-meetings-list");
+    if(!list) return;
+    if(!data || data.error){
+      list.innerHTML = '<div class="empty">'+esc(data && data.error ? data.error : "Failed to load.")+'</div>';
+      return;
+    }
+    const meetings = ((data.data && data.data.meetings) || data.meetings || []).filter(racingAllowed)
+      .filter(function(m){ return !cat || racingCat(m)===cat; });
+    if(!meetings.length){
+      list.innerHTML = '<div class="empty">No meetings found.</div>';
+      return;
+    }
+    let html = '<div class="race-list">';
+    meetings.forEach(function(m){
+      const n = (m.races && m.races.length) || m.race_count || 0;
+      const kind = racingCat(m)==="H" ? "Harness" : "Gallops";
+      html += '<div class="race-mtg" data-id="'+esc(String(m.meeting||m.id||""))+'">'
+        + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">'+esc(m.name)+'</div>'
+        + '<div style="font-size:var(--t-foot);color:var(--muted)">'+esc(kind)+' · '+n+(n===1?' race':' races')+'</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    list.innerHTML = html;
+    list.querySelectorAll(".race-mtg").forEach(function(el){
+      el.onclick = function(){ openRacingMeeting(el.dataset.id); };
+    });
+  }
+
+  async function openRacingMeeting(meetingId){
+    stopRacingHero();
+    navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/racing/meeting/"+meetingId, function(){ openRacingMeeting(meetingId); });
+    $("builder").innerHTML = '<div class="back" id="bx">← Back to Racing</div><h1 style="margin:0 0 16px">Meeting</h1>'
+      + '<div id="racing-meeting-detail">'+NDSkeleton.grid(6,{cols:1,tile:"72px"})+'</div>'
+      + '<div class="rg" style="text-align:center;color:var(--muted);font-size:var(--t-cap);font-weight:500;margin-top:32px;padding-bottom:32px">18+ · Gamble responsibly</div>';
+    $("bx").onclick = function(){ openRacingBuilder(BUILD.guildId, BUILD.serverName); };
+    const data = await fetchRacingApi("/api/racing/meeting/"+encodeURIComponent(meetingId));
+    const detail = $("racing-meeting-detail");
+    if(!detail) return;
+    if(!data || data.error){
+      detail.innerHTML = '<div class="empty">'+esc(data && data.error ? data.error : "Failed to load.")+'</div>';
+      return;
+    }
+    const m = (data.data && (data.data.meeting || data.data)) || data.meeting;
+    if(!m){
+      detail.innerHTML = '<div class="empty">Meeting not found.</div>';
+      return;
+    }
+    if(!racingAllowed(m)){
+      detail.innerHTML = '<div class="empty">Greyhounds aren\'t listed. Gallops and harness only.</div>';
+      return;
+    }
+    const h1 = $("builder").querySelector("h1");
+    if(h1) h1.textContent = m.name;
+    BUILD.racingMeetingName = m.name;
+    BUILD.racingCategory = racingCat(m);
+    let html = '<div class="race-list">';
+    (m.races || []).forEach(function(r){
+      html += '<div class="race-evt" data-id="'+esc(String(r.id||""))+'">'
+        + '<div style="font-weight:700;font-size:var(--t-body);margin-bottom:4px">Race '+esc(String(r.race_number||""))+'</div>'
+        + '<div style="font-size:var(--t-foot);color:var(--muted)">'+esc(r.name||"")+(r.distance ? ' · '+esc(String(r.distance))+'m' : '')+'</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    detail.innerHTML = html;
+    detail.querySelectorAll(".race-evt").forEach(function(el){
+      el.onclick = function(){ openRaceEvent(el.dataset.id, racingCat(m), m.name); };
+    });
+  }
+
+  async function openRaceEvent(eventId, category, meetingName){
+    stopRacingHero();
+    category = String(category||"").toUpperCase();
+    meetingName = meetingName || BUILD.racingMeetingName || "Racing";
+    navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/racing/event/"+eventId, function(){ openRaceEvent(eventId, category, meetingName); });
+    if(category==="G"){
+      $("builder").innerHTML = '<div class="back" id="bx">← Back</div><div class="empty">Greyhounds aren\'t listed. Gallops and harness only.</div>';
+      $("bx").onclick = function(){ openRacingBuilder(BUILD.guildId, BUILD.serverName); };
+      return;
+    }
+    let html = '<div class="app'+(category==="T"?"":" no-hero")+'" id="race-app">'
+      + '<header class="top">'
+      + '<a class="back" id="bx" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>'
+      + '<h2>'+esc(meetingName)+'</h2>'
+      + '</header>';
+    if (category === 'T') {
+      html += RACING_HERO_HTML;
+    }
+    html += '<main class="race-card" id="race-card-main">'+NDSkeleton.grid(6,{cols:1,tile:"72px"})+'</main></div>';
+    $("builder").innerHTML = html;
+    $("bx").onclick = function(){ navBack(function(){ openRacingBuilder(BUILD.guildId, BUILD.serverName); }); };
+    const app = $("race-app");
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'reduce';
+    if (category === 'T') {
+      if (reduce) {
+        app.classList.add('is-in', 'is-compact');
+      } else {
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ app.classList.add('is-in'); }); });
+        racingHeroTimers.push(setTimeout(function(){ app.classList.add('is-compact'); }, 1100));
+        racingHeroTimers.push(setTimeout(function(){
+          document.querySelectorAll('#race-app .hero').forEach(function(h){
+            (h.getAnimations ? h.getAnimations({ subtree: true }) : []).forEach(function(a){ a.updatePlaybackRate ? a.updatePlaybackRate(.62) : (a.playbackRate = .62); });
+          });
+        }, 1800));
+      }
+    } else if(app){
+      app.classList.add('is-in', 'is-compact');
+    }
+
+    const data = await fetchRacingApi("/api/racing/event/"+encodeURIComponent(eventId));
+    const main = $("race-card-main");
+    if(!main) return;
+    if(!data || data.error){
+      main.innerHTML = '<div class="empty">'+esc(data && data.error ? data.error : "Failed to load.")+'</div>';
+      return;
+    }
+    const r = data.event || data.race || (data.data && (data.data.event || data.data.race || data.data));
+    if(!r){
+      main.innerHTML = '<div class="empty">Race not found.</div>';
+      return;
+    }
+    const raceCat = racingCat(r) || category;
+    if(raceCat==="G"){
+      main.innerHTML = '<div class="empty">Greyhounds aren\'t listed. Gallops and harness only.</div>';
+      return;
+    }
+    if (category === 'T') {
+      const chips = document.querySelector('#race-app .chips');
+      if(chips){
+        let chipsHtml = '';
+        (r.runners || []).filter(function(rn){ return !rn.scratched; }).forEach(function(rn, i){
+          chipsHtml += '<span class="chip" style="--i:'+i+';--to:'+i+';--from:'+(i+3)+'" title="No. '+esc(String(rn.number))+', barrier '+esc(String(rn.barrier||""))+'">'
+            + racingSilk(rn) + '<b>'+esc(String(rn.number))+'</b></span>';
+        });
+        chips.innerHTML = chipsHtml;
+      }
+      const eyebrow = document.querySelector('#race-app .eyebrow');
+      if(eyebrow){
+        eyebrow.innerHTML = '<span><b>R'+esc(String(r.race_number||""))+'</b> · '+esc(String(r.distance||""))+'m'
+          + (r.track_condition ? ' · '+esc(r.track_condition) : '')+'</span><span>'+esc(r.name||"")+'</span>';
+      }
+    }
+
+    let cardHtml = '<div class="race-eyebrow"><b>Race '+esc(String(r.race_number||""))+'</b>'
+      + (r.distance ? ' · '+esc(String(r.distance))+'m' : '')+' · '+esc(meetingName)+'</div>'
+      + '<h1>'+esc(r.name||"Race")+'</h1>'
+      + '<div class="meta"><span>'+esc(r.track_condition||"")+'</span>'
+      + (r.start_time ? '<span>·</span><span>'+esc((function(){ try{ return new Date(r.start_time).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } })())+'</span>' : '')
+      + '</div>';
+
+    const runners = r.runners || [];
+    if(racingIsFinal(r)){
+      cardHtml += '<h3 style="margin-top:24px">Placings</h3>';
+      runners.filter(function(rn){ return racingPosition(r, rn)>0; })
+        .sort(function(a,b){ return racingPosition(r, a)-racingPosition(r, b); })
+        .slice(0,3)
+        .forEach(function(rn, i){
+          cardHtml += '<div class="race-row" style="--i:'+i+'">'
+            + '<div style="width:24px;font-weight:700;color:var(--accent)">'+esc(String(racingPosition(r, rn)))+'</div>'
+            + '<span class="silk">'+racingSilk(rn)+'<b>'+esc(String(rn.number))+'</b></span>'
+            + '<span class="who"><strong>'+esc(rn.name)+'</strong></span>'
+            + '<div style="text-align:right"><div style="font-size:var(--t-cap);color:var(--muted);text-transform:uppercase;margin-bottom:4px">Win</div><div style="font-weight:700">'+esc(String(racingDividend(r, rn, "win")))+'</div></div>'
+            + '<div style="text-align:right;margin-left:12px"><div style="font-size:var(--t-cap);color:var(--muted);text-transform:uppercase;margin-bottom:4px">Place</div><div style="font-weight:700">'+esc(String(racingDividend(r, rn, "place")))+'</div></div>'
+            + '</div>';
+        });
+    }else{
+      cardHtml += '<div class="cols"><em>Opening</em><span>Win</span><span>Place</span></div>';
+      runners.forEach(function(rn, i){
+        if(rn.scratched){
+          cardHtml += '<div class="race-row" style="--i:'+i+';opacity:0.5">'
+            + '<span class="silk" style="background:var(--hairline,var(--line))"><b>'+esc(String(rn.number))+'</b></span>'
+            + '<span class="who"><strong>'+esc(rn.name)+'</strong><small>Scratched</small></span>'
+            + '</div>';
+        }else{
+          const jock = rn.jockey_or_driver || rn.jockey || rn.driver || "";
+          const bar = rn.barrier!=null ? rn.barrier : "";
+          cardHtml += '<div class="race-row race-tip" data-i="'+i+'" style="--i:'+i+';cursor:pointer">'
+            + '<span class="silk">'+racingSilk(rn)+'<b>'+esc(String(rn.number))+'</b></span>'
+            + '<span class="who"><strong>'+esc(rn.name)+'</strong><small>'
+            + (jock ? (raceCat==="H" ? "D: " : "J: ")+esc(jock) : "")
+            + (bar!=="" ? (jock ? " · " : "")+"Bar "+esc(String(bar)) : "")
+            + '</small></span>'
+            + '<span class="odds">'+racingFmtOdds(racingOpeningWin(rn))+'</span>'
+            + '<span class="odds">'+racingFmtOdds(racingOpeningPlace(rn))+'</span>'
+            + '</div>';
+        }
+      });
+    }
+    cardHtml += '<div class="rg">18+ · Gamble responsibly</div>';
+    main.innerHTML = cardHtml;
+    main.querySelectorAll(".race-tip").forEach(function(el){
+      el.onclick = function(){
+        const rn = runners[+el.dataset.i];
+        if(rn && !rn.scratched) addRacingTip(r, rn, meetingName);
+      };
+    });
+  }
+
+  function addRacingTip(race, runner, meetingName){
+    const odds = racingOpeningWin(runner);
+    const price = Number(odds);
+    const locked = Number.isFinite(price) && price>0 ? price : null;
+    const meeting = meetingName || BUILD.racingMeetingName || "Racing";
+    const eventName = meeting + " · R" + (race && race.race_number ? race.race_number : "") + (race && race.name ? " " + race.name : "");
+    const desc = (runner.name || "Runner") + " (Win)" + (locked!=null ? " @ " + racingFmtOdds(locked) : " @ Opening");
+    const day = race && race.start_time ? String(race.start_time).slice(0,10) : "";
+    const gid = BUILD.guildId, sname = BUILD.serverName;
+    openCustom(gid, sname, "Racing");
+    BUILD.customEvent = eventName;
+    BUILD.customSport = "Racing";
+    BUILD.customStartDay = day;
+    BUILD.legs = [];
+    addLeg({ custom:true, desc:desc, price:locked });
+    renderCustom();
+    const ev = $("c_event"); if(ev) ev.value = BUILD.customEvent;
+    const sp = $("c_sport"); if(sp) sp.value = BUILD.customSport;
+    const sd = $("c_start"); if(sd && day) sd.value = day;
+  }
+
   TD.loaded.builder=true;

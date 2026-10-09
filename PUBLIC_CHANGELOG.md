@@ -1,3 +1,7 @@
+## 0.54.1
+
+Build now has a Racing section for gallops and harness.
+
 ## 0.53.4
 
 A new Stats screen on Home: units, ROI and streaks over 7 days, 30 days or the season.
