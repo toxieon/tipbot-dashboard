@@ -520,7 +520,7 @@
     catch (e) { fn(); }
   }
   function namePages() {
-    var ids = ["overview", "detail", "builder", "followers", "follower", "mytips", "discover", "settings"];
+    var ids = ["overview", "detail", "builder", "upcoming", "followers", "follower", "mytips", "discover", "settings"];
     var i, el, named = false;
     for (i = 0; i < ids.length; i++) {
       el = doc.getElementById(ids[i]);
@@ -571,8 +571,12 @@
         pending = "servers";
         pendingFired = false;
       } else if (id === "upcoming") {
+        var visUpc = doc.getElementById("upcoming");
+        if (visUpc && !visUpc.hidden) return;
         var u = doc.getElementById("upcomingbtn");
-        if (u) u.click();
+        var detail = doc.getElementById("detail");
+        if (u && detail && !detail.hidden) u.click();
+        else if (typeof root.TBOpenUpcoming === "function") { try { root.TBOpenUpcoming(); } catch (e3) {} }
         else { pending = "upcoming"; pendingFired = false; }
       } else if (id === "build") {
         var b = doc.getElementById("buildbtn");
@@ -641,7 +645,7 @@
   function buttonRow(items, extra) {
     return items.map(function (item) {
       var cls = "apex-navbtn" + (item.id === "build" ? " apex-tab-build" : "") + (extra || "");
-      return '<button type="button" class="' + cls + '" data-apex-nav="' + item.id + '">' + icon(item.d) + "<span>" + item.label + "</span></button>";
+      return '<button type="button" class="' + cls + '" data-apex-nav="' + item.id + '" aria-label="' + item.label + '">' + icon(item.d) + "<span>" + item.label + "</span></button>";
     }).join("");
   }
   function mountShell() {
@@ -674,9 +678,11 @@
     var ind = nav.querySelector(".apex-indicator");
     var current = nav.querySelector('[aria-current="page"]');
     if (!ind || !current) return;
-    ind.style.width = current.offsetWidth + "px";
-    ind.style.height = current.offsetHeight + "px";
-    ind.style.transform = "translate3d(" + current.offsetLeft + "px," + current.offsetTop + "px,0)";
+    var r = current.getBoundingClientRect();
+    var nr = nav.getBoundingClientRect();
+    ind.style.width = r.width + "px";
+    ind.style.height = r.height + "px";
+    ind.style.transform = "translate3d(" + (r.left - nr.left) + "px," + (r.top - nr.top) + "px,0)";
   }
   function paintNav() {
     var id = sectionNow();

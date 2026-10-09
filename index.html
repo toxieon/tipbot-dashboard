@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico" sizes="any">
-<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./assets/favicon.ico?v=0.53.2" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.53.2" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.53.2" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.53.2">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -147,6 +147,8 @@
     --accent:#5b8cff;--accent2:#7b5bff;--win:#2eaf62;--loss:#e5595f;--push:#5c6785;--radius:16px;
   }
   *{box-sizing:border-box} html,body{margin:0}
+  .skip{position:absolute;left:12px;top:-80px;z-index:100;background:var(--card);color:var(--txt);padding:10px 14px;min-height:44px;border-radius:var(--r-md);text-decoration:none;font-weight:700}
+  .skip:focus{top:12px}
   body{background:radial-gradient(1200px 600px at 80% -10%, #182142 0%, var(--bg) 55%) fixed, var(--bg);
        color:var(--txt);font:var(--t-body)/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
   .wrap{max-width:1120px;margin:0 auto;padding:22px max(20px, env(safe-area-inset-right, 0px)) calc(90px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left, 0px));min-width:0;box-sizing:border-box}
@@ -155,10 +157,10 @@
   .logo{width:30px;height:30px;border-radius:var(--r-sm);background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:16px}
   .brand .sub{font-weight:500;color:var(--muted);font-size:var(--t-foot);margin-left:2px}
   .menu{position:relative}
-  .gear{width:38px;height:38px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;font-size:17px;color:var(--muted)}
+  .gear{width:44px;height:44px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--card);display:grid;place-items:center;cursor:pointer;font-size:17px;color:var(--muted)}
   .gear:hover{color:var(--txt)}
   .dropdown{position:absolute;right:0;top:46px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);min-width:220px;padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.5);z-index:30}
-  .dd-item{padding:9px 11px;border-radius:var(--r-sm);cursor:pointer;font-size:var(--t-callout);display:flex;justify-content:space-between;gap:8px}
+  .dd-item{padding:9px 11px;min-height:44px;box-sizing:border-box;border-radius:var(--r-sm);cursor:pointer;font-size:var(--t-callout);display:flex;align-items:center;justify-content:space-between;gap:8px}
   .dd-item:hover{background:#222c44}
   .dd-label{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.06em;padding:8px 11px 4px}
   .dd-quota{padding:9px 11px;border-radius:var(--r-sm);font-size:var(--t-sub);color:var(--muted);line-height:1.35;cursor:default;user-select:none}
@@ -211,13 +213,14 @@
   .scard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
   .scard:hover{border-color:#3a4772;background:var(--card2)}
   .scard .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
-  .sname{font-weight:700;font-size:var(--t-h3)}.sgid{color:var(--faint);font-size:var(--t-foot)}
+  .scard .row1 > div{min-width:0}
+  .sname{font-weight:700;font-size:var(--t-h3);min-width:0;overflow-wrap:anywhere}.sgid{color:var(--faint);font-size:var(--t-foot)}
   .plan{align-self:flex-start;flex:none;height:auto;font-size:var(--t-cap);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 8px;line-height:1.3;white-space:nowrap;text-transform:capitalize}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.dot.on{background:var(--win)}.dot.off{background:var(--push)}
   .mini{display:flex;gap:18px;flex-wrap:wrap}.mini .m{display:flex;flex-direction:column}
   .mini .mv{font-weight:700;font-size:var(--t-h3)}.mini .ml{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase}
   .pos{color:var(--win)}.neg{color:var(--loss)}
-  .back{color:var(--muted);cursor:pointer;font-size:var(--t-callout);display:inline-flex;gap:6px;margin-bottom:14px}.back:hover{color:var(--txt)}
+  .back{color:var(--muted);cursor:pointer;font-size:var(--t-callout);display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;min-height:44px;box-sizing:border-box}.back:hover{color:var(--txt)}
   .dhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;min-width:0;max-width:100%}
   .dhead h1{margin:0;font-size:var(--t-h1);min-width:0;overflow-wrap:anywhere}
   .dhead-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0;max-width:100%}
@@ -238,6 +241,7 @@
     .brand{min-width:0;overflow:hidden}
   }
   html,body{overflow-x:hidden;max-width:100%}
+  .wrap,#app,#overview,#detail,#upcoming,#builder,#followers,#follower,#mytips,#discover{min-width:0;max-width:100%}
   /* 0.43.1: clip (not hidden) so body is not a scroll container and the sticky header sticks. */
   @supports (overflow:clip){ html,body{overflow-x:clip} }
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:22px}
@@ -290,7 +294,7 @@
   .wl-legend{display:flex;gap:18px;margin-top:12px;font-size:var(--t-sub);color:var(--muted);flex-wrap:wrap}
   .lg{display:inline-flex;align-items:center;gap:7px}.sw{width:10px;height:10px;border-radius:var(--r-xs)}
   .switches{display:flex;gap:12px;flex-wrap:wrap}
-  .switch{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px}
+  .switch{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;min-height:44px;box-sizing:border-box}
   .toggle{width:44px;height:25px;border-radius:999px;background:#43506b;position:relative;cursor:pointer;border:none;flex:none;transition:background .15s}
   .toggle.on{background:var(--win)}.toggle::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .15s ease}.toggle.on::after{left:3px;transform:translateX(19px)}
   .toggle[data-ft-loaded="0"]{cursor:not-allowed;opacity:.5}
@@ -300,11 +304,11 @@
   .badge{font-size:var(--t-cap);font-weight:700;padding:3px 9px;border-radius:999px}
   .b-win{background:rgba(46,175,98,.16);color:#5fd48c}.b-loss{background:rgba(229,89,95,.16);color:#ff9a9e}.b-push{background:rgba(92,103,133,.2);color:#b3bdd6}.b-pending{background:rgba(91,140,255,.16);color:#9db8ff}
   .num.pos{color:var(--win);font-weight:700}.num.neg{color:var(--loss);font-weight:700}
-  .empty{color:var(--faint);font-size:var(--t-sub);padding:14px 0}
-  .btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--r-md);padding:11px 18px;color:#fff;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+  .empty{color:var(--muted);font-size:var(--t-sub);padding:14px 0}
+  .btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--r-md);padding:11px 18px;min-height:44px;box-sizing:border-box;color:#fff;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
   .btn.sm{padding:8px 14px;font-size:var(--t-sub)}
   .btn:disabled{opacity:.5;cursor:default}
-  .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:var(--r-md);padding:8px 14px;font:inherit;cursor:pointer}
+  .ghost{background:none;border:1px solid var(--line);color:var(--muted);border-radius:var(--r-md);padding:8px 14px;min-height:44px;box-sizing:border-box;font:inherit;cursor:pointer}
   .center{min-height:74vh;display:grid;place-items:center;text-align:center}.center h1{margin:0 0 6px}.center p{color:var(--muted);margin:0 0 20px}
   .err{color:var(--loss)}
   /* builder */
@@ -320,7 +324,7 @@
   .gcard .espn-tname small{display:block;color:var(--muted);font-size:var(--t-cap);font-weight:400;margin-top:2px}
   .gcard .espn-score{font-weight:800;font-variant-numeric:tabular-nums;font-size:var(--t-h3);min-width:1.5ch;text-align:right}
   .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
-  .tab{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:var(--t-callout)}
+  .tab{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:8px 16px;min-height:44px;box-sizing:border-box;cursor:pointer;font-weight:600;font-size:var(--t-callout)}
   .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .tab.mkt{border-color:#5a3a7a;color:#c9a5ff}
   .tab.mkt.active{background:#7b5bff;border-color:#7b5bff;color:#fff}
@@ -353,7 +357,7 @@
     .prow-actions{flex:1 1 100%;justify-content:space-between}
     .ou{flex:1}
     .ou button{flex:1;padding:9px 10px}
-    .addbtn{min-height:38px;padding:9px 16px}
+    .addbtn{min-height:44px;padding:9px 16px}
     .compare-btn{order:-1;flex:1 1 100%;min-height:44px;padding:10px 14px;justify-content:center}
     .builder-tools #psearch,.builder-tools #psort{min-width:0!important;width:100%}
     .builder-tools{flex-direction:column}
@@ -422,7 +426,7 @@
     .topnav{flex:1 1 100%}
   }
   .batch-label{font-size:var(--t-cap);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(91,140,255,.14);border:1px solid rgba(91,140,255,.35);border-radius:999px;padding:4px 10px;flex:none;white-space:nowrap}
-  .batchtray .batch-clear{border:1px solid var(--line);background:transparent;color:var(--faint);border-radius:var(--r-sm);padding:6px 10px;cursor:pointer;font:inherit;font-size:var(--t-callout);font-weight:700;flex:none;line-height:1}
+  .batchtray .batch-clear{border:1px solid var(--line);background:transparent;color:var(--faint);border-radius:var(--r-sm);padding:6px 10px;min-height:44px;min-width:44px;box-sizing:border-box;cursor:pointer;font:inherit;font-size:var(--t-callout);font-weight:700;flex:none;line-height:1}
   .batchtray .batch-clear:hover{color:var(--loss);border-color:rgba(229,72,77,.45)}
   .batchtray .btn{flex:none;white-space:nowrap;margin-left:auto}
   .btn.secondary{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none}
@@ -470,7 +474,7 @@
   .tb-toast--success{border-color:var(--win)}
   .tb-toast--warn{border-color:var(--warn);color:var(--warn-ink)}
   .tb-toast--error{border-color:var(--loss);color:var(--loss-ink)}
-  .tb-toast button{background:none;border:0;color:var(--accent);font:inherit;font-weight:800;cursor:pointer;padding:6px 2px;margin:-6px 0;flex:none;min-height:32px}
+  .tb-toast button{background:none;border:0;color:var(--accent);font:inherit;font-weight:800;cursor:pointer;padding:6px 2px;margin:-6px 0;flex:none;min-height:44px}
   /* Float above an open tray so the toast never covers its buttons (0.43.1). */
   body:has(#tray:not([hidden])) .tb-toast,body:has(#batchtray:not([hidden])) .tb-toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
   body:has(#tray:not([hidden])):has(#batchtray.above-legs:not([hidden])) .tb-toast{bottom:calc(164px + env(safe-area-inset-bottom,0px))}
@@ -503,7 +507,7 @@
   .betcard-bookie .bk-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-sub);font-weight:600;min-width:0}
   .betcard-meta{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:nowrap}
   .betcard-meta .tb-quote{white-space:nowrap;font-size:var(--t-foot);color:var(--muted)}
-  .betcard-id{color:var(--faint);font-size:var(--t-cap);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .betcard-id{color:var(--faint);font-size:var(--t-cap);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .betcard-type{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.05em;margin:6px 0 4px}
   .betcard-legs{display:flex;flex-direction:column;gap:4px;min-width:0}
   .betcard-leg{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:var(--t-sub);line-height:1.35;min-width:0}
@@ -549,7 +553,7 @@ html[data-theme="ochre"] {
 html[data-theme="apex"] {
   color-scheme:dark;
   --bg:#07090F;--bg2:#0C1018;--card:#11141C;--card2:#11141C;--line:#1E2430;
-  --txt:#F5F7FA;--muted:#8B93A7;--faint:#6E768C;
+  --txt:#F5F7FA;--muted:#8B93A7;--faint:#8B93A7;
   --accent:#5B8CFF;--accent2:#3B6FE8;--on-accent:#07090F;
   --win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;
   --win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;
@@ -560,7 +564,7 @@ html[data-theme="apex"] {
 html[data-theme="apex"][data-apex-variant="light"] {
   color-scheme:light;
   --bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;
-  --txt:#0E1116;--muted:#5C6578;--faint:#6A7386;
+  --txt:#0E1116;--muted:#5C6578;--faint:#5C6578;
   --accent:#3B6FE8;--accent2:#2F5AD0;--on-accent:#FFFFFF;
   --win:#34D399;--loss:#F87171;--push:#8B93A7;--void:#8B93A7;--radius:16px;
   --win-ink:#047857;--loss-ink:#B91C1C;--push-ink:#3F4758;--void-ink:#3F4758;
@@ -571,7 +575,7 @@ html[data-theme="apex"][data-apex-variant="light"] {
 html[data-theme="apex"][data-apex-variant="oled"] {
   color-scheme:dark;
   --bg:#000000;--bg2:#050505;--card:#0a0a0a;--card2:#0a0a0a;--line:#1a1a1a;
-  --txt:#F5F7FA;--muted:#8B93A7;--faint:#6E768C;
+  --txt:#F5F7FA;--muted:#8B93A7;--faint:#8B93A7;
   --accent:#5B8CFF;--accent2:#3B6FE8;--on-accent:#000000;
   --win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;
   --win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;
@@ -582,7 +586,7 @@ html[data-theme="apex"][data-apex-variant="oled"] {
 html[data-theme="apex"][data-apex-variant="mono"] {
   color-scheme:dark;
   --bg:#0A0A0A;--bg2:#121212;--card:#171717;--card2:#171717;--line:#262626;
-  --txt:#F0F0F0;--muted:#888888;--faint:#666666;
+  --txt:#F0F0F0;--muted:#888888;--faint:#8A8A8A;
   --accent:#E0E0E0;--accent2:#C0C0C0;--on-accent:#0A0A0A;
   --win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;
   --win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;
@@ -604,7 +608,7 @@ html[data-theme="apex"][data-apex-variant="ochre"] {
 html[data-theme="apex"][data-apex-light="1"] {
   color-scheme:light;
   --bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;
-  --txt:#0E1116;--muted:#5C6578;--faint:#6A7386;
+  --txt:#0E1116;--muted:#5C6578;--faint:#5C6578;
   --accent:#3B6FE8;--accent2:#2F5AD0;--on-accent:#FFFFFF;
   --win:#34D399;--loss:#F87171;--push:#8B93A7;--void:#8B93A7;--radius:16px;
   --win-ink:#047857;--loss-ink:#B91C1C;--push-ink:#3F4758;--void-ink:#3F4758;
@@ -648,11 +652,11 @@ body {background:var(--bg);font-variant-numeric:tabular-nums;}
 #admintoggle>span:last-child,#adminbody .dbgqbtn {background:var(--card2)!important;border-color:var(--line)!important;}
 .delbet,.gradebtn[data-r="Loss"],#leaveserverbtn {background:var(--card2)!important;color:var(--loss-ink)!important;border-color:var(--loss)!important;}
 .gradebtn[data-r="Win"] {background:var(--card2)!important;color:var(--win-ink)!important;border-color:var(--win)!important;}
-button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(--txt);outline-offset:3px;}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible {outline:2px solid var(--txt);outline-offset:3px;}
 .tb-appearance {border-top:1px solid var(--line);padding:14px 10px 8px;margin-top:6px;}
 .tb-appearance h3 {font-size:var(--t-sub);margin:0 0 10px;color:var(--txt);}
 .tb-swatches {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
-.tb-swatch {border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:var(--r-md);padding:6px;font:inherit;font-size:var(--t-foot);cursor:pointer;text-align:left;}
+.tb-swatch {border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:var(--r-md);padding:6px;min-height:44px;box-sizing:border-box;font:inherit;font-size:var(--t-foot);cursor:pointer;text-align:left;}
 .tb-swatch[aria-pressed="true"] {border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);}
 .tb-swatch-label {display:flex;justify-content:space-between;padding-top:5px;}
 .tb-swatch-label::after {content:'✓';visibility:hidden;}.tb-swatch[aria-pressed="true"] .tb-swatch-label::after {visibility:visible;}
@@ -670,14 +674,14 @@ button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(
 .tb-setting {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:var(--t-sub);}
 .tb-setting input[type="checkbox"] {width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
 .tb-setting input[type="color"] {height:30px;width:44px;padding:2px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-xs);cursor:pointer;}
-.tb-text-button {background:none;border:0;color:var(--txt);font:inherit;font-size:var(--t-foot);text-decoration:underline;cursor:pointer;padding:6px 0;}
+.tb-text-button {background:none;border:0;color:var(--txt);font:inherit;font-size:var(--t-foot);text-decoration:underline;cursor:pointer;padding:6px 0;min-height:44px;}
 .tb-text-button:disabled {color:var(--muted);cursor:default;text-decoration:none;}
 .tb-grade-undo{padding:0 10px 10px;margin-top:4px;cursor:pointer}
 .tb-grade-undo span{display:flex;flex-direction:column;gap:2px}
 .tb-grade-undo small{color:var(--muted);font-size:var(--t-cap);line-height:1.35}
 .tb-theme-note {font-size:var(--t-foot);color:var(--muted);line-height:1.5;min-height:3em;margin:8px 0 0;}
 .tb-accents { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.tb-accent-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--btn-accent); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); position: relative; padding: 0; }
+.tb-accent-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--btn-accent); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); position: relative; padding: 0; }
 .tb-accent-btn[aria-pressed="true"]::after { content: ''; position: absolute; inset: -4px; border: 2px solid var(--txt); border-radius: 50%; }
 .tbchip {--state:var(--faint);--state-ink:var(--muted);position:relative;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:74px;min-height:26px;padding:3px 9px;border:1px solid var(--state);border-radius:999px;color:var(--state-ink);font-size:var(--t-cap);font-weight:700;line-height:18px;white-space:nowrap;vertical-align:middle;font-variant-numeric:tabular-nums;isolation:isolate;}
 .tbchip::before {content:'';position:absolute;inset:0;border-radius:inherit;background:var(--state);opacity:.15;z-index:-1;}
@@ -936,15 +940,15 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .sv-n{width:14px;flex:none;color:var(--faint);font-size:var(--t-foot);font-weight:650}
 .sv-av{width:32px;height:32px;border-radius:99px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--txt);font-size:var(--t-cap);font-weight:750}
 .sv-who{min-width:0;flex:1}
-.sv-nm{font-size:var(--t-sub);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-nm{font-size:var(--t-sub);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .sv-sb{font-size:var(--t-cap);color:var(--muted)}
 .sv-pl{margin-left:auto;flex:none;font-size:var(--t-sub);font-weight:700;font-variant-numeric:tabular-nums}
 #recent-box .sv-tip{background:transparent;border:0;border-radius:0;box-shadow:none;padding:10px 0;border-top:1px solid var(--line)}
 #recent-box .sv-tip:first-child{border-top:0}
 .sv-tip-row{display:flex;align-items:center;gap:10px;min-width:0}
 .sv-tip-copy{flex:1;min-width:0}
-.sv-t1{font-size:var(--t-callout);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sv-t2{font-size:var(--t-foot);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-t1{font-size:var(--t-callout);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sv-t2{font-size:var(--t-foot);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .sv-muted{color:var(--muted);font-weight:500}
 .sv-tip-r{flex:none;display:flex;align-items:center;gap:8px}
 #recent-box .sv-tip .gradebtn,#recent-box .sv-tip .delbet{min-height:44px;min-width:44px}
@@ -998,7 +1002,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .prow.cmp-flash{animation:cmpFlash 1.6s ease}
 /* Main nav → standalone /live page (Codex restyles; tokens only). */
 .topnav{margin-left:auto;margin-right:8px;display:flex;align-items:center}
-.topnav a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;font-size:var(--t-callout);padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-md)}
+.topnav a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:700;font-size:var(--t-callout);padding:6px 10px;min-height:44px;box-sizing:border-box;border:1px solid var(--line);border-radius:var(--r-md)}
 .topnav a:hover{color:var(--txt)}
 .topnav-dot{width:7px;height:7px;border-radius:50%;background:var(--loss)}
 
@@ -1160,9 +1164,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 </style>
 </head>
 <body>
+<a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.53.2" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1173,7 +1178,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.53.2" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1182,7 +1187,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home"><img src="./assets/favicon.svg" alt="" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.53.2" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1566,7 +1571,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     "Last Disposal":{d:(p,t)=>p+" to have the last disposal of the match"},
   };
   const $=id=>document.getElementById(id);
-  const u=n=>(n>0?"+":"")+n+"u";
+  const u=n=>{ const x=Number(n); if(!Number.isFinite(x)) return "—"; return (x>0?"+":"")+x+"u"; };
   const ERR={bad_state:"Login expired — please try again.",login_failed:"Discord login failed — please try again.",not_authorised:"That account isn't an owner or moderator of a TipBot server.",region_declined:"Sorry, Tipdash is only open to people in Australia right now. If you are in Australia and think this is wrong, ask the server owner to let you in."};
   let STATE={role:null,servers:[],followerServers:[],viewAs:null,players:{},bookies:[],playerMeta:{},god:false};
   STATE.ops=false;
@@ -1620,7 +1625,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome;};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder","upcoming","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome;};
 
   // ── Back button / swipe-back stays in the app (0.43.1) ───────────────────────────
   // Every view opener calls navNote(hash, restore). We track the browser history with our
@@ -1657,9 +1662,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(m[2]==="followers") return openFollowers(gid,nm), true;
       if(m[2]==="results") return openResults(gid,nm), true;
       if(m[2]==="build") return openBuilder(gid,nm), true;
+      if(m[2]==="upcoming") return openUpcoming(gid,nm), true;
       if(m[2]==="follow") return openFollowerView(gid,nm), true;
       return loadDetail(gid), true;
     }
+    if(m[0]==="upcoming") return openUpcomingHome(), true;
     if(m[0]==="mytips") return openMyTips(), true;
     if(m[0]==="discover") return openDiscover(), true;
     if(m[0]==="following") return openFollowerAllView(), true;
@@ -2378,7 +2385,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
         +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>')
         +'<div style="margin-top:14px;color:var(--muted);font-size:var(--t-sub)"><span class="dot '+(s.enabled?"on":"off")+'"></span>'+(s.enabled?"Bot enabled":"Bot disabled")+'</div>';
-        c.onclick=()=>loadDetail(s.guild_id);grid.appendChild(c);});
+        c.setAttribute("role","button");c.tabIndex=0;c.setAttribute("aria-label",(s.display_name||"Unnamed server")+" server");
+        c.onclick=()=>loadDetail(s.guild_id);
+        c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); loadDetail(s.guild_id); } };
+        grid.appendChild(c);});
       ov.appendChild(grid);
     }
     // Communities the user follows (read-only follower surface).
@@ -2392,16 +2402,24 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         const all=document.createElement("div");all.className="scard";
         all.innerHTML='<div class="row1"><div><div class="sname">All communities</div><div class="sgid">Combined rollup · '+follows.length+' follows</div></div><span class="plan">follower</span></div>'
           +'<div style="margin-top:12px;color:var(--muted);font-size:var(--t-sub)">Units, calendar and tip history across every community you follow →</div>';
-        all.onclick=()=>openFollowerAllView(null);fg.appendChild(all);
+        all.setAttribute("role","button");all.tabIndex=0;all.setAttribute("aria-label","All communities");
+        all.onclick=()=>openFollowerAllView(null);
+        all.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openFollowerAllView(null); } };
+        fg.appendChild(all);
       }
       follows.forEach(s=>{const c=document.createElement("div");c.className="scard";
         c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Community")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">follower</span></div>'
           +'<div style="margin-top:12px;color:var(--muted);font-size:var(--t-sub)">Tap to see your units, calendar and tip history →</div>';
-        c.onclick=()=>openFollowerView(s.guild_id,s.display_name);fg.appendChild(c);});
+        c.setAttribute("role","button");c.tabIndex=0;c.setAttribute("aria-label",(s.display_name||"Community")+" follower view");
+        c.onclick=()=>openFollowerView(s.guild_id,s.display_name);
+        c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openFollowerView(s.guild_id,s.display_name); } };
+        fg.appendChild(c);});
       ov.appendChild(fg);
     }
     if(!list.length && !follows.length){
-      ov.innerHTML='<div class="empty">Nothing here yet. Follow a tipster in Discord and your tracked bets show up here.</div>';
+      ov.innerHTML='<div class="dc-empty" role="status"><div class="dc-empty-mark" aria-hidden="true">🏠</div>'
+        +'<h3>No communities yet</h3>'
+        +'<p>Sign in with a Discord account that manages a TipBot server, or follow a tipster in Discord. Your tracked bets will show up here.</p></div>';
     }
   }
 
@@ -2776,12 +2794,16 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }).join("")+'</div>';
   }
   function tipCard(t,settled,opts){
+    if(!t||typeof t!=="object") return "";
     opts=opts||{};
     const statusSettled=/^settled$/i.test(String((t&&t.status)||""))||!!(t&&t.result&&/^(win|loss|push|void)$/i.test(String(t.result).trim()));
     const oc=tipOutcome(t, settled||statusSettled);
     const isSettled=oc.settled;
     const result=oc.result;
-    const right=TB.chips.render(result)+(isSettled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units||0))+'</span>':!isSettled?'<span class="tb-quote">'+esc(t.units)+'u @ '+esc(t.odds)+'</span>':'');
+    const unitsTxt=t.units!=null&&t.units!==""?esc(String(t.units))+"u":"";
+    const oddsTxt=t.odds!=null&&t.odds!==""?"@ "+esc(String(t.odds)):"";
+    const quote=[unitsTxt,oddsTxt].filter(Boolean).join(" ");
+    const right=TB.chips.render(result)+(isSettled&&/^(win|loss)$/i.test(result)?'<span class="num '+(result.toLowerCase()==="win"?"pos":"neg")+'">'+esc(u(t.profit_units))+'</span>':!isSettled&&quote?'<span class="tb-quote">'+quote+'</span>':'');
     const tid=esc(t.tip_id||"");
     const canDel=!!tid&&(!isSettled||godOn());
     const delTitle=isSettled&&window.TBOwner&&TBOwner.settledDeleteTitle?TBOwner.settledDeleteTitle():"Delete & redact";
@@ -2890,7 +2912,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function prefetchBuilderData(){
     if(BUILDER_PRE && Date.now()-BUILDER_PRE.at<30000) return BUILDER_PRE.p;
     const players=Object.keys(STATE.players||{}).length?Promise.resolve(STATE.players)
-      :fetch("./players.json").then(function(r){ return r.json(); }).then(function(j){
+      :fetch("./players.json?v="+encodeURIComponent(TD.version)).then(function(r){ return r.json(); }).then(function(j){
         if(!Object.keys(STATE.players||{}).length) STATE.players=j||{}; return STATE.players;
       }).catch(function(){ return {}; });
     const bookies=(STATE.bookies&&STATE.bookies.length)?Promise.resolve(STATE.bookies)
@@ -6573,7 +6595,18 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   async function renderDetail(d){
     const gen=++DETAIL_RENDER_GEN;
     clearDetailTimers();
-    const s=d.settings,st=d.stats,tips=d.tips;
+    if(!d||typeof d!=="object") d={};
+    const s=d.settings&&typeof d.settings==="object"?d.settings:{};
+    const st=d.stats&&typeof d.stats==="object"?d.stats:{};
+    const rawTips=d.tips;
+    const tips={
+      settled:Array.isArray(rawTips&&rawTips.settled)?rawTips.settled.filter(function(t){return t&&typeof t==="object";}):[],
+      queued:Array.isArray(rawTips&&rawTips.queued)?rawTips.queued.filter(function(t){return t&&typeof t==="object";}):[]
+    };
+    if(s.guild_id==null){
+      $("detail").innerHTML='<p class="err">Couldn\'t load that server.</p>';
+      return;
+    }
     const formOn=d.form!=null&&typeof d.form==="object"&&!Array.isArray(d.form);
     const guildBadge=(formOn&&window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(d.form):"";
     const isAdmin=STATE.ops===true&&!STATE.viewAs;
@@ -6586,7 +6619,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const months=d.months||[],curMonth=d.month||"";
     const period=curMonth?fmtMonth(curMonth):"Lifetime";
     const qStale=DETAIL_STALE.has(d);
-    let wonN=st.won, lostN=st.lost, pushN=st.push, settledN=st.settled, stakedN=st.staked_units;
+    let wonN=Number(st.won)||0, lostN=Number(st.lost)||0, pushN=Number(st.push)||0, settledN=Number(st.settled)||0, stakedN=Number(st.staked_units)||0;
     if(window.ServerView&&typeof ServerView.cardModel==="function"){
       const m=ServerView.cardModel(d,{stale:qStale});
       if(m&&m.source==="tips"){ wonN=m.won; lostN=m.lost; pushN=m.push; settledN=m.settled; stakedN=m.staked; }
@@ -6595,11 +6628,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const wl='<span style="width:'+(wonN/total*100)+'%;background:var(--win)"></span><span style="width:'+(lostN/total*100)+'%;background:var(--loss)"></span><span style="width:'+(pushN/total*100)+'%;background:var(--push)"></span>';
     const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(d,{formHtml:guildBadge,period:period,stale:qStale}):null;
     const serverTitle=(!sv&&guildBadge)?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
-    const qTxt=qStale?'<span class="st-updating">Updating…</span>':st.queued;
-    const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won,"pos",""],["Lost",st.lost,"neg",""],["Success Rate",st.strike_rate+"%","",""],["Profit",u(st.profit_units),st.profit_units>=0?"pos":"neg",""],["ROI",st.roi+"%",st.roi>=0?"pos":"neg",""],["Followers",st.followers,"","followers"]];
+    const qTxt=qStale?'<span class="st-updating">Updating…</span>':(st.queued==null?"—":st.queued);
+    const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won==null?"—":st.won,"pos",""],["Lost",st.lost==null?"—":st.lost,"neg",""],["Success Rate",st.strike_rate==null?"—":st.strike_rate+"%","",""],["Profit",u(st.profit_units),(Number(st.profit_units)||0)>=0?"pos":"neg",""],["ROI",st.roi==null?"—":st.roi+"%",(Number(st.roi)||0)>=0?"pos":"neg",""],["Followers",st.followers==null?"—":st.followers,"","followers"]];
     const tiles=tileDefs.map(t=>'<div class="tile'+(t[3]?" clk":"")+'"'+(t[3]?' data-act="'+t[3]+'"':'')+'><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+(t[3]?' <span style="color:var(--accent)">›</span>':'')+'</div></div>').join("");
-    const pCls=st.profit_units>=0?"pos":"neg";
-    const rCls=st.roi>=0?"pos":"neg";
+    const pCls=(Number(st.profit_units)||0)>=0?"pos":"neg";
+    const rCls=(Number(st.roi)||0)>=0?"pos":"neg";
     const statsBlock=sv?sv.stats:('<div class="stats-wrap" id="stats-wrap">'
       +'<button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true">'
       +'<div class="st-sum" id="stats-sum"><span>Profit <b class="'+pCls+'">'+esc(u(st.profit_units))+'</b></span>'
@@ -6607,9 +6640,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<span>Queued <b>'+(qStale?'<span class="st-updating">Updating…</span>':esc(String(st.queued)))+'</b></span></div>'
       +'<span class="st-caret">▾</span></button>'
       +'<div class="tiles">'+tiles+'</div></div>');
-    const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'"></button><span>'+l+'</span></div>').join("")+trialControlsHTML(s);
+    const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button type="button" class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'" aria-label="'+esc(l)+'" aria-pressed="'+(s[k]?"true":"false")+'"></button><span>'+l+'</span></div>').join("")+trialControlsHTML(s);
     const se=tips.settled.length?tips.settled.map(t=>recentTipRow(t)).join(""):'<div class="empty">No settled tips yet.</div>';
-    const monthSel='<select id="monthsel" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
+    const monthSel='<label class="sv-period-k" for="monthsel">Showing</label><select id="monthsel" aria-label="Stats period" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
     const adminPanel=(isAdmin && window.TBOwner && typeof TBOwner.adminHtml==="function")?TBOwner.adminHtml(s, sw):"";
     const settingsPanel='<div class="panel" id="settings-panel" data-sec="settings">'
       +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="false"><h3 style="margin:0">Settings</h3><span class="panel-caret">▸</span></div>'
@@ -6619,7 +6652,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +'<div class="dhead">'+serverTitle+'<div class="dhead-actions"><button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
-      +'<div class="sv-period"><span class="sv-period-k">Showing</span>'+monthSel+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
+      +'<div class="sv-period">'+monthSel+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
       +(sv?sv.charts:"")
       +(sv?sv.splits:"")
@@ -6898,7 +6931,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   var defaults=[{"name":"Sportsbet","slug":"sportsbet","color":"#1474B8","initials":"SB","logo":"./assets/bookies/sportsbet.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.sportsbet.com.au","verified_on":"2026-09-09","status":"current"},{"name":"TAB","slug":"tab","color":"#087843","initials":"TAB","logo":"./assets/bookies/tab.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.tab.com.au","verified_on":"2026-09-09","status":"current"},{"name":"bet365","slug":"bet365","color":"#087B5B","initials":"365","logo":"./assets/bookies/bet365.svg","active":true,"aliases":["Bet 365"],"logo_kind":"original-monogram","website":"https://www.bet365.com.au","verified_on":"2026-09-09","status":"current"},{"name":"PointsBet","slug":"pointsbet","color":"#E43341","initials":"PB","logo":"./assets/bookies/pointsbet.svg","active":true,"aliases":["Points Bet"],"logo_kind":"original-monogram","website":"https://pointsbet.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Dabble","slug":"dabble","color":"#7253B7","initials":"D","logo":"./assets/bookies/dabble.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.dabble.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Picklebet","slug":"picklebet","color":"#BDD63C","initials":"PK","logo":"./assets/bookies/picklebet.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://picklebet.com","verified_on":"2026-09-09","status":"current"},{"name":"Ladbrokes","slug":"ladbrokes","color":"#D5282F","initials":"L","logo":"./assets/bookies/ladbrokes.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.ladbrokes.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Neds","slug":"neds","color":"#E96B22","initials":"N","logo":"./assets/bookies/neds.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.neds.com.au","verified_on":"2026-09-09","status":"current"},{"name":"betr","slug":"betr","color":"#EC492B","initials":"B","logo":"./assets/bookies/betr.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.betr.com.au","verified_on":"2026-09-09","status":"current"},{"name":"Unibet","slug":"unibet","color":"#158947","initials":"U","logo":"./assets/bookies/unibet.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.unibet.com.au","verified_on":"2026-09-09","status":"current"},{"name":"BetRight","slug":"betright","color":"#26AE8F","initials":"BR","logo":"./assets/bookies/betright.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://betright.com.au","verified_on":"2026-09-09","status":"current"},{"name":"PlayUp","slug":"playup","color":"#CC255D","initials":"PU","logo":"./assets/bookies/playup.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.playup.com.au/betting","verified_on":"2026-09-09","status":"current"},{"name":"Betfair","slug":"betfair","color":"#E8AA25","initials":"BF","logo":"./assets/bookies/betfair.svg","active":true,"aliases":[],"logo_kind":"original-monogram","website":"https://www.betfair.com.au","verified_on":"2026-09-09","status":"current"},{"name":"BlueBet","slug":"bluebet","color":"#2686C9","initials":"BB","logo":"./assets/bookies/bluebet.svg","active":false,"aliases":["Blue Bet"],"logo_kind":"original-monogram","website":null,"verified_on":"2026-09-09","status":"legacy","successor":"betr"}];
   var records=defaults.slice(),listening=false;
   function key(s){return typeof s==='string'?s.trim().toLowerCase().replace(/[^a-z0-9]/g,''):'';}
-  function initials(s){var words=String(s||'?').trim().split(/\s+/);return (words.length>1?words[0][0]+words[words.length-1][0]:words[0].slice(0,2)).toUpperCase();}
+  function initials(s){var words=String(s||"").trim().split(/\s+/).filter(Boolean);if(!words.length)return "?";return (words.length>1?words[0][0]+words[words.length-1][0]:words[0].slice(0,2)).toUpperCase();}
   function find(value){var k=key(value);return k?records.find(function(b){return key(b.name)===k||key(b.slug)===k||(b.aliases||[]).some(function(a){return key(a)===k;});}):undefined;}
   function localLogo(s){return typeof s==='string'&&/^\.\/assets\/bookies\/[a-z0-9-]+\.svg$/.test(s)?s:null;}
   function normalize(data){
@@ -6909,7 +6942,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   TB.bookie={
     setCatalog:function(data){var next=normalize(data);if(!next.length)return false;records=next;return true;},
     list:function(){return records.filter(function(b){return b.active!==false;}).map(function(b){return Object.assign({},b,{aliases:(b.aliases||[]).slice()});});},
-    load:async function(){try{var r=await fetch('./bookies.json');if(r.ok)TB.bookie.setCatalog(await r.json());}catch(e){}return TB.bookie.list();},
+    load:async function(){try{var r=await fetch('./bookies.json?v='+encodeURIComponent(TD.version));if(r.ok)TB.bookie.setCatalog(await r.json());}catch(e){}return TB.bookie.list();},
     render:function(value,size){
       var b=find(value),name=b?b.name:(typeof value==='string'&&value.trim()?value.trim():'Unknown bookmaker');
       var n=typeof size==='number'&&Number.isFinite(size)?Math.round(Math.min(64,Math.max(16,size))):24;
@@ -7127,22 +7160,66 @@ async function loadPerms(gid){
   function openBuilder(){ return TD.call("builder", "openBuilder", this, arguments); }
   function openCustom(){ return TD.call("builder", "openCustom", this, arguments); }
 
+  function openUpcomingHome(){
+    if(BUILD&&BUILD.guildId) return openUpcoming(BUILD.guildId, BUILD.serverName);
+    const shown=STATE._detailShown&&STATE._detailShown.settings;
+    if(shown&&shown.guild_id!=null) return openUpcoming(shown.guild_id, shown.display_name);
+    const admin=visibleServers();
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    const s=admin[0]||follows[0];
+    if(s) return openUpcoming(s.guild_id, s.display_name);
+    navNote("#/upcoming", ()=>openUpcomingHome());
+    panel("upcoming");
+    $("upcoming").innerHTML='<div class="dc-empty" role="status"><div class="dc-empty-mark" aria-hidden="true">📅</div><h3>No upcoming bets</h3><p>Add a community or follow a tipster, then queue a tip from Build.</p></div>';
+  }
+  function upcomingCachedDetail(guildId){
+    if(STATE._detailShown&&STATE._detailShown.settings&&String(STATE._detailShown.settings.guild_id)===String(guildId)) return STATE._detailShown;
+    const cache=STATE._detailCache||{};
+    const key=String(guildId)+"|";
+    if(cache[key]) return cache[key];
+    const keys=Object.keys(cache);
+    for(let i=0;i<keys.length;i++){
+      if(keys[i].indexOf(String(guildId)+"|")===0) return cache[keys[i]];
+    }
+    return null;
+  }
   function openUpcoming(guildId, name) {
+    if(guildId==null||guildId==="") return openUpcomingHome();
     navNote("#/s/"+encodeURIComponent(guildId)+"/upcoming", ()=>openUpcoming(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     panel("upcoming");
-    $("upcoming").innerHTML='<div class="back" id="upcbx">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Upcoming Bets</h1>'
-      +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
+    $("upcoming").innerHTML='<div class="back" id="upcbx" role="button" tabindex="0">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Upcoming Bets</h1>'
+      +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--muted);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="upcoming-panel" data-sec="upcoming"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="apex-ptr-shimmer" style="display:flex;flex-direction:column;gap:10px">'+NDSkeleton.box("100%","72px")+NDSkeleton.box("100%","72px")+'</div></div></div>';
-    { const b=$("upcbx"); if(b)b.onclick=()=>loadDetail(guildId); }
-    // loadUpcoming is already called by loadDetail, but if we opened directly, we need to fetch.
-    // Actually, loadDetail always runs first if we navigate from Home.
-    // If deep linked, loadDetail is not called. We should call it.
-    if (!STATE._upcSeq) {
-      loadDetail(guildId);
+    { const b=$("upcbx"); if(b){ b.onclick=()=>loadDetail(guildId); b.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); loadDetail(guildId); } }; } }
+    const cached=upcomingCachedDetail(guildId);
+    if(cached){
+      const queued=(cached.tips&&Array.isArray(cached.tips.queued))?cached.tips.queued:[];
+      loadUpcoming(guildId, queued);
       return;
     }
+    api("/api/server?guild_id="+encodeURIComponent(guildId)).then(async function(r){
+      if(!$("upcoming")||$("upcoming").hidden) return;
+      if(!r||!r.ok){
+        const box=$("upcoming-box");
+        if(box) box.innerHTML='<div class="empty">Couldn\'t load upcoming bets. <button type="button" class="btn sm" id="upc-retry">Retry</button></div>';
+        const rb=$("upc-retry"); if(rb) rb.onclick=()=>openUpcoming(guildId,name);
+        return;
+      }
+      const data=await r.json();
+      STATE._detailCache=STATE._detailCache||{};
+      STATE._detailCache[String(guildId)+"|"]=data;
+      const q=(data.tips&&Array.isArray(data.tips.queued))?data.tips.queued:[];
+      loadUpcoming(guildId, q);
+    }).catch(function(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      if(!$("upcoming")||$("upcoming").hidden) return;
+      const box=$("upcoming-box");
+      if(box) box.innerHTML='<div class="empty">Couldn\'t reach the bot. <button type="button" class="btn sm" id="upc-retry">Retry</button></div>';
+      const rb=$("upc-retry"); if(rb) rb.onclick=()=>openUpcoming(guildId,name);
+    });
   }
+  window.TBOpenUpcoming=openUpcomingHome;
 
   // ── Recent scores (finished AFL/AFLW games) ──────────────────────────────
   let RESULTS={comp:"All"};
