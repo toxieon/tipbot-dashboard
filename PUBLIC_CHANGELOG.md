@@ -1,3 +1,7 @@
+## 0.53.1
+
+Cleaner navigation and new theme names.
+
 ## 0.52.5
 
 Fixed the dashboard not loading.

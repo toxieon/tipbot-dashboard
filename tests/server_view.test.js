@@ -212,8 +212,8 @@ test("the server page wires the helpers and keeps the old panels", () => {
   const detail = html.slice(html.indexOf("function renderDetail"), html.indexOf("function mountScheduled"));
   assert.match(detail, /ServerView\.blocks/);
   assert.match(detail, /id="monthsel"/);
-  assert.match(detail, /id="upcoming-panel"/);
-  assert.match(detail, /id="finished-panel"/);
+  assert.match(detail, /id="scheduled-panel"/);
+  assert.match(detail, /id="live-tips-panel"/);
   assert.match(detail, /id="scheduled-panel"/);
   assert.match(detail, /id="settings-panel"/);
   assert.match(detail, /id="recent-panel"/);

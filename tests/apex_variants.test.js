@@ -28,7 +28,7 @@ test("Settings keeps the saved variant name (prefs and TipBot names unchanged)",
   assert.match(html, /var apply=function\(\)\{setRoot\(next\);/);
   assert.doesNotMatch(html, /write\('tipbot_theme',root\.dataset\.theme/);
   assert.match(html, /b\.dataset\.tbTheme===current\(\)/);
-  assert.match(html, /var names = \['navy', 'day', 'ochre', 'apex', 'apex-light', 'apex-oled', 'apex-mono'\]/);
+  assert.match(html, /var names = \['apex', 'apex-light', 'apex-oled', 'apex-mono', 'apex-ochre', 'navy', 'day', 'ochre'\]/);
 });
 
 test("theme-apex.js keeps light for the light variant and watches the variant attribute", () => {

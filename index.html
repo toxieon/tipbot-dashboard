@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.52.5"></script>
+<script src="./assets/tbtime.js?v=0.53.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -590,6 +590,17 @@ html[data-theme="apex"][data-apex-variant="mono"] {
   --t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;
   --apex-glow-a:rgba(224,224,224,.10);--apex-glow-b:rgba(224,224,224,.05);
 }
+html[data-theme="apex"][data-apex-variant="ochre"] {
+  color-scheme:dark;
+  --bg:#17110c;--bg2:#1d150f;--card:#241a10;--card2:#241a10;--line:#4a3927;
+  --txt:#f6efe6;--muted:#b7a892;--faint:#ae9b81;
+  --accent:#e0a04a;--accent2:#c9861f;--on-accent:#17110c;
+  --win:#34D399;--loss:#F87171;--push:#6E768C;--void:#6E768C;--radius:16px;
+  --win-ink:#34D399;--loss-ink:#F87171;--push-ink:#A8B0C2;--void-ink:#A8B0C2;
+  --warn:#FBBF24;--warn-ink:#FBBF24;--api:#e0a04a;--api-ink:#f6efe6;
+  --t-body:.9375rem;--t-foot:.8125rem;--t-sub:.8125rem;
+  --apex-glow-a:rgba(224,160,74,.18);--apex-glow-b:rgba(224,160,74,.10);
+}
 html[data-theme="apex"][data-apex-light="1"] {
   color-scheme:light;
   --bg:#F4F6F8;--bg2:#E8EBEF;--card:#FFFFFF;--card2:#FFFFFF;--line:#E6E8EE;
@@ -655,6 +666,7 @@ button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(
 .tb-swatch[data-tb-theme="apex-light"] {--preview-bg:#F4F6F8;--preview-accent:#3B6FE8;}
 .tb-swatch[data-tb-theme="apex-oled"] {--preview-bg:#000000;--preview-accent:#5B8CFF;}
 .tb-swatch[data-tb-theme="apex-mono"] {--preview-bg:#0A0A0A;--preview-accent:#E0E0E0;}
+.tb-swatch[data-tb-theme="apex-ochre"] {--preview-bg:#17110c;--preview-accent:#e0a04a;}
 .tb-setting {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:var(--t-sub);}
 .tb-setting input[type="checkbox"] {width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
 .tb-setting input[type="color"] {height:30px;width:44px;padding:2px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-xs);cursor:pointer;}
@@ -1171,7 +1183,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   <div id="app" hidden>
     <div class="top">
       <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home"><img src="./assets/favicon.svg" alt="" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
-      <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player"><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
+      <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
@@ -1185,7 +1197,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.52.5</div>
+          <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.53.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1198,6 +1210,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     <div id="follower" hidden></div>
     <div id="mytips" hidden></div>
     <div id="discover" hidden></div>
+    <div id="upcoming" hidden></div>
     <div id="builder" hidden></div>
     <div id="settings" hidden></div>
     <div id="ops" hidden></div>
@@ -1206,20 +1219,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.52.5"></script>
-<script src="./assets/light-data.js?v=0.52.5"></script>
-<script src="./assets/lines.js?v=0.52.5"></script>
-<script src="./assets/compare-ui.js?v=0.52.5"></script>
-<script src="./assets/sport-keywords.js?v=0.52.5"></script>
-<script src="./assets/sport-marks.js?v=0.52.5"></script>
-<script src="./assets/routing.js?v=0.52.5"></script>
-<script src="./assets/scheduled-tips.js?v=0.52.5"></script>
-<script src="./assets/upcoming-split.js?v=0.52.5"></script>
-<script src="./assets/espn-props.js?v=0.52.5"></script>
-<script src="./assets/tb-motion.js?v=0.52.5"></script>
-<script src="./assets/form-badges.js?v=0.52.5"></script>
-<script src="./assets/svg-charts.js?v=0.52.5"></script>
-<script src="./assets/server-view.js?v=0.52.5"></script>
+<script src="./assets/req-pool.js?v=0.53.1"></script>
+<script src="./assets/light-data.js?v=0.53.1"></script>
+<script src="./assets/lines.js?v=0.53.1"></script>
+<script src="./assets/compare-ui.js?v=0.53.1"></script>
+<script src="./assets/sport-keywords.js?v=0.53.1"></script>
+<script src="./assets/sport-marks.js?v=0.53.1"></script>
+<script src="./assets/routing.js?v=0.53.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.53.1"></script>
+<script src="./assets/upcoming-split.js?v=0.53.1"></script>
+<script src="./assets/espn-props.js?v=0.53.1"></script>
+<script src="./assets/tb-motion.js?v=0.53.1"></script>
+<script src="./assets/form-badges.js?v=0.53.1"></script>
+<script src="./assets/svg-charts.js?v=0.53.1"></script>
+<script src="./assets/server-view.js?v=0.53.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1568,7 +1581,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.52.5";
+  TD.version="0.53.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1607,7 +1620,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip();};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","builder","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome;};
 
   // ── Back button / swipe-back stays in the app (0.43.1) ───────────────────────────
   // Every view opener calls navNote(hash, restore). We track the browser history with our
@@ -6604,23 +6617,22 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button></div>'
       +'<div id="settings-body"></div></div></div>';
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions"><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions"><button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div class="sv-period"><span class="sv-period-k">Showing</span>'+monthSel+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
       +(sv?sv.charts:"")
       +(sv?sv.splits:"")
       +(formOn?'<div id="tipster-form-slot"></div>':'')
-      +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
       +'<div class="panel" id="live-tips-panel" data-sec="live-tips" hidden><h3>🔴 Live tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Push a quarter update manually (Q1–Q3 / FT) — no clock auto-send. Or <b>Copy preview</b> to paste the exact post yourself. <a class="live-open-link" href="./live/?guild='+encodeURIComponent(s.guild_id)+'">Open live view →</a></div><div id="live-tips-box"><div class="empty">Checking live AFL games…</div></div></div>'
       +'<div class="panel" id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Queued tips that haven\'t posted yet. Cancel, adjust the odds or edit before they post.</div><div id="scheduled-box"><div class="empty">Loading…</div></div></div>'
-      +'<div class="panel" id="upcoming-panel" data-sec="upcoming"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="apex-ptr-shimmer" style="display:flex;flex-direction:column;gap:10px">'+NDSkeleton.box("100%","72px")+NDSkeleton.box("100%","72px")+'</div></div></div>'
       +(sv?"":sparkline(d.profit_series||[]))
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+wonN+'–'+lostN+'–'+pushN+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+wonN+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+lostN+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+pushN+'</span><span class="lg" style="margin-left:auto">'+settledN+' settled · '+stakedN+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
       +settingsPanel
       +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent tips</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
+    $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
     { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
@@ -6676,10 +6688,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   'use strict';
   var TB = window.TB = window.TB || {};
   var root = document.documentElement;
-  var names = ['navy', 'day', 'ochre', 'apex', 'apex-light', 'apex-oled', 'apex-mono'];
-  var labels = {navy:'Navy', day:'Day', ochre:'Ochre', apex:'Apex', 'apex-light':'Apex Light', 'apex-oled':'Apex OLED', 'apex-mono':'Apex Mono'};
+  var names = ['apex', 'apex-light', 'apex-oled', 'apex-mono', 'apex-ochre', 'navy', 'day', 'ochre'];
+  var labels = {navy:'Navy', day:'Day', ochre:'Ochre', apex:'Midnight', 'apex-light':'Light', 'apex-oled':'Black', 'apex-mono':'Mono', 'apex-ochre':'Ochre'};
   var APEX_DEFAULT = true;
-  var defaults = {navy:'#5b8cff', day:'#245ad6', ochre:'#e0a04a', apex:'#5b8cff', 'apex-light':'#3b6fe8', 'apex-oled':'#5b8cff', 'apex-mono':'#5b8cff'};
+  var defaults = {navy:'#5b8cff', day:'#245ad6', ochre:'#e0a04a', apex:'#5b8cff', 'apex-light':'#3b6fe8', 'apex-oled':'#5b8cff', 'apex-mono':'#5b8cff', 'apex-ochre':'#e0a04a'};
   var accents = [{n:'Blue',h:'#5b8cff'},{n:'Green',h:'#10b981'},{n:'Orange',h:'#f97316'},{n:'Crimson',h:'#e11d48'},{n:'Violet',h:'#8b5cf6'},{n:'Gold',h:'#fbbf24'}];
   var memory = Object.create(null), hosts = [], listening = false, timer;
   function read(key) { try {var value=localStorage.getItem(key);if(value!==null)return value;} catch(e) {} return memory[key] || null; }
@@ -6725,8 +6737,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       var manual=read('tipbot_theme_manual_date')===today(new Date())&&valid(read('tipbot_theme'));
       var note;
       if(system()) note='Following your device settings.';
-      else if(auto()&&manual) note=current()==='apex'?'Apex stays until midnight. Light from 7 am to 7 pm, dark after that.':'Your choice stays until midnight. Auto resumes tomorrow.';
-      else if(auto()) note='Day from 7 am to 7 pm. Navy overnight, on Sydney time.';
+      else if(auto()&&manual) note=current()==='apex'?'Midnight stays until midnight. Light from 7 am to 7 pm, dark after that.':'Your choice stays until midnight. Auto resumes tomorrow.';
+      else if(auto()) note='Light from 7 am to 7 pm. Midnight overnight, on Sydney time.';
       else note='Your selected theme stays on until you change it.';
       host.querySelector('[data-tb-note]').textContent=note;
     });
@@ -6743,7 +6755,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.52.5');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.53.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -6794,7 +6806,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     },
     html:function() {
       var accentHtml = '<div class="tb-accents" role="group" aria-label="Accent colour">'+accents.map(function(a){return '<button type="button" class="tb-accent-btn" data-tb-accent-val="'+a.h+'" aria-label="'+a.n+'" style="--btn-accent:'+a.h+'"></button>';}).join('')+'</div>';
-      return '<section class="tb-appearance" aria-label="Appearance"><h3>Appearance</h3><div class="tb-swatches" role="group" aria-label="Theme">'+names.map(function(name){return '<button type="button" class="tb-swatch" data-tb-theme="'+name+'" aria-pressed="false"><span class="tb-mini" aria-hidden="true"><i></i><i></i></span><span class="tb-swatch-label">'+esc(labels[name]||name)+'</span></button>';}).join('')+'</div><label class="tb-setting"><span>Auto (time of day)</span><input type="checkbox" data-tb-auto></label><label class="tb-setting"><span>Follow system</span><input type="checkbox" data-tb-system></label><p class="tb-theme-note" data-tb-note aria-live="polite"></p><div class="tb-setting-heading" style="font-size:var(--t-foot);margin-top:12px;margin-bottom:6px">Accent</div>'+accentHtml+'<button type="button" class="tb-text-button" data-tb-reset style="margin-top:8px">Reset accent</button></section>';
+      var mainNames = ['apex', 'apex-light', 'apex-oled', 'apex-mono', 'apex-ochre'];
+      var legacyNames = ['navy', 'day', 'ochre'];
+      var mainSwatches = mainNames.map(function(name){return '<button type="button" class="tb-swatch" data-tb-theme="'+name+'" aria-pressed="false"><span class="tb-mini" aria-hidden="true"><i></i><i></i></span><span class="tb-swatch-label">'+esc(labels[name]||name)+'</span></button>';}).join('');
+      var legacySwatches = legacyNames.map(function(name){return '<button type="button" class="tb-swatch" data-tb-theme="'+name+'" aria-pressed="false"><span class="tb-mini" aria-hidden="true"><i></i><i></i></span><span class="tb-swatch-label">'+esc(labels[name]||name)+'</span></button>';}).join('');
+      var legacyHtml = '<details class="tb-legacy-themes" style="margin-top:16px"><summary style="cursor:pointer;font-size:var(--t-foot);color:var(--muted);user-select:none">Legacy themes</summary><div class="tb-swatches" role="group" aria-label="Legacy Theme" style="margin-top:12px">'+legacySwatches+'</div></details>';
+      return '<section class="tb-appearance" aria-label="Appearance"><h3>Appearance</h3><div class="tb-swatches" role="group" aria-label="Theme">'+mainSwatches+'</div><label class="tb-setting"><span>Auto (time of day)</span><input type="checkbox" data-tb-auto></label><label class="tb-setting"><span>Follow system</span><input type="checkbox" data-tb-system></label><p class="tb-theme-note" data-tb-note aria-live="polite"></p><div class="tb-setting-heading" style="font-size:var(--t-foot);margin-top:12px;margin-bottom:6px">Accent</div>'+accentHtml+'<button type="button" class="tb-text-button" data-tb-reset style="margin-top:8px">Reset accent</button>'+legacyHtml+'</section>';
     },
     mount:function(host) {
       if(!host)return;
@@ -7109,6 +7126,23 @@ async function loadPerms(gid){
   // then call the real functions it declares (which replace these).
   function openBuilder(){ return TD.call("builder", "openBuilder", this, arguments); }
   function openCustom(){ return TD.call("builder", "openCustom", this, arguments); }
+
+  function openUpcoming(guildId, name) {
+    navNote("#/s/"+encodeURIComponent(guildId)+"/upcoming", ()=>openUpcoming(guildId,name));
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    panel("upcoming");
+    $("upcoming").innerHTML='<div class="back" id="upcbx">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Upcoming Bets</h1>'
+      +'<div class="panel" id="finished-panel" data-sec="finished" hidden><h3>Finished games</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Pending tips to settle — grade below or Push all.</div><div id="finished-box"><div class="empty">Loading…</div></div></div>'
+      +'<div class="panel" id="upcoming-panel" data-sec="upcoming"><h3>Upcoming Bets</h3><div id="upcoming-box"><div class="apex-ptr-shimmer" style="display:flex;flex-direction:column;gap:10px">'+NDSkeleton.box("100%","72px")+NDSkeleton.box("100%","72px")+'</div></div></div>';
+    { const b=$("upcbx"); if(b)b.onclick=()=>loadDetail(guildId); }
+    // loadUpcoming is already called by loadDetail, but if we opened directly, we need to fetch.
+    // Actually, loadDetail always runs first if we navigate from Home.
+    // If deep linked, loadDetail is not called. We should call it.
+    if (!STATE._upcSeq) {
+      loadDetail(guildId);
+      return;
+    }
+  }
 
   // ── Recent scores (finished AFL/AFLW games) ──────────────────────────────
   let RESULTS={comp:"All"};

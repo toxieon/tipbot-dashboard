@@ -8,7 +8,7 @@ function read(file) { return fs.readFileSync(path.join(__dirname, "..", file), "
 
 test("Theme and accent persistence works with new variants", () => {
   const html = read("index.html");
-  const moduleStart = html.indexOf("var names = ['navy', 'day', 'ochre', 'apex', 'apex-light', 'apex-oled', 'apex-mono'];");
+  const moduleStart = html.indexOf("var names = ['apex', 'apex-light', 'apex-oled', 'apex-mono', 'apex-ochre', 'navy', 'day', 'ochre'];");
   const moduleEnd = html.indexOf("}());", moduleStart);
   let themeMod = html.substring(html.lastIndexOf("(function () {", moduleStart), moduleEnd + 5);
 
