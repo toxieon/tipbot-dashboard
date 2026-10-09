@@ -38,3 +38,12 @@ test("no-servers Upcoming has an empty state and a window opener for the tab bar
   assert.match(html, /window\.TBOpenUpcoming=openUpcomingHome;/);
   assert.match(apexJs, /typeof root\.TBOpenUpcoming === "function"/);
 });
+
+test("openUpcomingHome prefers an in-progress Build server before the empty state", () => {
+  assert.match(html, /function openUpcomingHome\(\)\{[\s\S]{0,220}if\(BUILD&&BUILD\.guildId\) return openUpcoming\(BUILD\.guildId, BUILD\.serverName\)/);
+});
+
+test("navRoute wires #\/upcoming and #\/s\/<gid>\/upcoming", () => {
+  assert.match(html, /if\(m\[2\]==="upcoming"\) return openUpcoming\(gid,nm\), true;/);
+  assert.match(html, /if\(m\[0\]==="upcoming"\) return openUpcomingHome\(\), true;/);
+});

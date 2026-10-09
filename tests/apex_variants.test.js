@@ -41,3 +41,8 @@ test("theme-apex.js keeps light for the light variant and watches the variant at
 test("the tab indicator slide stops under reduced motion", () => {
   assert.match(apexCss, /@media \(prefers-reduced-motion:reduce\)\{\s*html\[data-theme="apex"\] \.apex-indicator\{transition:none\}/);
 });
+
+test("resize repaints coalesce through requestAnimationFrame", () => {
+  assert.match(apexJs, /var resizeQueued = false/);
+  assert.match(apexJs, /resizeQueued = true[\s\S]{0,120}raf\(function \(\)/);
+});

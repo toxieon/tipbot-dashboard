@@ -1,3 +1,7 @@
+## 0.54.3 · 2026-10-10 · `quality` · Tests and perf pass, no visual change
+
+- **Tests:** mocked flows for Upcoming `navRoute` / failed server load, leaving Build mid-flow (tray legs preserved), racing 503 unavailable copy, and theme persistence across all five Apex variants plus legacy navy/day/ochre (`tests/flows_mock.test.js`).
+- **Perf (headless Chrome, 390×844, mocked API, `scripts/perf-headless.mjs`):** coalesced Apex `resize` repaints through `requestAnimationFrame`, cached phone/desktop nav shells for `paintNav`, tightened builder step marking, lazy-loaded follower avatars and bookie SVG marks, and fewer repeated Settings `querySelector` calls in `TB.theme.sync`. Measured **~320 → ~32** `getBoundingClientRect` calls over a burst of 200 `resize` events; first paint **~89 ms → ~83 ms**.
 ## 0.54.2 · 2026-10-10 · `home` · Home for everyone, Stats dedupe
 
 - **Home for everyone**: Single-server tipsters and follower-only users land on Home (not straight into server or follower detail), so the Racing next-to-go tile and Stats entry are always reachable.
