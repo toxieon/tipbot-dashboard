@@ -243,7 +243,9 @@ html[data-theme="apex"] .tbs-btn{
   html[data-theme="apex"] .ghost:active,
   html[data-theme="apex"] .tab:active,
   html[data-theme="apex"] .compchip:active,
-  html[data-theme="apex"] .tbs-btn:active{
+  html[data-theme="apex"] .tbs-btn:active,
+  html[data-theme="apex"] .scard:active,
+  html[data-theme="apex"] .tile.clk:active{
     transform:scale(.98);
     transition-duration:160ms;
   }
@@ -543,7 +545,7 @@ html[data-theme="apex"] .apex-indicator{
   border-radius:16px;
   background:var(--card);
   pointer-events:none;
-  transition:transform 320ms cubic-bezier(.22,1,.36,1);
+  transition:transform 400ms cubic-bezier(0.4, 1.2, 0.5, 1);
 }
 html[data-theme="apex"] .topnav,
 html[data-theme="apex"] .top-in > .nav{display:none}
@@ -932,4 +934,52 @@ html[data-theme="apex"] #overview { overflow-x: clip; }
    (scrollWidth 455 at 390). Keep it, and its 6% drift, inside the viewport. */
 @media (max-width:430px){
   html[data-theme="apex"] .apex-glow{left:0;right:7%}
+}
+
+html[data-theme="apex"] .apex-ptr-shimmer .nd-sk::after {
+  transform: translateY(-100%);
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.09), transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="apex"] .apex-ptr-shimmer .nd-sk::after {
+    animation: apex-ptr 1.3s infinite;
+  }
+}
+@keyframes apex-ptr {
+  100% { transform: translateY(100%); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="apex"] .apex-pulse-win {
+    animation: apex-pulse-win 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+@keyframes apex-pulse-win {
+  0% { transform: scale(1); text-shadow: none; color: var(--win); }
+  20% { transform: scale(1.15); text-shadow: 0 0 16px var(--win); color: var(--win); }
+  100% { transform: scale(1); text-shadow: none; color: var(--win); }
+}
+
+html[data-theme="apex"] .apex-flame-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 100, 0, 0.1);
+  color: #ff6400;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: var(--t-cap);
+}
+html[data-theme="apex"] .apex-flame-icon {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="apex"] .apex-flame-icon {
+    animation: apex-flicker 1.5s ease-in-out infinite alternate;
+  }
+}
+@keyframes apex-flicker {
+  0% { transform: scale(0.95) rotate(-2deg); opacity: 0.8; }
+  100% { transform: scale(1.05) rotate(2deg); opacity: 1; }
 }
