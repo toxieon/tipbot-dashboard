@@ -568,9 +568,11 @@ html[data-theme="apex"] .top-in > .nav{display:none}
     left:0;
     right:0;
     bottom:0;
-    display:flex;
-    align-items:flex-end;
-    justify-content:space-around;
+    /* 0.53.2: three columns, Build in the middle column, so it is centred and never at an edge. */
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:end;
+    justify-items:stretch;
     gap:2px;
     padding:8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     border-top:1px solid var(--line);
@@ -578,6 +580,7 @@ html[data-theme="apex"] .top-in > .nav{display:none}
   html[data-theme="apex"] .apex-tabs .apex-navbtn{flex:1;min-height:48px}
   html[data-theme="apex"] .apex-tabs .apex-tab-build{
     flex:none;
+    justify-self:center;
     width:58px;
     height:58px;
     min-height:58px;

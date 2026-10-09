@@ -1,3 +1,7 @@
+## 0.53.2 · 2026-10-09 · Phone tab bar: Home | Build | Upcoming
+
+- The phone tab bar follows the TABS order, and Build sits in the centre column of a three-column grid, so it is centred and no longer clipped at the edge.
+
 ## 0.53.1 · 2026-10-09 · `tipdash` · Cleaner navigation and new theme names
 
 - **WON/LOST stamp overlap.** The tilted WON/LOST stamp covers the +/- units figure (e.g. +0.8085u, -0.23u). Keep the stamp, since the owner likes it, but move or shrink it so the units are always fully readable at 360–430px and on desktop. For example, put the stamp behind the units at low opacity, or beside the Win/Loss pill, never on top of the number.
