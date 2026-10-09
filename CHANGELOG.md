@@ -1,3 +1,13 @@
+## 0.53.4 · 2026-10-09 · Home Stats screen
+
+- **Stats screen.** A new Home Stats view (`#/stats`) with 7d / 30d / season units and ROI, a handwritten cumulative-units line, win rate by sport, best and worst markets, current and longest streaks, average odds, a monthly bar chart, and a per-server breakdown. Figures are computed in the browser from the `/api/server` and `/api/follower` payloads the dashboard already loads — no new endpoints.
+- Reach it from the Stats tile on Home (and the header button when your one server page is Home). No top-bar link and no tab: the phone tab bar stays Home | Build | Upcoming. `stats` is in `panel()`'s fixed list.
+- Empty, loading/skeleton and error states; charts stay still when reduced motion is on; phone-first layout that goes two-up on desktop.
+- `/api/server` sends at most the latest 25 settled tips per server, so a full list shows a small "based on the latest settled tips" note.
+- Fix: a month whose running total passed through 0 (e.g. a void first) drew a duplicate monthly bar.
+
+Tests: `tests/stats.test.js`, including a hand-computed fixture (admin + follower payloads, 7d / 30d / season). Checked against the 6 Oct settled-tips export: season units, staked and ROI match the bot's own server_stats formula.
+
 ## 0.53.3 · 2026-10-09 · Phone-first UI audit
 
 Phone-first audit. The 15 shipped fixes:

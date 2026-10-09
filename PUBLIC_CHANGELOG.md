@@ -1,3 +1,7 @@
+## 0.53.4
+
+A new Stats screen on Home: units, ROI and streaks over 7 days, 30 days or the season.
+
 ## 0.53.3
 
 Fixes and polish across the dashboard on phones.

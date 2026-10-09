@@ -8,7 +8,10 @@ const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const apexJs = fs.readFileSync(path.join(__dirname, "..", "assets", "theme-apex.js"), "utf8");
 
 test("panel() includes upcoming so the screen can unhide", () => {
-  assert.match(html, /const panel=p=>\{for\(const x of \["overview","detail","followers","follower","mytips","discover","builder","upcoming","settings","ops"\]\)/);
+  const m = html.match(/const panel=p=>\{for\(const x of (\[[^\]]*\])\)/);
+  assert.ok(m, "panel() fixed list not found");
+  const list = JSON.parse(m[1]);
+  for (const id of ["overview","detail","followers","follower","mytips","discover","builder","upcoming","settings","ops"]) assert.ok(list.includes(id), id);
 });
 
 test("deep links open Upcoming instead of the server page", () => {
