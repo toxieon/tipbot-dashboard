@@ -71,6 +71,21 @@ test("cards use API stats until a complete payload marks imports", () => {
   assert.equal(cards.unitsCls, "pos");
 });
 
+test("missing tips, stats, and long names do not throw", () => {
+  assert.doesNotThrow(() => SV.cardModel({}));
+  assert.doesNotThrow(() => SV.cardModel({tips: null, stats: null}));
+  assert.doesNotThrow(() => SV.blocks({}));
+  assert.doesNotThrow(() => SV.unitsSeries({}));
+  const empty = SV.cardModel({});
+  assert.equal(empty.recordText, "0–0");
+  assert.equal(empty.unitsText, "0.0u");
+  const rows = SV.tipsterBreakdown({
+    tips: {settled: [tip({tipster_name: "A".repeat(64) + " " + "B".repeat(64)})], queued: []}
+  });
+  assert.equal(rows[0].initials, "AB");
+  assert.ok(rows[0].name.length > 100);
+});
+
 test("a losing record is negative and push is not a strike", () => {
   const detail = {
     stats: {won: 0, lost: 2, push: 1, settled: 3, profit_units: -2, roi: -100, strike_rate: 0, staked_units: 2},

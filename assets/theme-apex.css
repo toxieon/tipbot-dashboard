@@ -120,8 +120,10 @@ html[data-theme="apex"] #app > .top.is-scrolled .brand .logo{
   }
   html[data-theme="apex"] .menu{flex:none}
   html[data-theme="apex"] .gear{
-    width:32px;
-    height:32px;
+    width:44px;
+    height:44px;
+    min-width:44px;
+    min-height:44px;
     border-radius:999px;
     font-size:15px;
   }
@@ -568,7 +570,7 @@ html[data-theme="apex"] .top-in > .nav{display:none}
     left:0;
     right:0;
     bottom:0;
-    /* 0.53.2: three columns, Build in the middle column, so it is centred and never at an edge. */
+    /* 0.53.3: three columns, Build in the middle column, so it is centred and never at an edge. */
     display:grid;
     grid-template-columns:1fr auto 1fr;
     align-items:end;
@@ -762,8 +764,8 @@ html[data-theme="apex"] .sv-av{
     grid-column:1 / -1;
     grid-row:3;
     display:flex;
-    flex-wrap:nowrap;
-    overflow-x:auto;
+    flex-wrap:wrap;
+    overflow-x:visible;
     max-width:100%;
   }
   html[data-theme="apex"] .apex-spark{height:48px;margin:4px 0 12px}
@@ -932,7 +934,10 @@ html[data-theme="apex"] #builder[data-apex-step="0"] .gcards{display:none}
   ::view-transition-new(apex-page){animation:apex-in 320ms cubic-bezier(.22,1,.36,1) both}
 }
 
-html[data-theme="apex"] #overview { overflow-x: clip; }
+html[data-theme="apex"] #overview,
+html[data-theme="apex"] #detail,
+html[data-theme="apex"] #upcoming,
+html[data-theme="apex"] #builder { overflow-x: clip; }
 
 /* 0.52.2: on phones the glow's -12% sides widened the page past the screen
    (scrollWidth 455 at 390). Keep it, and its 6% drift, inside the viewport. */

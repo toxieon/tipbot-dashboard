@@ -1,3 +1,25 @@
+## 0.53.3 · 2026-10-09 · Phone-first UI audit
+
+Phone-first audit. The 15 shipped fixes:
+
+- **Upcoming was a hidden screen.** `panel()` never listed `upcoming`, so Home | Build | Upcoming could not show Upcoming. The tab now unhides `#upcoming`.
+- **Upcoming bounced to the server page.** Opening Upcoming with no prior load called `loadDetail` and left the new screen. It now stays on Upcoming, paints a skeleton, and loads queued tips (with retry on error).
+- **Deep link `#/s/<gid>/upcoming` was ignored** and reloads landed on the server page. Routed.
+- **Upcoming with no servers was a dead tab.** Empty state plus `TBOpenUpcoming` for the phone bar.
+- **Server page threw on missing tips/stats.** `renderDetail` now treats missing `tips`/`stats`/`settings` as empty and shows an error if there is no guild id.
+- **Tip cards printed `undefinedu @ undefined`** and crashed on a null tip. Units/odds omit when missing; null rows are skipped.
+- **Home cards were mouse-only.** Server and follower cards are `role="button"` with Enter/Space.
+- **Empty home was a faint one-liner.** Illustrated “No communities yet” status region.
+- **Tap targets under 44px:** gear (32/38), back, primary buttons, tabs, theme swatches, accent dots, topnav, menu rows, batch clear, Add on the builder.
+- **Contrast:** `.empty` uses `--muted`; Light / Black / Mono `--faint` lifted to the muted ink so captions pass on those shells.
+- **Stats period `<select>` had no label.** `for`/`aria-label` on `#monthsel`.
+- **Stale cache-busting** on favicons, the web manifest, `players.json`, and `bookies.json`.
+- **Focus:** `select`, `textarea`, and `[role="button"]` get the same visible ring; toggles have `aria-label` / `aria-pressed`.
+- **Long names overflowed home cards** at 360–430px. Names wrap; name columns `min-width: 0`.
+- **Apex header actions and glow could widen the page.** Actions wrap; Upcoming/detail/builder clip sideways; the tab indicator reads layout once via `getBoundingClientRect`.
+
+Tests: `tests/upcoming_screen.test.js`, `tests/edge_data.test.js`, `tests/phone_a11y.test.js`, plus a missing-payload case in `tests/server_view.test.js`.
+
 ## 0.53.2 · 2026-10-09 · Phone tab bar: Home | Build | Upcoming
 
 - The phone tab bar follows the TABS order, and Build sits in the centre column of a three-column grid, so it is centred and no longer clipped at the edge.
