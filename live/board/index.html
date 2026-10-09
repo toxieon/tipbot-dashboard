@@ -272,6 +272,7 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
   <div id="content"></div>
   <div class="foot" id="foot"></div>
 </main>
+<script src="../../assets/sport-marks.js?v=0.51.1"></script>
 <script>
 (function(){
   "use strict";
@@ -414,6 +415,11 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
 
   // ── filters ───────────────────────────────────────────────────────────────
   function sportOf(g){return String(g.sport||g.league||"").toUpperCase()||"OTHER";}
+  function sportLabel(name){
+    var api=window.TBSports;
+    var raw=name==null?"":String(name);
+    return api&&api.label?api.label(raw):raw;
+  }
   function visibleGames(){
     var games=(S.data&&S.data.games)||[];
     return S.sport==="ALL"?games:games.filter(function(g){return sportOf(g)===S.sport;});
@@ -427,7 +433,7 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
     if(list.length<2){box.innerHTML="";return;}
     box.innerHTML=['ALL'].concat(list).map(function(s){
       var n=s==="ALL"?games.length:counts[s];
-      return '<button type="button" class="fchip" data-sport="'+esc(s)+'" aria-pressed="'+(S.sport===s)+'">'+(s==="ALL"?"All":esc(s))+'<span class="n">'+n+'</span></button>';
+      return '<button type="button" class="fchip" data-sport="'+esc(s)+'" aria-pressed="'+(S.sport===s)+'">'+(s==="ALL"?"All":esc(sportLabel(s)))+'<span class="n">'+n+'</span></button>';
     }).join("");
     box.querySelectorAll("[data-sport]").forEach(function(b){b.onclick=function(){setSport(b.getAttribute("data-sport"));};});
   }
@@ -554,7 +560,7 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
     var foot=(l.per_period?spark(l.per_period,g):"")+(l.events?timeline(l.events,g):"");
     var note=!hasNum&&l.note?'<div class="note">'+esc(l.note)+'</div>':"";
     var heat=heatSlot(l,g);
-    var head=opts.flat?'<div class="gtag">'+esc(g.sport||"")+' · <b>'+esc(shortGame(g))+'</b> · '+esc((g.phase&&g.phase.label)||"")+'</div>':"";
+    var head=opts.flat?'<div class="gtag">'+esc(g.sport?sportLabel(g.sport):"")+' · <b>'+esc(shortGame(g))+'</b> · '+esc((g.phase&&g.phase.label)||"")+'</div>':"";
     var otherTag=other&&!opts.flat?'<div class="gtag">Other game · <b>'+esc(gameNameFor(l.match_id))+'</b></div>':"";
     return '<article class="leg '+legClass(l)+(other?" leg--other":"")+'" data-k="'+k+'" data-status="'+esc(l.status||"")+'">'+head+otherTag
       +'<div class="lhead">'+avatar(l.player||l.description,l.photo_url)+'<div class="who"><div class="nm">'+esc(l.player||l.description||"Selection")+'</div>'
@@ -643,7 +649,7 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
     if(g.venue)foot.push('<span>'+esc(g.venue)+'</span>');
     if(g.bet_count)foot.push('<span class="gt-tips">'+g.bet_count+' tip'+(g.bet_count===1?"":"s")+'</span>');
     return '<a class="'+cls+'" href="#'+domId(g.key)+'" data-key="'+esc(g.key)+'" data-state="'+(g.concluded?"final":"live")+'">'
-      +'<div class="gt-top"><span class="sport">'+esc(sportOf(g))+'</span><span class="gt-clock" data-f="'+esc(g.key)+':clock">'+(running?'<span class="dot" aria-hidden="true"></span>':"")+esc(phaseLabel(g))+'</span></div>'
+      +'<div class="gt-top"><span class="sport">'+esc(sportLabel(sportOf(g)))+'</span><span class="gt-clock" data-f="'+esc(g.key)+':clock">'+(running?'<span class="dot" aria-hidden="true"></span>':"")+esc(phaseLabel(g))+'</span></div>'
       +rows+(foot.length?'<div class="gt-foot">'+foot.join("")+'</div>':"")+'</a>';
   }
   function renderBoard(games){

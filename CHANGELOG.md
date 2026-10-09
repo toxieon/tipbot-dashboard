@@ -8,7 +8,7 @@ Apex is the default for a new visitor (`APEX_DEFAULT`, on). Navy, day and ochre 
 - Home opens with total profit, a drawn units line, and queued / live / next. Server cards carry a mini chart and rise as they enter view.
 - A server page leads with the name, units and ROI. The timeframe is a segmented control. Stat tiles sit in a bento grid. Tipster rows keep initials and reorder in place.
 - Upcoming and live games group under sticky day headers, with team initial lockups, the countdown ring, and Win / Loss / Push as one segmented control.
-- Build a tip shows Sport, Game, Market, Confirm. Sport chips are the first step.
+- Build a tip shows Sport, Game, Market, Confirm. Sport chips are the first step. Every sport chip, filter, and game label uses one shared mark (`assets/sport-marks.js`).
 - Buttons press in, tiles lift on a fine pointer, skeletons shimmer, toasts slide, and figures tick when the value changes. Motion stays on transform and opacity, and reduced motion jumps to the end state.
 - Tests: `tests/apex_theme.test.js`.
 

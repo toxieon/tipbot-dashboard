@@ -14,6 +14,14 @@
   var NUMS = [["min_servers", "Minimum servers", 1, 100, 1], ["min_pct", "Minimum % of active servers (0 = off)", 0, 100, 1],
               ["window_hours", "Window (hours, first to last bet)", 1, 168, 1], ["line_tolerance", "Line tolerance (stat units)", 0, 20, 0.5]];
 
+  function sportLabel(name) {
+    var api = (typeof globalThis !== "undefined" && globalThis.TBSports) || null;
+    if (!api && typeof require === "function") {
+      try { api = require("./sport-marks.js"); } catch (e) { api = null; }
+    }
+    var raw = name == null ? "" : String(name);
+    return api && api.label ? api.label(raw) : raw;
+  }
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
       return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c];
@@ -105,7 +113,7 @@
         + '<label class="switch"><input type="checkbox" class="cons-bool" data-k="require_before_start"' + (f.require_before_start ? " checked" : "") + dis + '> Only bets posted before the game starts</label>'
         + '<label class="switch"><input type="checkbox" class="cons-bool" data-k="include_multi_legs"' + (f.include_multi_legs ? " checked" : "") + dis + '> Count legs inside multis</label>'
         + '<div><div class="stat-l" style="margin-bottom:6px">Sports</div><div class="pills">' + (S.data.sports_available || []).map(function (sp) {
-          return '<label class="pill' + (f.sports.indexOf(sp) !== -1 ? " on" : "") + '" style="display:inline-flex;align-items:center"><input type="checkbox" class="cons-sport" value="' + esc(sp) + '"' + (f.sports.indexOf(sp) !== -1 ? " checked" : "") + dis + ' style="margin:0 4px 0 0">' + esc(sp) + '</label>';
+          return '<label class="pill' + (f.sports.indexOf(sp) !== -1 ? " on" : "") + '" style="display:inline-flex;align-items:center"><input type="checkbox" class="cons-sport" value="' + esc(sp) + '"' + (f.sports.indexOf(sp) !== -1 ? " checked" : "") + dis + ' style="margin:0 4px 0 0">' + esc(sportLabel(sp)) + '</label>';
         }).join("") + '</div></div>'
         + '<label>Show on the post<select id="cons-show"' + dis + '>' + (S.data.show_sources_options || []).map(function (o) {
           var lab = {servers_and_tipsters: "Servers and tipsters", servers_only: "Servers only", anonymous: "Counts only"}[o] || o;
@@ -126,7 +134,7 @@
         h += !list.length ? '<div class="empty">No bet is shared by two or more servers yet.</div>'
           : '<div class="access-table"><table><thead><tr><th>Bet</th><th>Game</th><th>Servers</th><th>Lines seen</th><th></th></tr></thead><tbody>'
             + list.map(function (c) {
-              return '<tr><td><b>' + esc(c.label) + '</b><div class="stat-l">' + esc(c.sport) + '</div></td><td>' + esc(c.game_label) + (c.game_start ? '<div class="stat-l">' + esc(when(c.game_start)) + '</div>' : '') + '</td>'
+              return '<tr><td><b>' + esc(c.label) + '</b><div class="stat-l">' + esc(sportLabel(c.sport)) + '</div></td><td>' + esc(c.game_label) + (c.game_start ? '<div class="stat-l">' + esc(when(c.game_start)) + '</div>' : '') + '</td>'
                 + '<td>' + esc(c.count + "/" + c.needed) + '<div class="stat-l">' + esc((c.servers || []).map(function (s) { return s.name; }).join(", ")) + '</div></td>'
                 + '<td>' + esc(Object.keys(c.lines_seen || {}).map(function (k) { return k + " ×" + c.lines_seen[k]; }).join(", ")) + '</td>'
                 + '<td>' + (c.status ? '<span class="pill on">' + esc(c.status) + '</span>' : c.qualifies ? (c.started ? '<span class="pill off">started</span>' : '<span class="pill on">qualifies</span>') : '<span class="pill off">below</span>') + '</td></tr>';

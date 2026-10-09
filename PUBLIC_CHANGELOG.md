@@ -2,7 +2,7 @@
 
 ## 0.51.1
 
-Apex is the layout new accounts open on. A side rail on a large screen and a tab bar on a phone replace the old top links. Home leads with total profit, a server reads as one story, upcoming and live group by day, and building a tip steps from sport to confirm. Navy, day and ochre stay available in Settings.
+Apex is the layout new accounts open on. A side rail on a large screen and a tab bar on a phone replace the old top links. Home leads with total profit, a server reads as one story, upcoming and live group by day, and building a tip steps from sport to confirm. Each sport chip and label carries its own mark. Navy, day and ochre stay available in Settings.
 
 ## 0.50.1
 

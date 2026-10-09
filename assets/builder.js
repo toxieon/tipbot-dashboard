@@ -409,13 +409,13 @@
     const league=BUILD.espnLeague;
     const label=espnLeagueLabel(league);
     let html='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
-      +'<div class="dhead"><h1 style="margin:0">Build a tip · '+esc(label)+'</h1><div style="display:flex;gap:8px"><button class="ghost" id="espnbackafl">🏉 AFL</button><button class="ghost" id="espnrefresh">↻ Refresh</button></div></div>'
+      +'<div class="dhead"><h1 style="margin:0">Build a tip · '+esc(sportLabel(label))+'</h1><div style="display:flex;gap:8px"><button class="ghost" id="espnbackafl">'+esc(sportLabel("AFL"))+'</button><button class="ghost" id="espnrefresh">↻ Refresh</button></div></div>'
       +'<p style="color:var(--muted);margin:0 0 12px">'+(league==="nfl"?"Pick an NFL game, then add player props (yards / TDs / completions / INTs / receptions).":"Pick a "+label+" game, then add player props (points / rebounds / assists / threes / PRA) or free-text selections.")+'</p>';
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
-      +'<button class="compchip" id="espnaflchip">🏉 AFL</button>'
-      +ESPN_SPORTS.map(s=>'<button class="compchip espnsport'+(s.league===league?" on":"")+'" data-league="'+esc(s.league)+'">'+esc(s.k)+'</button>').join("")
-      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'">'+esc(s.k)+'</button>').join("")
-      +'<button class="compchip sportstub" data-s="">＋ Other</button></div>';
+      +'<button class="compchip" id="espnaflchip">'+esc(sportLabel("AFL"))+'</button>'
+      +ESPN_SPORTS.map(s=>'<button class="compchip espnsport'+(s.league===league?" on":"")+'" data-league="'+esc(s.league)+'">'+esc(sportLabel(s.k))+'</button>').join("")
+      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'">'+esc(sportLabel(s.k))+'</button>').join("")
+      +'<button class="compchip sportstub" data-s="">'+esc(sportLabel("Other"))+'</button></div>';
     if(league==="nfl"){
       const weeks=BUILD.espnWeeks||[];
       html+='<div style="display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap">'
@@ -685,14 +685,14 @@
       +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     // Sport switcher: AFL live · NFL/NBA/WNBA via TipBot ESPN · stubs → custom.
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
-      +'<span class="compchip on" title="Live AFL/AFLW data">🏉 AFL <span style="opacity:.7;font-size:var(--t-cap)">live</span></span>'
-      +ESPN_SPORTS.map(s=>'<button class="compchip espnsport" data-league="'+esc(s.league)+'" title="'+esc(s.hint)+'">'+esc(s.k)+' <span style="opacity:.7;font-size:var(--t-cap)">ESPN</span></button>').join("")
-      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — custom tip">'+esc(s.k)+'</button>').join("")
-      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">＋ Other</button></div>';
+      +'<span class="compchip on" title="Live AFL/AFLW data">'+esc(sportLabel("AFL"))+' <span style="opacity:.7;font-size:var(--t-cap)">live</span></span>'
+      +ESPN_SPORTS.map(s=>'<button class="compchip espnsport" data-league="'+esc(s.league)+'" title="'+esc(s.hint)+'">'+esc(sportLabel(s.k))+' <span style="opacity:.7;font-size:var(--t-cap)">ESPN</span></button>').join("")
+      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — custom tip">'+esc(sportLabel(s.k))+'</button>').join("")
+      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">'+esc(sportLabel("Other"))+'</button></div>';
     if(hasMulti){
-      const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
+      const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+esc(v)+'">'+esc(l)+'</button>';
       html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'
-        +chip("All","All")+comps.map(c=>chip(c,c)).join("")+'</div>';
+        +chip("All","All")+comps.map(c=>chip(c,sportLabel(c))).join("")+'</div>';
     }
     const shown=games.filter(g=>BUILD.compFilter==="All"||gameComp(g)===BUILD.compFilter);
     if(!games.length){
@@ -702,7 +702,8 @@
     else if(!shown.length){ html+='<div class="panel"><div class="empty">No '+BUILD.compFilter+' games in the next 7 days.</div></div>'; }
     else{ html+='<div class="gcards">'+shown.map((g,i)=>{
       const liveBadge=g.live?' <span style="color:#e5484d;font-weight:800;font-size:var(--t-cap);letter-spacing:.03em">● LIVE</span>':'';
-      const compBadge=hasMulti?' <span class="compbadge'+(gameComp(g)==="AFLW"?" aflw":"")+'">'+gameComp(g)+'</span>':'';
+      const compName=gameComp(g);
+      const compBadge=hasMulti?' <span class="compbadge'+(compName==="AFLW"?" aflw":"")+'">'+esc(sportLabel(compName))+'</span>':'';
       const ht=g.hteam, at=g.ateam;
       return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'>'
         +'<div class="rd">'+(g.roundname||"")+' · '+fmtGameWhen(g)+liveBadge+compBadge+'</div>'

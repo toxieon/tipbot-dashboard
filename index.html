@@ -1145,6 +1145,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/lines.js?v=0.51.1"></script>
 <script src="./assets/compare-ui.js?v=0.51.1"></script>
 <script src="./assets/sport-keywords.js?v=0.51.1"></script>
+<script src="./assets/sport-marks.js?v=0.51.1"></script>
 <script src="./assets/routing.js?v=0.51.1"></script>
 <script src="./assets/scheduled-tips.js?v=0.51.1"></script>
 <script src="./assets/upcoming-split.js?v=0.51.1"></script>
@@ -3829,7 +3830,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(group){
         const left=group.querySelectorAll(".betrow").length;
         const gsub=group.querySelector(".gsub");
-        if(gsub && left){ gsub.textContent=left+" bet"+(left>1?"s":"")+" · confirm tips"; }
+        if(gsub && left){
+          const sport=group.getAttribute("data-sport")||"";
+          const sportBit=sport?(sportLabel(sport)+" · "):"";
+          gsub.textContent=sportBit+left+" bet"+(left>1?"s":"")+" · confirm tips";
+        }
         if(!left){
           group.remove();
           const finBox=$("finished-box");
@@ -5876,6 +5881,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function tipLooksFinished(t, starts, finished){
     return TBUpcoming.tipLooksFinished(t, starts, finished);
   }
+  function sportLabel(name){
+    const TB=window.TBSports;
+    return (TB&&typeof TB.label==="function")?TB.label(name):String(name==null?"":name);
+  }
+  function groupSport(list){
+    let found="";
+    (list||[]).forEach(t=>{
+      if(found) return;
+      const s=t&&(t.sport||t.league||t.comp);
+      if(s&&String(s).trim()) found=String(s).trim();
+    });
+    return found;
+  }
   function renderGameGroups(box, gid, groups, starts, finishedMap, mode){
     let html="";
     const keys=Object.keys(groups);
@@ -5916,9 +5934,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           +'<button type="button" class="btn sm ft-push-all" data-match="'+esc(String(mid))+'" data-game="'+esc(game)+'" title="Auto-grade pending tips for this match and post to Discord">Push all</button>'
           +'</div>';
       }
-      html+='<div class="game-group" id="'+cid+'">'
+      const sport=groupSport(list);
+      const sportBit=sport?esc(sportLabel(sport))+" · ":"";
+      html+='<div class="game-group" id="'+cid+'"'+(sport?' data-sport="'+esc(sport)+'"':"")+'>'
         +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle">'+esc(game)+'</div>'
-        +'<div class="gsub">'+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
+        +'<div class="gsub">'+sportBit+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div></div>'
         +'<div class="gright">'+right+'</div></div>'
         +'<div class="game-group-bd">'+list.map(t=>{
           const tipSettled=/^settled$/i.test(String(t.status||""))||!!(t.result&&/^(win|loss|push|void)$/i.test(String(t.result).trim()));
@@ -6268,6 +6288,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         const mid=esc(midRaw);
         const score=(g.hscore!=null&&g.ascore!=null)?(" · "+g.hscore+"–"+g.ascore):"";
         const venue=g.venue?(" · "+g.venue):"";
+        const sportRaw=String(g.sport||g.league||g.comp||"").trim();
+        const sportBit=sportRaw?esc(sportLabel(sportRaw))+" · ":"";
         const pid="live-prev-"+gi;
         const hasCopy=!!(g.preview_texts||g.preview_text);
         const rawQ=(ui.q==="Q4"?"FT":ui.q)||(g.preview_quarter==="Q4"?"FT":g.preview_quarter);const defQ=QS.indexOf(rawQ)>=0?rawQ:"Q1";
@@ -6282,7 +6304,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           :'<div class="leg" style="color:var(--faint);margin-top:8px">Copy preview needs the latest TipBot deploy.</div>';
         return '<div class="live-tips-row" data-match="'+mid+'">'
           +'<div class="live-tips-meta"><div class="g">'+esc(g.game_name||"AFL game")+'</div>'
-          +'<div class="meta">'+esc(phase)+esc(score)+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
+          +'<div class="meta">'+sportBit+esc(phase)+esc(score)+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
           +'<div class="live-tips-actions">'
           +'<button type="button" class="ghost sm live-toggle-prev" data-pid="'+pid+'">'+(ui.open?"Hide preview":"Preview")+'</button>'
           +(hasCopy?'<button type="button" class="ghost sm live-copy-quick" data-gi="'+gi+'" title="Copy the exact Discord post text">Copy preview</button>':'')
@@ -7021,8 +7043,8 @@ async function loadPerms(gid){
       +'<div class="dhead"><h1 style="margin:0">Recent scores</h1><button class="ghost" id="rrefresh">↻ Refresh</button></div>'
       +'<p style="color:var(--muted);margin:0 0 14px">Final AFL'+(hasMulti?" & AFLW":"")+' scores — tap a game to see every player\'s goals, disposals and more.</p>';
     if(hasMulti){
-      const chip=(v,l)=>'<button class="compchip'+(RESULTS.comp===v?" on":"")+'" data-c="'+v+'">'+l+'</button>';
-      html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'+chip("All","All")+comps.map(c=>chip(c,c)).join("")+'</div>';
+      const chip=(v,l)=>'<button class="compchip'+(RESULTS.comp===v?" on":"")+'" data-c="'+esc(v)+'">'+esc(l)+'</button>';
+      html+='<div class="compfilter" style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap">'+chip("All","All")+comps.map(c=>chip(c,sportLabel(c))).join("")+'</div>';
     }
     const shown=games.filter(g=>RESULTS.comp==="All"||(g.comp||"AFL")===RESULTS.comp);
     RESULTS._shown=shown;
@@ -7030,7 +7052,8 @@ async function loadPerms(gid){
     else{ html+=shown.map((g,i)=>{
       const mid=g.aflMatchId||""; const open=!!RESULTS._open[mid];
       const hw=g.hscore>g.ascore,aw=g.ascore>g.hscore;
-      const compBadge=hasMulti?' <span class="compbadge'+((g.comp||"AFL")==="AFLW"?" aflw":"")+'">'+(g.comp||"AFL")+'</span>':'';
+      const compName=g.comp||"AFL";
+      const compBadge=hasMulti?' <span class="compbadge'+(compName==="AFLW"?" aflw":"")+'">'+esc(sportLabel(compName))+'</span>':'';
       return '<div class="panel" style="padding:0;overflow:hidden;margin-bottom:10px">'
         +'<div class="reshdr" role="button" tabindex="0" aria-expanded="'+open+'" aria-controls="resbody_'+i+'" style="display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer">'
           +'<div style="flex:1;min-width:0">'
