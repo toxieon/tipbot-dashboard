@@ -1,1 +1,12 @@
 dist/
+node_modules/
+.DS_Store
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.mov
+*.webm
+*.gif
+.cursor/
+.vscode/
