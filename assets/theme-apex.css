@@ -570,7 +570,7 @@ html[data-theme="apex"] .top-in > .nav{display:none}
     left:0;
     right:0;
     bottom:0;
-    /* 0.53.2: three columns, Build in the middle column, so it is centred and never at an edge. */
+    /* 0.53.3: three columns, Build in the middle column, so it is centred and never at an edge. */
     display:grid;
     grid-template-columns:1fr auto 1fr;
     align-items:end;

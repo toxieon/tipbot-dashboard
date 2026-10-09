@@ -1,4 +1,4 @@
-## Unreleased
+## 0.53.3 · 2026-10-09 · Phone-first UI audit
 
 Phone-first audit. The 15 shipped fixes:
 

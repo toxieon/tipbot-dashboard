@@ -1,3 +1,7 @@
+## 0.53.3
+
+Fixes and polish across the dashboard on phones.
+
 ## 0.53.2
 
 The Build button now sits in the middle of the phone tab bar.
