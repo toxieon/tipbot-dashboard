@@ -128,14 +128,16 @@ html[data-theme="apex"] #app > .top.is-scrolled .brand .logo{
 }
 html[data-theme="apex"] #upcoming-panel,
 html[data-theme="apex"] .panel,
-html[data-theme="apex"] .game-group{
-  scroll-margin-top:calc(64px + env(safe-area-inset-top,0px));
+html[data-theme="apex"] .game-group,
+html[data-theme="apex"] .ghead{
+  scroll-margin-top:calc(88px + env(safe-area-inset-top,0px));
 }
 html[data-theme="apex"] header.top{
-  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  background:var(--bg);
   -webkit-backdrop-filter:none;
   backdrop-filter:none;
   transition:padding 320ms cubic-bezier(.22,1,.36,1);
+  z-index:35;
 }
 html[data-theme="apex"] header.top.is-scrolled{
   padding-top:calc(2px + env(safe-area-inset-top,0px));
@@ -546,6 +548,7 @@ html[data-theme="apex"] .apex-indicator{
 html[data-theme="apex"] .topnav,
 html[data-theme="apex"] .top-in > .nav{display:none}
 @media (min-width:900px){
+  html[data-theme="apex"] header.top{padding-left:104px}
   html[data-theme="apex"] .wrap{
     max-width:none;
     margin-left:92px;
@@ -683,8 +686,10 @@ html[data-theme="apex"] #detail .dhead{
   gap:10px 16px;
   align-items:end;
 }
-html[data-theme="apex"] #detail .dhead-actions{grid-column:2;grid-row:1}
-html[data-theme="apex"] .apex-server-hero{grid-column:1 / -1}
+html[data-theme="apex"] #detail .dhead > h1,
+html[data-theme="apex"] #detail .dhead > .tb-form-title{grid-column:1;grid-row:1}
+html[data-theme="apex"] #detail .dhead-actions{grid-column:2;grid-row:1;justify-self:end}
+html[data-theme="apex"] .apex-server-hero{grid-column:1 / -1;grid-row:2}
 html[data-theme="apex"] .apex-hero-roi{
   margin:6px 0 0;
   color:var(--muted);
@@ -716,7 +721,17 @@ html[data-theme="apex"] .sv-av{
   html[data-theme="apex"] .sv-stats{grid-template-columns:1fr 1fr}
   html[data-theme="apex"] .sv-stat:nth-child(1){grid-row:auto}
   html[data-theme="apex"] #detail .dhead{grid-template-columns:minmax(0, 1fr)}
-  html[data-theme="apex"] #detail .dhead-actions{grid-column:1;grid-row:auto}
+  html[data-theme="apex"] #detail .dhead-actions{
+    grid-column:1 / -1;
+    grid-row:3;
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    max-width:100%;
+  }
+  html[data-theme="apex"] .apex-spark{height:48px;margin:4px 0 12px}
+  html[data-theme="apex"] .apex-hero{padding-bottom:16px}
+  html[data-theme="apex"] .apex-facts div{padding:10px 12px}
 }
 
 /* Timeframe pill */
@@ -768,7 +783,7 @@ html[data-theme="apex"] select.apex-native-period{
 /* Timeline */
 html[data-theme="apex"] .apex-day{
   position:sticky;
-  top:calc(60px + env(safe-area-inset-top, 0px));
+  top:calc(76px + env(safe-area-inset-top, 0px));
   z-index:3;
   margin:16px 0 8px;
   padding:8px 2px;

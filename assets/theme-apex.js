@@ -481,7 +481,13 @@
     var body = el.querySelector(".panel-body");
     if (body) body.hidden = false;
     if (root.TDSec && root.TDSec.open) { try { root.TDSec.open(el); } catch (e) {} }
-    try { el.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" }); } catch (e2) {}
+    try {
+      var bar = doc.querySelector("#app > .top, header.top");
+      var h = 80;
+      if (bar && bar.getBoundingClientRect) h = Math.ceil(bar.getBoundingClientRect().height) + 16;
+      var y = el.getBoundingClientRect().top + (root.pageYOffset || root.scrollY || 0) - h;
+      root.scrollTo(0, Math.max(0, y));
+    } catch (e2) {}
   }
   function go(id) {
     picked = id;
