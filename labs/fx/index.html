@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TB match FX lab</title>
+  <style>
+    :root{
+      --tbfx-bg:#07090f;
+      --tbfx-card:#11141c;
+      --tbfx-line:#1e2430;
+      --tbfx-txt:#f5f7fa;
+      --tbfx-muted:#8b93a7;
+      --tbfx-accent:#5b8cff;
+      --tbfx-win:#34d399;
+      --tbfx-warn:#fbbf24;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--tbfx-bg);color:var(--tbfx-txt);font-family:system-ui,sans-serif;padding:24px}
+    h1{font-size:22px;margin:0 0 8px}
+    p{color:var(--tbfx-muted);margin:0 0 20px;max-width:42rem;line-height:1.5}
+    .grid{display:grid;gap:16px;max-width:720px}
+    .card{background:var(--tbfx-card);border:1px solid var(--tbfx-line);border-radius:14px;padding:20px;min-height:120px}
+    .card h2{font-size:15px;margin:0 0 12px}
+    .row{display:flex;flex-wrap:wrap;gap:10px}
+    button{padding:10px 14px;border-radius:10px;border:1px solid var(--tbfx-line);background:var(--tbfx-card);color:var(--tbfx-txt);cursor:pointer}
+    button:active{transform:scale(.98)}
+    code{font-size:13px;color:var(--tbfx-muted)}
+  </style>
+  <script src="../../assets/fx/tb-match-fx.js"></script>
+  <script src="../../assets/fx/goal.js"></script>
+  <script src="../../assets/fx/behind.js"></script>
+  <script src="../../assets/fx/win.js"></script>
+</head>
+<body>
+  <h1>Match FX lab</h1>
+  <p>Standalone AFL goal, behind, and settled-win overlays. Load the scripts from <code>assets/fx/</code> and call <code>TBMatchFx.goal</code>, <code>TBMatchFx.behind</code>, or <code>TBMatchFx.win</code> with an optional anchor element.</p>
+  <div class="grid">
+    <div class="card" id="goal-host">
+      <h2>Goal</h2>
+      <div class="row">
+        <button type="button" id="play-goal">Play on card</button>
+        <button type="button" id="play-goal-float">Play floating</button>
+      </div>
+    </div>
+    <div class="card" id="behind-host">
+      <h2>Behind</h2>
+      <div class="row">
+        <button type="button" id="play-behind">Play on card</button>
+        <button type="button" id="play-behind-float">Play floating</button>
+      </div>
+    </div>
+    <div class="card" id="win-host">
+      <h2>Winner</h2>
+      <div class="row">
+        <button type="button" id="play-win">Play on card</button>
+        <button type="button" id="play-win-float">Play floating</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById("play-goal").onclick = function () {
+      TBMatchFx.goal(document.getElementById("goal-host"));
+    };
+    document.getElementById("play-goal-float").onclick = function () {
+      TBMatchFx.goal();
+    };
+    document.getElementById("play-behind").onclick = function () {
+      TBMatchFx.behind(document.getElementById("behind-host"));
+    };
+    document.getElementById("play-behind-float").onclick = function () {
+      TBMatchFx.behind();
+    };
+    document.getElementById("play-win").onclick = function () {
+      TBMatchFx.win(document.getElementById("win-host"));
+    };
+    document.getElementById("play-win-float").onclick = function () {
+      TBMatchFx.win();
+    };
+  </script>
+</body>
+</html>

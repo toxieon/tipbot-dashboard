@@ -1,0 +1,46 @@
+.tbfx-goal-host{position:relative}
+.tbfx-goal-layer{
+  position:absolute;
+  inset:auto 0 100% 0;
+  margin-bottom:6px;
+  display:flex;
+  justify-content:center;
+  pointer-events:none;
+  z-index:4;
+}
+.tbfx-goal-layer--float{
+  position:fixed;
+  left:50%;
+  bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%);
+  z-index:90;
+  margin:0;
+}
+.tbfx-goal-layer svg{width:132px;height:88px;overflow:visible}
+.tbfx-goal-layer .tbfx-ball{fill:var(--tbfx-accent,#5b8cff);stroke:var(--tbfx-line,#1e2430);stroke-width:1.2}
+.tbfx-goal-layer .tbfx-post{stroke:var(--tbfx-txt,#f5f7fa);stroke-width:2.2;stroke-linecap:round;fill:none}
+.tbfx-goal-layer .tbfx-post-behind{stroke:var(--tbfx-muted,#8b93a7);stroke-width:1.6;stroke-linecap:round;fill:none;opacity:.85}
+.tbfx-goal-layer .tbfx-ground{stroke:var(--tbfx-line,#1e2430);stroke-width:1;opacity:.5}
+.tbfx-goal-layer .tbfx-ump-head,.tbfx-goal-layer .tbfx-ump-body{fill:var(--tbfx-txt,#f5f7fa)}
+.tbfx-goal-layer .tbfx-finger{stroke:var(--tbfx-txt,#f5f7fa);stroke-width:2;stroke-linecap:round}
+.tbfx-goal-layer .tbfx-burst{stroke:var(--tbfx-win,#34d399);stroke-width:2;fill:none;opacity:0}
+@media (prefers-reduced-motion:no-preference){
+  .tbfx-goal-layer--play .tbfx-ball-anim{animation:tbfx-goal-ball 720ms cubic-bezier(.22,1,.36,1) both}
+  .tbfx-goal-layer--play .tbfx-signal{animation:tbfx-goal-signal 520ms ease 280ms both}
+  .tbfx-goal-layer--play .tbfx-burst{animation:tbfx-goal-burst 520ms ease 360ms both}
+  .tbfx-goal-layer--play .tbfx-burst-2{animation-delay:80ms}
+}
+@keyframes tbfx-goal-ball{
+  0%{opacity:0;transform:translate(0,0) scale(.7)}
+  35%{opacity:1}
+  100%{opacity:1;transform:translate(48px,-54px) scale(1)}
+}
+@keyframes tbfx-goal-signal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes tbfx-goal-burst{
+  0%{opacity:0;stroke-width:1;transform:scale(.6)}
+  40%{opacity:.9}
+  100%{opacity:0;stroke-width:3;transform:scale(1.15)}
+}
+@media (prefers-reduced-motion:reduce){
+  .tbfx-goal-layer--rm .tbfx-ball,.tbfx-goal-layer--rm .tbfx-ump-head{opacity:.9}
+}
