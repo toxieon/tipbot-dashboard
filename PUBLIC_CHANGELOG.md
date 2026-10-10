@@ -1,3 +1,7 @@
+## 0.54.5
+
+Swipe from the left edge to go back on phones.
+
 ## 0.54.4
 
 Home lists only your own communities.
