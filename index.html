@@ -2601,10 +2601,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   let STATS_PACKS=null;
   function downloadStatsPdf(){
-    if(!window.TBPdfReport||typeof TBPdfReport.exportFromPacks!=="function") return;
+    if(!window.TBPdfReport||typeof TBPdfReport.promptExport!=="function") return;
     const packs=STATS_PACKS||[];
-    const out=TBPdfReport.exportFromPacks(packs,{window:STATS_WINDOW,periodLabel:TBPdfReport.windowLabel(STATS_WINDOW)});
-    if(out&&out.open) out.open();
+    let brandCustom=false; let guildId="";
+    if(packs.length===1){
+      const s=packs[0].server||{}; const d=packs[0].detail||{};
+      guildId=String(s.guild_id||"");
+      brandCustom=!!(TBPdfReport.brandCustomAllowed&&TBPdfReport.brandCustomAllowed(d,s));
+    }
+    TBPdfReport.promptExport({kind:"packs",packs,opts:{window:STATS_WINDOW,periodLabel:TBPdfReport.windowLabel(STATS_WINDOW)},brandCustom,guildId});
   }
   function paintDashStats(packs){
     STATS_PACKS=packs;
@@ -6909,10 +6914,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     { const af=$("asfollowerbtn"); if(af)af.onclick=()=>openFollowerView(s.guild_id,s.display_name); }
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
     { const pb=$("pdfbtn"); if(pb) pb.onclick=()=>{
-      if(!window.TBPdfReport||typeof TBPdfReport.exportFromDetail!=="function") return;
+      if(!window.TBPdfReport||typeof TBPdfReport.promptExport!=="function") return;
       const periodLbl=curMonth?fmtMonth(curMonth):"Lifetime";
-      const out=TBPdfReport.exportFromDetail(d,{serverName:s.display_name||s.name,periodLabel:periodLbl});
-      if(out&&out.open) out.open();
+      const brandCustom=!!(TBPdfReport.brandCustomAllowed&&TBPdfReport.brandCustomAllowed(d,s));
+      TBPdfReport.promptExport({kind:"detail",detail:d,meta:{serverName:s.display_name||s.name,periodLabel:periodLbl},opts:{},brandCustom,guildId:String(s.guild_id||"")});
     }; }
     { const ms=$("monthsel"); if(ms)ms.onchange=()=>loadDetail(s.guild_id,ms.value||null); }
     // Calendar arrows step months; they drive the whole period (stats follow),

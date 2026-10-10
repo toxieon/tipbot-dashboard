@@ -105,10 +105,67 @@ test("documentHtml includes cover, charts, disclaimer and gamble responsibly", (
   assert.doesNotMatch(doc, /console\./);
 });
 
+test("normalizeOptions keeps cover mandatory and respects section toggles", () => {
+  const raw = PDF.defaultOptions();
+  raw.sections.cover = false;
+  raw.sections.summary = false;
+  raw.sections.chartCumulative = false;
+  raw.sections.notes = false;
+  const norm = PDF.normalizeOptions(raw);
+  assert.equal(norm.sections.cover, true);
+  assert.equal(norm.sections.summary, false);
+  assert.equal(norm.sections.chartCumulative, false);
+  assert.equal(norm.sections.notes, false);
+});
+
+test("documentHtml omits disabled sections and log columns", () => {
+  const model = PDF.buildModel(fixtureTips.filter(PDF.isPublicTip), {
+    window: "30",
+    now: now,
+    serverName: "Demo Server"
+  });
+  const opts = PDF.defaultOptions();
+  opts.sections.summary = false;
+  opts.sections.chartMonthly = false;
+  opts.sections.breakdownMarket = false;
+  opts.sections.log = true;
+  opts.logColumns.event = false;
+  opts.logColumns.odds = false;
+  const doc = PDF.documentHtml(model, opts);
+  assert.doesNotMatch(doc, /Executive summary/);
+  assert.doesNotMatch(doc, /Monthly P&amp;L/);
+  assert.doesNotMatch(doc, /By market/);
+  assert.match(doc, /Tip log/);
+  assert.match(doc, /<th>Date<\/th>/);
+  assert.doesNotMatch(doc, /<th>Event<\/th>/);
+  assert.doesNotMatch(doc, /<th class="odds">Odds<\/th>/);
+});
+
+test("brand_custom gate and custom accent on cover", () => {
+  assert.equal(PDF.brandCustomAllowed({ brand_custom: true }), true);
+  assert.equal(PDF.brandCustomAllowed({ settings: { brand_custom: 1 } }), true);
+  assert.equal(PDF.brandCustomAllowed({}), false);
+  assert.equal(PDF.brandCustomAllowed(null, { brand_custom: "yes" }), true);
+  const model = PDF.buildModel(fixtureTips.filter(PDF.isPublicTip), {
+    window: "30",
+    now: now,
+    serverName: "Branded"
+  });
+  const doc = PDF.documentHtml(model, PDF.defaultOptions(), {
+    displayName: "Lucky Tips",
+    accent: "#ff5500",
+    logoDataUrl: "data:image/png;base64,iVBORw0KGgo="
+  });
+  assert.match(doc, /Lucky Tips/);
+  assert.match(doc, /--accent:#ff5500/);
+  assert.match(doc, /data:image\/png;base64/);
+});
+
 test("index wires pdf-report and Stats PDF button", () => {
   const statsJs = fs.readFileSync(path.join(root, "assets", "stats.js"), "utf8");
   assert.match(html, /pdf-report\.js/);
-  assert.match(html, /downloadStatsPdf/);
+  assert.match(html, /promptExport/);
+  assert.match(html, /brandCustomAllowed/);
   assert.match(html, /id="pdfbtn"/);
   assert.match(statsJs, /id="ds-pdf-btn"/);
 });
