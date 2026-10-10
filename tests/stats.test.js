@@ -223,6 +223,25 @@ test("duplicate tip_id across admin and follower packs is counted once", () => {
   assert.equal(out.units, 1);
 });
 
+test("bankroll CSV exports only the user's settled rows", () => {
+  const tips = S.taggedTips([
+    { server: { guild_id: "g1", display_name: "A" }, detail: { tips: { settled: [tip({ tip_id: "1", result: "Win" })] } } }
+  ]);
+  const csv = S.bankrollCsv(tips);
+  assert.match(csv, /^settled_at,server,tip_id/);
+  assert.match(csv, /g1|A/);
+  assert.match(csv, /,win,/i);
+  const imp = S.bankrollCsv([tip({ imported: true, result: "Win" })]);
+  assert.equal(imp.split("\n").length, 1);
+});
+
+test("stats screen offers Season Wrapped and bankroll export", () => {
+  const out = S.compute([tip({})], { window: "30", now: now });
+  const html = S.render(out, {});
+  assert.match(html, /id="ds-wrapped"/);
+  assert.match(html, /id="ds-csv"/);
+});
+
 test("a full 25-tip server list shows the sample-size note", () => {
   const full = { server: { guild_id: "A" }, detail: { tips: { settled: Array.from({ length: 25 }, (_, i) => tip({ tip_id: String(i) })) } } };
   const small = { server: { guild_id: "B" }, detail: { tips: { settled: [tip({})] } } };

@@ -335,6 +335,48 @@
     var r = round1(n);
     return (r > 0 ? "+" : "") + r.toFixed(1) + "u";
   }
+  function csvCell(v) {
+    var s = String(v == null ? "" : v);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function bankrollCsv(tips) {
+    var header = ["settled_at", "server", "tip_id", "result", "units", "odds", "profit_units", "sport", "market"];
+    var lines = [header.join(",")];
+    (tips || []).forEach(function (t) {
+      if (!t || isHistoricalImport(t)) return;
+      var res = resultOf(t);
+      if (!res) return;
+      lines.push(
+        [
+          csvCell(t.settled_at || t.graded_at || t.created_at || ""),
+          csvCell(t._server || ""),
+          csvCell(t.tip_id != null ? t.tip_id : ""),
+          csvCell(res),
+          csvCell(stakeOf(t)),
+          csvCell(t.odds != null ? t.odds : ""),
+          csvCell(profitOf(t)),
+          csvCell(sportOf(t)),
+          csvCell(marketOf(t))
+        ].join(",")
+      );
+    });
+    return lines.join("\n");
+  }
+  function downloadBankrollCsv(tips, filename) {
+    var doc = root.document;
+    if (!doc) return;
+    var text = bankrollCsv(tips);
+    var blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = doc.createElement("a");
+    a.href = url;
+    a.download = filename || "tipdash-bankroll.csv";
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 500);
+  }
   function fmtPct(n, signed) {
     if (!Number.isFinite(Number(n))) return "—";
     var r = round1(n);
@@ -409,7 +451,10 @@
     var html = '<div class="ds-page">'
       + '<div class="back" id="ds-back">← Back</div>'
       + '<div class="dhead"><h1 style="margin:0">Stats</h1></div>'
-      + '<div class="ds-win" role="group" aria-label="Time window">' + tab("7", "7d") + tab("30", "30d") + tab("season", "Season") + "</div>";
+      + '<div class="ds-actions" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">'
+      + '<div class="ds-win" role="group" aria-label="Time window" style="flex:1 1 auto;margin:0">' + tab("7", "7d") + tab("30", "30d") + tab("season", "Season") + "</div>"
+      + '<button type="button" class="btn sm" id="ds-wrapped">Season Wrapped</button>'
+      + '<button type="button" class="btn sm ghost" id="ds-csv">Export bankroll CSV</button></div>';
     if (!stats.count) {
       html += '<div class="ds-empty ds-empty-lg"><p>No settled tips in this window yet.</p><p class="ds-empty-sub">Grade a few tips and they land here — 7 days, 30 days, or this season.</p></div></div>';
       return html;
@@ -561,6 +606,10 @@
     });
     var retry = el.querySelector("#ds-retry");
     if (retry && handlers.onRetry) retry.onclick = handlers.onRetry;
+    var wrapped = el.querySelector("#ds-wrapped");
+    if (wrapped && handlers.onWrapped) wrapped.onclick = handlers.onWrapped;
+    var csv = el.querySelector("#ds-csv");
+    if (csv && handlers.onCsv) csv.onclick = handlers.onCsv;
   }
   function mount(el, packs, opts) {
     opts = opts || {};
@@ -572,7 +621,16 @@
     for (var k in opts) if (Object.prototype.hasOwnProperty.call(opts, k)) ropts[k] = opts[k];
     ropts.capped = cappedPacks(packs);
     el.innerHTML = render(stats, ropts);
-    bind(el, stats, opts);
+    var handlers = {};
+    for (var hk in opts) if (Object.prototype.hasOwnProperty.call(opts, hk)) handlers[hk] = opts[hk];
+    handlers.onWrapped = function () {
+      var D = root.TBDelight;
+      if (D && typeof D.openSeasonWrapped === "function") D.openSeasonWrapped(stats);
+    };
+    handlers.onCsv = function () {
+      downloadBankrollCsv(tips, "tipdash-bankroll.csv");
+    };
+    bind(el, stats, handlers);
     return stats;
   }
 
@@ -593,7 +651,9 @@
     injectCss: injectCss,
     cssText: cssText,
     fmtUnits: fmtUnits,
-    fmtPct: fmtPct
+    fmtPct: fmtPct,
+    bankrollCsv: bankrollCsv,
+    downloadBankrollCsv: downloadBankrollCsv
   };
   root.TBDashStats = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
