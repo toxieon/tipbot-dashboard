@@ -2011,8 +2011,12 @@
   async function openRacingMeeting(meetingId){
     stopRacingHero();
     navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/racing/meeting/"+meetingId, function(){ openRacingMeeting(meetingId); });
-    $("builder").innerHTML = '<div class="back" id="bx">← Back to Racing</div><h1 style="margin:0 0 16px">Meeting</h1>'
+    $("builder").innerHTML = '<div class="back" id="bx">← Back to Racing</div>'
+      + '<div class="racing-meeting-shell" id="racing-meeting-shell">'
+      + '<header class="racing-meeting-hero" id="racing-meeting-hero" aria-hidden="true"></header>'
+      + '<div class="racing-meeting-body"><h1 style="margin:0 0 16px">Meeting</h1>'
       + '<div id="racing-meeting-detail">'+NDSkeleton.grid(6,{cols:1,tile:"72px"})+'</div>'
+      + '</div></div>'
       + '<div class="rg" style="text-align:center;color:var(--muted);font-size:var(--t-cap);font-weight:500;margin-top:32px;padding-bottom:32px">18+ · Gamble responsibly</div>';
     $("bx").onclick = function(){ openRacingBuilder(BUILD.guildId, BUILD.serverName); };
     const data = await fetchRacingApi("/api/racing/meeting/"+encodeURIComponent(meetingId));
@@ -2033,6 +2037,12 @@
     }
     const h1 = $("builder").querySelector("h1");
     if(h1) h1.textContent = m.name;
+    const meetHero = $("racing-meeting-hero");
+    if(meetHero && window.TBRacingTrackArt){
+      meetHero.innerHTML = TBRacingTrackArt.venueHeroSvg(m.name);
+      meetHero.setAttribute("aria-hidden", "false");
+      meetHero.setAttribute("aria-label", m.name);
+    }
     BUILD.racingMeetingName = m.name;
     BUILD.racingCategory = racingCat(m);
     let html = '<div class="race-list">';
