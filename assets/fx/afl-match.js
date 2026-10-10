@@ -68,7 +68,7 @@
     return fallback;
   }
 
-  function mirrorFormation() {
+  function flipFormation() {
     var out = [];
     var i;
     for (i = 0; i < HOME_FORMATION.length; i++) {
@@ -234,7 +234,7 @@
 
     var homeC = pairColours(home, ["#002B5C", "#FFFFFF"]);
     var awayC = pairColours(away, ["#E5484D", "#111318"]);
-    var awayForm = mirrorFormation();
+    var awayForm = flipFormation();
     var homePlayers = buildRoster("home", HOME_FORMATION);
     var awayPlayers = buildRoster("away", awayForm);
     var reduce = reduced();
@@ -410,7 +410,7 @@
     pairColours: pairColours,
     PLAYERS_PER_SIDE: PLAYERS_PER_SIDE,
     homeFormation: HOME_FORMATION,
-    mirrorFormation: mirrorFormation,
+    flipFormation: flipFormation,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
 })(typeof window !== "undefined" ? window : globalThis);
