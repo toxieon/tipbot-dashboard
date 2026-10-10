@@ -1,3 +1,7 @@
+## Unreleased
+
+- **AFL / AFLW builder:** Stylised guernsey SVGs (club colours + generic stripe/sash patterns, no logos) on player rows and on AFL legs in the tray, review, and batch slip — jumper number when known. Subtle entrance animation aligned with racing tray chips; honours `prefers-reduced-motion`. Tests: `tests/afl_guernseys.test.js`.
+
 ## 0.55.1 · 2026-10-10 · `racing-builder` · Racing legs, multis, places
 
 - **Racing builder:** Real `racing` legs (win, place, top-N) in the tray and on post — no Custom fallback. Multis across meetings mix with sports; combined opening odds in the tray. Extra-places pref in Settings; track maps for major AU tracks; parallax horse hero; animated silk chips in the slip tray.
