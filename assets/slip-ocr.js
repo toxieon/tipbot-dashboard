@@ -112,64 +112,248 @@
     return c;
   }
 
-  function extractLegs(lines) {
-    var start = -1;
-    var dateIdx = -1;
+  function isHeaderNoise(line) {
+    if (!line) return true;
+    if (/^proposed\s*bet$/i.test(line)) return true;
+    if (/^p\d+$/i.test(line)) return true;
+    if (parseBetTypeLine(line)) return true;
+    if (/^\d+\s*legs?$/i.test(line)) return true;
+    if (/\bsportsbet\b/i.test(line)) return true;
+    if (/^sports$/i.test(line)) return true;
+    if (/^v$/i.test(line)) return true;
+    return false;
+  }
+
+  function makeParsedLeg(selection, market, event, dateTime) {
+    var ev = String(event || "").trim();
+    return {
+      selection: String(selection || "").trim(),
+      market: String(market || "").trim(),
+      event: ev,
+      date_time: String(dateTime || "").trim(),
+      sport: detectSport(ev, [{ selection: selection, market: market }]),
+    };
+  }
+
+  function pushLeg(legs, selection, market, event, dateTime) {
+    if (!selection && !market) return;
+    legs.push(makeParsedLeg(selection, market, event, dateTime));
+  }
+
+  function bodyStartIndex(lines) {
     for (var i = 0; i < lines.length; i++) {
-      if (DATE_RE.test(lines[i])) dateIdx = i;
+      if (/^\d+\s*legs?\b/i.test(lines[i])) return i + 1;
+    }
+    for (var j = 0; j < lines.length; j++) {
+      if (parseBetTypeLine(lines[j])) return j + 1;
+    }
+    return 0;
+  }
+
+  /** Same-game multi: one event header, then selection/market pairs. */
+  function extractLegsSgm(lines, headerEvent, headerDate) {
+    var start = bodyStartIndex(lines);
+    var dateIdx = -1;
+    for (var i = start; i < lines.length; i++) {
+      if (DATE_RE.test(lines[i])) {
+        dateIdx = i;
+        break;
+      }
     }
     if (dateIdx >= 0) start = dateIdx + 1;
     else {
-      for (var j = 0; j < lines.length; j++) {
+      for (var j = start; j < lines.length; j++) {
         if (EVENT_RE.test(cleanSelectionLine(lines[j]))) {
           start = j + 1;
           break;
         }
       }
     }
-    if (start < 0) start = 0;
     var legs = [];
     var pending = null;
+    var ev = headerEvent || "";
+    var when = headerDate || "";
     for (var k = start; k < lines.length; k++) {
       var line = lines[k];
       if (RESPONSIBLE_RE.test(line)) break;
-      if (/^proposed\s*bet$/i.test(line)) continue;
-      if (/^p\d+$/i.test(line)) continue;
-      if (parseBetTypeLine(line)) continue;
-      if (/^\d+\s*legs?$/i.test(line)) continue;
+      if (isHeaderNoise(line)) continue;
       if (EVENT_RE.test(cleanSelectionLine(line))) continue;
       if (DATE_RE.test(line)) continue;
-      if (/\bsportsbet\b/i.test(line)) continue;
-
       if (isMarketLine(line)) {
         var market = normalizeMarket(line);
         if (pending) {
-          legs.push({ selection: pending, market: market });
+          pushLeg(legs, pending, market, ev, when);
           pending = null;
-        } else {
-          legs.push({ selection: "", market: market });
-        }
+        } else pushLeg(legs, "", market, ev, when);
       } else {
         var sel = cleanSelectionLine(line);
         if (!sel) continue;
-        if (pending) legs.push({ selection: pending, market: "" });
+        if (pending) pushLeg(legs, pending, "", ev, when);
         pending = sel;
       }
     }
-    if (pending) legs.push({ selection: pending, market: "" });
-    return legs.filter(function (l) {
-      return (l.selection && l.selection.trim()) || (l.market && l.market.trim());
+    if (pending) pushLeg(legs, pending, "", ev, when);
+    return legs;
+  }
+
+  /** Regular multi: event + date headers repeat per game; legs sit under each block. */
+  function extractLegsMulti(lines) {
+    var start = bodyStartIndex(lines);
+    var legs = [];
+    var pending = null;
+    var curEvent = "";
+    var curDate = "";
+    for (var k = start; k < lines.length; k++) {
+      var line = lines[k];
+      if (RESPONSIBLE_RE.test(line)) break;
+      if (isHeaderNoise(line)) continue;
+      var cleaned = cleanSelectionLine(line);
+      if (EVENT_RE.test(cleaned) && !DATE_RE.test(cleaned)) {
+        if (pending) {
+          pushLeg(legs, pending, "", curEvent, curDate);
+          pending = null;
+        }
+        curEvent = cleaned;
+        curDate = "";
+        continue;
+      }
+      if (DATE_RE.test(line)) {
+        curDate = line;
+        continue;
+      }
+      if (isMarketLine(line)) {
+        var market = normalizeMarket(line);
+        if (pending) {
+          pushLeg(legs, pending, market, curEvent, curDate);
+          pending = null;
+        } else pushLeg(legs, "", market, curEvent, curDate);
+      } else {
+        var sel = cleanSelectionLine(line);
+        if (!sel) continue;
+        if (pending) pushLeg(legs, pending, "", curEvent, curDate);
+        pending = sel;
+      }
+    }
+    if (pending) pushLeg(legs, pending, "", curEvent, curDate);
+    return legs;
+  }
+
+  function uniqueEvents(legs) {
+    var seen = [];
+    (legs || []).forEach(function (l) {
+      var e = (l && l.event) || "";
+      if (e && seen.indexOf(e) < 0) seen.push(e);
     });
+    return seen;
+  }
+
+  function groupLegsByEvent(legs) {
+    var map = new Map();
+    (legs || []).forEach(function (leg, idx) {
+      var key = (leg && leg.event) || "";
+      if (!map.has(key)) map.set(key, { event: key, date_time: leg.date_time || "", sport: leg.sport || "", legs: [] });
+      var g = map.get(key);
+      if (!g.date_time && leg.date_time) g.date_time = leg.date_time;
+      g.legs.push({ leg: leg, index: idx });
+    });
+    return Array.from(map.values());
   }
 
   function detectSport(eventName, legs) {
     var blob = (eventName || "") + " " + (legs || []).map(function (l) {
-      return (l.selection || "") + " " + (l.market || "");
+      return (l.selection || "") + " " + (l.market || "") + " " + (l.event || "");
     }).join(" ");
+    if (/\bnrl\b/i.test(blob)) return "NRL";
     if (/\(w\)/i.test(blob)) return "AFLW";
     if (/\baflw\b/i.test(blob)) return "AFLW";
     if (/\bafl\b/i.test(blob)) return "AFL";
     return "AFL";
+  }
+
+  function normTeamToken(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/\s*\(w\)\s*/g, " w ")
+      .replace(/[^a-z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function fixtureTeamName(t) {
+    if (!t) return "";
+    if (typeof t === "string") return t.trim();
+    return String(t.name || t.aflName || t.abbrev || "").trim();
+  }
+
+  function fixtureEventLabel(g) {
+    if (!g) return "";
+    if (g.game_name) return String(g.game_name).trim();
+    var h = fixtureTeamName(g.hteam);
+    var a = fixtureTeamName(g.ateam);
+    if (h && a) return h + " v " + a;
+    return "";
+  }
+
+  function fixtureComp(g) {
+    return String((g && g.comp) || "AFL").trim();
+  }
+
+  function teamsMatchEvent(game, eventName) {
+    var teams = splitEventTeams(eventName);
+    if (!teams.home || !teams.away) return false;
+    var ht = normTeamToken(teams.home);
+    var at = normTeamToken(teams.away);
+    var gh = normTeamToken(fixtureTeamName(game.hteam));
+    var ga = normTeamToken(fixtureTeamName(game.ateam));
+    if (gh === ht && ga === at) return true;
+    if (gh.indexOf(ht) >= 0 && ga.indexOf(at) >= 0) return true;
+    var htBare = ht.replace(/\bw\b/g, "").trim();
+    var atBare = at.replace(/\bw\b/g, "").trim();
+    if (gh.indexOf(htBare) >= 0 && ga.indexOf(atBare) >= 0) return true;
+    return false;
+  }
+
+  function fixtureGameId(g) {
+    if (!g) return "";
+    return String(g.aflMatchId || g.id || g.game_id || "").trim();
+  }
+
+  /** Match one event string to a row from /api/fixtures (AFL, AFLW, NRL, …). */
+  function matchEventToFixture(games, eventName, sportHint) {
+    var list = Array.isArray(games) ? games : [];
+    if (!eventName || !list.length) return null;
+    var hint = String(sportHint || "").toUpperCase();
+    var hits = list.filter(function (g) {
+      return teamsMatchEvent(g, eventName);
+    });
+    if (!hits.length) return null;
+    if (hint) {
+      var byComp = hits.filter(function (g) {
+        return fixtureComp(g).toUpperCase() === hint || (hint === "AFLW" && fixtureComp(g) === "AFLW");
+      });
+      if (byComp.length) hits = byComp;
+    }
+    if (hits.length > 1 && /\(w\)/i.test(eventName)) {
+      var w = hits.filter(function (g) {
+        return fixtureComp(g) === "AFLW";
+      });
+      if (w.length) hits = w;
+    }
+    return hits[0] || null;
+  }
+
+  function attachFixtureMatches(legs, games) {
+    return (legs || []).map(function (leg) {
+      var copy = Object.assign({}, leg);
+      var hit = matchEventToFixture(games, copy.event, copy.sport);
+      if (hit) {
+        copy.fixture_id = fixtureGameId(hit);
+        copy.game_id = copy.fixture_id;
+        copy.sport = fixtureComp(hit);
+        copy.matched_event = fixtureEventLabel(hit);
+      }
+      return copy;
+    });
   }
 
   function parseAuSlip(text) {
@@ -190,19 +374,31 @@
       });
     }
     var legCount = parseLegCount(lines);
+    var betType = bet || "";
     var eventName = findEventLine(lines);
     var dateTime = findDateTimeLine(lines);
-    var legs = extractLegs(lines);
+    var isSgm = betType === "Same Game Multi";
+    var isMulti = betType === "Multi" || (!isSgm && legCount > 1 && betType !== "Single");
+    var legs = isSgm
+      ? extractLegsSgm(lines, eventName, dateTime)
+      : isMulti
+        ? extractLegsMulti(lines)
+        : extractLegsSgm(lines, eventName, dateTime);
     if (legCount == null && legs.length) legCount = legs.length;
+    var events = uniqueEvents(legs);
+    if (isMulti && events.length) {
+      eventName = events.length === 1 ? events[0] : events.join(" · ");
+    }
     return {
       bookie: detectBookie(text),
-      bet_type: bet || (legs.length > 1 ? "Multi" : legs.length === 1 ? "Single" : ""),
+      bet_type: betType || (legs.length > 1 ? "Multi" : legs.length === 1 ? "Single" : ""),
       odds: odds,
       leg_count: legCount,
       event: eventName,
       date_time: dateTime,
       sport: detectSport(eventName, legs),
       legs: legs,
+      game_groups: groupLegsByEvent(legs),
       raw_text: normalizeText(text),
     };
   }
@@ -241,19 +437,33 @@
   /** Tip import draft — same fields the builder review / queue-tip path expects. */
   function slipToTipDraft(slip) {
     slip = slip || {};
-    var legs = (slip.legs || []).map(function (leg) {
+    var parsedLegs = slip.legs || [];
+    var legs = parsedLegs.map(function (leg) {
       return legToBuilderLeg(leg);
     });
+    var events = uniqueEvents(parsedLegs);
     var gameName = slip.event || "";
+    if (!gameName && events.length) gameName = events.length === 1 ? events[0] : events.length + " games";
+    var sports = parsedLegs.map(function (l) {
+      return l.sport || detectSport(l.event, [l]);
+    }).filter(Boolean);
+    var sport = slip.sport || "";
+    if (!sport && sports.length) {
+      var same = sports.every(function (s) {
+        return s === sports[0];
+      });
+      sport = same ? sports[0] : "Custom";
+    }
     return {
       bet_type: slip.bet_type || "",
       odds: slip.odds,
       leg_count: slip.leg_count != null ? slip.leg_count : legs.length,
       game_name: gameName,
-      sport: slip.sport || detectSport(gameName, slip.legs),
+      sport: sport || detectSport(gameName, parsedLegs),
       bookmaker: bookmakerName(slip.bookie),
       date_time: slip.date_time || "",
       legs: legs,
+      parsed_legs: parsedLegs,
       bookie: slip.bookie || "unknown",
     };
   }
@@ -274,6 +484,8 @@
     var mkt = String((leg && leg.market) || "").trim();
     var desc = sel && mkt ? sel + " — " + mkt : sel || mkt;
     var out = { custom: true, desc: desc };
+    if (leg && leg.game_id) out.game_id = String(leg.game_id);
+    if (leg && leg.event) out.game = leg.event;
     if (/head\s*to\s*head/i.test(mkt)) {
       out.market = "Head to Head";
       out.player = sel;
@@ -308,6 +520,14 @@
     legToBuilderLeg: legToBuilderLeg,
     splitEventTeams: splitEventTeams,
     bookmakerName: bookmakerName,
+    uniqueEvents: uniqueEvents,
+    groupLegsByEvent: groupLegsByEvent,
+    fixtureEventLabel: fixtureEventLabel,
+    fixtureGameId: fixtureGameId,
+    fixtureComp: fixtureComp,
+    matchEventToFixture: matchEventToFixture,
+    attachFixtureMatches: attachFixtureMatches,
+    teamsMatchEvent: teamsMatchEvent,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = API;
