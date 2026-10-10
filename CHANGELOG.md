@@ -1,5 +1,6 @@
 ## 0.55.2 · 2026-10-10 · `afl-marks` · AFL/AFLW guernsey marks
 
+- **AFL live moments:** Goal and behind SVG animations when live match scores or player goal tallies tick up on the dashboard live panel, tip cards, and Live view. Apex settled-win moments add confetti, a ticket stamp, and a short win glow (reuses win stamp hooks). `prefers-reduced-motion` respected. Tests: `tests/afl_score_moment.test.js`.
 - **AFL / AFLW builder:** Stylised guernsey SVGs (club colours + generic stripe/sash patterns, no logos) on player rows and on AFL legs in the tray, review, and batch slip — jumper number when known. Subtle entrance animation aligned with racing tray chips; honours `prefers-reduced-motion`. Tests: `tests/afl_guernseys.test.js`.
 
 ## 0.55.1 · 2026-10-10 · `racing-builder` · Racing legs, multis, places

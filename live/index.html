@@ -162,6 +162,7 @@ select{flex:1;width:100%;max-width:100%;min-width:0;min-height:44px;font-size:1r
 <script src="../assets/req-pool.js?v=0.55.2"></script>
 <script src="../assets/sport-marks.js?v=0.55.2"></script>
 <script src="../assets/live-cards.js?v=0.55.2"></script>
+<script src="../assets/afl-score-moment.js?v=0.55.2"></script>
 <script>
 (function(){
   "use strict";
@@ -265,11 +266,29 @@ select{flex:1;width:100%;max-width:100%;min-width:0;min-height:44px;font-size:1r
     $("foot").textContent = S.sample ? "Sample players, so you can see the cards." : ("Refreshes every " + Math.round(LC.POLL_MS / 1000) + "s while this tab is open.");
   }
 
+  function aflLiveAnchor(ev){
+    if (!ev || !ev.matchId || !S.model || !S.model.games) return null;
+    var hit = null;
+    S.model.games.some(function(g){
+      var id = String(g.matchId || g.id || "");
+      if (id && id === String(ev.matchId)) { hit = g; return true; }
+      return false;
+    });
+    if (!hit) return document.querySelector("#content .game");
+    var el = document.getElementById("g-" + hit.id);
+    return el ? (el.querySelector(".ghead") || el) : null;
+  }
   function paint(){
     paintChrome();
     if (!S.model) return;
     $("content").innerHTML = LC.render(S.model);
     if (S.model.serverName) S.name = S.model.serverName;
+    if (window.AFLScoreMoment && S.model.games && S.model.games.length) {
+      var raw = S.model.games.map(function(g){
+        return {match_id: g.matchId, sport: g.sport, hscore: g.home && g.home.score, ascore: g.away && g.away.score};
+      });
+      AFLScoreMoment.trackGames(raw, {anchorFor: aflLiveAnchor});
+    }
     paintChrome();
   }
 
