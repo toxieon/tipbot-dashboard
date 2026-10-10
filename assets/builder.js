@@ -1259,7 +1259,7 @@
     const espnId=BUILD.espnEvent&&BUILD.espnEvent.id?String(BUILD.espnEvent.id):(BUILD.legs.find(l=>l&&l.espn_event_id)||{}).espn_event_id||"";
     const racingOnly=BUILD.legs.length&&BUILD.legs.every(l=>l&&l.kind==="racing");
     const hasRacing=BUILD.legs.some(l=>l&&l.kind==="racing");
-    const game_name=BUILD.espn?(espnEventName(BUILD.espnEvent)||((BUILD.customEvent||"").trim())):(racingOnly?(BUILD.legs.length===1?((BUILD.legs[0].meeting_name||"Racing")+" · R"+(BUILD.legs[0].race_number||"")):((BUILD.legs[0].meeting_name||"Racing")+" multi")):(BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"")));
+    const game_name=BUILD.espn?(espnEventName(BUILD.espnEvent)||((BUILD.customEvent||"").trim())):(racingOnly?(BUILD.legs.length===1?((BUILD.legs[0].meeting_name||"Racing")+" · R"+(BUILD.legs[0].race_number||"")):((BUILD.legs[0].meeting_name||"Racing")+" multi")):(BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD._importGameName||(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):""))));
     const sport=BUILD.espn?(espnLeagueLabel(BUILD.espnLeague)||"NFL"):(racingOnly?"Racing":(hasRacing&&!racingOnly?"Custom":(BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL")));
     BUILD.legs=normalizePropLines(BUILD.legs);
     const start_date=BUILD.espn?(BUILD.espnEvent&&BUILD.espnEvent.date?String(BUILD.espnEvent.date).slice(0,10):(BUILD.customStartDay||"").trim()):(BUILD.custom?((BUILD.customStartDay||"").trim()):"");
@@ -1641,7 +1641,7 @@
         prog.ok("Tip scheduled");
         if(window.TBRacingLegs&&(tipFields.legs||[]).some(function(l){ return l&&l.kind==="racing"; })) TBRacingLegs.setRacingPostSupported(true);
         if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
-        BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
+        BUILD.legs=[]; BUILD.image=null; BUILD._importGameName=""; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
       }
       else{
         const blocked=scheduleRefusal(j, raw);
