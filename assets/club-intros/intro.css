@@ -1,0 +1,181 @@
+/* Club intro / loading screens — generic guernsey + typographic reveal (no logos). */
+.ci-intro {
+  --ci-primary: #0e1e3d;
+  --ci-secondary: #ffffff;
+  --ci-accent: #0e1e3d;
+  --ci-text: #f4f6fa;
+  --ci-muted: rgba(244, 246, 250, 0.72);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--ci-secondary) 28%, var(--ci-primary)) 0%, var(--ci-primary) 55%);
+  color: var(--ci-text);
+  font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+}
+
+.ci-intro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(165deg, transparent 40%, color-mix(in srgb, var(--ci-accent) 35%, transparent));
+  pointer-events: none;
+}
+
+.ci-motif {
+  position: absolute;
+  inset: -8% -12%;
+  width: 124%;
+  height: 116%;
+  opacity: 0.9;
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+
+.ci-motif-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ci-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.ci-guernsey-wrap {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.35));
+  transform: scale(0.72);
+  opacity: 0;
+}
+
+.ci-intro.ci-play .ci-guernsey-wrap {
+  animation: ci-guernsey-in 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
+.ci-intro .guernsey-svg {
+  width: 88px;
+  height: 88px;
+}
+
+.ci-title {
+  margin: 0;
+  font-size: clamp(1.1rem, 4vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35em 0.45em;
+}
+
+.ci-word {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.ci-word-inner {
+  display: inline-block;
+  transform: translateY(110%);
+  opacity: 0;
+}
+
+.ci-intro.ci-play .ci-word-inner {
+  animation: ci-type-in 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ci-intro.ci-play .ci-word:nth-child(1) .ci-word-inner {
+  animation-delay: 0.28s;
+}
+
+.ci-intro.ci-play .ci-word:nth-child(2) .ci-word-inner {
+  animation-delay: 0.42s;
+}
+
+.ci-word--accent .ci-word-inner {
+  color: color-mix(in srgb, var(--ci-secondary) 88%, var(--ci-text));
+}
+
+.ci-league {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ci-muted);
+  opacity: 0;
+}
+
+.ci-intro.ci-play .ci-league {
+  animation: ci-fade-up 0.5s ease 0.58s both;
+}
+
+.ci-intro.ci-aflw .ci-league {
+  color: color-mix(in srgb, #ff9fe0 55%, var(--ci-muted));
+}
+
+@keyframes ci-guernsey-in {
+  0% {
+    transform: scale(0.72) translateY(12px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ci-type-in {
+  0% {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ci-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ci-intro.ci-static .ci-guernsey-wrap,
+.ci-intro.ci-static .ci-word-inner,
+.ci-intro.ci-static .ci-league {
+  animation: none !important;
+  transform: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ci-intro.ci-play .ci-guernsey-wrap,
+  .ci-intro.ci-play .ci-word-inner,
+  .ci-intro.ci-play .ci-league {
+    animation: none !important;
+    transform: none;
+    opacity: 1;
+  }
+}
