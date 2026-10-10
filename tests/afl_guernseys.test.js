@@ -82,6 +82,19 @@ test("AFL guernseys: jumper number when present, omitted otherwise", () => {
   assert.doesNotMatch(empty, /<text/);
 });
 
+test("white-striped jumpers use a primary plate behind the number", () => {
+  const clubs = ["Carlton", "Collingwood", "Geelong", "North Melbourne", "St Kilda", "Western Bulldogs"];
+  clubs.forEach((name) => {
+    const svg = G.guernseySvg(name, 4, 34);
+    assert.ok(G.needsNumberPlate(G.specFor(name)), name);
+    assert.match(svg, /<ellipse[^>]*opacity=".93"/, name);
+    assert.match(svg, /<text[^>]*>4</, name);
+  });
+  const ess = G.guernseySvg("Essendon", 4, 34);
+  assert.ok(!G.needsNumberPlate(G.specFor("Essendon")));
+  assert.doesNotMatch(ess, /<ellipse[^>]*opacity=".93"/);
+});
+
 test("AFL player legs: tray/review wiring and reduced motion", () => {
   const leg = { player: "Pat Cripps", team: "Carlton", number: 9, stat: "Disposals", line: 24.5, side: "Over" };
   assert.ok(G.isAflPlayerLeg(leg));

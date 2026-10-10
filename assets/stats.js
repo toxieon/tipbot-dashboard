@@ -120,6 +120,18 @@
     raw = String(raw || "").trim();
     return raw || "Other";
   }
+  /** Map TipBot GET /api/server/settled-summary to the detail shape Stats expects. */
+  function detailFromSettledSummary(body) {
+    if (!body || typeof body !== "object") return null;
+    if (body.ok === false) return null;
+    var settled = [];
+    if (Array.isArray(body.settled)) settled = body.settled;
+    else if (body.tips && Array.isArray(body.tips.settled)) settled = body.tips.settled;
+    else if (Array.isArray(body.tips)) settled = body.tips;
+    if (!settled.length) return { tips: { settled: [] } };
+    return { tips: { settled: settled.filter(function (t) { return t && typeof t === "object"; }) } };
+  }
+
   function settledList(detail) {
     var tips = detail && detail.tips;
     var settled = [];
@@ -573,6 +585,7 @@
     taggedTips: taggedTips,
     cappedPacks: cappedPacks,
     settledList: settledList,
+    detailFromSettledSummary: detailFromSettledSummary,
     render: render,
     skeletonHtml: skeletonHtml,
     errorHtml: errorHtml,

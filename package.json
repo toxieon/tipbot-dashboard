@@ -1,0 +1,13 @@
+{
+  "name": "tipdash",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test",
+    "perf": "node scripts/perf-headless.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "puppeteer-core": "^23.11.1"
+  }
+}

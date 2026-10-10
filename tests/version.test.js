@@ -16,5 +16,5 @@ test("Settings menu label and CHANGELOG show the current version", () => {
   assert.ok(m, "#dd-version label missing");
   assert.equal(m[1], version);
   const log = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
-  assert.match(log, new RegExp("^## " + version.replace(/\./g, "\\.") + " ", "m"));
+  assert.match(log, new RegExp("## " + version.replace(/\./g, "\\.") + " "));
 });

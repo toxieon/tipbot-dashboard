@@ -641,6 +641,8 @@
     if (ov && !ov.hidden) return false;
     var stats = doc.getElementById("stats");
     if (stats && !stats.hidden) return false;
+    var follower = doc.getElementById("follower");
+    if (follower && !follower.hidden) return false;
     var discover = doc.getElementById("discover");
     if (discover && !discover.hidden) return false;
     var mytips = doc.getElementById("mytips");
