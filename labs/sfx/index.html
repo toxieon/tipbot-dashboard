@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TipDash SFX Lab</title>
+  <style>
+    :root { color-scheme: dark light; --bg: #0f1420; --card: #1a2233; --line: #2c364d; --txt: #eef2fa; --muted: #8a95ad; --accent: #5b8cff; }
+    @media (prefers-color-scheme: light) {
+      :root { --bg: #f4f6fa; --card: #fff; --line: #d8dee8; --txt: #0f1420; --muted: #5c6785; }
+    }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--txt); }
+    .wrap { max-width: 520px; margin: 0 auto; padding: 28px 20px 48px; }
+    h1 { font-size: 1.35rem; margin: 0 0 6px; }
+    p.lead { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; line-height: 1.45; }
+    .status { font-size: 0.85rem; color: var(--muted); margin-bottom: 18px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--card);
+      color: var(--txt); font: inherit; font-weight: 600; cursor: pointer; touch-action: manipulation;
+    }
+    button:active { transform: scale(0.98); }
+    button.wide { grid-column: 1 / -1; }
+    button.primary { background: var(--accent); border-color: transparent; color: #fff; }
+    .row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    label.mute { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; user-select: none; }
+    @media (prefers-reduced-motion: reduce) {
+      button:active { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SFX Lab</h1>
+    <p class="lead">Procedural Web Audio cues for TipDash. Not shipped on the public site.</p>
+    <div class="status" id="status" aria-live="polite"></div>
+    <label class="mute"><input type="checkbox" id="mute"> Mute sounds &amp; haptics</label>
+    <div class="grid" id="grid">
+      <button type="button" data-sfx="tap">Tap</button>
+      <button type="button" data-sfx="add-to-tray">Add to tray</button>
+      <button type="button" data-sfx="post">Post</button>
+      <button type="button" data-sfx="win">Win</button>
+      <button type="button" data-sfx="loss">Loss</button>
+      <button type="button" data-sfx="goal-siren">Goal siren</button>
+      <button type="button" class="wide" data-sfx="horse-race-bugle">Horse-race bugle</button>
+      <button type="button" class="wide primary" id="all">Play all (short)</button>
+    </div>
+  </div>
+  <script src="../../assets/sfx/tb-sfx.js"></script>
+  <script>
+    (function () {
+      var S = window.TBSfx;
+      var statusEl = document.getElementById("status");
+      var muteEl = document.getElementById("mute");
+      var order = ["tap", "add-to-tray", "post", "win", "loss", "goal-siren", "horse-race-bugle"];
+
+      function paintStatus() {
+        var bits = [
+          "muted: " + (S.muted ? "yes" : "no"),
+          "reduced motion: " + (S.reduced() ? "yes" : "no"),
+          "tab hidden: " + (S.hiddenTab() ? "yes" : "no"),
+          "can play audio: " + (S.canPlay() ? "yes" : "no")
+        ];
+        statusEl.textContent = bits.join(" · ");
+      }
+
+      muteEl.checked = S.muted;
+      muteEl.addEventListener("change", function () {
+        S.setMuted(muteEl.checked);
+        paintStatus();
+      });
+
+      document.getElementById("grid").addEventListener("click", function (ev) {
+        var btn = ev.target.closest("button[data-sfx]");
+        if (!btn) return;
+        S.play(btn.getAttribute("data-sfx"));
+        paintStatus();
+      });
+
+      document.getElementById("all").addEventListener("click", function () {
+        var i = 0;
+        function next() {
+          if (i >= order.length) return;
+          S.play(order[i++]);
+          setTimeout(next, 420);
+        }
+        next();
+        paintStatus();
+      });
+
+      document.addEventListener("visibilitychange", paintStatus);
+      paintStatus();
+    })();
+  </script>
+</body>
+</html>
