@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Newcastle racecourse">
+  <title>Newcastle</title>
+  <defs>
+    <linearGradient id="rcnewcastle-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5A9AD0"/>
+      <stop offset="1" stop-color="#94C0E6"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rcnewcastle-sky)"/>
+    <path d="M0 54 L130 48 L130 62 L0 62 Z" fill="#1B5534" opacity=".55"/>
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1B5534"/>
+    <path d="M22 50 L22 34 L108 34 L108 50 Z" fill="#3A424C"/>
+    <path d="M16 38 C14 20 36 12 58 14 C84 16 92 32 86 46 C74 56 26 54 16 38 Z" fill="none" stroke="#1474B8" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Newcastle</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M16 38 C14 20 36 12 58 14 C84 16 92 32 86 46 C74 56 26 54 16 38 Z" fill="none" stroke="#1474B8" stroke-width="1.6" opacity=".9"/>
+      <path d="M80 16 L92 28" fill="none" stroke="#1474B8" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="82" cy="32" r="2.8" fill="#1474B8"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">NEWCASTLE</text>
+    </g>
+  </g>
+</svg>

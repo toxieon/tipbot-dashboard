@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Launceston racecourse">
+  <title>Launceston</title>
+  <defs>
+    <linearGradient id="rclaunceston-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#82A8D0"/>
+      <stop offset="1" stop-color="#B8D0E8"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rclaunceston-sky)"/>
+    <path d="M0 54 L130 46 L130 62 L0 62 Z" fill="#1C5233" opacity=".55"/>
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1C5233"/>
+    <path d="M24 50 L24 34 L104 34 L104 50 Z" fill="#444A52"/>
+    <path d="M18 40 C16 20 40 12 62 14 C86 16 90 32 84 46 C70 56 28 54 18 40 Z" fill="none" stroke="#8E6CF0" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Launceston</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M18 40 C16 20 40 12 62 14 C86 16 90 32 84 46 C70 56 28 54 18 40 Z" fill="none" stroke="#8E6CF0" stroke-width="1.6" opacity=".9"/>
+      <path d="M80 16 L92 28" fill="none" stroke="#8E6CF0" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="82" cy="34" r="2.8" fill="#8E6CF0"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">LAUNCESTON</text>
+    </g>
+  </g>
+</svg>

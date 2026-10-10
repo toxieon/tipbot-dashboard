@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Racecourse assets:** Original illustrated SVGs for 35 AU/NZ gallops and harness venues (`assets/racecourses/<slug>.svg` + `manifest.json`). Preview gallery at `labs/racecourses/` (excluded from public build). Integration notes: `docs/racecourses.md`. Tests: `tests/racing_tracks.test.js`.
+
 ## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.

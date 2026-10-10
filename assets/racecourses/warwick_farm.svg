@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Warwick Farm racecourse">
+  <title>Warwick Farm</title>
+  <defs>
+    <linearGradient id="rcwarwickfarm-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#72A8D8"/>
+      <stop offset="1" stop-color="#A8CCE8"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rcwarwickfarm-sky)"/>
+    
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1A4E2F"/>
+    <path d="M20 48 L20 36 L96 36 L96 48 Z" fill="#404550"/>
+    <path d="M44 48 C28 38 24 22 38 14 C56 6 78 14 84 30 C88 44 68 56 44 48 Z" fill="none" stroke="#2D6A4F" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Warwick Farm</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M44 48 C28 38 24 22 38 14 C56 6 78 14 84 30 C88 44 68 56 44 48 Z" fill="none" stroke="#2D6A4F" stroke-width="1.6" opacity=".9"/>
+      <path d="M12 38 L24 32" fill="none" stroke="#2D6A4F" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="14" cy="40" r="2.8" fill="#2D6A4F"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">WARWICK FARM</text>
+    </g>
+  </g>
+</svg>

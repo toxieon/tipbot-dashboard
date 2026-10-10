@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Moonee Valley racecourse">
+  <title>Moonee Valley</title>
+  <defs>
+    <linearGradient id="rcmooneevalley-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6A9FD4"/>
+      <stop offset="1" stop-color="#9FC0E6"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rcmooneevalley-sky)"/>
+    <path d="M0 54 L120 46 L120 60 L0 60 Z" fill="#174428" opacity=".55"/>
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#174428"/>
+    <path d="M18 48 L18 34 L88 34 L88 48 Z M24 34 L24 28 L44 22 L64 28 L64 34" fill="#4A3D38"/>
+    <path d="M48 46 C34 28 42 12 62 10 C82 8 92 28 86 44 C78 56 58 58 48 46 Z" fill="none" stroke="#D4A017" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Moonee Valley</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M48 46 C34 28 42 12 62 10 C82 8 92 28 86 44 C78 56 58 58 48 46 Z" fill="none" stroke="#D4A017" stroke-width="1.6" opacity=".9"/>
+      <path d="M10 44 L22 38" fill="none" stroke="#D4A017" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="12" cy="48" r="2.8" fill="#D4A017"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">MOONEE VALLEY</text>
+    </g>
+  </g>
+</svg>

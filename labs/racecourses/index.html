@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Racecourse artwork lab</title>
+  <style>
+    :root { color-scheme: dark; --bg: #0e1116; --card: #1a1f29; --line: #2a303c; --txt: #f5f7fa; --muted: #9aa2b2; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--txt); padding: 24px 20px 48px; }
+    h1 { font-size: 1.35rem; margin: 0 0 6px; }
+    p { margin: 0 0 20px; color: var(--muted); font-size: 0.95rem; max-width: 52rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; max-width: 1200px; }
+    figure { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    figcaption { padding: 10px 12px; font-size: 0.85rem; font-weight: 600; border-top: 1px solid var(--line); }
+    figcaption code { font-weight: 500; color: var(--muted); font-size: 0.78rem; }
+    img { width: 100%; height: auto; display: block; background: #141820; }
+    .err { color: #e5484d; }
+  </style>
+</head>
+<body>
+  <h1>AU / NZ racecourse illustrations</h1>
+  <p>Original SVG artwork for Ladbrokes gallops and harness venues. Not shipped in the public site build (<code>labs/</code> is excluded). See <code>docs/racecourses.md</code> for integration notes.</p>
+  <div class="grid" id="grid"></div>
+  <script>
+    fetch("../../assets/racecourses/manifest.json")
+      .then(function (r) { return r.json(); })
+      .then(function (m) {
+        var grid = document.getElementById("grid");
+        (m.tracks || []).forEach(function (t) {
+          var fig = document.createElement("figure");
+          var img = document.createElement("img");
+          img.src = "../../assets/racecourses/" + t.file;
+          img.alt = t.label + " racecourse illustration";
+          img.loading = "lazy";
+          var cap = document.createElement("figcaption");
+          cap.innerHTML = t.label + " <code>" + t.slug + ".svg</code>";
+          fig.appendChild(img);
+          fig.appendChild(cap);
+          grid.appendChild(fig);
+        });
+      })
+      .catch(function () {
+        document.getElementById("grid").innerHTML = '<p class="err">Could not load manifest.json — open via a local server from the repo root.</p>';
+      });
+  </script>
+</body>
+</html>

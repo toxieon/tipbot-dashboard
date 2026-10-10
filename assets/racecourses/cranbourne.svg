@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Cranbourne racecourse">
+  <title>Cranbourne</title>
+  <defs>
+    <linearGradient id="rccranbourne-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6CA6D4"/>
+      <stop offset="1" stop-color="#A4C8E6"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rccranbourne-sky)"/>
+    
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1B4F31"/>
+    <path d="M22 50 L22 36 L98 36 L98 50 Z" fill="#3C424A"/>
+    <path d="M42 46 C28 34 30 16 50 12 C72 8 90 22 88 40 C84 56 54 58 42 46 Z" fill="none" stroke="#19B5A5" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Cranbourne</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M42 46 C28 34 30 16 50 12 C72 8 90 22 88 40 C84 56 54 58 42 46 Z" fill="none" stroke="#19B5A5" stroke-width="1.6" opacity=".9"/>
+      <path d="M18 42 L30 36" fill="none" stroke="#19B5A5" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="20" cy="44" r="2.8" fill="#19B5A5"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">CRANBOURNE</text>
+    </g>
+  </g>
+</svg>

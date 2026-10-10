@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Flemington racecourse">
+  <title>Flemington</title>
+  <defs>
+    <linearGradient id="rcflemington-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6BA4D8"/>
+      <stop offset="1" stop-color="#A8CCE8"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rcflemington-sky)"/>
+    <path d="M0 58 Q90 48 180 56 L180 72 L0 72 Z" fill="#1B5E34" opacity=".55"/>
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1B5E34"/>
+    <path d="M28 52 L28 34 L118 34 L118 52 Z M32 34 L32 28 L48 22 L64 28 L64 34 M72 34 L72 26 L92 20 L108 26 L108 34" fill="#2F3D4E"/>
+    <path d="M20 44 C20 16 48 8 68 12 C92 16 94 36 80 48 C58 58 26 56 20 44 Z" fill="none" stroke="#C8102E" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Flemington</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M20 44 C20 16 48 8 68 12 C92 16 94 36 80 48 C58 58 26 56 20 44 Z" fill="none" stroke="#C8102E" stroke-width="1.6" opacity=".9"/>
+      <path d="M78 12 L90 26" fill="none" stroke="#C8102E" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="78" cy="22" r="2.8" fill="#C8102E"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">FLEMINGTON</text>
+    </g>
+  </g>
+</svg>
