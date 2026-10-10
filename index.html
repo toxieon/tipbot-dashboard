@@ -1209,6 +1209,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <span>Undo window when grading<small>Waits 4 s before posting, so a mis-tap can be undone</small></span>
             <input type="checkbox" id="dd-grade-undo-on">
           </label>
+          <label class="tb-setting tb-racing-places" id="dd-racing-places" title="Show Top 2 through Top N on every runner in Racing">
+            <span>Show extra places<small>Top 2–Top N on each runner; off uses a per-race More places toggle</small></span>
+            <input type="checkbox" id="dd-racing-places-on">
+          </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
           <div class="dd-label" id="dd-version" title="tipdash version (VERSION file, see VERSIONING.md)">tipdash v0.54.5</div>
         </div></div>
@@ -1236,6 +1240,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/req-pool.js?v=0.54.5"></script>
 <script src="./assets/light-data.js?v=0.54.5"></script>
 <script src="./assets/lines.js?v=0.54.5"></script>
+<script src="./assets/racing-legs.js?v=0.54.5"></script>
 <script src="./assets/compare-ui.js?v=0.54.5"></script>
 <script src="./assets/sport-keywords.js?v=0.54.5"></script>
 <script src="./assets/sport-marks.js?v=0.54.5"></script>
@@ -2052,6 +2057,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const no=$("nav-ops"); if(no) no.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); openOps(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
+  function racingExtraPlacesOn(){ try{ return localStorage.getItem("tipdash_racing_extra_places")==="1"; }catch(_){ return false; } }
+  { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
   $("dd-logout").onclick=()=>{clearToken();STATE.ops=false;if(window.TBOwner&&TBOwner.clearOps)TBOwner.clearOps();paintOpsTab();location.hash="";renderLogin();};
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
@@ -7065,6 +7072,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // IDs must use the same provider namespace. Never identify a match from team names alone.
   TB.gameId=function(leg) {
     if(!leg||typeof leg!=='object')return null;
+    if(leg.kind==='racing'){ var re=id(leg.event_id); if(re)return re; }
     var direct=id(leg.game_id)||id(leg.espn_event_id);if(direct)return direct;
     var game=leg.game;
     if(game&&typeof game==='object')return id(game.aflMatchId)||id(game.espn_event_id)||id(game.game_id)||id(game.id);

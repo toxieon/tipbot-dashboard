@@ -327,7 +327,9 @@ test("smoke (mocked API): home and a server open without the lazy files; each pa
   assert.match(ctx.byId("race-card-main").innerHTML, />Win</);
   assert.match(ctx.byId("race-card-main").innerHTML, /Absconding/);
   assert.match(ctx.byId("race-card-main").innerHTML, /J: J\. McDonald/);
-  assert.match(ctx.byId("race-card-main").innerHTML, />2\.40<\/span><span class="odds">1\.25</);
+  assert.match(ctx.byId("race-card-main").innerHTML, /data-bet="win"[^>]*>2\.40</);
+  assert.match(ctx.byId("race-card-main").innerHTML, /data-bet="place"[^>]*>1\.25</);
+  assert.match(ctx.byId("race-card-main").innerHTML, /race-track-wrap/);
   assert.doesNotMatch(ctx.byId("builder").innerHTML + ctx.byId("race-card-main").innerHTML, /flucs/i);
 
   await vm.runInContext(`openRaceEvent("evt-h-open","H","Menangle")`, ctx);
