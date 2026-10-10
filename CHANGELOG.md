@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Racing meeting headers:** Original illustrated SVG landscapes (grandstand, turf, rails, skyline) for Ladbrokes AU/NZ metro and key provincial tracks, with a generic fallback. Shown on the meeting race list; major-track outline maps on race cards are unchanged. Tests: `tests/racing_track_art.test.js`.
+
 ## 0.55.2 · 2026-10-10 · `afl-marks` · AFL/AFLW guernsey marks
 
 - **AFL / AFLW builder:** Stylised guernsey SVGs (club colours + generic stripe/sash patterns, no logos) on player rows and on AFL legs in the tray, review, and batch slip — jumper number when known. Subtle entrance animation aligned with racing tray chips; honours `prefers-reduced-motion`. Tests: `tests/afl_guernseys.test.js`.

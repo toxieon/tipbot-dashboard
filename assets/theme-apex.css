@@ -1040,6 +1040,39 @@ html[data-theme="apex"] .home-stats-tile{margin-bottom:14px}
   display:none;
 }
 
+/* Meeting list: illustrated venue header (Ladbrokes AU/NZ tracks) */
+#builder .racing-meeting-shell{
+  position:relative;
+  margin:0 -4px 8px;
+  border-radius:20px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:var(--card);
+}
+#builder .racing-meeting-hero{
+  position:relative;
+  height:148px;
+  max-height:32vw;
+  overflow:hidden;
+  background:var(--bg);
+}
+#builder .racing-meeting-hero .race-venue-hero{
+  display:block;
+  width:100%;
+  height:100%;
+}
+#builder .racing-meeting-body{
+  position:relative;
+  padding:14px 16px 4px;
+  background:linear-gradient(var(--bg) 0, color-mix(in srgb, var(--bg) 94%, transparent) 12px, var(--bg) 28px);
+  margin-top:-12px;
+}
+#builder .racing-meeting-body h1{
+  font-size:var(--t-h2);
+  letter-spacing:-.02em;
+  line-height:1.12;
+}
+
 /* Racing (scoped to #race-app so .card/.chip/.row never leak into the dashboard) */
 #race-app {
   /* Map the racing mock's tokens onto tipdash's own (they were undefined here). */
