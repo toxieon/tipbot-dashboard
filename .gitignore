@@ -10,3 +10,5 @@ node_modules/
 *.gif
 .cursor/
 .vscode/
+test-results/
+playwright-report/
