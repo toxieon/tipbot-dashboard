@@ -90,6 +90,9 @@ export const SECRET_ALLOW = [
   },
 ];
 
+/** Third-party vendored scripts (tesseract.js) may call console.* — not our code. */
+export const CONSOLE_EXEMPT_PREFIX = "assets/vendor/tesseract/";
+
 export const PRICE_LINK_RE = /href\s*=\s*["']\/pricing\/["']/gi;
 export const AUD_PRICE_RE = /A\$[0-9]/g;
 
@@ -173,10 +176,12 @@ export function scanText(rel, text) {
       problems.push({ rel: posix, kind: "aud-price", match: m[0], line });
     }
   }
-  const cons = new RegExp(CONSOLE_RE.source, "g");
-  while ((m = cons.exec(text))) {
-    const line = text.slice(0, m.index).split("\n").length;
-    problems.push({ rel: posix, kind: "console", match: m[0], line });
+  if (!posix.startsWith(CONSOLE_EXEMPT_PREFIX)) {
+    const cons = new RegExp(CONSOLE_RE.source, "g");
+    while ((m = cons.exec(text))) {
+      const line = text.slice(0, m.index).split("\n").length;
+      problems.push({ rel: posix, kind: "console", match: m[0], line });
+    }
   }
   for (const phrase of OWNER_PHRASES) {
     let at = text.indexOf(phrase);
@@ -197,6 +202,7 @@ export function scanTree(dir) {
       const st = fs.statSync(abs);
       if (st.isDirectory()) rec(abs);
       else if (st.isFile()) {
+        if (/\.(wasm|gz|png|jpe?g|ico|woff2?|traineddata)$/i.test(name)) continue;
         const rel = path.relative(dir, abs);
         const text = fs.readFileSync(abs);
         problems.push(...scanText(rel, text.toString("utf8")));

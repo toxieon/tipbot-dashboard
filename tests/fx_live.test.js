@@ -109,7 +109,7 @@ test("afl match fields eighteen players per side in formation slots", () => {
   const Afl = require("../assets/fx/afl-match.js");
   assert.equal(Afl.PLAYERS_PER_SIDE, 18);
   assert.equal(Afl.homeFormation.length, 18);
-  assert.equal(Afl.mirrorFormation().length, 18);
+  assert.equal(Afl.flipFormation().length, 18);
   const roles = Afl.homeFormation.reduce(
     function (acc, p) {
       acc[p.role] = (acc[p.role] || 0) + 1;

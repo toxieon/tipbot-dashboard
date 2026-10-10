@@ -3,6 +3,7 @@ node_modules/
 .DS_Store
 *.mp4
 *.png
+!tests/fixtures/**/*.png
 *.jpg
 *.jpeg
 *.mov

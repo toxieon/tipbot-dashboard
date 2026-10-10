@@ -700,7 +700,7 @@
     const hasMulti=comps.length>1;
     if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
     let html='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
-      +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px"><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
+      +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" id="slipimportbtn" type="button">Import from screenshot</button><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
       +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     // Sport switcher: AFL live · NFL/NBA/WNBA via TipBot ESPN · stubs → custom.
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
@@ -736,6 +736,7 @@
     const rs=$("build-racing-switch"); if(rs) rs.onclick=()=>openRacingBuilder(BUILD.guildId, BUILD.serverName);
     const rg=$("refreshgames"); if(rg)rg.onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
     const cg=$("customgames"); if(cg)cg.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName);
+    const si=$("slipimportbtn"); if(si)si.onclick=()=>{ if(typeof openSlipImport==="function") openSlipImport(BUILD.guildId,BUILD.serverName); };
     $("builder").querySelectorAll(".compchip[data-c]").forEach(b=>b.onclick=()=>{BUILD.compFilter=b.dataset.c;renderGames(games);});
     $("builder").querySelectorAll(".sportstub").forEach(b=>b.onclick=()=>openCustom(BUILD.guildId,BUILD.serverName,b.dataset.s));
     $("builder").querySelectorAll(".espnsport").forEach(b=>b.onclick=()=>openEspnBuilder(BUILD.guildId,BUILD.serverName,b.dataset.league));
@@ -1258,7 +1259,7 @@
     const espnId=BUILD.espnEvent&&BUILD.espnEvent.id?String(BUILD.espnEvent.id):(BUILD.legs.find(l=>l&&l.espn_event_id)||{}).espn_event_id||"";
     const racingOnly=BUILD.legs.length&&BUILD.legs.every(l=>l&&l.kind==="racing");
     const hasRacing=BUILD.legs.some(l=>l&&l.kind==="racing");
-    const game_name=BUILD.espn?(espnEventName(BUILD.espnEvent)||((BUILD.customEvent||"").trim())):(racingOnly?(BUILD.legs.length===1?((BUILD.legs[0].meeting_name||"Racing")+" · R"+(BUILD.legs[0].race_number||"")):((BUILD.legs[0].meeting_name||"Racing")+" multi")):(BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"")));
+    const game_name=BUILD.espn?(espnEventName(BUILD.espnEvent)||((BUILD.customEvent||"").trim())):(racingOnly?(BUILD.legs.length===1?((BUILD.legs[0].meeting_name||"Racing")+" · R"+(BUILD.legs[0].race_number||"")):((BUILD.legs[0].meeting_name||"Racing")+" multi")):(BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD._importGameName||(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):""))));
     const sport=BUILD.espn?(espnLeagueLabel(BUILD.espnLeague)||"NFL"):(racingOnly?"Racing":(hasRacing&&!racingOnly?"Custom":(BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL")));
     BUILD.legs=normalizePropLines(BUILD.legs);
     const start_date=BUILD.espn?(BUILD.espnEvent&&BUILD.espnEvent.date?String(BUILD.espnEvent.date).slice(0,10):(BUILD.customStartDay||"").trim()):(BUILD.custom?((BUILD.customStartDay||"").trim()):"");
@@ -1640,7 +1641,7 @@
         prog.ok("Tip scheduled");
         if(window.TBRacingLegs&&(tipFields.legs||[]).some(function(l){ return l&&l.kind==="racing"; })) TBRacingLegs.setRacingPostSupported(true);
         if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
-        BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
+        BUILD.legs=[]; BUILD.image=null; BUILD._importGameName=""; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
       }
       else{
         const blocked=scheduleRefusal(j, raw);

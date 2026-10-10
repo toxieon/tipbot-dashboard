@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Build:** **Import from screenshot** — client-side OCR (vendored tesseract.js), bookie slip parsers (Sportsbet, Ladbrokes, Neds, TAB, Pointsbet), review screen, then the existing confirm/schedule path with the screenshot attached as `image_b64`. Cross-game multis read per-leg event/date blocks, match each leg to fixtures (AFL/AFLW/NRL), and fix games in review. Paste and file upload supported. Docs: `docs/slip_ocr.md`. Tests: `tests/slip_ocr.test.js`.
+
 ## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
