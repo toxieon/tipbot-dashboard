@@ -192,9 +192,9 @@
     }
     return best || GENERIC_ID;
   }
-  function svgFile(id) { return (id || GENERIC_ID) + ".svg"; }
+  function jsFile(id) { return (id || GENERIC_ID) + ".js"; }
   var STADIUM_IDS = VENUES.map(function (v) { return v.id; }).concat([GENERIC_ID]);
-  var API = { VENUES: VENUES, GENERIC_ID: GENERIC_ID, STADIUM_IDS: STADIUM_IDS, normVenue: normVenue, venueId: venueId, svgFile: svgFile };
+  var API = { VENUES: VENUES, GENERIC_ID: GENERIC_ID, STADIUM_IDS: STADIUM_IDS, normVenue: normVenue, venueId: venueId, jsFile: jsFile };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.StadiumVenues = API;
 })(typeof window !== "undefined" ? window : globalThis);

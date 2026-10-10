@@ -113,6 +113,7 @@ export function wordAt(text, index) {
 
 export function isDeniedRel(rel) {
   const posix = toPosix(rel);
+  if (posix.startsWith("assets/stadiums/vendor/")) return true;
   const parts = posix.split("/");
   if (parts.some((p) => DENY_DIRS.has(p))) return true;
   if (DENY_FILES.has(path.posix.basename(posix))) return true;

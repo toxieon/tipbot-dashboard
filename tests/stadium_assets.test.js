@@ -5,52 +5,60 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const V = require("../assets/stadiums/venues.js");
+const B = require("../assets/stadiums/stadium-build.js");
 const { isDeniedRel } = require("../scripts/build-public.mjs");
 
 const stadiumDir = path.join(root, "assets", "stadiums");
+const vendorDir = path.join(stadiumDir, "vendor");
 
-function readSvg(id) {
-  return fs.readFileSync(path.join(stadiumDir, id + ".svg"), "utf8");
-}
-
-test("stadium assets: every registry id has a standalone SVG file", () => {
+test("stadium assets: every registry id has a venue JS module", () => {
   for (const id of V.STADIUM_IDS) {
-    const file = path.join(stadiumDir, V.svgFile(id));
-    assert.ok(fs.existsSync(file), id + " missing " + V.svgFile(id));
+    const file = path.join(stadiumDir, V.jsFile(id));
+    assert.ok(fs.existsSync(file), id + " missing " + V.jsFile(id));
   }
 });
 
-test("stadium assets: SVG files are well-formed and self-contained", () => {
+test("stadium assets: venue modules export a procedural spec", () => {
   for (const id of V.STADIUM_IDS) {
-    const svg = readSvg(id);
-    assert.match(svg, /^<\?xml version="1\.0"/);
-    assert.match(svg, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
-    assert.match(svg, /viewBox="0 0 200 120"/);
-    assert.ok(svg.includes('data-venue-id="' + id + '"'), id + " data-venue-id");
-    assert.doesNotMatch(svg, /<image/i);
-    assert.doesNotMatch(svg, /(?:href|xlink:href)\s*=\s*["']https?:/i);
-    assert.ok(svg.trim().endsWith("</svg>"));
+    const mod = require(path.join(stadiumDir, V.jsFile(id)));
+    assert.equal(mod.spec.id, id);
+    assert.ok(mod.spec.oval && mod.spec.oval.rx > 0);
+    assert.ok(mod.spec.tiers >= 2);
+    const merged = B.mergeSpec(B.BASE_SPEC, mod.spec);
+    assert.equal(merged.id, id);
   }
+});
+
+test("stadium assets: three.js vendor present with MIT licence", () => {
+  assert.ok(fs.existsSync(path.join(vendorDir, "three.module.min.js")));
+  assert.ok(fs.existsSync(path.join(vendorDir, "OrbitControls.js")));
+  const lic = fs.readFileSync(path.join(vendorDir, "LICENSE-three.txt"), "utf8");
+  assert.match(lic, /MIT/i);
+});
+
+test("stadium assets: stadium-build exposes procedural builder", () => {
+  assert.equal(typeof B.build, "function");
+  assert.equal(typeof B.mergeSpec, "function");
+  assert.ok(B.BASE_SPEC.oval);
 });
 
 test("stadium assets: venue alias map resolves home grounds", () => {
   assert.equal(V.venueId("MCG"), "mcg");
-  assert.equal(V.venueId("Marvel Stadium"), "marvel");
-  assert.equal(V.venueId("Adelaide Oval"), "adelaide");
-  assert.equal(V.venueId("People First Stadium"), "carrara");
+  assert.equal(V.venueId("GMHBA Stadium"), "gmhba");
+  assert.equal(V.venueId("Optus Stadium"), "optus");
   assert.equal(V.venueId("Moon Base"), "generic");
 });
 
-test("stadium assets: match centre lab prototype exists and public build denies labs/", () => {
-  const lab = path.join(root, "labs", "match-centre", "index.html");
-  assert.ok(fs.existsSync(lab));
-  assert.match(fs.readFileSync(lab, "utf8"), /assets\/stadiums\//);
-  assert.equal(isDeniedRel("labs/match-centre/index.html"), true);
-  assert.equal(isDeniedRel("assets/stadiums/mcg.svg"), false);
+test("stadium assets: labs gallery and viewer exist; labs denied from public build", () => {
+  assert.ok(fs.existsSync(path.join(root, "labs", "stadiums", "index.html")));
+  assert.ok(fs.existsSync(path.join(root, "labs", "stadiums", "viewer.html")));
+  assert.match(fs.readFileSync(path.join(root, "labs", "stadiums", "viewer.html"), "utf8"), /three\.module/);
+  assert.equal(isDeniedRel("labs/stadiums/index.html"), true);
+  assert.equal(isDeniedRel("assets/stadiums/mcg.js"), false);
 });
 
-test("stadium assets: handoff doc references asset paths", () => {
+test("stadium assets: handoff doc references 3D asset paths", () => {
   const doc = fs.readFileSync(path.join(root, "docs", "match_centre.md"), "utf8");
-  assert.match(doc, /assets\/stadiums\//);
-  assert.match(doc, /labs\/match-centre\//);
+  assert.match(doc, /stadium-build\.js/);
+  assert.match(doc, /labs\/stadiums\//);
 });

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>AFL stadium 3D gallery (lab)</title>
+  <link rel="stylesheet" href="./gallery.css">
+  <script src="../../assets/stadiums/venues.js"></script>
+</head>
+<body>
+  <h1>AFL stadium 3D gallery</h1>
+  <p class="lead">Procedural Apple Maps–style models (original geometry). Each ground is <code>assets/stadiums/&lt;venue&gt;.js</code> + shared <code>stadium-build.js</code>. Three.js is vendored under <code>assets/stadiums/vendor/</code>. Not shipped in the public site.</p>
+  <div class="grid" id="grid"></div>
+  <p class="foot">Open a card for an orbiting WebGL viewer. Slow auto-orbit; respects <code>prefers-reduced-motion</code>.</p>
+  <script>
+    var order = ["mcg", "marvel", "adelaide", "optus", "gabba", "scg", "giants", "gmhba", "carrara", "bellerive", "manuka", "norwood", "yorkpark", "traeger", "marrara", "barossa", "hands", "generic"];
+    var byId = {};
+    (StadiumVenues.VENUES || []).forEach(function (v) { byId[v.id] = v.label; });
+    var grid = document.getElementById("grid");
+    order.forEach(function (id) {
+      var a = document.createElement("a");
+      a.className = "card";
+      a.href = "./viewer.html?venue=" + encodeURIComponent(id);
+      a.innerHTML = "<b>" + (byId[id] || id) + "</b><span>" + id + ".js · 3D preview</span>";
+      grid.appendChild(a);
+    });
+  </script>
+</body>
+</html>

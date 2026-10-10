@@ -1,77 +1,64 @@
 # AFL Match Centre — asset handoff (integration)
 
-This document describes **standalone assets** for AFL/AFLW stadium art and a **lab prototype** of the bet365-style Match Centre. Nothing here is wired into `index.html`, `builder.js`, or production CSS yet.
+Standalone **3D stadium assets** and **lab prototypes**. Nothing here is wired into `index.html`, `builder.js`, or production CSS.
 
-## Asset layout
+## 3D stadium assets (shipping)
 
 ```
 assets/stadiums/
-  mcg.svg
-  marvel.svg
-  adelaide.svg
-  optus.svg
-  gabba.svg
-  scg.svg
-  giants.svg          # Engie / Sydney Showground
-  gmhba.svg
-  carrara.svg         # People First
-  bellerive.svg
-  manuka.svg
-  norwood.svg
-  yorkpark.svg
-  traeger.svg
-  marrara.svg
-  barossa.svg
-  hands.svg
-  generic.svg         # fallback silhouette
-  venues.js           # id + label + alias map (CommonJS / StadiumVenues)
-
-labs/match-centre/    # NOT in public build (see DENY_DIRS)
-  index.html          # interactive prototype
-  match-centre.js     # panel model + worm + ticker (TBMatchCentre)
-  match-fx.js         # goal/behind FX hook (TBMatchFx)
-  match-centre.css
+  vendor/
+    three.module.min.js    # three.js r170 (MIT) — see LICENSE-three.txt
+    OrbitControls.js       # three.js examples (MIT)
+    LICENSE-three.txt
+  stadium-build.js         # StadiumBuild.build(THREE, spec) → THREE.Group
+  venues.js                # alias map (StadiumVenues / CommonJS)
+  mcg.js … generic.js      # per-venue procedural parameters (18 modules)
 ```
 
-Each `.svg` is original vector art: isometric oval, stands, light towers, pitch. No photos, logos, or external URLs.
+### Per-venue module
 
-### Venue resolution
+Each `assets/stadiums/<id>.js` registers `StadiumSpecs[id]` (and `module.exports.spec` for tests). Parameters drive:
+
+- Oval `rx` / `ry`, tier count, stand height multipliers (`stands.n/e/s/w`)
+- Roof: `ring` (cantilever truss ribs), `full` (Marvel), `arch` (Optus), `none`
+- Light towers, emissive window planes, mowing stripes on the field
+- Feature flags: `hill`, `scoreboard`, `south-stand`, `heritage-pavilion`, `rect-bowl`
+
+Resolve venue name → file:
 
 ```js
 const V = require("./assets/stadiums/venues.js");
-const id = V.venueId("Marvel Stadium"); // "marvel"
-const file = V.svgFile(id);             // "marvel.svg"
+const id = V.venueId("Marvel Stadium"); // marvel
+const spec = require("./assets/stadiums/" + V.jsFile(id)).spec;
 ```
 
-Load in the app with a stable path, e.g. `./assets/stadiums/${id}.svg` (public build ships the whole `assets/` tree except denied files).
+### Runtime build (WebGL)
 
-## Match Centre prototype (lab)
+```js
+import * as THREE from "./assets/stadiums/vendor/three.module.min.js";
+// load stadium-build.js (classic) or bundle
+const group = StadiumBuild.build(THREE, spec);
+```
 
-Open locally: `labs/match-centre/index.html` (serve repo root or `labs/match-centre/` so `../../assets/stadiums/` resolves).
+Lighting in the lab viewer: hemisphere + ambient + directional + cool blue-grey materials (`MeshStandardMaterial`).
 
-**Includes:**
+## Labs (not in public build)
 
-- Stadium scene via `<img src="../../assets/stadiums/{venueId}.svg">`
-- Scoreline (totals + goals.behinds), quarter clock, momentum worm, last-event ticker
-- `TBMatchFx.goal(venue)` / `TBMatchFx.behind(venue)` — coordinate with goal/point animations PR `bc-2a44bb8b`
+| Path | Purpose |
+|------|---------|
+| `labs/stadiums/index.html` | Gallery of all grounds |
+| `labs/stadiums/viewer.html?venue=mcg` | Full-screen orbiting WebGL preview (`autoRotate`, honours `prefers-reduced-motion`) |
+| `labs/match-centre/` | 2D match-centre UI prototype (optional; integrate with 3D scene later) |
 
-**Reduced motion:** `match-centre.css` only runs ball flight / camera push when `prefers-reduced-motion: no-preference`; otherwise a brief brightness flash.
+`labs/` is in `DENY_DIRS` in `scripts/build-public.mjs`.
 
-## Planned production integration (not implemented)
+## Planned production integration
 
-When wiring into the builder game page:
-
-1. **Scripts** (order): `assets/stadiums/venues.js` → match FX → match centre logic (copy or move from `labs/match-centre/` into `assets/` if desired).
-2. **Mount** `<div id="match-centre">` on AFL game view; call `TBMatchCentre.paint(el, game, live, state)` on render.
-3. **Live updates** — reuse existing `refreshLive()` → `GET /api/live-stats?match=&complete=` at **30s** (`LIVE_POLL_MS`). Do not add polling. Merge scores with `TBMatchCentre.applyLiveMatchFields(game, data)` then `onLiveTick`.
-4. **Data** — fixture game fields: `venue`, `hscore`, `ascore`, `hgoals`, `hbehinds`, `agoals`, `abehinds`, `complete`, `phase`. Live payload may mirror those fields; optional future `events[]` on the same endpoint.
-5. **Event detection** — prefer goal/behind counters; fallback decompose point deltas (+6 goal, +1 behind). Fire `TBMatchFx` on scoring events.
-6. **Game cards** — optional card hero: `<img>` or inline SVG from `assets/stadiums/{venueId}.svg` behind card content; respect `overflow:hidden` and reduced motion.
-
-## Public build
-
-`labs/` is listed in `DENY_DIRS` in `scripts/build-public.mjs` so prototypes never ship to tipdashhq.com. Stadium SVGs under `assets/stadiums/` **do** ship with the normal `assets/` allowlist.
+1. **Mount** a WebGL canvas (or offscreen) on the AFL builder game page hero; load vendored three + `stadium-build.js` + venue module from `venues.js` resolution.
+2. **Live data** — unchanged: `GET /api/live-stats` at 30s via existing `refreshLive`; merge scores into game object; drive scoreline / worm / ticker (see prior match-centre lab JS).
+3. **FX** — `TBMatchFx.goal(venue)` / `behind(venue)` from goal/point animations PR `bc-2a44bb8b`; animate ball layer over the 3D canvas or a DOM overlay.
+4. **Performance** — one stadium group per page; dispose renderer on navigate; cap `devicePixelRatio` at 2 on phone.
 
 ## Tests
 
-`tests/stadium_assets.test.js` — file presence, SVG sanity, venue map, lab path, `labs/` denied from dist.
+`tests/stadium_assets.test.js` — venue `.js` files exist, specs validate, three.js licence on disk, builder API, labs paths, `labs/` denied from dist.

@@ -1,6 +1,6 @@
 ## Unreleased
 
-- **AFL stadium assets:** Standalone isometric SVG per home ground under `assets/stadiums/<venue>.svg` plus `venues.js` alias map and `generic.svg`. Match Centre **lab** prototype at `labs/match-centre/` (not shipped; `labs` added to public-build `DENY_DIRS`). Integration handoff: `docs/match_centre.md`. Tests: `tests/stadium_assets.test.js`.
+- **AFL stadium assets:** Procedural Apple Maps–style **3D** grounds (`assets/stadiums/<venue>.js` + `stadium-build.js`), vendored **three.js** (MIT) under `assets/stadiums/vendor/`. Preview gallery + orbiting viewer at `labs/stadiums/` (`labs` in public-build `DENY_DIRS`). Handoff: `docs/match_centre.md`. Tests: `tests/stadium_assets.test.js`.
 
 ## 0.55.2 · 2026-10-10 · `afl-marks` · AFL/AFLW guernsey marks
 
