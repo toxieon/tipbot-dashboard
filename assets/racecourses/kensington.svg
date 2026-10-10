@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Kensington racecourse">
+  <title>Kensington</title>
+  <defs>
+    <linearGradient id="rckensington-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6898C8"/>
+      <stop offset="1" stop-color="#A0C0E0"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rckensington-sky)"/>
+    
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1A4E2E"/>
+    <path d="M30 46 L30 38 L86 38 L86 46 Z" fill="#383E48"/>
+    <path d="M36 40 C34 24 48 16 60 16 C74 16 82 30 78 42 C72 52 42 52 36 40 Z" fill="none" stroke="#00A651" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Kensington</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M36 40 C34 24 48 16 60 16 C74 16 82 30 78 42 C72 52 42 52 36 40 Z" fill="none" stroke="#00A651" stroke-width="1.6" opacity=".9"/>
+      <path d="M60 14 L70 14" fill="none" stroke="#00A651" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="62" cy="18" r="2.8" fill="#00A651"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">KENSINGTON</text>
+    </g>
+  </g>
+</svg>

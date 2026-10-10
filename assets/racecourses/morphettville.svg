@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Morphettville racecourse">
+  <title>Morphettville</title>
+  <defs>
+    <linearGradient id="rcmorphettville-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7AABD8"/>
+      <stop offset="1" stop-color="#B0CFE8"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rcmorphettville-sky)"/>
+    
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1C4F30"/>
+    <path d="M22 52 L22 38 L102 38 L102 52 Z" fill="#454B54"/>
+    <path d="M56 16 C80 14 92 34 88 50 C82 62 48 62 32 52 C20 44 36 18 56 16 Z" fill="none" stroke="#E43341" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Morphettville</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M56 16 C80 14 92 34 88 50 C82 62 48 62 32 52 C20 44 36 18 56 16 Z" fill="none" stroke="#E43341" stroke-width="1.6" opacity=".9"/>
+      <path d="M16 68 L28 58" fill="none" stroke="#E43341" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="18" cy="72" r="2.8" fill="#E43341"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">MORPHETTVILLE</text>
+    </g>
+  </g>
+</svg>

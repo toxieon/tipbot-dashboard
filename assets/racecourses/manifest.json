@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "tracks": [
+    {
+      "slug": "flemington",
+      "label": "Flemington",
+      "file": "flemington.svg",
+      "aliases": [
+        "flemington"
+      ]
+    },
+    {
+      "slug": "caulfield",
+      "label": "Caulfield",
+      "file": "caulfield.svg",
+      "aliases": [
+        "caulfield"
+      ]
+    },
+    {
+      "slug": "moonee_valley",
+      "label": "Moonee Valley",
+      "file": "moonee_valley.svg",
+      "aliases": [
+        "moonee valley",
+        "moonee"
+      ]
+    },
+    {
+      "slug": "randwick",
+      "label": "Randwick",
+      "file": "randwick.svg",
+      "aliases": [
+        "randwick"
+      ]
+    },
+    {
+      "slug": "rosehill",
+      "label": "Rosehill",
+      "file": "rosehill.svg",
+      "aliases": [
+        "rosehill",
+        "rosehill gardens"
+      ]
+    },
+    {
+      "slug": "warwick_farm",
+      "label": "Warwick Farm",
+      "file": "warwick_farm.svg",
+      "aliases": [
+        "warwick farm",
+        "warwick"
+      ]
+    },
+    {
+      "slug": "canterbury",
+      "label": "Canterbury",
+      "file": "canterbury.svg",
+      "aliases": [
+        "canterbury",
+        "canterbury park"
+      ]
+    },
+    {
+      "slug": "eagle_farm",
+      "label": "Eagle Farm",
+      "file": "eagle_farm.svg",
+      "aliases": [
+        "eagle farm",
+        "eaglefarm"
+      ]
+    },
+    {
+      "slug": "doomben",
+      "label": "Doomben",
+      "file": "doomben.svg",
+      "aliases": [
+        "doomben"
+      ]
+    },
+    {
+      "slug": "morphettville",
+      "label": "Morphettville",
+      "file": "morphettville.svg",
+      "aliases": [
+        "morphettville",
+        "morphettville parks"
+      ]
+    },
+    {
+      "slug": "ascot",
+      "label": "Ascot",
+      "file": "ascot.svg",
+      "aliases": [
+        "ascot",
+        "ascot wa"
+      ]
+    },
+    {
+      "slug": "belmont",
+      "label": "Belmont",
+      "file": "belmont.svg",
+      "aliases": [
+        "belmont",
+        "belmont park"
+      ]
+    },
+    {
+      "slug": "geelong",
+      "label": "Geelong",
+      "file": "geelong.svg",
+      "aliases": [
+        "geelong"
+      ]
+    },
+    {
+      "slug": "ballarat",
+      "label": "Ballarat",
+      "file": "ballarat.svg",
+      "aliases": [
+        "ballarat",
+        "sportsbet ballarat"
+      ]
+    },
+    {
+      "slug": "bendigo",
+      "label": "Bendigo",
+      "file": "bendigo.svg",
+      "aliases": [
+        "bendigo"
+      ]
+    },
+    {
+      "slug": "sandown",
+      "label": "Sandown",
+      "file": "sandown.svg",
+      "aliases": [
+        "sandown",
+        "sandown lakeside",
+        "sandown hillside"
+      ]
+    },
+    {
+      "slug": "pakenham",
+      "label": "Pakenham",
+      "file": "pakenham.svg",
+      "aliases": [
+        "pakenham"
+      ]
+    },
+    {
+      "slug": "cranbourne",
+      "label": "Cranbourne",
+      "file": "cranbourne.svg",
+      "aliases": [
+        "cranbourne"
+      ]
+    },
+    {
+      "slug": "kensington",
+      "label": "Kensington",
+      "file": "kensington.svg",
+      "aliases": [
+        "kensington"
+      ]
+    },
+    {
+      "slug": "newcastle",
+      "label": "Newcastle",
+      "file": "newcastle.svg",
+      "aliases": [
+        "newcastle",
+        "broadmeadow"
+      ]
+    },
+    {
+      "slug": "gosford",
+      "label": "Gosford",
+      "file": "gosford.svg",
+      "aliases": [
+        "gosford"
+      ]
+    },
+    {
+      "slug": "kembla",
+      "label": "Kembla",
+      "file": "kembla.svg",
+      "aliases": [
+        "kembla",
+        "kembla grange"
+      ]
+    },
+    {
+      "slug": "hawkesbury",
+      "label": "Hawkesbury",
+      "file": "hawkesbury.svg",
+      "aliases": [
+        "hawkesbury"
+      ]
+    },
+    {
+      "slug": "gold_coast",
+      "label": "Gold Coast",
+      "file": "gold_coast.svg",
+      "aliases": [
+        "gold coast",
+        "gold coast poly",
+        "gold coast poly track"
+      ]
+    },
+    {
+      "slug": "sunshine_coast",
+      "label": "Sunshine Coast",
+      "file": "sunshine_coast.svg",
+      "aliases": [
+        "sunshine coast",
+        "sunshine coast poly"
+      ]
+    },
+    {
+      "slug": "ipswich",
+      "label": "Ipswich",
+      "file": "ipswich.svg",
+      "aliases": [
+        "ipswich"
+      ]
+    },
+    {
+      "slug": "hobart",
+      "label": "Hobart",
+      "file": "hobart.svg",
+      "aliases": [
+        "hobart",
+        "elwick"
+      ]
+    },
+    {
+      "slug": "launceston",
+      "label": "Launceston",
+      "file": "launceston.svg",
+      "aliases": [
+        "launceston",
+        "mowbray"
+      ]
+    },
+    {
+      "slug": "ellerslie",
+      "label": "Ellerslie",
+      "file": "ellerslie.svg",
+      "aliases": [
+        "ellerslie"
+      ]
+    },
+    {
+      "slug": "trentham",
+      "label": "Trentham",
+      "file": "trentham.svg",
+      "aliases": [
+        "trentham"
+      ]
+    },
+    {
+      "slug": "riccarton",
+      "label": "Riccarton",
+      "file": "riccarton.svg",
+      "aliases": [
+        "riccarton",
+        "riccarton park"
+      ]
+    },
+    {
+      "slug": "menangle",
+      "label": "Menangle",
+      "file": "menangle.svg",
+      "aliases": [
+        "menangle",
+        "menangle park"
+      ]
+    },
+    {
+      "slug": "melton",
+      "label": "Melton",
+      "file": "melton.svg",
+      "aliases": [
+        "melton",
+        "melton global"
+      ]
+    },
+    {
+      "slug": "albion_park",
+      "label": "Albion Park",
+      "file": "albion_park.svg",
+      "aliases": [
+        "albion park",
+        "albion"
+      ]
+    },
+    {
+      "slug": "gloucester_park",
+      "label": "Gloucester Park",
+      "file": "gloucester_park.svg",
+      "aliases": [
+        "gloucester park",
+        "gloucester"
+      ]
+    }
+  ]
+}

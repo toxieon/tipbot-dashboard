@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 180" role="img" aria-label="Randwick racecourse">
+  <title>Randwick</title>
+  <defs>
+    <linearGradient id="rcrandwick-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5F9FD0"/>
+      <stop offset="1" stop-color="#9DC6E8"/>
+    </linearGradient>
+  </defs>
+  <g id="scene">
+    <rect width="360" height="100" fill="url(#rcrandwick-sky)"/>
+    
+    <path d="M0 72 L360 72 L360 100 L0 100 Z" fill="#1C5535"/>
+    <path d="M22 50 L22 32 L112 32 L112 50 Z M28 32 L28 24 L52 18 L76 24 L76 32" fill="#353C48"/>
+    <path d="M16 40 C14 18 38 10 60 12 C86 14 94 32 88 46 C78 56 34 54 16 40 Z" fill="none" stroke="#00A651" stroke-width="2" transform="translate(200 18) scale(.55)"/>
+    <text x="16" y="26" fill="#ffffff" font-family="system-ui,sans-serif" font-size="15" font-weight="700" paint-order="stroke fill" stroke="rgba(0,0,0,.35)" stroke-width="2">Randwick</text>
+  </g>
+  <g id="track-map" transform="translate(0 108)">
+    <rect width="360" height="72" rx="12" fill="#141820"/>
+    <g transform="translate(130 6) scale(1)">
+      <path d="M16 40 C14 18 38 10 60 12 C86 14 94 32 88 46 C78 56 34 54 16 40 Z" fill="none" stroke="#00A651" stroke-width="1.6" opacity=".9"/>
+      <path d="M84 14 L94 28" fill="none" stroke="#00A651" stroke-width="1.4" stroke-dasharray="4 3" opacity=".75"/>
+      <circle cx="86" cy="28" r="2.8" fill="#00A651"/>
+      <text x="50" y="56" text-anchor="middle" fill="#9aa2b2" font-family="system-ui,sans-serif" font-size="8" font-weight="600" letter-spacing=".08em">RANDWICK</text>
+    </g>
+  </g>
+</svg>
