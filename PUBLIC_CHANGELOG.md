@@ -1,3 +1,7 @@
+## 0.56.1
+
+Horse results for the last two days, from the Stats screen.
+
 ## 0.55.3
 
 Stats load faster, and jumper numbers are easier to read.

@@ -1,3 +1,12 @@
+## 0.56.1 · 2026-10-10 · `horses` · Horse results under Stats
+
+- **Horses:** Stats links to `#/stats/horses`. Placings for today and yesterday come from `GET /api/racing/results` (meetings, races, and every runner). Newest meetings first, with major tracks ahead of the others on the same day. Meetings collapse. The finishing order marks 1st, 2nd and 3rd, reuses the racing silk and number, and greys out scratched runners. Filter by track or day, and search by horse name.
+- If that endpoint is missing (HTTP 404), the page says "Results coming soon".
+- While the page is open it refreshes every few minutes with `?since`.
+- Reduced motion stays still. Tap targets stay at least 44px.
+
+Tests: `tests/horse_results.test.js`.
+
 ## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.

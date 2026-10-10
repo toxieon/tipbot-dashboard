@@ -85,6 +85,24 @@ test("Upcoming at 390px: no overflow or console errors", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("Horses at 390px: placings, search, no overflow or console errors", async ({ page }) => {
+  const errors = await boot(page);
+  await page.locator(".home-stats-tile").click();
+  await page.waitForSelector("#ds-horses");
+  await page.locator("#ds-horses").click();
+  await page.waitForFunction(() => {
+    const stats = document.getElementById("stats");
+    return stats && !stats.hidden && /Flemington/.test(stats.innerText || "");
+  });
+  await expect(page.locator(".hr-row--1").first()).toBeVisible();
+  await expect(page.locator(".hr-row--out").first()).toBeVisible();
+  await page.locator("#hr-q").fill("Silver");
+  await expect(page.locator(".hr-row--hit")).toContainText("Silver");
+  await page.locator(".hr-meet-sum").first().click();
+  await assertNoOverflow(page);
+  expect(errors).toEqual([]);
+});
+
 test("Racing at 390px: no overflow or console errors", async ({ page }) => {
   const errors = await boot(page);
   await page.locator(".home-racing-tile").click();
