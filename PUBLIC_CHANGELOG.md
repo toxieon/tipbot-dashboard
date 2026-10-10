@@ -1,3 +1,7 @@
+## 0.55.2
+
+AFL and AFLW picks now show club-coloured jumpers.
+
 ## 0.55.1
 
 Racing tips now go straight into your tray, including multis.

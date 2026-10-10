@@ -1559,7 +1559,7 @@
       img.src=url;
     });
   }
-  // TipBot 0.55.1: a handmade game is refused with this sentence.
+  // TipBot 0.55.2: a handmade game is refused with this sentence.
   function scheduleRefusal(j, raw){
     const exact="Custom games aren't available in this server.";
     const bits=[];
