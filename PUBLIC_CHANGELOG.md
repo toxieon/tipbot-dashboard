@@ -1,3 +1,7 @@
+## 0.55.1
+
+Racing tips now go straight into your tray, including multis.
+
 ## 0.54.5
 
 Swipe from the left edge to go back on phones.
