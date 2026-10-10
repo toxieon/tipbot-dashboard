@@ -74,6 +74,57 @@
     return 0.299 * r + 0.587 * g + 0.114 * b > 140 ? "#111318" : "#ffffff";
   }
 
+  /** White-heavy patterns need a primary plate so jumper numbers stay readable. */
+  function needsNumberPlate(spec) {
+    if (!spec || !spec.secondary) return false;
+    var sec = String(spec.secondary).replace(/\s/g, "").toLowerCase();
+    if (sec !== "#ffffff" && sec !== "#fff") return false;
+    var p = spec.pattern;
+    return p === "hoops" || p === "monogram" || p === "chevron";
+  }
+
+  function numberLayer(spec, n, fs, ny, w) {
+    if (!n) return "";
+    if (needsNumberPlate(spec)) {
+      var cy = w <= 22 ? 17 : 26;
+      var rx = w <= 22 ? 5.5 : 7.5;
+      var ry = w <= 22 ? 4.5 : 6;
+      var fill = textOn(spec.primary);
+      return (
+        '<ellipse cx="20" cy="' +
+        (cy - 1) +
+        '" rx="' +
+        rx +
+        '" ry="' +
+        ry +
+        '" fill="' +
+        spec.primary +
+        '" opacity=".93"/>' +
+        '<text x="20" y="' +
+        ny +
+        '" text-anchor="middle" font-family="inherit" font-size="' +
+        fs +
+        '" font-weight="800" fill="' +
+        fill +
+        '">' +
+        n +
+        "</text>"
+      );
+    }
+    var tc = textOn(spec.primary);
+    return (
+      '<text x="20" y="' +
+      ny +
+      '" text-anchor="middle" font-family="inherit" font-size="' +
+      fs +
+      '" font-weight="800" fill="' +
+      tc +
+      '">' +
+      n +
+      "</text>"
+    );
+  }
+
   function displayNumber(num) {
     if (num == null || num === "") return "";
     var n = parseInt(num, 10);
@@ -200,7 +251,6 @@
     var spec = specFor(teamName);
     var clipId = "agc" + ++_uid;
     var n = displayNumber(num);
-    var tc = textOn(spec.primary);
     var w = size || 34;
     var h = size || 34;
     var fs = w <= 22 ? 7 : 11;
@@ -224,17 +274,7 @@
       '<path d="' +
       GUERNSEY_D +
       '" fill="none" stroke="rgba(255,255,255,.16)" stroke-width=".9"/>' +
-      (n
-        ? '<text x="20" y="' +
-          ny +
-          '" text-anchor="middle" font-family="inherit" font-size="' +
-          fs +
-          '" font-weight="800" fill="' +
-          tc +
-          '">' +
-          n +
-          "</text>"
-        : "") +
+      numberLayer(spec, n, fs, ny, w) +
       "</svg>"
     );
   }
@@ -289,6 +329,7 @@
     fallbackSpec: fallbackSpec,
     specFor: specFor,
     textOn: textOn,
+    needsNumberPlate: needsNumberPlate,
     guernseySvg: guernseySvg,
     isAflPlayerLeg: isAflPlayerLeg,
     legLabel: legLabel,

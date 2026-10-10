@@ -1,3 +1,7 @@
+## 0.55.3
+
+Stats load faster, and jumper numbers are easier to read.
+
 ## 0.55.2
 
 AFL and AFLW picks now show club-coloured jumpers.
