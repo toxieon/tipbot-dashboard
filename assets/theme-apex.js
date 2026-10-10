@@ -268,6 +268,7 @@
   }
 
   function stamp(card) {
+    if (root.TBDelight && typeof root.TBDelight.stamp === "function") return root.TBDelight.stamp(card);
     if (!card || card.dataset.apexStamp === "1") return;
     if (card.dataset.settled !== "1") return;
     var win = card.querySelector(".tbchip--win");
@@ -310,6 +311,7 @@
   }
 
   function formStrip(form) {
+    if (root.TBDelight && typeof root.TBDelight.formStrip === "function") return root.TBDelight.formStrip(form);
     if (!form || form.dataset.apexForm === "1") return;
     var dots = form.querySelectorAll(".tb-form-dot");
     var isW = form.getAttribute("data-streak") === "W";
@@ -389,6 +391,7 @@
   }
 
   function flipLists() {
+    if (root.TBDelight && typeof root.TBDelight.flipLists === "function") return root.TBDelight.flipLists();
     if (!rankPrev) return;
     doc.querySelectorAll(".sv-ranks, .tb-form-list, .dc-grid, #flist").forEach(function (list) {
       var rows = list.querySelectorAll(".sv-rank, .tb-form-row, .dc-card, .frow");
@@ -1118,6 +1121,7 @@
   }
 
   function armEmptyStates(scope) {
+    if (root.TBDelight && typeof root.TBDelight.armEmptyStates === "function") return root.TBDelight.armEmptyStates(scope);
     (scope || doc).querySelectorAll(".empty").forEach(function (el) {
       if (el.dataset.apexEmpty) return;
       var text = el.textContent || "";

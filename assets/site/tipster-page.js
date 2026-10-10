@@ -165,7 +165,8 @@
       ? '<div id="more-tips" hidden>' + rest.map(tipLine).join("") + "</div>" +
         '<button type="button" class="btn btn-secondary view-all" id="view-all">View all ' + stats.settledCount + "</button>"
       : "";
-    var followNote = "Following in Discord is coming soon.";
+    var followUrl = data && (data.discord_follow_url || data.follow_url || data.discord_invite_url) ? String(data.discord_follow_url || data.follow_url || data.discord_invite_url) : "";
+    var followNote = followUrl ? "Opens Discord to follow this tipster." : "Following in Discord is coming soon.";
 
     return example +
       '<section class="hero card"><div class="who"><div class="avatar" aria-hidden="true">' + esc(data && data.initials ? data.initials : initials(name)) + "</div>" +
@@ -212,6 +213,14 @@
     var follow = root.querySelector("#follow");
     if (follow) {
       follow.addEventListener("click", function () {
+        if (followUrl) {
+          try {
+            root.open(followUrl, "_blank", "noopener,noreferrer");
+          } catch (e) {
+            root.location.href = followUrl;
+          }
+          return;
+        }
         TipdashSite.openNotice("Follow in Discord", root.querySelector("#follow-note").getAttribute("data-note"));
       });
     }

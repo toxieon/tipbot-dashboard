@@ -1250,6 +1250,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/upcoming-split.js?v=0.55.3"></script>
 <script src="./assets/espn-props.js?v=0.55.3"></script>
 <script src="./assets/tb-motion.js?v=0.55.3"></script>
+<script src="./assets/tb-delight.js?v=0.55.3"></script>
 <script src="./assets/form-badges.js?v=0.55.3"></script>
 <script src="./assets/svg-charts.js?v=0.55.3"></script>
 <script src="./assets/server-view.js?v=0.55.3"></script>
@@ -2996,8 +2997,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         note=/\+/.test(nl)?("~"+nl):("~"+nl+"+");
       }else note="near line";
     }
+    const posted=pickNum(o.posted, t&&t.odds, leg&&leg.odds, leg&&leg.posted_odds);
+    const current=pickNum(o.current, o.price, o.odds);
+    let drift="";
+    try{
+      if(window.TBDelight&&TBDelight.oddsDriftHtml) drift=TBDelight.oddsDriftHtml(posted, current);
+    }catch(_){}
     return '<span class="leg-odds" title="Decimal price for tip tracking">'
       +esc(formatSbPrice(price))
+      +drift
       +(note?'<span class="leg-odds-note">'+esc(note)+'</span>':'')
       +'</span>';
   }
@@ -3205,6 +3213,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         entry={
           index: L.index!=null?L.index:(L.leg_index!=null?L.leg_index:i),
           price: price,
+          current: pickNum(L.current_price,L.current,L.live_price,L.now_price,L.fluc_price),
+          posted: pickNum(L.posted_price,L.tip_price,L.opening_price,L.posted),
           match: L.match||L.match_type||L.line_match||(L.near||L.approx||L.near_line!=null?"near":"exact"),
           note: L.note||L.odds_note||L.near_note||null,
           near_line: L.near_line!=null?L.near_line:(L.matched_line!=null&&L.exact===false?L.matched_line:null),
@@ -4248,6 +4258,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     appendSettledToRecent(tip, gid);
     patchDetailCacheSettle(gid, tip, {fromPending:true});
     refreshStatsTilesFromCache(gid);
+    requestAnimationFrame(()=>{
+      const card=document.querySelector('.betcard[data-tip="'+tipId+'"][data-settled="1"]');
+      try{ if(card&&window.TBDelight&&TBDelight.stamp) TBDelight.stamp(card); }catch(_){}
+    });
     return tip;
   }
   function updateFinishedNet(matchId, gameName, unitsNet){

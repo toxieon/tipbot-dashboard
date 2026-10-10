@@ -1,3 +1,8 @@
+## Unreleased
+
+- **Delight layer (all themes):** `assets/tb-delight.js` — WON/LOST settle stamp with card flip and `navigator.vibrate` on phones; last-10 form strip tiles with streak flame at 3+ wins; leaderboard row FLIP when ranks change; odds drift arrows (posted vs current line on tip legs); Season Wrapped swipeable monthly recap with PNG share card on Stats; private bankroll CSV export; illustrated empty states on feed and Upcoming. Respects `prefers-reduced-motion`. Tests: `tests/tb_delight.test.js`, stats CSV cases in `tests/stats.test.js`.
+- **Public tipster record:** Verified page keeps badge, ROI, strike rate, form dots, streak and opens **Follow in Discord** when a public follow URL is present on the record payload.
+
 ## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
