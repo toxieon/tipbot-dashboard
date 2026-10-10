@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live FX lab</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px 20px 48px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #121820;
+      color: #e8edf5;
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; font-weight: 600; }
+    p { margin: 0 0 24px; color: #9aa8bc; max-width: 52ch; line-height: 1.45; }
+    section { margin-bottom: 40px; }
+    h2 { font-size: 16px; font-weight: 600; color: #b8c4d8; margin: 0 0 12px; }
+    .stage {
+      background: #1a2230;
+      border-radius: 16px;
+      padding: 16px;
+      max-width: 680px;
+    }
+    .toolbar { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #3d6df0;
+      color: #fff;
+    }
+    button.secondary { background: #2a3344; color: #c8d4e8; }
+  </style>
+</head>
+<body>
+  <h1>Live FX lab</h1>
+  <p>Cartoon race and AFL scenes for in-play moments. Load scripts from <code>assets/fx/</code>; demos stay in this lab folder.</p>
+
+  <section>
+    <h2>Race in progress</h2>
+    <div class="stage">
+      <div id="race-mount"></div>
+      <div class="toolbar">
+        <button type="button" id="race-play">Play</button>
+        <button type="button" class="secondary" id="race-stop">Stop</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>AFL match</h2>
+    <div class="stage">
+      <div id="afl-mount"></div>
+      <div class="toolbar">
+        <button type="button" id="afl-play">Play</button>
+        <button type="button" class="secondary" id="afl-stop">Stop</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="../../assets/fx/race-running.js"></script>
+  <script src="../../assets/fx/afl-match.js"></script>
+  <script>
+    (function () {
+      var raceMount = document.getElementById("race-mount");
+      var aflMount = document.getElementById("afl-mount");
+      var runners = [
+        { number: 1, colours: "#1a1a2e,#e94560" },
+        { number: 4, colours: "#0f4c75,#bbe1fa" },
+        { number: 7, colours: "#2d6a4f,#95d5b2" },
+        { number: 9, colours: "#ff6b35,#f7c59f" },
+        { number: 12, colours: "#5c4d7d,#e0d4f5" },
+      ];
+      document.getElementById("race-play").addEventListener("click", function () {
+        raceMount.innerHTML = "";
+        TBLiveFx.race(raceMount, runners);
+      });
+      document.getElementById("race-stop").addEventListener("click", function () {
+        TBLiveFx.stop();
+        raceMount.innerHTML = "";
+      });
+      document.getElementById("afl-play").addEventListener("click", function () {
+        aflMount.innerHTML = "";
+        TBLiveFx.afl(aflMount, { primary: "#002b5c", secondary: "#ffd200" }, { primary: "#000000", secondary: "#ffffff" });
+      });
+      document.getElementById("afl-stop").addEventListener("click", function () {
+        TBLiveFx.stop();
+        aflMount.innerHTML = "";
+      });
+      TBLiveFx.race(raceMount, runners);
+      TBLiveFx.afl(aflMount, ["#002147", "#ffd700"], ["#000000", "#ffffff"]);
+    })();
+  </script>
+</body>
+</html>
