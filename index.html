@@ -1242,7 +1242,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/lines.js?v=0.55.2"></script>
 <script src="./assets/racing-legs.js?v=0.55.2"></script>
 <script src="./assets/afl-guernseys.js?v=0.55.2"></script>
-<script src="./assets/afl-score-moment.js?v=0.55.2"></script>
 <script src="./assets/compare-ui.js?v=0.55.2"></script>
 <script src="./assets/sport-keywords.js?v=0.55.2"></script>
 <script src="./assets/sport-marks.js?v=0.55.2"></script>
@@ -3932,13 +3931,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         finishedMap=await fetchFinishedTipsMap(gid);
       }
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); }
-    let liveGames=[];
     try{
       const r=await sharedGet("/api/live-tips?guild_id="+encodeURIComponent(gid),10000);
       if(r.ok){
         const d=r.data||{};
-        liveGames=Array.isArray(d.games)?d.games:[];
-        liveGames.forEach(g=>{(g.tips||[]).forEach(t=>{
+        (d.games||[]).forEach(g=>{(g.tips||[]).forEach(t=>{
           if(t&&t.tip_id) liveMap[String(t.tip_id)]=t;
         });});
       }
@@ -4022,11 +4019,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       body.innerHTML=legsBlockHtml(full, legs, t._liveLegs)+gradeRowHtml(tipId, settled, godRegrade);
       applyBetcardOutcome(cardEl, evalTipOutcome(legs, full, t._liveLegs, {finished:isFinished||settled}));
       wireTipRows(cardEl||body,gid);
-      if(window.AFLScoreMoment){
-        AFLScoreMoment.trackLegGoals(tipId, legs, cardEl||body);
-      }
     }));
-    if(liveGames.length) aflScoreTrackGames(liveGames);
   }
   function estimateSettleProfit(units, odds, result){
     const uN=Number(units), oN=Number(odds);
@@ -6535,18 +6528,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // TipBot's /api/live-tips game list (first bounce → FT incl. breaks, + FT grace).
   // No phase/status whitelist here. A transient error/timeout keeps the last good
   // render instead of hiding the panel mid-game; it re-polls while the tab is visible.
-  function aflScoreAnchorFor(ev){
-    if(!ev||!ev.matchId)return null;
-    const mid=(window.CSS&&CSS.escape)?CSS.escape(ev.matchId):ev.matchId;
-    const row=document.querySelector('#live-tips-box .live-tips-row[data-match="'+mid+'"]');
-    if(row)return row.querySelector('.live-tips-meta')||row;
-    const card=document.querySelector('.betcard[data-match="'+mid+'"]');
-    return card||null;
-  }
-  function aflScoreTrackGames(games){
-    if(!window.AFLScoreMoment||!games||!games.length)return;
-    AFLScoreMoment.trackGames(games,{anchorFor:aflScoreAnchorFor});
-  }
   const LIVE_TIPS={guildId:null, timer:null, busy:false, last:null, ui:{}};
   function liveTipsStopPoll(){ if(LIVE_TIPS.timer){ clearTimeout(LIVE_TIPS.timer); LIVE_TIPS.timer=null; } }
   function liveTipsDelay(){
@@ -6656,7 +6637,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           +'</div></div></div>';
       }).join("");
     box.innerHTML=(note?'<div class="live-tips-note" style="color:var(--faint);font-size:var(--t-foot);margin-bottom:8px">'+esc(note)+'</div>':'')+html;
-    aflScoreTrackGames(games);
     box.querySelectorAll(".live-toggle-prev").forEach(b=>b.onclick=()=>{
       const el=$(b.dataset.pid); if(!el)return; el.hidden=!el.hidden;
       b.textContent=el.hidden?"Preview":"Hide preview";

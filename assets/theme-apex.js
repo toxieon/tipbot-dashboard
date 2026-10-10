@@ -285,23 +285,10 @@
     mark.setAttribute("aria-hidden", "true");
     mark.textContent = win ? "WON" : "LOST";
     card.appendChild(mark);
-    if (played || reduced()) {
-      if (win) card.classList.add("apex-winner-settled");
-      return;
-    }
+    if (played || reduced()) return;
     card.classList.add("apex-flip");
     if (win) {
-      card.classList.add("apex-winner-moment");
-      var glow = doc.createElement("span");
-      glow.className = "apex-win-glow";
-      glow.setAttribute("aria-hidden", "true");
-      card.appendChild(glow);
-      mark.classList.add("apex-ticket-stamp");
       burst(mark);
-      setTimeout(function () {
-        card.classList.remove("apex-winner-moment");
-        if (glow.parentNode) glow.parentNode.removeChild(glow);
-      }, 1400);
       var profitTile = Array.prototype.slice.call(doc.querySelectorAll(".tile")).filter(function(t) {
         var tl = t.querySelector(".tl");
         return tl && tl.textContent.indexOf("Profit") !== -1;

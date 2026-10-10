@@ -317,54 +317,13 @@ html[data-theme="apex"] .apex-stamp{
 }
 html[data-theme="apex"] .apex-stamp-win{color:var(--win)}
 html[data-theme="apex"] .apex-stamp-loss{color:var(--muted)}
-html[data-theme="apex"] .apex-ticket-stamp{
-  opacity:0.22;
-  background:repeating-linear-gradient(90deg,transparent 0 3px,color-mix(in srgb,var(--win) 18%,transparent) 3px 4px);
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--win) 35%,transparent);
-}
-html[data-theme="apex"] .apex-win-glow{
-  display:block;
-  position:absolute;
-  inset:-2px;
-  border-radius:inherit;
-  pointer-events:none;
-  z-index:0;
-  box-shadow:0 0 0 0 color-mix(in srgb,var(--win) 55%,transparent);
-}
-html[data-theme="apex"] .betcard.apex-winner-settled{
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--win) 28%,var(--line));
-}
 @media (prefers-reduced-motion:no-preference){
   html[data-theme="apex"] .betcard.apex-flip{
     animation:apex-card-flip 320ms cubic-bezier(.22,1,.36,1) both;
   }
-  html[data-theme="apex"] .betcard.apex-winner-moment{
-    animation:apex-winner-glow 1.2s cubic-bezier(.22,1,.36,1) both;
-  }
-  html[data-theme="apex"] .apex-win-glow{
-    animation:apex-win-ring 1.2s cubic-bezier(.22,1,.36,1) both;
-  }
   html[data-theme="apex"] .apex-stamp{
     animation:apex-stamp-in 320ms cubic-bezier(.22,1,.36,1) 120ms both;
   }
-  html[data-theme="apex"] .apex-ticket-stamp{
-    animation:apex-ticket-stamp 640ms cubic-bezier(.22,1,.36,1) 80ms both;
-  }
-}
-@keyframes apex-winner-glow{
-  0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--win) 0%,transparent)}
-  35%{box-shadow:0 0 28px 2px color-mix(in srgb,var(--win) 38%,transparent)}
-  100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--win) 0%,transparent)}
-}
-@keyframes apex-win-ring{
-  0%{opacity:0;box-shadow:0 0 0 0 color-mix(in srgb,var(--win) 50%,transparent)}
-  40%{opacity:1;box-shadow:0 0 18px 4px color-mix(in srgb,var(--win) 45%,transparent)}
-  100%{opacity:0;box-shadow:0 0 0 12px color-mix(in srgb,var(--win) 0%,transparent)}
-}
-@keyframes apex-ticket-stamp{
-  0%{opacity:0;transform:scale(1.5) rotate(-14deg)}
-  55%{opacity:0.35;transform:scale(.96) rotate(-6deg)}
-  100%{opacity:0.22;transform:scale(1) rotate(-8deg)}
 }
 @keyframes apex-card-flip{
   0%{transform:rotateY(0deg)}
@@ -508,9 +467,6 @@ html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
   html[data-theme="apex"] .sv-end.apex-pulse,
   html[data-theme="apex"] .cd.apex-live,
   html[data-theme="apex"] .apex-stamp,
-  html[data-theme="apex"] .apex-ticket-stamp,
-  html[data-theme="apex"] .apex-win-glow,
-  html[data-theme="apex"] .betcard.apex-winner-moment,
   html[data-theme="apex"] .betcard.apex-flip,
   html[data-theme="apex"] .chip,
   html[data-theme="apex"] .tb-form-dot.apex-tile,

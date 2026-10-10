@@ -55,6 +55,7 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     "assets/owner-tools.js",
     "tests/public_build.test.js",
     "GPT/index.html",
+    "labs/fx/index.html",
   ]) {
     assert.equal(fs.existsSync(path.join(dist, rel)), false, rel + " must not ship");
   }
