@@ -7,7 +7,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..")
 
 const MOCK = {
   "/api/servers": {
-    role: "owner",
+    role: "mod",
     servers: [{ guild_id: "1", display_name: "Test", enabled: 1, subscription_active: 1, unit_size: 20, won: 1, lost: 0, profit_units: 1, roi: 10, queued: 0 }],
     follower_servers: [],
   },

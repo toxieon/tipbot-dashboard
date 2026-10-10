@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-/** CI leak guard: public build scan + banned terms + API base assertion. */
+/** CI guard: public build scan, private term list (from CI secrets) and API base assertion. */
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { build, scanTree } from "./build-public.mjs";
 
@@ -19,56 +18,67 @@ if (!html.includes(apiLine)) {
 const result = build({ root, dist });
 const hits = scanTree(result.dist);
 if (hits.length) {
-  process.stderr.write("public build scan failed:\n" + hits.map((h) => h.rel + " " + h.kind + " " + h.match).join("\n") + "\n");
+  process.stderr.write("public build scan failed:\n" + hits.map((h) => h.rel + " " + h.kind).join("\n") + "\n");
   process.exit(1);
 }
 
-const grep = spawnSync("grep", ["-riE", "forward|mirror|master|consensus", dist], { encoding: "utf8" });
-if (grep.status === 0) {
-  const lines = (grep.stdout || "").split("\n").filter(Boolean);
-  for (const line of lines) {
-    if (!/\bforwards\b/.test(line)) {
-      process.stderr.write("unexpected secret match (need animation forwards only): " + line + "\n");
-      process.exit(1);
-    }
-    if (/forwarded|forwarding|\bmaster\b|\bmirror\b|\bconsensus\b/i.test(line)) {
-      process.stderr.write("banned term in public dist: " + line + "\n");
-      process.exit(1);
-    }
-  }
+/** Terms: newline or comma separated. Plain terms match as whole words (case-insensitive);
+ *  a term starting with "re:" is used as a regular expression. */
+export function parseTerms(raw) {
+  return String(raw || "")
+    .split(/[\n,]/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => {
+      if (t.startsWith("re:")) return new RegExp(t.slice(3), "i");
+      const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return new RegExp("(^|[^A-Za-z0-9_])" + esc + "(?![A-Za-z0-9_])", "i");
+    });
 }
 
-const extra = spawnSync(
-  "grep",
-  ["-riE", "owner-tools|/api/ops|custom-games|\\bops:", dist],
-  { encoding: "utf8" }
-);
-if (extra.status === 0 && (extra.stdout || "").trim()) {
-  process.stderr.write("banned ops/owner strings in public dist:\n" + extra.stdout + "\n");
-  process.exit(1);
+function walk(dir, out = []) {
+  for (const name of fs.readdirSync(dir)) {
+    const p = path.join(dir, name);
+    const st = fs.statSync(p);
+    if (st.isDirectory()) walk(p, out);
+    else if (/\.(html|js|mjs|css|json|svg|txt|md|webmanifest)$/i.test(name)) out.push(p);
+  }
+  return out;
 }
 
-const forwardNotS = spawnSync("grep", ["-riE", "forward[^s]", dist], { encoding: "utf8" });
-if (forwardNotS.status === 0) {
-  const lines = (forwardNotS.stdout || "").split("\n").filter(Boolean);
-  for (const line of lines) {
-    if (/\bforwards\b/.test(line) && !/forward[^s]/i.test(line.replace(/\bforwards\b/g, ""))) continue;
-    process.stderr.write("forward[^s] leak: " + line + "\n");
-    process.exit(1);
+export function findHits(files, patterns) {
+  const found = [];
+  for (const file of files) {
+    const lines = fs.readFileSync(file, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      patterns.forEach((re, k) => {
+        if (re.test(line)) found.push(path.relative(root, file) + ":" + (i + 1) + " (term #" + (k + 1) + ")");
+      });
+    });
   }
+  return found;
 }
 
-const guildId = process.env.TIPDASH_MASTER_GUILD_ID || "";
-if (guildId) {
-  const inDist = spawnSync("grep", ["-r", guildId, dist], { encoding: "utf8" });
-  if ((inDist.stdout || "").trim()) {
-    process.stderr.write("master guild id must not appear in public dist\n" + inDist.stdout + "\n");
+const ids = Object.keys(process.env)
+  .filter((k) => /^TIPDASH_SCAN_ID_\d+$/.test(k))
+  .map((k) => String(process.env[k] || "").trim())
+  .filter(Boolean)
+  .map((id) => new RegExp(id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+const terms = parseTerms(process.env.TIPDASH_SCAN_TERMS);
+const patterns = terms.concat(ids);
+
+if (!patterns.length) {
+  // Secrets are absent on fork PRs: pass, but say so.
+  process.stdout.write("::notice::private scan skipped (TIPDASH_SCAN_TERMS / TIPDASH_SCAN_ID_* not set)\n");
+} else {
+  const files = walk(result.dist);
+  const leaks = findHits(files, patterns);
+  if (leaks.length) {
+    // Never echo the matched text: the list itself is private.
+    process.stderr.write("private scan failed:\n" + leaks.join("\n") + "\n");
     process.exit(1);
   }
-  if (html.includes(guildId)) {
-    process.stderr.write("master guild id must not appear in index.html\n");
-    process.exit(1);
-  }
+  process.stdout.write("private scan ok (" + patterns.length + " patterns)\n");
 }
 
 process.stdout.write("ci-public-guard ok (" + result.count + " files)\n");

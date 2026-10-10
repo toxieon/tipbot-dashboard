@@ -2,7 +2,7 @@
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
 - **Guernseys:** Jumper numbers on white-striped clubs (Carlton, Collingwood, Geelong, North, St Kilda, Bulldogs) sit on a primary-colour plate for contrast.
-- **CI:** Pull-request workflow runs `node --test`, a public-build leak guard, API-base assertion, and optional master-guild scan via `TIPDASH_MASTER_GUILD_ID`.
+- **CI:** Pull-request workflow runs `node --test`, a public-build leak guard, API-base assertion, and an optional private scan whose term list lives in CI secrets (`TIPDASH_SCAN_TERMS`, `TIPDASH_SCAN_ID_1`; skipped with a notice when absent).
 - **E2E:** Playwright 390px smoke tests (Home, Build, Upcoming, Stats, Racing) against a mocked API — scroll width and console errors.
 - **Logout:** Settings → Log out calls `POST /api/logout` before clearing the token.
 - **Rate limits:** HTTP 429 responses show a friendly toast and honour `Retry-After` before retrying.

@@ -9,7 +9,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      TIPDASH_MASTER_GUILD_ID: ${{ secrets.TIPDASH_MASTER_GUILD_ID }}
+      TIPDASH_SCAN_ID_1: ${{ secrets.TIPDASH_SCAN_ID_1 }}
+      TIPDASH_SCAN_TERMS: ${{ secrets.TIPDASH_SCAN_TERMS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,7 +21,7 @@ jobs:
         run: npm ci
       - name: Unit tests
         run: node --test tests/*.test.js
-      - name: Public build leak guard
+      - name: Public build guard
         run: node scripts/ci-public-guard.mjs
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
