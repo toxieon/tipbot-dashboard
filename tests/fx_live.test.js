@@ -105,6 +105,24 @@ test("live fx registers TBLiveFx.race, afl, and stop", () => {
   ctx.TBLiveFx.stop();
 });
 
+test("afl match fields eighteen players per side in formation slots", () => {
+  const Afl = require("../assets/fx/afl-match.js");
+  assert.equal(Afl.PLAYERS_PER_SIDE, 18);
+  assert.equal(Afl.homeFormation.length, 18);
+  assert.equal(Afl.mirrorFormation().length, 18);
+  const roles = Afl.homeFormation.reduce(
+    function (acc, p) {
+      acc[p.role] = (acc[p.role] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
+  assert.equal(roles.ruck, 1);
+  assert.equal(roles.back, 6);
+  assert.equal(roles.mid, 5);
+  assert.equal(roles.fwd, 6);
+});
+
 test("race colour parsing uses runner saddlecloth colours", () => {
   const Race = require("../assets/fx/race-running.js");
   const pair = Race.parsePair({ number: 2, colours: "blue, white" }, 0);
