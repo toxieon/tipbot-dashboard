@@ -84,8 +84,11 @@
     return (
       '<g class="tblfx-horse">' +
       '<ellipse cx="0" cy="8" rx="22" ry="7" fill="rgba(0,0,0,.12)"/>' +
-      '<path d="M-18 2 Q-8 -6 6 -4 L14 -8 Q20 -4 18 2 L16 10 Q8 14 0 12 L-10 14 Q-20 12 -18 2 Z" fill="#C49A6C" stroke="#8B6914" stroke-width="1"/>' +
-      '<path d="M14 -8 L20 -14 L18 -6" fill="none" stroke="#8B6914" stroke-width="1.2" stroke-linecap="round"/>' +
+      '<path d="M-18 2 Q-8 -6 6 -4 L10 -5 L9 1 L16 10 Q8 14 0 12 L-10 14 Q-20 12 -18 2 Z" fill="#C49A6C" stroke="#8B6914" stroke-width="1"/>' +
+      '<path d="M10 -5 C12 -9 15 -10 18 -9 L29 -8 L31 -6 L28 -4 L20 -4 C14 -4 12 -5 10 -5 Z" fill="#C49A6C" stroke="#8B6914" stroke-width="1" stroke-linejoin="round"/>' +
+      '<path d="M14 -9.5 L13.2 -12.2 L15.8 -10.2 Z M17.2 -9.8 L16.4 -12.4 L18.6 -10.4 Z" fill="#B8895A" stroke="#8B6914" stroke-width=".6"/>' +
+      '<circle cx="24.5" cy="-7.2" r=".9" fill="#3D2E1A"/>' +
+      '<path d="M11 -5.5 Q13 -8 16 -7.5 Q18.5 -9 21 -8" fill="none" stroke="#6B4F12" stroke-width="1.1" stroke-linecap="round"/>' +
       '<path d="M-16 4 L-22 10 L-18 12" fill="none" stroke="#8B6914" stroke-width="1.4" stroke-linecap="round"/>' +
       '<path d="M4 12 L6 18 L2 20 M-4 12 L-6 18 L-2 20" fill="none" stroke="#6B4F12" stroke-width="1.2" stroke-linecap="round"/>' +
       '<rect x="-6" y="-2" width="12" height="9" rx="2" fill="' +
@@ -98,10 +101,9 @@
       '" font-family="system-ui,sans-serif">' +
       num +
       "</text>" +
-      '<circle cx="16" cy="-10" r="3.2" fill="#F5D0A9"/>' +
-      '<path d="M16 -13 L18 -16 L14 -15" fill="#4A3728"/>' +
-      '<path d="M18 -10 L24 -8 L22 -6" fill="none" stroke="#4A3728" stroke-width="1" stroke-linecap="round"/>' +
-      '<ellipse cx="20" cy="-9" rx="2.5" ry="1.8" fill="#5B8CFF" opacity=".85"/>' +
+      '<circle cx="1" cy="-13.5" r="2.6" fill="#F5D0A9"/>' +
+      '<ellipse cx="1" cy="-15" rx="2.2" ry="1.5" fill="#5B8CFF" opacity=".85"/>' +
+      '<path d="M3 -12.5 L7 -10.5 L6.5 -9" fill="none" stroke="#4A3728" stroke-width="1" stroke-linecap="round"/>' +
       "</g>"
     );
   }
