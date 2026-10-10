@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Club intro lab</title>
+  <link rel="stylesheet" href="../../assets/club-intros/intro.css">
+  <style>
+    :root {
+      --lab-bg: #0f1420;
+      --lab-card: #1a2234;
+      --lab-line: rgba(255, 255, 255, 0.08);
+      --lab-muted: #9aa8c4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2rem 1.25rem 3rem;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--lab-bg);
+      color: #f4f6fa;
+    }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .lede {
+      margin: 0 0 1.75rem;
+      max-width: 52rem;
+      color: var(--lab-muted);
+      line-height: 1.45;
+      font-size: 0.95rem;
+    }
+    .ci-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .ci-card {
+      background: var(--lab-card);
+      border: 1px solid var(--lab-line);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .ci-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--lab-line);
+      font-size: 0.8rem;
+    }
+    .ci-card-title {
+      font-weight: 600;
+      color: #d8e2f8;
+    }
+    .ci-replay {
+      border: 1px solid var(--lab-line);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e8eeff;
+      border-radius: 8px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ci-replay:hover { background: rgba(255, 255, 255, 0.1); }
+    .ci-card-stage {
+      position: relative;
+      flex: 1;
+      min-height: 280px;
+    }
+    .ci-card-stage .ci-intro {
+      border-radius: 0 0 12px 12px;
+      min-height: 280px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Club intro screens</h1>
+  <p class="lede">Animated loading intros for all 18 AFL clubs plus AFLW entries (shared clubs and Tasmania). Generic guernsey marks, club colours, typographic name reveal — no official logos. Honours <code>prefers-reduced-motion</code>.</p>
+  <div id="grid" class="ci-grid" aria-live="polite"></div>
+  <script src="../../assets/afl-guernseys.js"></script>
+  <script src="../../assets/club-intros/clubs.js"></script>
+  <script src="../../assets/club-intros/motifs.js"></script>
+  <script src="../../assets/club-intros/intro.js"></script>
+  <script src="../../assets/club-intros/gallery.js"></script>
+  <script>
+    TDClubIntroGallery.mountGallery(document.getElementById("grid"));
+  </script>
+</body>
+</html>
