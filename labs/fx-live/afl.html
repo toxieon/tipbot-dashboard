@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AFL FX demo</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; background: #0f1419; color: #e8eaed; }
+    body { margin: 0; padding: 16px; }
+    h1 { font-size: 1rem; font-weight: 600; margin: 0 0 12px; }
+    #stage {
+      width: min(100%, 420px);
+      height: 260px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #1a2332;
+      box-shadow: 0 8px 32px rgba(0,0,0,.35);
+    }
+    .row { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      font: inherit;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #3c4043;
+      background: #292e35;
+      color: inherit;
+      cursor: pointer;
+    }
+    button:active { transform: scale(0.98); }
+    a { color: #7cb8ff; font-size: 0.875rem; display: inline-block; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>AFL match ambience</h1>
+  <div id="stage" aria-live="polite"></div>
+  <div class="row">
+    <button type="button" id="restart">Restart</button>
+    <button type="button" id="stop">Stop</button>
+  </div>
+  <a href="index.html">Back to lab</a>
+  <script src="../../assets/fx/afl-match.js"></script>
+  <script>
+    (function () {
+      var home = { primary: "#0a2240", secondary: "#ffd100" };
+      var away = { primary: "#cc092f", secondary: "#ffffff" };
+      var stage = document.getElementById("stage");
+      function start() {
+        TBLiveFx.stop();
+        TBLiveFx.afl(stage, home, away);
+      }
+      document.getElementById("restart").addEventListener("click", start);
+      document.getElementById("stop").addEventListener("click", function () { TBLiveFx.stop(); });
+      start();
+    })();
+  </script>
+</body>
+</html>
