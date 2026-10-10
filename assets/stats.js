@@ -408,7 +408,8 @@
     }
     var html = '<div class="ds-page">'
       + '<div class="back" id="ds-back">← Back</div>'
-      + '<div class="dhead"><h1 style="margin:0">Stats</h1></div>'
+      + '<div class="dhead"><h1 style="margin:0">Stats</h1>'
+      + '<div class="dhead-actions"><button type="button" class="ghost" id="ds-pdf-btn" title="Download PDF report">PDF report</button></div></div>'
       + '<div class="ds-win" role="group" aria-label="Time window">' + tab("7", "7d") + tab("30", "30d") + tab("season", "Season") + "</div>";
     if (!stats.count) {
       html += '<div class="ds-empty ds-empty-lg"><p>No settled tips in this window yet.</p><p class="ds-empty-sub">Grade a few tips and they land here — 7 days, 30 days, or this season.</p></div></div>';
@@ -561,6 +562,8 @@
     });
     var retry = el.querySelector("#ds-retry");
     if (retry && handlers.onRetry) retry.onclick = handlers.onRetry;
+    var pdf = el.querySelector("#ds-pdf-btn");
+    if (pdf && handlers.onPdf) pdf.onclick = handlers.onPdf;
   }
   function mount(el, packs, opts) {
     opts = opts || {};

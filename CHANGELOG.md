@@ -1,3 +1,7 @@
+## Unreleased
+
+- **PDF report:** Premium Apex-style performance report (cover, executive summary, SVG charts, breakdowns, full tip log with racing silks / AFL guernseys, disclaimer). **PDF report** on Home Stats and the server page — print/save as PDF; public tips only. Tests: `tests/pdf_report.test.js`.
+
 ## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
