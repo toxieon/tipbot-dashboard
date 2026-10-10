@@ -2060,7 +2060,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
   function racingExtraPlacesOn(){ try{ return localStorage.getItem("tipdash_racing_extra_places")==="1"; }catch(_){ return false; } }
   { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
-  $("dd-logout").onclick=()=>{clearToken();STATE.ops=false;if(window.TBOwner&&TBOwner.clearOps)TBOwner.clearOps();paintOpsTab();location.hash="";renderLogin();};
+  $("dd-logout").onclick=async()=>{
+    try{ await api("/api/logout",{method:"POST",retries:0,timeoutMs:8000}); }catch(e){}
+    clearToken();STATE.ops=false;if(window.TBOwner&&TBOwner.clearOps)TBOwner.clearOps();paintOpsTab();location.hash="";renderLogin();
+  };
   { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
   $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
@@ -2359,6 +2362,31 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         if(timer) clearTimeout(timer);
         if(r.status===401){ got401=true; break; }
 
+        if(r.status===429 && attempt<maxAttempts){
+          let waitMs=5000;
+          try{
+            const ra=r.headers.get("Retry-After");
+            if(ra){
+              const n=Number(ra);
+              if(Number.isFinite(n) && n>=0) waitMs=(n>0 && n<3600)?(n*1000):n;
+              else{
+                const d=Date.parse(ra);
+                if(Number.isFinite(d)) waitMs=Math.max(0, d-Date.now());
+              }
+            }
+          }catch(e){}
+          waitMs=Math.min(Math.max(waitMs, 1000), 60000);
+          if(attempt===1){
+            try{ toast("TipBot is busy — slowing down for a moment.","warn",{ms:Math.min(waitMs, 8000)}); }catch(e2){}
+          }
+          lastResponse=r;
+          if(typeof onAttempt==="function"){
+            try{ onAttempt(attempt, maxAttempts, {phase:"retry", status:r.status, waitMs:waitMs}); }catch(e3){}
+          }
+          await sleep(waitMs);
+          continue;
+        }
+
         if((r.status===502 || r.status===503) && attempt<maxAttempts){
           let body=null;
           try{ body=await r.clone().json(); }catch(e){}
@@ -2546,6 +2574,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     STATE._detailCache[key]=data;
     return data;
   }
+  async function fetchSettledSummaryDetail(gid){
+    try{
+      const r=await api("/api/server/settled-summary?guild_id="+encodeURIComponent(gid));
+      if(r && r.ok){
+        const data=await r.json();
+        if(window.TBDashStats&&typeof TBDashStats.detailFromSettledSummary==="function"){
+          const norm=TBDashStats.detailFromSettledSummary(data);
+          if(norm) return norm;
+        }
+      }
+    }catch(e){ if(e&&e.unauth) throw e; }
+    return fetchServerDetail(gid);
+  }
   async function fetchFollowerDetail(gid){
     const r=await api("/api/follower?guild_id="+encodeURIComponent(gid));
     if(!r.ok) return null;
@@ -2580,7 +2621,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     try{
       const packs=[];
       const adminPacks=await Promise.all(admin.map(async s=>{
-        try{ return {server:s, detail:await fetchServerDetail(s.guild_id)}; }
+        try{ return {server:s, detail:await fetchSettledSummaryDetail(s.guild_id)}; }
         catch(e){ if(e&&e.unauth) throw e; return {server:s, detail:{tips:{settled:[]}}}; }
       }));
       adminPacks.forEach(p=>packs.push(p));
@@ -5031,13 +5072,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
       +(d.trial_mode?'<div class="trial-banner" role="status">Tracking is off during this server\'s trial. Reactions aren\'t recorded yet; existing tracked bets still settle.</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
-      +'<div class="dhead">'+profTitle+'<span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
+      +'<div class="dhead">'+profTitle+'<div class="dhead-actions">'+(showBack?'':'<button type="button" class="ghost" id="flstatsbtn">Stats</button><button type="button" class="ghost" id="flracebtn">Racing</button>')+'<span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' · your results</span></div>'
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
       +'<div class="panel" data-sec="follower-tips" data-sec-sum="'+((d.feed||[]).length)+'"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
       +'<div class="panel" data-sec="follower-wlp" data-sec-sum="'+(st.won||0)+'–'+(st.lost||0)+'–'+(st.push||0)+'"><h3>Your Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+st.won+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+st.lost+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+st.push+'</span><span class="lg" style="margin-left:auto">'+st.staked_units+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series,"","follower-calendar");
     if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
+    { const stb=$("flstatsbtn"); if(stb) stb.onclick=()=>openStats(); }
+    { const rb=$("flracebtn"); if(rb) rb.onclick=()=>openRacingBuilder(gid,nm); }
     { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
     $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{

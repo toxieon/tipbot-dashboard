@@ -1,3 +1,13 @@
+## Unreleased
+
+- **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
+- **Guernseys:** Jumper numbers on white-striped clubs (Carlton, Collingwood, Geelong, North, St Kilda, Bulldogs) sit on a primary-colour plate for contrast.
+- **CI:** Pull-request workflow runs `node --test`, a public-build leak guard, API-base assertion, and optional master-guild scan via `TIPDASH_MASTER_GUILD_ID`.
+- **E2E:** Playwright 390px smoke tests (Home, Build, Upcoming, Stats, Racing) against a mocked API — scroll width and console errors.
+- **Logout:** Settings → Log out calls `POST /api/logout` before clearing the token.
+- **Rate limits:** HTTP 429 responses show a friendly toast and honour `Retry-After` before retrying.
+- **Reachability:** Follower-only users keep phone tabs on the follower view and get Stats / Racing shortcuts when they follow a single community.
+
 ## 0.55.2 · 2026-10-10 · `afl-marks` · AFL/AFLW guernsey marks
 
 - **AFL / AFLW builder:** Stylised guernsey SVGs (club colours + generic stripe/sash patterns, no logos) on player rows and on AFL legs in the tray, review, and batch slip — jumper number when known. Subtle entrance animation aligned with racing tray chips; honours `prefers-reduced-motion`. Tests: `tests/afl_guernseys.test.js`.

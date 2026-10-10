@@ -16,6 +16,17 @@ test("Home: single-server and single-follow users are not auto-jumped into detai
   assert.match(eh, /renderOverview\(\);/);
 });
 
+test("follower-only lone community keeps phone tabs and Stats/Racing shortcuts", () => {
+  const apex = fs.readFileSync(path.join(__dirname, "..", "assets", "theme-apex.js"), "utf8");
+  assert.match(apex, /var follower = doc\.getElementById\("follower"\)/);
+  assert.match(apex, /if \(follower && !follower\.hidden\) return false;/);
+  const rf = body("renderFollowerView");
+  assert.match(rf, /id="flstatsbtn"/);
+  assert.match(rf, /id="flracebtn"/);
+  assert.match(rf, /openStats\(\)/);
+  assert.match(rf, /openRacingBuilder\(gid,nm\)/);
+});
+
 test("Home: single-server users get Stats, Racing and a one-tap server card", () => {
   const ro = body("renderOverview");
   assert.match(ro, /if\(list\.length\|\|follows\.length\)\{/);
