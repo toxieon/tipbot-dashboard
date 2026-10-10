@@ -895,11 +895,14 @@
     if(isAssumed(team)){ return filterPlayers(sortPlayers(fullSquad(team))); }
     return [];
   }
-  // Team colours for the guernsey icon (most specific keys first).
-  const TEAMCOLORS=[["adelaide","#0a2240"],["brisbanelions","#7a002e"],["brisbane","#7a002e"],["carlton","#0e1e3d"],["collingwood","#0b0b0b"],["essendon","#c8102e"],["fremantle","#33006f"],["goldcoast","#d0112b"],["greaterwesternsydney","#f47a20"],["gwsgiants","#f47a20"],["gws","#f47a20"],["giants","#f47a20"],["hawthorn","#4d2004"],["northmelbourne","#013a81"],["kangaroos","#013a81"],["portadelaide","#01b3ac"],["power","#01b3ac"],["geelong","#0a2240"],["richmond","#141414"],["stkilda","#ed1b2e"],["saints","#ed1b2e"],["sydneyswans","#e1231f"],["swans","#e1231f"],["westcoast","#062f6c"],["eagles","#062f6c"],["westernbulldogs","#0a37a0"],["bulldogs","#0a37a0"],["sydney","#e1231f"],["melbourne","#0b1a4d"],["demons","#0b1a4d"]];
-  function teamColor(name){ const k=String(name||"").toLowerCase().replace(/[^a-z]/g,""); for(var i=0;i<TEAMCOLORS.length;i++){ if(k.indexOf(TEAMCOLORS[i][0])>=0)return TEAMCOLORS[i][1]; } return "#2a3550"; }
-  function textOn(hex){ const c=hex.replace("#",""); const r=parseInt(c.substr(0,2),16),gg=parseInt(c.substr(2,2),16),b=parseInt(c.substr(4,2),16); return (0.299*r+0.587*gg+0.114*b)>140?"#111":"#fff"; }
-  function guernsey(num,name){ const col=teamColor(name),tc=textOn(col); return '<svg width="34" height="34" viewBox="0 0 40 40" style="flex:none" aria-hidden="true"><path d="M13 4 L20 8 L27 4 L34 11 L29.5 17 L29.5 34 Q29.5 37 26.5 37 L13.5 37 Q10.5 37 10.5 34 L10.5 17 L6 11 Z" fill="'+col+'" stroke="rgba(255,255,255,.18)"/><text x="20" y="26" text-anchor="middle" font-family="inherit" font-size="13" font-weight="800" fill="'+tc+'">'+(num!=null&&num!==""?num:"")+'</text></svg>'; }
+  function playerGuernsey(num, team, staggerIndex){
+    if(window.TBAflGuernseys) return TBAflGuernseys.playerMarkHtml(num, team, staggerIndex);
+    return "";
+  }
+  function aflLegIcon(l, animate){
+    if(window.TBAflGuernseys&&TBAflGuernseys.isAflPlayerLeg(l)) return TBAflGuernseys.legChipHtml(l, animate);
+    return "";
+  }
   // Player form chips (Sportsbet-like last5 / vs opp). Reads in-page caches if TipBot
   // or fixtures ever attach history; otherwise muted "—" placeholders keep layout.
   // Needed TipBot API (document in PR): GET /api/player-form?player=&stat=&vs=
@@ -1030,14 +1033,14 @@
         const cmp=isMarket?'':'<button type="button" class="compare-btn" data-player="'+esc(p.name)+'">Compare</button>';
         const cmpOn=!isMarket&&BUILD.compareSel&&BUILD.compareSel.player===p.name&&BUILD.compareSel.stat===BUILD.tab;
         if(isMarket){
-          html+='<div class="prow"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
+          html+='<div class="prow"><div class="pnum">'+playerGuernsey(p.number,nm,idx)+'</div>'+nameCell
             +'<div class="prow-actions" style="margin-left:auto">'+cmp+'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
           return;
         }
         const step=(BUILD.autoLines || (rowDef!=null && Math.abs(rowDef-Math.round(rowDef))>1e-9))?"0.5":"1";
         const rangeMax=Math.max(mx, Math.ceil(rowDef||0)+5);
         const autoMeta=(BUILD.autoLines?autoPriceHtml(hit):"");
-        html+='<div class="prow'+(cmpOn?' compare-on':'')+'" data-player="'+esc(p.name)+'"><div class="pnum">'+guernsey(p.number,nm)+'</div>'+nameCell
+        html+='<div class="prow'+(cmpOn?' compare-on':'')+'" data-player="'+esc(p.name)+'"><div class="pnum">'+playerGuernsey(p.number,nm,idx)+'</div>'+nameCell
           +'<div class="linectl-wrap"><div class="linectl"><input type="range" min="0" max="'+rangeMax+'" step="'+step+'" value="'+rowDef+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="'+step+'" value="'+rowDef+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +autoMeta+'</div>'
           +'<div class="prow-actions">'+cmp+'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
@@ -1093,6 +1096,10 @@
     const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches||document.documentElement.dataset.motion==="reduce";
     if(l&&l.kind==="racing"&&window.TBRacingLegs){
       return '<span class="chip chip--racing">'+TBRacingLegs.legChipHtml(l,!reduce)+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>';
+    }
+    const afl=aflLegIcon(l,!reduce);
+    if(afl){
+      return '<span class="chip chip--afl">'+afl+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>';
     }
     return '<span class="chip">'+esc(legText(l))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>';
   }
@@ -1198,8 +1205,9 @@
       +'<div class="panel"><h3>'+esc(title)+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3><div class="tb-review-kind">'+TB.multiSummary(BUILD.legs)+'</div>'
       +BUILD.legs.map(l=>{
         const note=lineAdjustNote(l);
-        const icon=(l&&l.kind==="racing"&&window.TBRacingLegs)?TBRacingLegs.legChipHtml(l,false):"";
-        return '<div class="tip'+(l&&l.kind==="racing"?" tip--racing":"")+'">'+(icon?'<div class="tip-racing-mark">'+icon+'</div>':'')
+        const icon=(l&&l.kind==="racing"&&window.TBRacingLegs)?TBRacingLegs.legChipHtml(l,false):aflLegIcon(l,false);
+        const tipKind=(l&&l.kind==="racing")?" tip--racing":(window.TBAflGuernseys&&TBAflGuernseys.isAflPlayerLeg(l)?" tip--afl":"");
+        return '<div class="tip'+tipKind+'">'+(icon?'<div class="tip-leg-mark">'+icon+'</div>':'')
           +'<div class="g">'+esc(legText(l))+'</div>'
           +'<div class="meta">'+esc(l.team||(l&&l.kind==="racing"?(l.meeting_name||"Racing"):(BUILD.custom?(BUILD.customSport||""):"")))+'</div>'
           +(note?'<div class="meta" style="color:var(--accent);margin-top:4px">'+esc(note)+'</div>':'')
@@ -1319,7 +1327,9 @@
       +BATCH.tips.map((tip,i)=>'<div class="tip"><div style="flex:1;min-width:0"><div class="g">'+esc(batchTipLabel(tip))+'</div>'
       +'<div class="meta">'+(tip.legs||[]).map(l=>{
         const nte=lineAdjustNote(l);
-        return esc(legText(l))+(nte?' <span style="color:var(--accent)">('+esc(nte)+')</span>':'');
+        const mark=(window.TBAflGuernseys&&TBAflGuernseys.isAflPlayerLeg(l))?TBAflGuernseys.miniGuernseyHtml(l.team,l.number,false):"";
+        const txt=esc(legText(l))+(nte?' <span style="color:var(--accent)">('+esc(nte)+')</span>':'');
+        return mark?('<span class="batch-leg-line">'+mark+'<span>'+txt+'</span></span>'):txt;
       }).join(" · ")+'</div></div>'
       +'<button type="button" class="ghost" data-rm="'+i+'" aria-label="Remove tip '+(i+1)+'">Remove</button></div>').join("")
       +'</div>'
@@ -1549,7 +1559,7 @@
       img.src=url;
     });
   }
-  // TipBot 0.55.1: a handmade game is refused with this sentence.
+  // TipBot 0.55.2: a handmade game is refused with this sentence.
   function scheduleRefusal(j, raw){
     const exact="Custom games aren't available in this server.";
     const bits=[];

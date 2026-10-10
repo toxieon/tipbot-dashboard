@@ -1191,8 +1191,24 @@ html[data-theme="ochre"] #race-app {
   .tray-horse-gallop { animation:none !important; }
 }
 [data-motion="reduce"] .tray-horse-gallop { animation:none !important; }
-.tip--racing { display:flex; gap:10px; align-items:flex-start; }
-.tip-racing-mark .tray-leg-txt { display:none; }
+.tip--racing, .tip--afl { display:flex; gap:10px; align-items:flex-start; }
+.tip-leg-mark .tray-leg-txt { display:none; }
+.tray .chip--afl { display:inline-flex; align-items:center; gap:8px; max-width:100%; }
+.tray-guernsey { flex:none; display:inline-grid; place-items:center; }
+.tray-guernsey svg { display:block; }
+@keyframes tray-guernsey-pop { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-2px); } }
+.tray-guernsey-pop { animation:tray-guernsey-pop .5s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .tray-guernsey-pop { animation:none !important; }
+}
+[data-motion="reduce"] .tray-guernsey-pop { animation:none !important; }
+#players .guernsey-mark { flex:none; display:inline-grid; place-items:center; opacity:0; transform:translateY(6px) scale(.9); animation:guernsey-row-in .45s var(--ease, ease) forwards; animation-delay:calc(var(--gi, 0) * 35ms); }
+@keyframes guernsey-row-in { to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) {
+  #players .guernsey-mark { animation:none; opacity:1; transform:none; }
+}
+[data-motion="reduce"] #players .guernsey-mark { animation:none; opacity:1; transform:none; }
+.batch-leg-line { display:inline-flex; align-items:center; gap:6px; vertical-align:middle; }
 #race-app .rg { text-align:center; color:var(--muted); font:500 var(--t-cap)/1 var(--font); letter-spacing:.02em; margin-top:14px; }
 #race-app .top { position:absolute; inset:0 0 auto 0; height:var(--header-h); display:flex; align-items:center; gap:10px; padding:0 16px 0 10px; z-index:6; }
 #race-app .top .back { width:36px; height:36px; display:grid; place-items:center; color:var(--text); cursor:pointer; }
