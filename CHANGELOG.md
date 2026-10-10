@@ -1,3 +1,7 @@
+## Unreleased
+
+- **AFL / AFLW builder:** Original isometric stadium SVG heroes on AFL game cards and the in-game builder view, mapped from venue name (MCG, Marvel, Adelaide Oval, Optus, Gabba, SCG, Engie/Giants, GMHBA, Carrara, Bellerive/UTAS, Manuka, Norwood, and other grounds in use) with a generic fallback. Subtle drift animation; honours `prefers-reduced-motion`. Tests: `tests/afl_stadiums.test.js`.
+
 ## 0.55.2 · 2026-10-10 · `afl-marks` · AFL/AFLW guernsey marks
 
 - **AFL / AFLW builder:** Stylised guernsey SVGs (club colours + generic stripe/sash patterns, no logos) on player rows and on AFL legs in the tray, review, and batch slip — jumper number when known. Subtle entrance animation aligned with racing tray chips; honours `prefers-reduced-motion`. Tests: `tests/afl_guernseys.test.js`.

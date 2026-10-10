@@ -726,10 +726,11 @@
       const compBadge=hasMulti?' <span class="compbadge'+(compName==="AFLW"?" aflw":"")+'">'+esc(sportLabel(compName))+'</span>':'';
       const ht=g.hteam, at=g.ateam;
       return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'>'
-        +'<div class="rd">'+(g.roundname||"")+' · '+fmtGameWhen(g)+liveBadge+compBadge+'</div>'
+        +aflStadiumCardHero(g.venue)
+        +'<div class="gcard-inner"><div class="rd">'+(g.roundname||"")+' · '+fmtGameWhen(g)+liveBadge+compBadge+'</div>'
         +'<div class="espn-teamrow">'+aflLogoHtml(ht)+'<span class="espn-tname">'+esc(teamName(ht)||"Home")+'<small>Home</small></span></div>'
         +'<div class="espn-teamrow">'+aflLogoHtml(at)+'<span class="espn-tname">'+esc(teamName(at)||"Away")+'</span></div>'
-        +'<div class="vn">'+(g.venue||"")+'</div></div>';
+        +'<div class="vn">'+(g.venue||"")+'</div></div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
     $("bx").onclick=builderBackToServer;
@@ -794,6 +795,7 @@
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
+      +'<div class="afl-game-hero">'+aflStadiumGameHero(g.venue)+'<div class="afl-game-hero-cap">'+esc(g.venue||"")+'</div></div>'
       +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:var(--r-md);background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
         +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:var(--t-sub)">△ Assumption mode</div><div style="color:var(--muted);font-size:var(--t-foot);margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
         +'<button id="assumetoggle" class="toggle '+(BUILD.assume?"on":"")+'" style="flex:none"></button></div>'):"")
@@ -901,6 +903,14 @@
   }
   function aflLegIcon(l, animate){
     if(window.TBAflGuernseys&&TBAflGuernseys.isAflPlayerLeg(l)) return TBAflGuernseys.legChipHtml(l, animate);
+    return "";
+  }
+  function aflStadiumCardHero(venue){
+    if(window.TBAflStadiums) return TBAflStadiums.cardHeroHtml(venue);
+    return "";
+  }
+  function aflStadiumGameHero(venue){
+    if(window.TBAflStadiums) return TBAflStadiums.gameHeroHtml(venue);
     return "";
   }
   // Player form chips (Sportsbet-like last5 / vs opp). Reads in-page caches if TipBot
