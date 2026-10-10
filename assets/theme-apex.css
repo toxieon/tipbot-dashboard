@@ -1034,6 +1034,7 @@ html[data-theme="apex"] .home-stats-tile{margin-bottom:14px}
   cursor:pointer;
 }
 #builder:has(#race-app) > .apex-flow,
+#builder:has(#afl-app) > .apex-flow,
 #builder:has(#tile-racing) > .apex-flow,
 #builder:has(#racing-cat-tabs) > .apex-flow,
 #builder:has(#racing-meeting-detail) > .apex-flow{
@@ -1074,7 +1075,59 @@ html[data-theme="ochre"] #race-app {
   --race-glow:rgba(224,160,74,.2); --race-shadow:rgba(0,0,0,.6); --speed:rgba(246,239,230,.2);
 }
 
-
+/* AFL game page — stadium hero (scoped to #afl-app) */
+#afl-app {
+  --afl-hero-h:280px; --afl-hero-compact:148px;
+  position:relative; width:100%; min-height:min(100dvh, 920px); max-width:100%;
+  overflow-x:clip; overflow-y:auto; background:var(--bg);
+}
+#afl-app .afl-hero-bg {
+  position:absolute; left:0; right:0; top:0; height:var(--afl-hero-h); z-index:0; pointer-events:none; overflow:hidden;
+  opacity:0; transition:opacity .55s var(--ease), height .64s var(--ease);
+}
+#afl-app.is-in .afl-hero-bg { opacity:1; }
+#afl-app.is-compact .afl-hero-bg { height:var(--afl-hero-compact); opacity:.94; }
+#afl-app .afs-scene {
+  position:absolute; inset:0; display:grid; place-items:center;
+  transform-origin:50% 72%; perspective:900px; will-change:transform;
+}
+#afl-app .afs-svg--hero { width:min(520px, 118%); height:auto; max-height:100%; display:block; filter:saturate(1.05); }
+#afl-app .afs-glow {
+  position:absolute; inset:0;
+  background:radial-gradient(70% 60% at 50% 55%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 72%);
+  opacity:.85;
+}
+#afl-app .afl-body {
+  position:relative; z-index:2;
+  margin-top:calc(var(--afl-hero-compact) - 8px);
+  padding:0 0 120px;
+  transform:translateY(calc(var(--afl-hero-h) - var(--afl-hero-compact) + 12px));
+  opacity:0; transition:transform .64s var(--ease), opacity .5s var(--ease) .12s;
+  background:linear-gradient(var(--bg) 0, color-mix(in srgb, var(--bg) 90%, transparent) 40px, var(--bg) 72px);
+}
+#afl-app .afl-body::before {
+  content:""; position:absolute; left:0; right:0; top:-24px; height:24px;
+  background:linear-gradient(transparent, var(--bg)); pointer-events:none;
+}
+#afl-app.is-in .afl-body { opacity:1; }
+#afl-app.is-compact .afl-body { transform:none; opacity:1; }
+#afl-app .afl-venue-tag { font-size:var(--t-foot); color:var(--muted); font-weight:600; }
+#builder .gcard { position:relative; overflow:hidden; }
+#builder .gcard-stadium {
+  position:absolute; inset:0 0 auto 0; height:72px; opacity:.42; pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 55%, transparent); mask:linear-gradient(#000 0 55%, transparent);
+}
+#builder .gcard-stadium .afs-svg--card { width:100%; height:100%; display:block; object-fit:cover; }
+#builder .gcard .rd { position:relative; z-index:1; }
+#builder .gcard .espn-teamrow, #builder .gcard .vn { position:relative; z-index:1; }
+@media (prefers-reduced-motion: reduce) {
+  #afl-app .afl-hero-bg, #afl-app .afl-body, #afl-app .afs-scene { transition:none !important; }
+  #afl-app .afs-scene { transform:none !important; }
+}
+[data-motion="reduce"] #afl-app .afl-hero-bg,
+[data-motion="reduce"] #afl-app .afl-body,
+[data-motion="reduce"] #afl-app .afs-scene { transition:none !important; }
+[data-motion="reduce"] #afl-app .afs-scene { transform:none !important; }
 
 /* ---------- hero ---------- */
 #race-app .hero { position:absolute; left:0; right:0; top:0; height:var(--hero-h); z-index:1; pointer-events:none;
