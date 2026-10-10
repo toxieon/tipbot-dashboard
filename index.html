@@ -321,63 +321,8 @@
   .err{color:var(--loss)}
   /* builder */
   .gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-  .gcard{position:relative;overflow:hidden;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:0;cursor:pointer;transition:border-color .12s,transform .12s;min-width:0}
+  .gcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:border-color .12s,transform .12s}
   .gcard:hover{border-color:#3a4772}
-  .gcard .gcard-inner{position:relative;z-index:1;padding:16px;background:linear-gradient(180deg,color-mix(in srgb,var(--card) 72%,transparent) 0%,var(--card) 38%)}
-  .gcard .afl-stadium-hero--card{position:absolute;inset:0;z-index:0;opacity:.55;pointer-events:none}
-  .gcard .afl-stadium-hero--card .afl-stadium-tilt{position:absolute;right:-8%;bottom:-18%;width:88%;max-width:320px;transform-origin:60% 80%}
-  .gcard .afl-stadium-svg{width:100%;height:auto;display:block;max-width:100%}
-  .afl-stadium-hero .afl-stadium-tilt{perspective:520px}
-  .afl-stadium-scene{transform-origin:50% 65%}
-  @media (prefers-reduced-motion:no-preference){
-    .gcard .afl-stadium-hero--card .afl-stadium-scene{animation:afl-stadium-drift 56s ease-in-out infinite alternate}
-    .afl-game-hero .afl-stadium-scene{animation:afl-stadium-drift 72s ease-in-out infinite alternate}
-  }
-  @keyframes afl-stadium-drift{from{transform:rotate(-2deg) scale(1)}to{transform:rotate(2deg) scale(1.03)}}
-  .afl-game-hero{position:relative;margin:0 0 14px;border-radius:var(--r-md);border:1px solid var(--line);overflow:hidden;min-height:108px;background:var(--card2);max-width:100%}
-  .afl-game-hero .afl-stadium-hero--game{position:absolute;inset:0;opacity:.62}
-  .afl-game-hero .afl-stadium-tilt{position:absolute;inset:-6% 0 0;transform:translateY(4%)}
-  .afl-game-hero-cap{position:relative;z-index:1;padding:10px 14px;font-size:var(--t-foot);color:var(--muted);font-weight:600;letter-spacing:.02em;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--card) 88%,transparent))}
-  .match-centre-host{max-width:100%;min-width:0;margin:0 0 14px}
-  .match-centre{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--card2);max-width:100%}
-  .match-centre .mc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px 6px;font-size:var(--t-cap);letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-  .match-centre .mc-badge{color:#e5484d;font-weight:800}
-  .match-centre.mc-upcoming .mc-badge{color:var(--muted)}
-  .match-centre .mc-venue{color:var(--muted);font-weight:600;text-transform:none;letter-spacing:.02em;font-size:var(--t-foot);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .match-centre .mc-stage-wrap{position:relative;min-height:148px;overflow:hidden}
-  .match-centre .mc-stadium-stage{position:absolute;inset:0;opacity:.72}
-  .match-centre .mc-stadium-tilt{position:absolute;inset:-4% 0 8%;transform-origin:50% 72%}
-  .match-centre .mc-stadium-stage .afl-stadium-svg{width:100%;height:auto;display:block;max-width:100%}
-  .match-centre .mc-posts{position:absolute;left:50%;top:18%;width:52px;height:28px;margin-left:-26px;pointer-events:none}
-  .match-centre .mc-post{position:absolute;bottom:0;width:3px;height:22px;background:#e8ecf4;border-radius:1px;opacity:.85}
-  .match-centre .mc-post-l{left:4px}.match-centre .mc-post-r{right:4px}
-  .match-centre .mc-ball{position:absolute;left:50%;top:62%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#f5dd7a;box-shadow:0 0 0 2px rgba(0,0,0,.25);opacity:0;transform:translate3d(0,0,0)}
-  .match-centre .mc-burst{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 32%,rgba(255,220,120,.45),transparent 55%);pointer-events:none}
-  .match-centre .mc-scoreline{position:relative;z-index:2;display:flex;justify-content:space-between;gap:12px;padding:10px 14px 12px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--card) 92%,transparent))}
-  .match-centre .mc-team{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .match-centre .mc-away{align-items:flex-end;text-align:right}
-  .match-centre .mc-tname{font-size:var(--t-foot);color:var(--muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .match-centre .mc-tscore{font-size:var(--t-h2);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
-  .match-centre .mc-tdet{font-size:var(--t-cap);color:var(--faint)}
-  .match-centre .mc-foot{padding:8px 12px 12px;border-top:1px solid var(--line);background:var(--card)}
-  .match-centre .mc-clock-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:var(--t-foot)}
-  .match-centre .mc-clock{font-weight:700;color:var(--txt)}
-  .match-centre .mc-worm-lab{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.05em}
-  .match-centre .mc-worm{max-width:100%;overflow:hidden}
-  .match-centre .mc-worm-svg{width:100%;height:48px;display:block;max-width:100%}
-  .match-centre .mc-ticker{margin-top:8px;font-size:var(--t-foot);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  @media (prefers-reduced-motion:no-preference){
-    .match-centre .mc-stadium-stage.mc-anim-push .mc-stadium-tilt{animation:mc-push 1.1s cubic-bezier(.22,1,.36,1) both}
-    .match-centre .mc-ball.mc-ball-fly{animation:mc-ball-goal 1.2s cubic-bezier(.45,.05,.25,1) both;opacity:1}
-    .match-centre .mc-ball.mc-ball-fly-behind{animation:mc-ball-behind .85s cubic-bezier(.45,.05,.25,1) both;opacity:1}
-    .match-centre .mc-burst.mc-burst-on{animation:mc-burst .9s ease-out both}
-  }
-  @keyframes mc-push{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
-  @keyframes mc-ball-goal{0%{opacity:0;transform:translate3d(-40px,30px,0) scale(.7)}25%{opacity:1}70%{transform:translate3d(0,-48px,0) scale(1)}100%{opacity:0;transform:translate3d(6px,-72px,0) scale(.85)}}
-  @keyframes mc-ball-behind{0%{opacity:0;transform:translate3d(-24px,18px,0)}30%{opacity:1}100%{opacity:0;transform:translate3d(0,-32px,0) scale(.9)}}
-  @keyframes mc-burst{0%{opacity:0}20%{opacity:.85}100%{opacity:0}}
-  .match-centre .mc-stadium-stage.mc-flash-goal,.match-centre .mc-stadium-stage.mc-flash-behind{animation:mc-flash .35s ease-out}
-  @keyframes mc-flash{0%{filter:brightness(1)}50%{filter:brightness(1.25)}100%{filter:brightness(1)}}
   .gcard .rd{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
   .gcard .mt{font-weight:700;font-size:var(--t-h3)}.gcard .vn{color:var(--muted);font-size:var(--t-foot);margin-top:6px}
   .gcard .espn-teamrow{display:flex;align-items:center;gap:10px;margin:8px 0}
@@ -1297,9 +1242,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/lines.js?v=0.55.2"></script>
 <script src="./assets/racing-legs.js?v=0.55.2"></script>
 <script src="./assets/afl-guernseys.js?v=0.55.2"></script>
-<script src="./assets/afl-stadiums.js?v=0.55.2"></script>
-<script src="./assets/match-fx.js?v=0.55.2"></script>
-<script src="./assets/match-centre.js?v=0.55.2"></script>
 <script src="./assets/compare-ui.js?v=0.55.2"></script>
 <script src="./assets/sport-keywords.js?v=0.55.2"></script>
 <script src="./assets/sport-marks.js?v=0.55.2"></script>

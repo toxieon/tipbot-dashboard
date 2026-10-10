@@ -1,7 +1,6 @@
 ## Unreleased
 
-- **AFL / AFLW builder:** Original isometric stadium SVG heroes on AFL game cards and the in-game builder view, mapped from venue name (MCG, Marvel, Adelaide Oval, Optus, Gabba, SCG, Engie/Giants, GMHBA, Carrara, Bellerive/UTAS, Manuka, Norwood, and other grounds in use) with a generic fallback. Subtle drift animation; honours `prefers-reduced-motion`. Tests: `tests/afl_stadiums.test.js`.
-- **AFL Match Centre:** bet365-style live panel on each AFL game page (live or upcoming): stadium scene, scoreline, momentum worm, quarter clock and last-event ticker; goal/behind FX via `window.TBMatchFx.goal(venue)` / `behind(venue)` (pairs with goal/point animations PR). Reuses existing `/api/live-stats` polling only. Handoff: `docs/match_centre.md`. Tests: `tests/match_centre.test.js`.
+- **AFL stadium assets:** Standalone isometric SVG per home ground under `assets/stadiums/<venue>.svg` plus `venues.js` alias map and `generic.svg`. Match Centre **lab** prototype at `labs/match-centre/` (not shipped; `labs` added to public-build `DENY_DIRS`). Integration handoff: `docs/match_centre.md`. Tests: `tests/stadium_assets.test.js`.
 
 ## 0.55.2 · 2026-10-10 · `afl-marks` · AFL/AFLW guernsey marks
 

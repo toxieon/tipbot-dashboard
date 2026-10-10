@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>AFL Match Centre lab</title>
+  <link rel="stylesheet" href="./match-centre.css">
+</head>
+<body>
+  <h1>AFL Match Centre (lab)</h1>
+  <p class="lead">Prototype only — not shipped in the dashboard. Uses <code>assets/stadiums/*.svg</code> and exposes <code>TBMatchFx</code> for integration with goal/point animations.</p>
+  <div class="lab-actions">
+    <button type="button" id="btn-goal">Simulate goal (home)</button>
+    <button type="button" id="btn-behind">Simulate behind (away)</button>
+    <button type="button" id="btn-venue">Cycle venue</button>
+  </div>
+  <div id="match-centre" class="match-centre-host" aria-label="Match centre prototype"></div>
+  <script>
+    window.MATCH_CENTRE_LAB = { stadiumBase: "../../assets/stadiums/" };
+  </script>
+  <script src="../../assets/stadiums/venues.js"></script>
+  <script src="./match-fx.js"></script>
+  <script src="./match-centre.js"></script>
+  <script>
+    var venues = ["MCG", "Marvel Stadium", "Adelaide Oval", "Optus Stadium", "Gabba", "SCG", "GMHBA Stadium", "Carrara"];
+    var vi = 0;
+    var game = {
+      venue: venues[0],
+      hteam: { name: "Collingwood" },
+      ateam: { name: "Melbourne" },
+      hgoals: 5,
+      hbehinds: 8,
+      agoals: 4,
+      abehinds: 10,
+      hscore: 38,
+      ascore: 34,
+      complete: 62,
+      live: true,
+      phase: { label: "Q3 6:42" }
+    };
+    var live = { available: true, phase: { label: "Q3 6:42" } };
+    var host = document.getElementById("match-centre");
+    var state = TBMatchCentre.paint(host, game, live, null);
+
+    document.getElementById("btn-goal").onclick = function () {
+      game.hgoals += 1;
+      game.hscore += 6;
+      state = TBMatchCentre.onLiveTick(host, game, live, state);
+      TBMatchFx.goal(game.venue);
+    };
+    document.getElementById("btn-behind").onclick = function () {
+      game.abehinds += 1;
+      game.ascore += 1;
+      state = TBMatchCentre.onLiveTick(host, game, live, state);
+      TBMatchFx.behind(game.venue);
+    };
+    document.getElementById("btn-venue").onclick = function () {
+      vi = (vi + 1) % venues.length;
+      game.venue = venues[vi];
+      state = TBMatchCentre.paint(host, game, live, state);
+    };
+  </script>
+</body>
+</html>

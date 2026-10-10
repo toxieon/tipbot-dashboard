@@ -277,11 +277,6 @@ html[data-theme="apex"] #builder .panel,
 html[data-theme="apex"] #builder .teamplayers{
   transition:padding 320ms cubic-bezier(.22,1,.36,1), border-color 320ms cubic-bezier(.22,1,.36,1);
 }
-html[data-theme="apex"] #builder .gcard .gcard-inner{padding:18px 16px}
-html[data-theme="apex"] #builder .afl-game-hero{border-color:color-mix(in srgb,var(--line) 80%,transparent);margin-bottom:16px}
-html[data-theme="apex"] #builder .gcard .afl-stadium-hero--card{opacity:.48}
-html[data-theme="apex"] #builder .match-centre{border-color:color-mix(in srgb,var(--line) 80%,transparent)}
-html[data-theme="apex"] #builder .match-centre .mc-foot{background:color-mix(in srgb,var(--card) 96%,transparent)}
 html[data-theme="apex"] #builder .apex-step.is-active{
   padding:18px 16px;
   border-color:color-mix(in srgb, var(--accent) 45%, var(--line));

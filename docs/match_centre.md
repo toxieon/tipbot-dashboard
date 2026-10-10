@@ -1,108 +1,77 @@
-# AFL Match Centre (builder)
+# AFL Match Centre — asset handoff (integration)
 
-Handoff for the bet365-style **Match Centre** on AFL/AFLW builder game pages in tipdash. Original SVG/CSS only; no third-party match-centre widgets or broadcast assets.
+This document describes **standalone assets** for AFL/AFLW stadium art and a **lab prototype** of the bet365-style Match Centre. Nothing here is wired into `index.html`, `builder.js`, or production CSS yet.
 
-## Goals
-
-- One panel per AFL game page (live **or** upcoming): venue stadium hero, scoreline, quarter clock, momentum worm, last-event ticker.
-- On **goal** / **behind**: ball-through-posts animation inside the stadium scene, camera push-in, burst, score tick — coordinated with `window.TBMatchFx` (goal/point animations PR `bc-2a44bb8b`).
-- **No extra polling**: reuse the existing 30s `refreshLive` → `GET /api/live-stats?match=&complete=` cadence and fixture fields already on `BUILD.game`.
-
-## Architecture
+## Asset layout
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  builder.js renderGame()                                     │
-│    └─ <div id="match-centre">  (shell, once per paint)       │
-│         TBMatchCentre.paint(el, game, live, state)           │
-├─────────────────────────────────────────────────────────────┤
-│  refreshLive(g)  every LIVE_POLL_MS (30s, unchanged)         │
-│    → BUILD.live = /api/live-stats JSON                       │
-│    → applyLiveMatchFields(g, data)  (scores on game object)  │
-│    → TBMatchCentre.onLiveTick(el, g, live, state)          │
-│         ├─ detectEvents(prevSnap, nextSnap)                  │
-│         ├─ TBMatchFx.goal|behind(venue) on scoring events    │
-│         └─ patch DOM (scores, worm, ticker, clock)           │
-├─────────────────────────────────────────────────────────────┤
-│  assets/match-centre.js   TBMatchCentre  (model + render)    │
-│  assets/match-fx.js       TBMatchFx      (animations hook)   │
-│  assets/afl-stadiums.js   TBAflStadiums  (venue SVG)         │
-└─────────────────────────────────────────────────────────────┘
+assets/stadiums/
+  mcg.svg
+  marvel.svg
+  adelaide.svg
+  optus.svg
+  gabba.svg
+  scg.svg
+  giants.svg          # Engie / Sydney Showground
+  gmhba.svg
+  carrara.svg         # People First
+  bellerive.svg
+  manuka.svg
+  norwood.svg
+  yorkpark.svg
+  traeger.svg
+  marrara.svg
+  barossa.svg
+  hands.svg
+  generic.svg         # fallback silhouette
+  venues.js           # id + label + alias map (CommonJS / StadiumVenues)
+
+labs/match-centre/    # NOT in public build (see DENY_DIRS)
+  index.html          # interactive prototype
+  match-centre.js     # panel model + worm + ticker (TBMatchCentre)
+  match-fx.js         # goal/behind FX hook (TBMatchFx)
+  match-centre.css
 ```
 
-### Render layers (bottom → top)
+Each `.svg` is original vector art: isometric oval, stands, light towers, pitch. No photos, logos, or external URLs.
 
-| Layer | Class | Role |
-|-------|--------|------|
-| Stadium | `.mc-stadium-stage` → `TBAflStadiums` SVG | Isometric ground + stands (venue-mapped) |
-| Posts | `.mc-posts` | Goal posts (animation target) |
-| Ball | `.mc-ball` | Flies through posts on goal/behind |
-| Burst | `.mc-burst` | Flash / particles on major scores |
-| Chrome | `.mc-scoreline`, `.mc-clock`, `.mc-worm`, `.mc-ticker` | UI outside the 3D-tilt stage |
+### Venue resolution
 
-`prefers-reduced-motion` (and `html[data-motion=reduce]`) disables ball flight and camera; scores and ticker still update with a short opacity flash.
+```js
+const V = require("./assets/stadiums/venues.js");
+const id = V.venueId("Marvel Stadium"); // "marvel"
+const file = V.svgFile(id);             // "marvel.svg"
+```
 
-## Data sources
+Load in the app with a stable path, e.g. `./assets/stadiums/${id}.svg` (public build ships the whole `assets/` tree except denied files).
 
-### Fixture game (`BUILD.game`)
+## Match Centre prototype (lab)
 
-From `/api/fixtures` lean payload (same object used today for the picker). Relevant fields:
+Open locally: `labs/match-centre/index.html` (serve repo root or `labs/match-centre/` so `../../assets/stadiums/` resolves).
 
-| Field | Use |
-|-------|-----|
-| `venue` | Stadium art via `TBAflStadiums.venueId` |
-| `hteam` / `ateam` | Names in scoreline |
-| `hscore`, `ascore` | Total points |
-| `hgoals`, `hbehinds`, `agoals`, `abehinds` | Preferred scoring-event detection |
-| `complete` | 0–100 progress; live band is `>0 && <100` (same as builder live poll) |
-| `phase` | `{ label, fraction }` when present on game |
-| `date` / `unixtime` | Upcoming kickoff display |
-| `live` | Badge when true |
+**Includes:**
 
-### Live stats (`BUILD.live`)
+- Stadium scene via `<img src="../../assets/stadiums/{venueId}.svg">`
+- Scoreline (totals + goals.behinds), quarter clock, momentum worm, last-event ticker
+- `TBMatchFx.goal(venue)` / `TBMatchFx.behind(venue)` — coordinate with goal/point animations PR `bc-2a44bb8b`
 
-From `GET /api/live-stats?match=<aflMatchId>&complete=<complete>` — **same call and rate** as player rows today.
+**Reduced motion:** `match-centre.css` only runs ball flight / camera push when `prefers-reduced-motion: no-preference`; otherwise a brief brightness flash.
 
-| Field | Use |
-|-------|-----|
-| `available` | Live player stats gate (unchanged) |
-| `phase` | Quarter clock + worm time axis (`label`, `fraction`) |
-| `players` | Not drawn in match centre (still used by player list) |
-| `hscore`, `ascore`, `hgoals`, `hbehinds`, `agoals`, `abehinds` | Merged onto `BUILD.game` when present |
-| `events[]` (optional) | If TipBot adds `{ type, team, player, label }`, used before goal/behind inference |
+## Planned production integration (not implemented)
 
-`applyLiveMatchFields` in `match-centre.js` normalises aliases (`home_score`, nested `match`, etc.) without new endpoints.
+When wiring into the builder game page:
 
-## Event model
+1. **Scripts** (order): `assets/stadiums/venues.js` → match FX → match centre logic (copy or move from `labs/match-centre/` into `assets/` if desired).
+2. **Mount** `<div id="match-centre">` on AFL game view; call `TBMatchCentre.paint(el, game, live, state)` on render.
+3. **Live updates** — reuse existing `refreshLive()` → `GET /api/live-stats?match=&complete=` at **30s** (`LIVE_POLL_MS`). Do not add polling. Merge scores with `TBMatchCentre.applyLiveMatchFields(game, data)` then `onLiveTick`.
+4. **Data** — fixture game fields: `venue`, `hscore`, `ascore`, `hgoals`, `hbehinds`, `agoals`, `abehinds`, `complete`, `phase`. Live payload may mirror those fields; optional future `events[]` on the same endpoint.
+5. **Event detection** — prefer goal/behind counters; fallback decompose point deltas (+6 goal, +1 behind). Fire `TBMatchFx` on scoring events.
+6. **Game cards** — optional card hero: `<img>` or inline SVG from `assets/stadiums/{venueId}.svg` behind card content; respect `overflow:hidden` and reduced motion.
 
-Internal events (`TBMatchCentre.Event`):
+## Public build
 
-| `type` | When | FX |
-|--------|------|-----|
-| `goal` | Home/away goals count increases (or +6 pts if only totals) | `TBMatchFx.goal(venue)` |
-| `behind` | Behinds count increases (or +1 pt) | `TBMatchFx.behind(venue)` |
-| `quarter` | `phase.label` changes (e.g. Q1 → Q2) | ticker only |
-| `final` | `complete >= 100` or phase indicates full time | ticker; FX off |
-
-Ticker shows the latest event; worm appends a point on each score change (margin = home − away).
-
-## Wiring (builder)
-
-1. `renderGame()` inserts `<div id="match-centre" class="match-centre">` and calls `paintMatchCentre()` (wrapper around `TBMatchCentre.paint`).
-2. `openGame()` resets `BUILD._mcState` when the match id changes.
-3. `refreshLive()` after JSON parse: `applyLiveMatchFields(g, data)`, then `onLiveTick` if `#match-centre` is mounted (does **not** re-run full `renderGame` / player list except existing `renderPlayers()`).
-4. External animations PR: call `TBMatchFx.goal(venue)` / `TBMatchFx.behind(venue)` — match centre registers the active stage via `TBMatchFx.bind(matchCentreEl)`.
-
-## Phone / performance
-
-- Panel is `max-width: 100%`, `overflow: hidden`, worm SVG `viewBox` scales down.
-- Animations use CSS transforms on one composited layer; one-shot class toggles (no `requestAnimationFrame` loops).
-- Live poll unchanged (`LIVE_POLL_MS` in `index.html`).
+`labs/` is listed in `DENY_DIRS` in `scripts/build-public.mjs` so prototypes never ship to tipdashhq.com. Stadium SVGs under `assets/stadiums/` **do** ship with the normal `assets/` allowlist.
 
 ## Tests
 
-`tests/match_centre.test.js` — venue map smoke, event detection from goals/behinds, score fallback, builder wiring strings, reduced-motion CSS guards.
-
-## Future (TipBot)
-
-Optional richer feed on the **same** `/api/live-stats` response: `events[]`, `worm[]`. Match centre will prefer explicit events when present; no dashboard polling change required.
+`tests/stadium_assets.test.js` — file presence, SVG sanity, venue map, lab path, `labs/` denied from dist.

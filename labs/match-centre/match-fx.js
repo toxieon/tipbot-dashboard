@@ -16,7 +16,7 @@
   }
 
   function venueKey(venue) {
-    if (root.TBAflStadiums && TBAflStadiums.venueId) return TBAflStadiums.venueId(venue);
+    if (root.StadiumVenues && StadiumVenues.venueId) return StadiumVenues.venueId(venue);
     return String(venue || "generic").toLowerCase().replace(/[^a-z0-9]+/g, "") || "generic";
   }
 

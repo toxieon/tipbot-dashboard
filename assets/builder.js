@@ -726,11 +726,10 @@
       const compBadge=hasMulti?' <span class="compbadge'+(compName==="AFLW"?" aflw":"")+'">'+esc(sportLabel(compName))+'</span>':'';
       const ht=g.hteam, at=g.ateam;
       return '<div class="gcard" data-i="'+i+'"'+(g.live?' style="border-color:#e5484d;box-shadow:0 0 0 1px rgba(229,72,77,.25)"':'')+'>'
-        +aflStadiumCardHero(g.venue)
-        +'<div class="gcard-inner"><div class="rd">'+(g.roundname||"")+' · '+fmtGameWhen(g)+liveBadge+compBadge+'</div>'
+        +'<div class="rd">'+(g.roundname||"")+' · '+fmtGameWhen(g)+liveBadge+compBadge+'</div>'
         +'<div class="espn-teamrow">'+aflLogoHtml(ht)+'<span class="espn-tname">'+esc(teamName(ht)||"Home")+'<small>Home</small></span></div>'
         +'<div class="espn-teamrow">'+aflLogoHtml(at)+'<span class="espn-tname">'+esc(teamName(at)||"Away")+'</span></div>'
-        +'<div class="vn">'+(g.venue||"")+'</div></div></div>';
+        +'<div class="vn">'+(g.venue||"")+'</div></div>';
     }).join("")+'</div>'; }
     $("builder").innerHTML=html;
     $("bx").onclick=builderBackToServer;
@@ -746,7 +745,7 @@
   async function openGame(g){
     navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/g/"+encodeURIComponent((g&&(g.id||g.gameid))||""), ()=>openGame(g));
     clearLiveTimer();clearGamesTimer();
-    BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null; BUILD._mcState=null;
+    BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     BUILD.compareSel=null; BUILD.compareCache=null; BUILD.compareSeq=(BUILD.compareSeq||0)+1;
     saveMultiDraft();
     // 6.1c: the games list has no players; fetch only this game's (cached per game).
@@ -781,7 +780,7 @@
     job.p=(async()=>{
       const c=Number(g.complete)||0;
       try{ const data=await (await api("/api/live-stats?match="+encodeURIComponent(g.aflMatchId)+"&complete="+c)).json();
-        if(BUILD.game===g){ BUILD.live=data; tickMatchCentre(g,data); renderPlayers(); } }
+        if(BUILD.game===g){ BUILD.live=data; renderPlayers(); } }
       catch(e){ /* keep the last snapshot on a hiccup */ }
       finally{ if(LIVE_REFRESH===job) LIVE_REFRESH=null; }
     })();
@@ -795,7 +794,6 @@
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
-      +'<div id="match-centre" class="match-centre-host" aria-label="Match centre"></div>'
       +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:var(--r-md);background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
         +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:var(--t-sub)">△ Assumption mode</div><div style="color:var(--muted);font-size:var(--t-foot);margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
         +'<button id="assumetoggle" class="toggle '+(BUILD.assume?"on":"")+'" style="flex:none"></button></div>'):"")
@@ -850,7 +848,6 @@
       };
     }
     paintAutoBarStatus();
-    paintMatchCentre();
     renderPlayers();
     if($("compare-panel")){
       wirePanelCollapse($("builder"));
@@ -905,30 +902,6 @@
   function aflLegIcon(l, animate){
     if(window.TBAflGuernseys&&TBAflGuernseys.isAflPlayerLeg(l)) return TBAflGuernseys.legChipHtml(l, animate);
     return "";
-  }
-  function aflStadiumCardHero(venue){
-    if(window.TBAflStadiums) return TBAflStadiums.cardHeroHtml(venue);
-    return "";
-  }
-  function aflStadiumGameHero(venue){
-    if(window.TBAflStadiums) return TBAflStadiums.gameHeroHtml(venue);
-    return "";
-  }
-  function paintMatchCentre(){
-    const el=$("match-centre");
-    const g=BUILD.game;
-    if(!el||!g||BUILD.espn||BUILD.custom) return;
-    if(window.TBMatchCentre){
-      BUILD._mcState=TBMatchCentre.paint(el,g,BUILD.live,BUILD._mcState||null);
-    }else{
-      el.innerHTML='<div class="afl-game-hero">'+aflStadiumGameHero(g.venue)+'<div class="afl-game-hero-cap">'+esc(g.venue||"")+'</div></div>';
-    }
-  }
-  function tickMatchCentre(g,data){
-    const el=$("match-centre");
-    if(!el||!window.TBMatchCentre||BUILD.espn||BUILD.custom) return;
-    if(data) TBMatchCentre.applyLiveMatchFields(g,data);
-    BUILD._mcState=TBMatchCentre.onLiveTick(el,g,data||BUILD.live,BUILD._mcState||null);
   }
   // Player form chips (Sportsbet-like last5 / vs opp). Reads in-page caches if TipBot
   // or fixtures ever attach history; otherwise muted "—" placeholders keep layout.

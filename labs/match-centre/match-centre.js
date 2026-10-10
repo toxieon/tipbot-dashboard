@@ -57,7 +57,7 @@
       homeName: teamName(game && game.hteam),
       awayName: teamName(game && game.ateam),
       venue: game && game.venue ? String(game.venue) : "",
-      venueId: root.TBAflStadiums ? TBAflStadiums.venueId(game && game.venue) : "generic",
+      venueId: root.StadiumVenues ? StadiumVenues.venueId(game && game.venue) : "generic",
       live: !!(game && game.live),
       inPlay: false,
     };
@@ -199,12 +199,21 @@
     );
   }
 
+  function stadiumAssetUrl(snap) {
+    var base = root.MATCH_CENTRE_LAB && MATCH_CENTRE_LAB.stadiumBase ? MATCH_CENTRE_LAB.stadiumBase : "../../assets/stadiums/";
+    var file = root.StadiumVenues ? StadiumVenues.svgFile(snap.venueId) : snap.venueId + ".svg";
+    return base + file;
+  }
+
   function stadiumBlock(snap) {
-    var svg = root.TBAflStadiums ? TBAflStadiums.stadiumSvg(snap.venue) : "";
+    var art =
+      '<img class="mc-stadium-art" src="' +
+      esc(stadiumAssetUrl(snap)) +
+      '" alt="" decoding="async" width="200" height="120">';
     return (
       '<div class="mc-stadium-stage" aria-hidden="true">' +
       '<div class="mc-stadium-tilt">' +
-      svg +
+      art +
       '<div class="mc-posts"><span class="mc-post mc-post-l"></span><span class="mc-post mc-post-r"></span></div>' +
       '<div class="mc-ball" aria-hidden="true"></div>' +
       '<div class="mc-burst" aria-hidden="true"></div>' +
