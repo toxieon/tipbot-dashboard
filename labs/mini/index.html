@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TB mini lab</title>
+  <link rel="stylesheet" href="../../assets/mini/mini.css">
+  <style>
+    :root{
+      --bg:#07090f;--card:#11141c;--line:#1e2430;--txt:#f5f7fa;--muted:#8b93a7;--accent:#5b8cff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif;padding:24px}
+    h1{font-size:22px;margin:0 0 8px}
+    p{color:var(--muted);margin:0 0 20px;max-width:44rem;line-height:1.5}
+    .grid{display:grid;gap:16px;max-width:760px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+    .card h2{font-size:15px;margin:0 0 12px}
+    button{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer}
+    button:active{transform:scale(.98)}
+    pre{background:#0a0d14;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:13px;color:var(--muted);overflow:auto}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    code{font-size:13px;color:var(--muted)}
+  </style>
+  <script src="../../assets/tbtime.js"></script>
+  <script src="../../assets/mini/copy-tip.js"></script>
+  <script src="../../assets/mini/unit-calc.js"></script>
+  <script src="../../assets/mini/countdown.js"></script>
+</head>
+<body>
+  <h1>TB mini widgets</h1>
+  <p>Standalone helpers under <code>assets/mini/</code>: copy a tip to the clipboard, size stakes from bankroll, and show a start countdown chip.</p>
+  <div class="grid">
+    <div class="card">
+      <h2>Copy tip</h2>
+      <p style="margin:0 0 12px;color:var(--muted);font-size:14px"><code>TBMini.copyTip(tip)</code> formats legs, odds and units, then copies with a toast.</p>
+      <pre id="tip-preview"></pre>
+      <div class="row">
+        <button type="button" id="copy-single">Copy single</button>
+        <button type="button" id="copy-multi">Copy multi</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Unit calculator</h2>
+      <div id="unit-host"></div>
+    </div>
+    <div class="card">
+      <h2>Countdown</h2>
+      <p style="margin:0 0 12px;color:var(--muted);font-size:14px">Live chip from <code>TBMini.countdown(el, startIso)</code>.</p>
+      <div class="row">
+        <span id="cd-soon" class="tb-mini-chip"></span>
+        <span id="cd-live" class="tb-mini-chip"></span>
+      </div>
+    </div>
+  </div>
+  <script>
+    var single = {
+      game_name: "Richmond vs Carlton",
+      legs: [{ desc: "Carlton +4.5", odds: 1.91 }],
+      odds: 1.91,
+      units: 1.5,
+      bookmaker: "Sportsbet",
+    };
+    var multi = {
+      game_name: "Saturday AFL",
+      legs: [
+        { desc: "Carlton +4.5", odds: 1.9 },
+        { desc: "Over 168.5 total", odds: 1.88 },
+        { desc: "Dustin Martin 25+ disposals", odds: 1.75 },
+      ],
+      odds: 6.24,
+      units: 1,
+      bookmaker: "Tab",
+    };
+    document.getElementById("tip-preview").textContent = TBMini.formatTipText(single);
+    document.getElementById("copy-single").onclick = function () { TBMini.copyTip(single); };
+    document.getElementById("copy-multi").onclick = function () { TBMini.copyTip(multi); };
+    TBMini.mountUnitCalc(document.getElementById("unit-host"), {
+      values: { bankroll: 10000, unitPct: 1, units: 2, odds: 1.91 },
+    });
+    var soon = new Date(Date.now() + (2 * 3600 + 14 * 60) * 1000).toISOString();
+    TBMini.countdown(document.getElementById("cd-soon"), soon, { tickMs: 15000 });
+    TBMini.countdown(document.getElementById("cd-live"), new Date(Date.now() - 60000).toISOString(), { tickMs: 60000 });
+  </script>
+</body>
+</html>
