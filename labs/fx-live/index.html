@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TB live FX lab</title>
+  <style>
+    :root{
+      --tblfx-bg:#07090f;
+      --tblfx-card:#11141c;
+      --tblfx-line:#1e2430;
+      --tblfx-txt:#f5f7fa;
+      --tblfx-muted:#8b93a7;
+      --tblfx-accent:#5b8cff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--tblfx-bg);color:var(--tblfx-txt);font-family:system-ui,sans-serif;padding:24px}
+    h1{font-size:22px;margin:0 0 8px}
+    p{color:var(--tblfx-muted);margin:0 0 20px;max-width:44rem;line-height:1.5}
+    .grid{display:grid;gap:16px;max-width:820px}
+    .card{background:var(--tblfx-card);border:1px solid var(--tblfx-line);border-radius:14px;padding:20px;min-height:160px;position:relative}
+    .card h2{font-size:15px;margin:0 0 12px;position:relative;z-index:1}
+    .row{display:flex;flex-wrap:wrap;gap:10px;position:relative;z-index:1}
+    button{padding:10px 14px;border-radius:10px;border:1px solid var(--tblfx-line);background:var(--tblfx-card);color:var(--tblfx-txt);cursor:pointer}
+    button:active{transform:scale(.98)}
+    code{font-size:13px;color:var(--tblfx-muted)}
+    .stage{position:absolute;inset:12px;border-radius:10px;overflow:hidden}
+  </style>
+  <script src="../../assets/fx/tb-live-fx.js"></script>
+  <script src="../../assets/fx/race-running.js"></script>
+  <script src="../../assets/fx/afl-match.js"></script>
+</head>
+<body>
+  <h1>Live FX lab</h1>
+  <p>Looping race and AFL vignettes for in-play moments. Load from <code>assets/fx/</code> and call <code>TBLiveFx.race</code> or <code>TBLiveFx.afl</code>. Use <code>TBLiveFx.stop()</code> to tear down.</p>
+  <div class="grid">
+    <div class="card">
+      <h2>Gallops in progress</h2>
+      <div class="row">
+        <button type="button" id="play-race">Play sample field</button>
+        <button type="button" id="stop-race">Stop</button>
+      </div>
+      <div class="stage" id="race-host"></div>
+    </div>
+    <div class="card">
+      <h2>AFL stick-figure loop</h2>
+      <div class="row">
+        <button type="button" id="play-afl">Play Geelong vs Carlton colours</button>
+        <button type="button" id="stop-afl">Stop</button>
+      </div>
+      <div class="stage" id="afl-host"></div>
+    </div>
+  </div>
+  <script>
+    var runners = [
+      { number: 1, colours: "navy, white" },
+      { number: 4, colours: "blue, white" },
+      { number: 7, colours: "yellow, black" },
+      { number: 11, colours: "red, white" },
+      { number: 14, colours: "green, white" }
+    ];
+    document.getElementById("play-race").onclick = function () {
+      TBLiveFx.race(document.getElementById("race-host"), runners);
+    };
+    document.getElementById("stop-race").onclick = function () {
+      TBLiveFx.stop();
+    };
+    document.getElementById("play-afl").onclick = function () {
+      TBLiveFx.afl(
+        document.getElementById("afl-host"),
+        ["#002B5C", "#FFFFFF"],
+        ["#0E1E2D", "#FFFFFF"]
+      );
+    };
+    document.getElementById("stop-afl").onclick = function () {
+      TBLiveFx.stop();
+    };
+  </script>
+</body>
+</html>
