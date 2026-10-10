@@ -1722,6 +1722,39 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       }
     };
   }
+  function swipeBackPanel(){
+    const ids=["overview","stats","detail","followers","follower","mytips","discover","upcoming","builder","settings","ops"];
+    for(const id of ids){ const p=$(id); if(p&&!p.hidden) return p; }
+    return null;
+  }
+  function swipeBackVisible(){
+    const login=$("login"), app=$("app");
+    return app&&!app.hidden&&login&&login.hidden;
+  }
+  function swipeCanBack(){
+    if(!swipeBackVisible()) return false;
+    const dd=$("dropdown"); if(dd&&!dd.hidden) return false;
+    if(NAV.sheets>0) return true;
+    if(NAV.idx>0) return true;
+    const p=swipeBackPanel();
+    if(!p) return false;
+    const b=p.querySelector(".back");
+    return !!(b&&b.offsetParent!==null&&!b.hidden);
+  }
+  function swipeGoBack(){
+    if(NAV.sheets>0){ history.back(); return; }
+    if(NAV.idx>0){ history.back(); return; }
+    const p=swipeBackPanel();
+    const b=p&&p.querySelector(".back");
+    if(b&&b.offsetParent!==null) b.click();
+  }
+  if(window.TBSwipeBack) TBSwipeBack.wire({
+    enabled: swipeBackVisible,
+    settingsOpen: ()=>{ const dd=$("dropdown"); return dd&&!dd.hidden; },
+    canBack: swipeCanBack,
+    back: swipeGoBack,
+    layer: swipeBackPanel
+  });
     // Force re-auth wave (guilds OAuth) — bump TIPBOT_AUTH_EPOCH to invalidate all local sessions.
   var TIPBOT_AUTH_EPOCH = "2";
   (function forceReauthIfNeeded(){

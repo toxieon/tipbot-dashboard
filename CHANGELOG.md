@@ -1,3 +1,8 @@
+## Unreleased
+
+- **Phone swipe-back:** Swipe from the left screen edge on phones to go back (same path as **← Back** / history). Panel follows your finger with a light edge shadow; reduced motion skips the travel. Ignored on horizontal chip rows, form fields, and while the settings drawer is open.
+- Tests: `tests/swipe_back.test.js`.
+
 ## 0.54.4 · 2026-10-10 · `lists` · Only listed guilds on Home
 
 - Defence in depth for TipBot 0.58.6: `listedOnly()` filters `/api/servers` `servers` and `follower_servers` (both the lite and full loads), dropping any entry without a `guild_id` or flagged `hidden` / `listed:false`, before Home, Stats, the Racing tile or the pickers see them.

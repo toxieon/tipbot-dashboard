@@ -390,6 +390,149 @@
   if (doc && doc.readyState === "loading" && doc.addEventListener) doc.addEventListener("DOMContentLoaded", wireSwitchA11y);
   else wireSwitchA11y();
 
+  /* ── Phone swipe-back (iOS-style edge gesture) ───────────────────────────── */
+  var SWIPE_EDGE = 24;
+  var SWIPE_COMMIT = 80;
+  function touchBlockedTarget(t) {
+    if (!t || !t.closest) return false;
+    return !!t.closest("input,select,textarea,label,[contenteditable]");
+  }
+  function isHorizontalScroller(t, getCS) {
+    while (t && t.nodeType === 1) {
+      if (t.classList && (t.classList.contains("tabs") || t.classList.contains("hr-strip") || t.classList.contains("apex-seg"))) return true;
+      try {
+        var cs = getCS(t);
+        var ox = cs.overflowX;
+        if (ox === "visible" || ox === "hidden") ox = cs.overflow;
+        if ((ox === "auto" || ox === "scroll" || ox === "overlay") && t.scrollWidth > t.clientWidth + 2) return true;
+      } catch (e) {}
+      t = t.parentElement;
+    }
+    return false;
+  }
+  function swipeMostlyHorizontal(dx, dy) {
+    return dx > 0 && dx > Math.abs(dy) * 1.2;
+  }
+  function swipeShouldBegin(x) { return x <= SWIPE_EDGE; }
+  function swipeShouldCommit(dx, dy) { return dx >= SWIPE_COMMIT && swipeMostlyHorizontal(dx, dy); }
+  var SWIPE_CSS = [
+    ".tb-swipe-shade{position:fixed;left:0;top:0;bottom:0;width:14px;pointer-events:none;z-index:90;",
+    "opacity:0;background:linear-gradient(90deg,color-mix(in srgb,var(--txt) 22%,transparent),transparent)}",
+    ".tb-swipe-layer{will-change:transform}",
+    "@media (prefers-reduced-motion:reduce){.tb-swipe-layer{will-change:auto}}",
+    "@media (min-width:641px){.tb-swipe-shade{display:none}}"
+  ].join("\n");
+  function injectSwipeCSS() {
+    if (!doc || !doc.getElementById || doc.getElementById("tb-swipe-css")) return;
+    var s = doc.createElement("style"); s.id = "tb-swipe-css"; s.textContent = SWIPE_CSS;
+    (doc.head || doc.documentElement).appendChild(s);
+  }
+  function wireSwipeBack(opts) {
+    opts = opts || {};
+    if (!doc || !doc.addEventListener) return;
+    injectSwipeCSS();
+    var shade = doc.getElementById("tb-swipe-shade");
+    if (!shade) {
+      shade = doc.createElement("div");
+      shade.id = "tb-swipe-shade";
+      shade.className = "tb-swipe-shade";
+      shade.setAttribute("aria-hidden", "true");
+      doc.body.appendChild(shade);
+    }
+    var drag = null, anim = null;
+    function phone() { return mq("(max-width:640px)"); }
+    function layer() { return (typeof opts.layer === "function" ? opts.layer() : null) || null; }
+    function clearLayer(el) {
+      if (!el || !el.style) return;
+      el.style.transform = "";
+      el.style.boxShadow = "";
+      el.classList.remove("tb-swipe-layer");
+    }
+    function paint(el, dx) {
+      if (!el) return;
+      if (drag) drag.lastFollow = 0;
+      var rm = reduced();
+      var follow = rm ? 0 : Math.min(dx * 0.33, Math.min(140, w.innerWidth * 0.42));
+      if (drag) drag.lastFollow = follow;
+      if (follow > 0.5) {
+        el.classList.add("tb-swipe-layer");
+        el.style.transform = "translate3d(" + follow + "px,0,0)";
+        el.style.boxShadow = "-10px 0 28px color-mix(in srgb, var(--txt) 10%, transparent)";
+        shade.style.opacity = String(Math.min(1, dx / 110));
+      } else {
+        clearLayer(el);
+        shade.style.opacity = "0";
+      }
+    }
+    function cancelDrag() {
+      if (!drag) return;
+      var el = drag.el, from = drag.lastFollow || 0;
+      drag = null;
+      if (anim) anim.stop();
+      if (!el || reduced()) { clearLayer(el); shade.style.opacity = "0"; return; }
+      anim = spring({ from: from, to: 0, velocity: 0, damping: 1, response: 0.28,
+        onUpdate: function (v) { el.style.transform = v > 0.5 ? "translate3d(" + v + "px,0,0)" : ""; shade.style.opacity = String(Math.min(1, v / 110)); },
+        onRest: function () { anim = null; clearLayer(el); shade.style.opacity = "0"; } });
+    }
+    function finishBack(el, fromFollow) {
+      var fire = function () { clearLayer(el); shade.style.opacity = "0"; if (typeof opts.back === "function") opts.back(); };
+      if (!el || reduced()) { fire(); return; }
+      if (anim) anim.stop();
+      var from = fromFollow || 0;
+      anim = spring({ from: from, to: w.innerWidth * 0.38, velocity: 0, damping: 1, response: 0.22,
+        onUpdate: function (v) { el.style.transform = "translate3d(" + v + "px,0,0)"; shade.style.opacity = String(Math.max(0, 1 - v / (w.innerWidth * 0.5))); },
+        onRest: function () { anim = null; fire(); } });
+    }
+    function onStart(e) {
+      if (!phone() || drag) return;
+      if (typeof opts.enabled === "function" && !opts.enabled()) return;
+      if (typeof opts.settingsOpen === "function" && opts.settingsOpen()) return;
+      if (e.touches.length !== 1) return;
+      var t = e.touches[0];
+      if (!swipeShouldBegin(t.clientX)) return;
+      var target = e.target;
+      if (touchBlockedTarget(target)) return;
+      if (isHorizontalScroller(target, function (n) { return w.getComputedStyle(n); })) return;
+      if (typeof opts.canBack === "function" && !opts.canBack()) return;
+      var el = layer();
+      if (!el) return;
+      drag = { x0: t.clientX, y0: t.clientY, el: el, locked: false };
+    }
+    function onMove(e) {
+      if (!drag || e.touches.length !== 1) return;
+      var t = e.touches[0];
+      var dx = t.clientX - drag.x0, dy = t.clientY - drag.y0;
+      if (dx < 0) dx = 0;
+      if (!drag.locked && Math.abs(dy) > 10 && dy > Math.abs(dx)) { cancelDrag(); return; }
+      if (dx > 8) drag.locked = true;
+      if (!swipeMostlyHorizontal(dx, dy) && Math.abs(dy) > 14) { cancelDrag(); return; }
+      paint(drag.el, dx);
+    }
+    function onEnd(e) {
+      if (!drag) return;
+      var t = (e.changedTouches && e.changedTouches[0]) || null;
+      var dx = t ? t.clientX - drag.x0 : 0;
+      var dy = t ? t.clientY - drag.y0 : 0;
+      if (dx < 0) dx = 0;
+      if (swipeShouldCommit(dx, dy)) {
+        var el = drag.el, follow = drag.lastFollow || 0;
+        drag = null;
+        finishBack(el, follow);
+      } else cancelDrag();
+    }
+    doc.addEventListener("touchstart", onStart, { passive: true, capture: true });
+    doc.addEventListener("touchmove", onMove, { passive: true, capture: true });
+    doc.addEventListener("touchend", onEnd, { passive: true, capture: true });
+    doc.addEventListener("touchcancel", onEnd, { passive: true, capture: true });
+  }
+
+  var swipeExports = {
+    EDGE_PX: SWIPE_EDGE, COMMIT_PX: SWIPE_COMMIT,
+    touchBlockedTarget: touchBlockedTarget, isHorizontalScroller: isHorizontalScroller,
+    swipeMostlyHorizontal: swipeMostlyHorizontal, swipeShouldBegin: swipeShouldBegin, swipeShouldCommit: swipeShouldCommit,
+    wire: wireSwipeBack
+  };
+
   w.TBMotion = { reduced: reduced, bump: bump, tick: tick, spring: spring, project: project };
   w.TBSheet = {
     hooks: null, // {open(api), close(api, reason)} — the dashboard's router uses these (0.43.1)
@@ -397,5 +540,7 @@
     top: function () { return STACK[STACK.length - 1] || null; },
     closeTop: function (reason) { var t = STACK[STACK.length - 1]; if (t && t.dismissible) { t.close(reason || { via: "back" }); return true; } return false; }
   };
+  w.TBSwipeBack = swipeExports;
   wireSwitchRows();
+  if (typeof module !== "undefined" && module.exports) module.exports = swipeExports;
 }).call(this);
