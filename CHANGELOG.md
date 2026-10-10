@@ -1,3 +1,7 @@
+## Unreleased
+
+- **`/welcome/`** — Public preview rebuilt around the current TipDash Apex product: example phone mockups for the tab shell, Stats, Racing (opening prices, hero, silks, track map), AFL guernseys, cross-game multis, theme variants, and swipe-back. Clearly labelled example data only; no admin surfaces.
+
 ## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
