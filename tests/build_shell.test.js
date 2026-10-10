@@ -21,6 +21,8 @@ test("Build tab opens sports flow; Racing chip is in the sports picker", () => {
   const b = read("assets/builder.js");
   assert.match(b, /async function openBuilder\(guildId, name\) \{[\s\S]{0,120}openSportsBuilder\(guildId, name, true\)/);
   assert.match(b, /id="build-racing-switch"/);
+  assert.match(b, /id="slipimportbtn"/);
+  assert.match(b, /Import from screenshot/);
   assert.doesNotMatch(b, /Ready to build/);
   assert.doesNotMatch(b, /tile-sports/);
 });

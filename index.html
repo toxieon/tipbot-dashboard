@@ -7393,6 +7393,7 @@ async function loadPerms(gid){
   function openCustom(){ return TD.call("builder", "openCustom", this, arguments); }
   function openRacingBuilder(){ return TD.call("builder", "openRacingBuilder", this, arguments); }
   function openSportsBuilder(){ return TD.call("builder", "openSportsBuilder", this, arguments); }
+  function openSlipImport(){ return TD.call("slip-ocr-ui", "openSlipImport", this, arguments); }
 
   function openUpcomingHome(){
     if(BUILD&&BUILD.guildId) return openUpcoming(BUILD.guildId, BUILD.serverName);
