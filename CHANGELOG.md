@@ -1,4 +1,4 @@
-## Unreleased
+## 0.55.3 · 2026-10-10 · `ci` · CI, Stats summary, jumper contrast
 
 - **Stats:** Home Stats loads settled tips from `GET /api/server/settled-summary` per server, falling back to `/api/server` when the summary endpoint is missing or empty.
 - **Guernseys:** Jumper numbers on white-striped clubs (Carlton, Collingwood, Geelong, North, St Kilda, Bulldogs) sit on a primary-colour plate for contrast.
