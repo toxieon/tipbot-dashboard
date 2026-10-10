@@ -1,4 +1,4 @@
-## Unreleased
+## 0.54.5 · 2026-10-10 · `gestures` · Phone swipe-back
 
 - **Phone swipe-back:** Swipe from the left screen edge on phones to go back (same path as **← Back** / history). Panel follows your finger with a light edge shadow; reduced motion skips the travel. Ignored on horizontal chip rows, form fields, and while the settings drawer is open.
 - Tests: `tests/swipe_back.test.js`.
