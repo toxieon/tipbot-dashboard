@@ -85,11 +85,7 @@ export function startMockSite() {
     const server = createServer((req, res) => {
       const url = new URL(req.url || "/", "http://127.0.0.1");
       if (url.pathname.startsWith("/api/")) {
-        const key = url.pathname + (url.search && url.search.startsWith("?guild_id=") ? "?" + url.search.slice(1).split("&")[0] : "");
-        let body = MOCK[url.pathname] || MOCK[key];
-        if (!body && url.pathname === "/api/server") body = MOCK["/api/server"];
-        if (!body && url.pathname === "/api/servers") body = MOCK["/api/servers"];
-        if (!body) body = { ok: true };
+        const body = mockBodyForPath(url.pathname, url.search);
         res.writeHead(200, {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
@@ -143,7 +139,89 @@ export function authInitScript() {
   };
 }
 
+function sydneyToday() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function shiftDay(day, delta) {
+  const [y, m, d] = day.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + delta));
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Last two Sydney race days, newest major meeting first once the page sorts them. */
+export function horseResultsFixture() {
+  const today = sydneyToday();
+  const yesterday = shiftDay(today, -1);
+  return {
+    meetings: [
+      {
+        track: "Wagga",
+        state: "NSW",
+        date: today,
+        races: [
+          {
+            number: 4,
+            name: "Country Plate",
+            distance: 1400,
+            start_time: today + "T07:10:00Z",
+            condition: "Soft 5",
+            runners: [
+              { position: 1, horse_name: "Night Mail", number: 3, barrier: 1, jockey: "A Joyce", trainer: "P Dunn", opening_win_price: 4.2, margin: 0, colours: "#2E6B4F, #F4E04D" },
+              { position: 2, horse_name: "River Bend", number: 1, barrier: 4, jockey: "B Cole", trainer: "S Hart", opening_win_price: 6, margin: 1.5, colours: "#1B3A6B, #FFFFFF" },
+            ],
+          },
+        ],
+      },
+      {
+        track: "Flemington",
+        state: "VIC",
+        date: today,
+        races: [
+          {
+            number: 7,
+            name: "Mackinnon Stakes",
+            distance: 2000,
+            start_time: today + "T05:05:00Z",
+            condition: "Good 4",
+            runners: [
+              { position: 2, horse_name: "Silver Lane", number: 4, barrier: 2, jockey: "J McNeil", trainer: "C Maher", opening_win_price: 6.5, margin: 0.4, colours: "#C0C6CE, #1A1A1A" },
+              { position: 1, horse_name: "Gold Run", number: 1, barrier: 5, jockey: "D Lane", trainer: "T Busuttin", opening_win_price: 2.4, margin: 0, colours: "#0B1F4A, #E0B84A" },
+              { position: 4, horse_name: "Plain Jane", number: 8, barrier: 9, jockey: "B Melham", trainer: "G Waterhouse", opening_win_price: 15, margin: 3.2, colours: "#F5F7FA, #111318" },
+              { scratched: true, horse_name: "Early Bath", number: 6, barrier: 3, jockey: "H Coffey", trainer: "A Neasham", opening_win_price: 9, colours: "#888888, #DDDDDD" },
+              { position: 3, horse_name: "Bronze Bill", number: 2, barrier: 7, jockey: "M Zahra", trainer: "P Moody", opening_win_price: 8, margin: 1.2, colours: "#8C4A2F, #F3D5B5" },
+            ],
+          },
+        ],
+      },
+      {
+        track: "Randwick",
+        state: "NSW",
+        date: yesterday,
+        races: [
+          {
+            number: 8,
+            name: "The Kosciuszko",
+            distance: 1200,
+            start_time: yesterday + "T04:40:00Z",
+            condition: "Good 4",
+            runners: [
+              { position: 1, horse_name: "Harbour Light", number: 5, barrier: 6, jockey: "J Collett", trainer: "J O'Shea", opening_win_price: 3.1, margin: 0, colours: "#12355B, #FFFFFF" },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export function mockBodyForPath(pathname, search) {
+  if (pathname === "/api/racing/results") return horseResultsFixture();
   const guildQ = search && search.startsWith("?guild_id=") ? "?" + search.slice(1).split("&")[0] : "";
   const key = pathname + guildQ;
   let body = MOCK[pathname] || MOCK[key];

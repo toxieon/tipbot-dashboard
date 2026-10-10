@@ -277,6 +277,71 @@
     } catch (e) {}
   }
 
+  var SILK_FALLBACK =
+    '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="var(--accent)"/><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="none" stroke="rgba(0,0,0,.25)" stroke-width=".8"/></svg>';
+
+  function escHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function safeSilkUrl(u) {
+    var s = String(u || "").trim();
+    if (!/^https?:\/\//i.test(s)) return "";
+    return s;
+  }
+
+  function safeColour(s) {
+    var t = String(s || "").trim();
+    if (!t || !/^[#a-zA-Z0-9(),.%\s-]+$/.test(t)) return "";
+    return t;
+  }
+
+  function explicitColours(runner) {
+    if (!runner) return null;
+    var raw = runner.colours != null ? runner.colours : runner.colors;
+    if (typeof raw === "string" && raw.indexOf(",") >= 0) {
+      var parts = raw.split(",");
+      var p = safeColour(parts[0]);
+      var s = safeColour(parts[1] || parts[0]);
+      if (p && s) return { primary: p, secondary: s };
+    }
+    if (raw && typeof raw === "object" && raw.primary) {
+      var p2 = safeColour(raw.primary);
+      var s2 = safeColour(raw.secondary || raw.primary);
+      if (p2 && s2) return { primary: p2, secondary: s2 };
+    }
+    return null;
+  }
+
+  function colourSilkSvg(c) {
+    return (
+      '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 5.5 13 4c1 1.6 5 1.6 6 0l4 1.5 6 6.2-3.6 3.9L23 13.4V28H9V13.4l-2.4 2.2L3 11.7z" fill="' +
+      escHtml(c.primary) +
+      '"/><path d="M16 6.2 23 13.4V28H16Z" fill="' +
+      escHtml(c.secondary) +
+      '" opacity=".92"/></svg>'
+    );
+  }
+
+  /** Inner silk mark used on race cards (image, or the accent silk). */
+  function silkInnerHtml(runner) {
+    var url = safeSilkUrl(runner && runner.silk_url);
+    if (url) return '<img src="' + escHtml(url) + '" alt="">';
+    return SILK_FALLBACK;
+  }
+
+  /** Race-card silk chip: silk mark plus the runner number badge. */
+  function silkChipHtml(runner) {
+    var num = runner && runner.number != null && runner.number !== "" ? runner.number : runner && runner.runner_number;
+    var label = num != null && num !== "" ? String(num) : "?";
+    var url = safeSilkUrl(runner && runner.silk_url);
+    var colours = explicitColours(runner);
+    var inner = url ? '<img src="' + escHtml(url) + '" alt="">' : (colours ? colourSilkSvg(colours) : SILK_FALLBACK);
+    return '<span class="silk">' + inner + "<b>" + escHtml(label) + "</b></span>";
+  }
+
   function isRacingRejection(j, raw) {
     var bits = [];
     if (j && typeof j === "object") {
@@ -312,6 +377,8 @@
     combinedOpeningOdds: combinedOpeningOdds,
     trackMapSvg: trackMapSvg,
     legChipHtml: legChipHtml,
+    silkInnerHtml: silkInnerHtml,
+    silkChipHtml: silkChipHtml,
     racingPostSupported: racingPostSupported,
     setRacingPostSupported: setRacingPostSupported,
     extraPlacesOn: extraPlacesOn,

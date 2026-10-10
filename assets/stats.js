@@ -397,6 +397,9 @@
     });
     return html + "</div>";
   }
+  function horsesBtn() {
+    return '<button type="button" class="ds-horses" id="ds-horses">Horses</button>';
+  }
   function emptyBlock(title, body) {
     return '<section class="ds-panel"><h3>' + esc(title) + '</h3><div class="ds-empty">' + esc(body) + "</div></section>";
   }
@@ -408,7 +411,7 @@
     }
     var html = '<div class="ds-page">'
       + '<div class="back" id="ds-back">← Back</div>'
-      + '<div class="dhead"><h1 style="margin:0">Stats</h1></div>'
+      + '<div class="dhead"><h1 style="margin:0">Stats</h1>' + horsesBtn() + "</div>"
       + '<div class="ds-win" role="group" aria-label="Time window">' + tab("7", "7d") + tab("30", "30d") + tab("season", "Season") + "</div>";
     if (!stats.count) {
       html += '<div class="ds-empty ds-empty-lg"><p>No settled tips in this window yet.</p><p class="ds-empty-sub">Grade a few tips and they land here — 7 days, 30 days, or this season.</p></div></div>';
@@ -497,7 +500,7 @@
       + "</div>";
   }
   function errorHtml(msg) {
-    return '<div class="ds-page"><div class="back" id="ds-back">← Back</div><div class="dhead"><h1 style="margin:0">Stats</h1></div>'
+    return '<div class="ds-page"><div class="back" id="ds-back">← Back</div><div class="dhead"><h1 style="margin:0">Stats</h1>' + horsesBtn() + "</div>"
       + '<div class="ds-empty ds-empty-lg"><p>' + esc(msg || "Couldn't load stats.") + '</p><button type="button" class="btn sm" id="ds-retry">Try again</button></div></div>';
   }
   function cssText() {
@@ -537,6 +540,9 @@
       ".ds-note{grid-column:1/-1;color:var(--muted);font-size:var(--t-foot);margin:0 0 14px}" +
       ".ds-sk{background:rgba(255,255,255,.06);border-radius:8px}" +
       ".home-stats-tile .sname{display:flex;align-items:center;gap:8px}" +
+      ".ds-horses{appearance:none;-webkit-appearance:none;min-height:44px;min-width:44px;padding:8px 16px;border-radius:var(--r-pill);border:1px solid var(--line);background:transparent;color:var(--txt);font:inherit;font-weight:700;cursor:pointer}" +
+      ".ds-horses:focus-visible{outline:2px solid var(--accent);outline-offset:2px}" +
+      "@media(max-width:700px){.ds-horses{width:100%}}" +
       "@media(max-width:700px){.ds-hero,.ds-split{grid-template-columns:1fr}.ds-grid{grid-template-columns:1fr 1fr}.ds-grid .ds-kpi:last-child{grid-column:1/-1}}" +
       "@media(min-width:900px){.ds-page{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}.ds-page>.back,.ds-page>.dhead,.ds-page>.ds-win,.ds-page>.ds-hero,.ds-page>.ds-empty-lg{grid-column:1/-1}.ds-page>.ds-grid{grid-column:1/-1}.ds-page>.ds-split{grid-column:1/-1}}" +
       "@media(prefers-reduced-motion:reduce){.ds-win-btn{transition:none}.ds-chart .sv-line{transition:none}}");
@@ -561,6 +567,8 @@
     });
     var retry = el.querySelector("#ds-retry");
     if (retry && handlers.onRetry) retry.onclick = handlers.onRetry;
+    var horses = el.querySelector("#ds-horses");
+    if (horses && handlers.onHorses) horses.onclick = function () { handlers.onHorses(); };
   }
   function mount(el, packs, opts) {
     opts = opts || {};

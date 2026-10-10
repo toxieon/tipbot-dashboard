@@ -1829,6 +1829,7 @@
     return n.toFixed(2);
   }
   function racingSilk(rn){
+    if(window.TBRacingLegs && typeof TBRacingLegs.silkInnerHtml==="function") return TBRacingLegs.silkInnerHtml(rn);
     if(rn && rn.silk_url) return '<img src="'+esc(rn.silk_url)+'" alt="">';
     return RACING_SILK;
   }
