@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Racing builder:** Real `racing` legs (win, place, top-N) in the tray and on post — no Custom fallback. Multis across meetings mix with sports; combined opening odds in the tray. Extra-places pref in Settings; track maps for major AU tracks; parallax horse hero; animated silk chips in the slip tray.
+
 ## 0.54.5 · 2026-10-10 · `gestures` · Phone swipe-back
 
 - **Phone swipe-back:** Swipe from the left screen edge on phones to go back (same path as **← Back** / history). Panel follows your finger with a light edge shadow; reduced motion skips the travel. Ignored on horizontal chip rows, form fields, and while the settings drawer is open.

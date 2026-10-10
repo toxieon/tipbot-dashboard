@@ -7,7 +7,7 @@
   "use strict";
   /** Whole-number player-prop lines → N−0.5 (Over/Under). .5 lines unchanged. */
   function applyHalfPointLine(leg){
-    if(!leg||leg.market||leg.custom) return leg;
+    if(!leg||leg.market||leg.custom||leg.kind==="racing") return leg;
     if(leg.line==null||leg.line==="") return leg;
     // Markets/custom use desc; player props have stat + line.
     if(!leg.stat && leg.desc) return leg;

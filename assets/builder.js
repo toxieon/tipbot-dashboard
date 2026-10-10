@@ -1084,12 +1084,30 @@
     BUILD.legs.push(next);renderTray();saveMultiDraft();
     try{ TBMotion.bump($("reviewbtn")); TBMotion.tick(); }catch(_){}
   }
-  function legText(l){ if(l.desc)return l.desc; return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat; }
+  function legText(l){
+    if(l&&l.kind==="racing"&&window.TBRacingLegs) return TBRacingLegs.legLabel(l);
+    if(l.desc)return l.desc;
+    return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat;
+  }
+  function trayLegChip(l,i){
+    const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches||document.documentElement.dataset.motion==="reduce";
+    if(l&&l.kind==="racing"&&window.TBRacingLegs){
+      return '<span class="chip chip--racing">'+TBRacingLegs.legChipHtml(l,!reduce)+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>';
+    }
+    return '<span class="chip">'+esc(legText(l))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>';
+  }
+  function trayCombinedOddsHtml(){
+    if(!window.TBRacingLegs||BUILD.legs.length<2) return "";
+    const combined=TBRacingLegs.combinedOpeningOdds(BUILD.legs);
+    if(combined==null) return "";
+    return '<div class="tray-combined-opening" role="status">Combined opening <b>'+esc(combined.toFixed(2))+'</b></div>';
+  }
   function renderTray(){
     const t=$("tray");
     if(!BUILD.legs.length){ t.hidden=true; syncTrayStack(); return; }
     t.hidden=false;
-    t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>'<span class="chip">'+esc(legText(l))+' <button type="button" class="x" data-i="'+i+'" aria-label="Remove leg '+(i+1)+'">✕</button></span>').join("")+'</div>'
+    t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>trayLegChip(l,i)).join("")+'</div>'
+      +trayCombinedOddsHtml()
       +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button>'+TB.multiSummary(BUILD.legs)+'</div>';
     t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray(); if(BUILD.legs.length)saveMultiDraft(); else clearMultiDraft(BUILD.guildId);});
     $("reviewbtn").onclick=renderConfirm;
@@ -1167,7 +1185,8 @@
     panel("builder");
     const lt=$("tray"); if(lt)lt.hidden=true; syncTrayStack();
     const bk=TB.bookie.options();
-    const title=BUILD.espn?(espnEventName(BUILD.espnEvent)||BUILD.customEvent||espnLeagueLabel(BUILD.espnLeague)):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi"));
+    const racingOnly=BUILD.legs.length&&BUILD.legs.every(l=>l&&l.kind==="racing");
+    const title=BUILD.espn?(espnEventName(BUILD.espnEvent)||BUILD.customEvent||espnLeagueLabel(BUILD.espnLeague)):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):(racingOnly?"Racing":(BUILD.custom?(BUILD.customEvent||"Custom tip"):"Multi")));
     const adjustNotes=BUILD.legs.map(lineAdjustNote).filter(Boolean);
     const adjustBanner=adjustNotes.length
       ?'<div style="margin:0 0 12px;padding:10px 12px;border-radius:var(--r-md);border:1px solid rgba(91,140,255,.35);background:rgba(91,140,255,.10);font-size:var(--t-sub);line-height:1.45">'
@@ -1179,8 +1198,10 @@
       +'<div class="panel"><h3>'+esc(title)+' — '+BUILD.legs.length+' leg'+(BUILD.legs.length>1?"s":"")+'</h3><div class="tb-review-kind">'+TB.multiSummary(BUILD.legs)+'</div>'
       +BUILD.legs.map(l=>{
         const note=lineAdjustNote(l);
-        return '<div class="tip"><div class="g">'+esc(legText(l))+'</div>'
-          +'<div class="meta">'+esc(l.team||(BUILD.custom?(BUILD.customSport||""):""))+'</div>'
+        const icon=(l&&l.kind==="racing"&&window.TBRacingLegs)?TBRacingLegs.legChipHtml(l,false):"";
+        return '<div class="tip'+(l&&l.kind==="racing"?" tip--racing":"")+'">'+(icon?'<div class="tip-racing-mark">'+icon+'</div>':'')
+          +'<div class="g">'+esc(legText(l))+'</div>'
+          +'<div class="meta">'+esc(l.team||(l&&l.kind==="racing"?(l.meeting_name||"Racing"):(BUILD.custom?(BUILD.customSport||""):"")))+'</div>'
           +(note?'<div class="meta" style="color:var(--accent);margin-top:4px">'+esc(note)+'</div>':'')
           +'</div>';
       }).join("")+'</div>'
@@ -1204,6 +1225,11 @@
     TB.bookie.wireSelect($("f_book"),$("f_book_preview"));
     $("schedbtn").onclick=scheduleTip;
     $("batchaddbtn").onclick=addCurrentTipToBatch;
+    if(window.TBRacingLegs){
+      const auto=TBRacingLegs.combinedOpeningOdds(BUILD.legs);
+      const fo=$("f_odds");
+      if(auto!=null&&fo&&!(parseFloat(fo.value)>1)) fo.value=auto.toFixed(2);
+    }
     const fi=$("f_img");
     if(fi)fi.onchange=async()=>{
       const prev=$("f_img_prev");const file=fi.files&&fi.files[0];
@@ -1222,8 +1248,10 @@
     const units=st.units;
     const bookmaker=(($("f_book")||{}).value)||"";
     const espnId=BUILD.espnEvent&&BUILD.espnEvent.id?String(BUILD.espnEvent.id):(BUILD.legs.find(l=>l&&l.espn_event_id)||{}).espn_event_id||"";
-    const game_name=BUILD.espn?(espnEventName(BUILD.espnEvent)||((BUILD.customEvent||"").trim())):(BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):""));
-    const sport=BUILD.espn?(espnLeagueLabel(BUILD.espnLeague)||"NFL"):(BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL");
+    const racingOnly=BUILD.legs.length&&BUILD.legs.every(l=>l&&l.kind==="racing");
+    const hasRacing=BUILD.legs.some(l=>l&&l.kind==="racing");
+    const game_name=BUILD.espn?(espnEventName(BUILD.espnEvent)||((BUILD.customEvent||"").trim())):(racingOnly?(BUILD.legs.length===1?((BUILD.legs[0].meeting_name||"Racing")+" · R"+(BUILD.legs[0].race_number||"")):((BUILD.legs[0].meeting_name||"Racing")+" multi")):(BUILD.custom?((BUILD.customEvent||"").trim()):(BUILD.game?teamName(BUILD.game.hteam)+" v "+teamName(BUILD.game.ateam):"")));
+    const sport=BUILD.espn?(espnLeagueLabel(BUILD.espnLeague)||"NFL"):(racingOnly?"Racing":(hasRacing&&!racingOnly?"Custom":(BUILD.custom?(((BUILD.customSport||"").trim()||"Other").toUpperCase()):"AFL")));
     BUILD.legs=normalizePropLines(BUILD.legs);
     const start_date=BUILD.espn?(BUILD.espnEvent&&BUILD.espnEvent.date?String(BUILD.espnEvent.date).slice(0,10):(BUILD.customStartDay||"").trim()):(BUILD.custom?((BUILD.customStartDay||"").trim()):"");
     const out={odds,units,bookmaker,game_name,sport,legs:BUILD.legs.slice(),image_b64:BUILD.image||""};
@@ -1231,6 +1259,7 @@
     if(espnId){ out.espn_event_id=String(espnId); out.event_id=String(espnId); }
     // TipBot may accept start_date / game_start; ignore-unknown on lagging deploys.
     if(start_date){ out.start_date=start_date; out.game_start=start_date; }
+    if(racingOnly&&BUILD.legs[0]&&BUILD.legs[0].event_id){ out.event_id=String(BUILD.legs[0].event_id); }
     // 0.42.2: AFL fixture games carry their real start (Squiggle unixtime) as game_start,
     // so Upcoming Bets shows the time even when /api/upcoming can't be reached.
     else if(!BUILD.espn && !BUILD.custom){ const gs=aflGameStartIso(BUILD.game); if(gs) out.game_start=gs; }
@@ -1599,11 +1628,18 @@
       try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
       if(r.ok&&j&&j.ok){
         prog.ok("Tip scheduled");
+        if(window.TBRacingLegs&&(tipFields.legs||[]).some(function(l){ return l&&l.kind==="racing"; })) TBRacingLegs.setRacingPostSupported(true);
         if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
         BUILD.legs=[]; BUILD.image=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
       }
       else{
         const blocked=scheduleRefusal(j, raw);
+        if(window.TBRacingLegs&&TBRacingLegs.isRacingRejection(j,raw)&&(BUILD.legs||[]).some(l=>l&&l.kind==="racing")){
+          TBRacingLegs.setRacingPostSupported(false);
+          const m="Racing tips are coming soon — TipBot is still updating. Your pick wasn't posted.";
+          $("scherr").textContent=m; prog.fail(m);
+          return;
+        }
         const m=blocked||(j&&(j.message||j.error))||"Couldn't schedule.";
         $("scherr").textContent=m; prog.fail(m);
       }
@@ -1901,6 +1937,10 @@
     startRacingCountdown();
   }
 
+  function racingComingSoonBanner(){
+    if(!window.TBRacingLegs||TBRacingLegs.racingPostSupported()) return "";
+    return '<div class="race-soon-banner" role="status">Racing tips are coming soon on this TipBot — you can browse races, but posting isn\'t live yet.</div>';
+  }
   async function openRacingBuilder(guildId, name, category){
     stopRacingCountdown();
     stopRacingHero();
@@ -1915,6 +1955,7 @@
     BUILD.isRacing = true;
     const cat = (category==="T"||category==="H") ? category : "";
     $("builder").innerHTML = '<div class="back" id="bx">← Back to '+esc(name||"server")+'</div><h1 style="margin:0 0 16px">Racing</h1>'
+      + racingComingSoonBanner()
       + '<div style="display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap" id="racing-cat-tabs">'
       + '<button class="compchip'+(cat===""?" on":"")+'" data-c="">All</button>'
       + '<button class="compchip'+(cat==="T"?" on":"")+'" data-c="T">Gallops</button>'
@@ -2014,7 +2055,7 @@
       + '<h2>'+esc(meetingName)+'</h2>'
       + '</header>';
     if (category === 'T') {
-      html += RACING_HERO_HTML;
+      html += '<div class="race-hero-bg" aria-hidden="true">'+RACING_HERO_HTML+'</div>';
     }
     html += '<main class="race-card" id="race-card-main">'+NDSkeleton.grid(6,{cols:1,tile:"72px"})+'</main></div>';
     $("builder").innerHTML = html;
@@ -2028,7 +2069,7 @@
         requestAnimationFrame(function(){ requestAnimationFrame(function(){ app.classList.add('is-in'); }); });
         racingHeroTimers.push(setTimeout(function(){ app.classList.add('is-compact'); }, 1100));
         racingHeroTimers.push(setTimeout(function(){
-          document.querySelectorAll('#race-app .hero').forEach(function(h){
+          document.querySelectorAll('#race-app .race-hero-bg .hero').forEach(function(h){
             (h.getAnimations ? h.getAnimations({ subtree: true }) : []).forEach(function(a){ a.updatePlaybackRate ? a.updatePlaybackRate(.62) : (a.playbackRate = .62); });
           });
         }, 1800));
@@ -2094,7 +2135,13 @@
             + '</div>';
         });
     }else{
+      const active = runners.filter(function(rn){ return !rn.scratched; });
+      const fieldSize = Number(r.runner_count)>0 ? Number(r.runner_count) : active.length;
+      const showAllPlaces = window.TBRacingLegs && TBRacingLegs.extraPlacesOn();
       cardHtml += '<div class="cols"><em>Opening</em><span>Win</span><span>Place</span></div>';
+      if(!showAllPlaces){
+        cardHtml += '<div class="race-places-bar"><button type="button" class="race-more-places" id="race-more-places">More places</button></div>';
+      }
       runners.forEach(function(rn, i){
         if(rn.scratched){
           cardHtml += '<div class="race-row" style="--i:'+i+';opacity:0.5">'
@@ -2104,47 +2151,83 @@
         }else{
           const jock = rn.jockey_or_driver || rn.jockey || rn.driver || "";
           const bar = rn.barrier!=null ? rn.barrier : "";
-          cardHtml += '<div class="race-row race-tip" data-i="'+i+'" style="--i:'+i+';cursor:pointer">'
+          const winP = racingFmtOdds(racingOpeningWin(rn));
+          const plP = racingFmtOdds(racingOpeningPlace(rn));
+          cardHtml += '<div class="race-row" data-i="'+i+'" style="--i:'+i+'">'
             + '<span class="silk">'+racingSilk(rn)+'<b>'+esc(String(rn.number))+'</b></span>'
             + '<span class="who"><strong>'+esc(rn.name)+'</strong><small>'
             + (jock ? (raceCat==="H" ? "D: " : "J: ")+esc(jock) : "")
             + (bar!=="" ? (jock ? " · " : "")+"Bar "+esc(String(bar)) : "")
             + '</small></span>'
-            + '<span class="odds">'+racingFmtOdds(racingOpeningWin(rn))+'</span>'
-            + '<span class="odds">'+racingFmtOdds(racingOpeningPlace(rn))+'</span>'
+            + '<button type="button" class="odds race-pick" data-bet="win" data-i="'+i+'" aria-label="Win '+esc(rn.name)+'">'+winP+'</button>'
+            + '<button type="button" class="odds race-pick" data-bet="place" data-i="'+i+'" aria-label="Place '+esc(rn.name)+'">'+plP+'</button>'
             + '</div>';
+          if(showAllPlaces && window.TBRacingLegs){
+            const tops = TBRacingLegs.topNRange(fieldSize);
+            if(tops.length){
+              cardHtml += '<div class="race-places-row" data-i="'+i+'"><span class="race-places-lbl">Top</span><div class="race-places-chips">';
+              tops.forEach(function(n){
+                const o = racingFmtOdds(TBRacingLegs.openingTopN(rn, n));
+                cardHtml += '<button type="button" class="race-topn" data-bet="top_n" data-n="'+n+'" data-i="'+i+'">'+n+' <b>'+o+'</b></button>';
+              });
+              cardHtml += '</div></div>';
+            }
+          }else{
+            cardHtml += '<div class="race-places-row race-places-row--collapsed" data-i="'+i+'" hidden><span class="race-places-lbl">Top</span><div class="race-places-chips">';
+            if(window.TBRacingLegs){
+              TBRacingLegs.topNRange(fieldSize).forEach(function(n){
+                const o = racingFmtOdds(TBRacingLegs.openingTopN(rn, n));
+                cardHtml += '<button type="button" class="race-topn" data-bet="top_n" data-n="'+n+'" data-i="'+i+'">'+n+' <b>'+o+'</b></button>';
+              });
+            }
+            cardHtml += '</div></div>';
+          }
         }
       });
     }
+    if(window.TBRacingLegs){
+      const map = TBRacingLegs.trackMapSvg(meetingName);
+      if(map) cardHtml += '<section class="race-track-wrap" aria-label="Track map">'+map+'</section>';
+    }
     cardHtml += '<div class="rg">18+ · Gamble responsibly</div>';
     main.innerHTML = cardHtml;
-    main.querySelectorAll(".race-tip").forEach(function(el){
-      el.onclick = function(){
-        const rn = runners[+el.dataset.i];
-        if(rn && !rn.scratched) addRacingTip(r, rn, meetingName);
+    const moreBtn = $("race-more-places");
+    if(moreBtn){
+      moreBtn.onclick = function(){
+        main.querySelectorAll(".race-places-row--collapsed").forEach(function(row){ row.hidden = false; });
+        moreBtn.hidden = true;
+      };
+    }
+    main.querySelectorAll(".race-pick, .race-topn").forEach(function(btn){
+      btn.onclick = function(e){
+        e.stopPropagation();
+        const rn = runners[+btn.dataset.i];
+        if(!rn || rn.scratched) return;
+        if(!window.TBRacingLegs || !TBRacingLegs.racingPostSupported()){
+          toast("Racing tips are coming soon — TipBot is still updating.","");
+          return;
+        }
+        const bet = btn.dataset.bet || "win";
+        const leg = TBRacingLegs.buildLeg({
+          race: r, runner: rn, meetingName: meetingName,
+          betType: bet, n: bet==="top_n" ? parseInt(btn.dataset.n, 10) : undefined,
+        });
+        addRacingLeg(leg);
+        btn.classList.add("on");
       };
     });
   }
 
-  function addRacingTip(race, runner, meetingName){
-    const odds = racingOpeningWin(runner);
-    const price = Number(odds);
-    const locked = Number.isFinite(price) && price>0 ? price : null;
-    const meeting = meetingName || BUILD.racingMeetingName || "Racing";
-    const eventName = meeting + " · R" + (race && race.race_number ? race.race_number : "") + (race && race.name ? " " + race.name : "");
-    const desc = (runner.name || "Runner") + " (Win)" + (locked!=null ? " @ " + racingFmtOdds(locked) : " @ Opening");
-    const day = race && race.start_time ? String(race.start_time).slice(0,10) : "";
-    const gid = BUILD.guildId, sname = BUILD.serverName;
-    openCustom(gid, sname, "Racing");
-    BUILD.customEvent = eventName;
-    BUILD.customSport = "Racing";
-    BUILD.customStartDay = day;
-    BUILD.legs = [];
-    addLeg({ custom:true, desc:desc, price:locked });
-    renderCustom();
-    const ev = $("c_event"); if(ev) ev.value = BUILD.customEvent;
-    const sp = $("c_sport"); if(sp) sp.value = BUILD.customSport;
-    const sd = $("c_start"); if(sd && day) sd.value = day;
+  function addRacingLeg(leg){
+    if(!leg || leg.kind!=="racing") return;
+    if(window.TBRacingLegs && !TBRacingLegs.racingPostSupported()){
+      toast("Racing tips are coming soon — TipBot is still updating.","");
+      return;
+    }
+    BUILD.isRacing = true;
+    BUILD.custom = false;
+    addLeg(leg);
+    toast((TBRacingLegs?TBRacingLegs.betTypeLabel(leg.bet_type, leg.n):"Racing")+" added to tray","success");
   }
 
   TD.loaded.builder=true;
