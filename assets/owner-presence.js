@@ -146,4 +146,5 @@
   }
 
   W.TBPresence = { paint: paint };
+  if(W.TD && W.TD.loaded) W.TD.loaded["owner-presence"] = true;
 })(window);

@@ -2163,7 +2163,16 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!box.querySelector("[data-ops-root]")) box.innerHTML='<div data-ops-root></div>';
     ensureExt().then(function(ok){
       if(STATE.ops!==true) return;
-      if(ok&&window.TBOwner&&TBOwner.paintOps) TBOwner.paintOps(box);
+      if(ok&&window.TBOwner&&TBOwner.paintOps) {
+        TBOwner.paintOps(box);
+        TD.load("owner-presence").then(function(){
+          if(window.TBPresence&&TBPresence.paint){
+            const p=document.createElement("div");
+            box.appendChild(p);
+            TBPresence.paint(p);
+          }
+        }).catch(function(){});
+      }
       else box.textContent="Admin tools aren’t available right now.";
     });
     window.scrollTo(0,0);
@@ -7832,7 +7841,7 @@ async function loadPerms(gid){
     const t = getToken();
     if(!t) return;
     try {
-      fetch(API + "/api/presence", {
+      fetch(API + "/api/presence/ping", {
         method: "POST",
         headers: { "Authorization": "Bearer " + t }
       }).then(function(r){
