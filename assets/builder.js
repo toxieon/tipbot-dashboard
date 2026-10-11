@@ -212,7 +212,7 @@
   async function openSportsBuilder(guildId,name,skipNav){
     if(!skipNav) navNote("#/s/"+encodeURIComponent(guildId)+"/build/sports", ()=>openSportsBuilder(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
+    try{ stopRacingCountdown(); stopRacingHero(); stopAflStadiumHero(); }catch(e){}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     // Keep legs already in the tray for this server (same rule as openBuilder).
     const keepLegs = BUILD && String(BUILD.guildId) === String(guildId) && BUILD.legs && BUILD.legs.length > 0;
@@ -661,7 +661,7 @@
   function openCustom(guildId,name,presetSport){
     navNote("#/s/"+encodeURIComponent(guildId)+"/build/custom", ()=>openCustom(guildId,name,presetSport));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
-    try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
+    try{ stopRacingCountdown(); stopRacingHero(); stopAflStadiumHero(); }catch(e){}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
     BUILD={guildId,serverName:name,game:null,tab:"Disposals",legs:[],search:"",sort:"number",collapsed:{},compFilter:"All",custom:true,customEvent:"",customSport:presetSport||"",customStartDay:"",unitSize:guildUnitSize(guildId),autoLines:false};
     panel("builder");renderTray();renderBatchTray();
@@ -745,6 +745,7 @@
   async function openGame(g){
     navNote("#/s/"+encodeURIComponent(BUILD.guildId)+"/build/g/"+encodeURIComponent((g&&(g.id||g.gameid))||""), ()=>openGame(g));
     clearLiveTimer();clearGamesTimer();
+    try{ stopAflStadiumHero(); }catch(e){}
     BUILD.game=g; BUILD.tab="Disposals"; BUILD.live=null;
     BUILD.compareSel=null; BUILD.compareCache=null; BUILD.compareSeq=(BUILD.compareSeq||0)+1;
     saveMultiDraft();
@@ -787,13 +788,41 @@
     LIVE_REFRESH=job;
     return job.p;
   }
+  function ensureAflStadiumScripts(){
+    if(!window.TD || !TD.load) return Promise.reject();
+    return TD.load("afl-venues").then(function(){ return TD.load("afl-stadiums"); });
+  }
+  function stopAflStadiumHero(){
+    try{ if(window.TBAflStadiums) TBAflStadiums.stop(); }catch(e){}
+  }
+  function mountAflStadiumHero(venue, gameRef){
+    stopAflStadiumHero();
+    const app=$("afl-app");
+    if(!app) return;
+    const poster=$("afl-stadium-poster");
+    const canvas=$("afl-stadium-canvas");
+    if(!poster||!canvas) return;
+    app.classList.remove("is-in","is-static","no-hero");
+    const ver=(window.TD&&TD.version)||"";
+    ensureAflStadiumScripts().then(function(){
+      if(BUILD.game!==gameRef) return;
+      const key=window.TBAflVenues?TBAflVenues.venueKey(venue):null;
+      if(!key){ app.classList.add("no-hero","is-in"); return; }
+      if(window.TBAflStadiums){
+        TBAflStadiums.mount({ venueKey:key, posterEl:poster, canvasEl:canvas, rootEl:app, version:ver });
+      }
+    }).catch(function(){
+      if(BUILD.game===gameRef) app.classList.add("is-static","is-in");
+    });
+  }
   function renderGame(){
     const g=BUILD.game;
     if(BUILD.compareSel&&BUILD.compareSel.stat!==BUILD.tab){ BUILD.compareSel=null; BUILD.compareCache=null; }
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
-    $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
+    const heroBand='<div class="afl-stadium-hero" id="afl-stadium-hero" aria-hidden="true"><img class="afl-stadium-poster" id="afl-stadium-poster" alt="" decoding="async" /><canvas class="afl-stadium-canvas" id="afl-stadium-canvas"></canvas></div>';
+    const bodyInner='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
       +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:var(--r-md);background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'
         +'<div><div style="color:var(--warn,#e0a04a);font-weight:700;font-size:var(--t-sub)">△ Assumption mode</div><div style="color:var(--muted);font-size:var(--t-foot);margin-top:2px">A side isn\'t named yet. Turn on to build off the full squad — legs on players who don\'t get named auto-void when the team drops.</div></div>'
         +'<button id="assumetoggle" class="toggle '+(BUILD.assume?"on":"")+'" style="flex:none"></button></div>'):"")
@@ -813,6 +842,8 @@
       +'</div>'
       +(!MARKETS[BUILD.tab]?'<div class="panel" id="compare-panel" data-sec="builder-compare"><h3>Compare</h3><div id="compare-body"></div></div>':'')
       +'<div id="players"></div>';
+    $("builder").innerHTML='<div class="afl-build-app" id="afl-app">'+heroBand+'<div class="afl-build-scroll">'+bodyInner+'</div></div>';
+    mountAflStadiumHero(g.venue, g);
     $("bg").onclick=()=>openSportsBuilder(BUILD.guildId,BUILD.serverName);
     { const atg=$("assumetoggle"); if(atg)atg.onclick=()=>{BUILD.assume=!BUILD.assume;renderGame();}; }
     const rl=$("refreshlive"); if(rl)rl.onclick=()=>refreshLive(g);

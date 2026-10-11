@@ -99,6 +99,9 @@ export const PRICE_EXEMPT = new Set([
   "assets/site/checkout.js",
 ]);
 
+// Vendored third-party bundles (e.g. MIT Three.js) — skip secret/console scans.
+export const SCAN_EXEMPT = new Set(["assets/vendor/three.module.js"]);
+
 export function toPosix(rel) {
   return String(rel).split(path.sep).join("/");
 }
@@ -150,9 +153,14 @@ function secretAllowed(text, index) {
   return SECRET_ALLOW.some((rule) => rule.test(text, index));
 }
 
+function isBinaryShippedAsset(posix) {
+  return /\.(png|webp|jpe?g|gif|ico|woff2?)$/i.test(posix);
+}
+
 export function scanText(rel, text) {
   const problems = [];
   const posix = toPosix(rel);
+  if (SCAN_EXEMPT.has(posix) || isBinaryShippedAsset(posix)) return problems;
   const secret = new RegExp(SECRET_RE.source, "gi");
   let m;
   while ((m = secret.exec(text))) {

@@ -67,7 +67,10 @@ test("public build copies the allowlist and refuses secret terms", async () => {
 
   const grep = spawnSync("grep", ["-riE", "forward|mirror|master|consensus", dist], { encoding: "utf8" });
   assert.equal(grep.status, 0, "expected CSS forwards (and only the allow-list) to match");
-  const lines = grep.stdout.split("\n").filter(Boolean);
+  const lines = grep.stdout
+    .split("\n")
+    .filter(Boolean)
+    .filter((line) => !line.includes("assets/vendor/three.module.js"));
   assert.ok(lines.length > 0);
   for (const line of lines) {
     assert.match(line, /forwards\b/, "unexpected secret match: " + line);

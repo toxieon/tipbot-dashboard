@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="apex">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AFL Build stadium hero demo</title>
+  <link rel="stylesheet" href="../assets/theme-apex.css" />
+  <style>
+    :root { --bg:#0b0e14; --bg2:#11151d; --card:#161b24; --card2:#1c222c; --line:#2a3140; --txt:#f5f7fa; --muted:#9aa2b2; --faint:#6b7384; --accent:#5b8cff; --on-accent:#fff; --r-md:12px; --t-h1:22px; --t-h2:18px; --t-body:15px; --t-sub:13px; --t-foot:12px; --t-cap:11px; --ease:cubic-bezier(.22,1,.36,1); }
+    body { margin:0; font-family:"Instrument Sans",system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+    #builder { max-width:420px; margin:0 auto; min-height:100dvh; }
+    .back { padding:14px 16px; color:var(--muted); cursor:pointer; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); margin:0 16px 12px; padding:12px; }
+    .teamhdr { font-weight:700; margin:12px 16px 6px; }
+    .prow { display:flex; gap:10px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); }
+  </style>
+</head>
+<body>
+<div id="builder"></div>
+<script src="../assets/afl-venues.js"></script>
+<script src="../assets/afl-stadiums.js"></script>
+<script>
+  const venue = new URLSearchParams(location.search).get("venue") || "MCG";
+  const key = TBAflVenues.venueKey(venue);
+  document.getElementById("builder").innerHTML =
+    '<div class="afl-build-app is-in" id="afl-app">' +
+    '<div class="afl-stadium-hero" aria-hidden="true">' +
+    '<img class="afl-stadium-poster" id="afl-stadium-poster" alt="" decoding="async" />' +
+    '<canvas class="afl-stadium-canvas" id="afl-stadium-canvas"></canvas></div>' +
+    '<div class="afl-build-scroll">' +
+    '<div class="back">← Games</div>' +
+    '<div class="dhead"><h1 style="margin:0">Carlton <span style="color:var(--muted)">v</span> Collingwood</h1>' +
+    '<span class="plan">Round 1 · ' + venue + '</span></div>' +
+    '<div class="teamhdr">Carlton</div>' +
+    '<div class="prow"><span>#3</span><b>Charlie Curnow</b></div>' +
+    '<div class="prow"><span>#5</span><b>Sam Walsh</b></div>' +
+    '<div class="prow"><span>#10</span><b>Harry O\'Farrell</b></div>' +
+    '<div class="teamhdr">Collingwood</div>' +
+    '<div class="prow"><span>#1</span><b>Scott Pendlebury</b></div>' +
+    '<div class="prow"><span>#30</span><b>Darcy Moore</b></div>' +
+    '</div></div>';
+  TBAflStadiums.mount({
+    venueKey: key,
+    posterEl: document.getElementById("afl-stadium-poster"),
+    canvasEl: document.getElementById("afl-stadium-canvas"),
+    rootEl: document.getElementById("afl-app"),
+    version: "demo",
+    forceStatic: location.search.includes("static=1"),
+  });
+</script>
+</body>
+</html>

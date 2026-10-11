@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stadium poster</title>
+  <style>html,body{margin:0;background:#07090f}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c" width="780" height="440"></canvas>
+<script src="../assets/afl-stadiums.js"></script>
+<script type="module">
+  const key = new URLSearchParams(location.search).get("key") || "mcg";
+  const THREE = await import("../assets/vendor/three.module.js");
+  const canvas = document.getElementById("c");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setSize(780, 440, false);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x07090f);
+  scene.fog = new THREE.Fog(0x07090f, 8, 22);
+  const camera = new THREE.PerspectiveCamera(42, 780 / 440, 0.1, 60);
+  camera.position.set(5.5, 3.4, 6.2);
+  camera.lookAt(0, 0.35, 0);
+  scene.add(new THREE.AmbientLight(0x8a9bb8, 0.55));
+  const sun = new THREE.DirectionalLight(0xf0f4ff, 0.9);
+  sun.position.set(4, 9, 2);
+  scene.add(sun);
+  scene.add(TBAflStadiums.buildStadium(THREE, key));
+  renderer.render(scene, camera);
+  window.__POSTER_READY__ = true;
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ node_modules/
 .DS_Store
 *.mp4
 *.png
+!assets/stadiums/*.png
 *.jpg
 *.jpeg
 *.mov
