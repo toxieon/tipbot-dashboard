@@ -1,3 +1,7 @@
+## 0.56.3 · 2026-10-11 · `ops-presence` · Under-the-hood connection improvements
+
+- **Presence:** Clients gracefully ping `/api/presence` every 60s while the tipdash tab is visible to improve connection stability and tracking. Returns 404 cleanly on unsupported backends.
+
 ## 0.56.2 · 2026-10-11 · `next-label` · Home hero: "Next game" (not "Next start")
 
 - **Home hero fact** renamed from **Next start** to **Next game**. It counts the soonest upcoming sport fixture (AFL/ESPN via `/api/upcoming` and cached upcoming context) and never included racing, so it could disagree with the Racing tile's next-to-go (e.g. a horse race minutes away vs a game in 2h). The label now names exactly what it counts; the Racing tile stays the source for next-to-go races.
