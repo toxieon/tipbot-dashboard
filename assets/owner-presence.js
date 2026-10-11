@@ -21,7 +21,7 @@
           
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; margin-bottom:12px;">
             <h3 style="margin:0; font-size:1rem; color:var(--txt);">History</h3>
-            <a href="https://afl-tipster-bot.onrender.com/api/ops/presence/export.csv" target="_blank" class="button ghost sm" id="presence-export">Download CSV</a>
+            <button class="ghost sm" id="presence-export">Download CSV</button>
           </div>
           <div id="presence-history" style="min-height:50px; color:var(--muted); font-size:var(--t-sub);">Loading...</div>
         </div>
@@ -119,6 +119,30 @@
         historyDiv.innerHTML = "Failed to load history.";
       });
     }
+
+    const exportBtn = box.querySelector("#presence-export");
+    exportBtn.addEventListener("click", function(){
+      exportBtn.textContent = "Downloading...";
+      fetch("https://afl-tipster-bot.onrender.com/api/ops/presence/export.csv", {
+        headers: { "Authorization": "Bearer " + W.getToken() }
+      }).then(r => {
+        if(!r.ok) throw new Error("Export failed");
+        return r.blob();
+      }).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "presence-export.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }).catch(() => {
+        if(W.toast) W.toast("Failed to download CSV", "error");
+      }).finally(() => {
+        exportBtn.textContent = "Download CSV";
+      });
+    });
   }
 
   W.TBPresence = { paint: paint };
