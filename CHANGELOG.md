@@ -1,3 +1,7 @@
+## 0.56.2 · 2026-10-11 · `next-label` · Home hero: "Next game" (not "Next start")
+
+- **Home hero fact** renamed from **Next start** to **Next game**. It counts the soonest upcoming sport fixture (AFL/ESPN via `/api/upcoming` and cached upcoming context) and never included racing, so it could disagree with the Racing tile's next-to-go (e.g. a horse race minutes away vs a game in 2h). The label now names exactly what it counts; the Racing tile stays the source for next-to-go races.
+
 ## 0.56.1 · 2026-10-10 · `horses` · Horse results under Stats
 
 - **Horses:** Stats links to `#/stats/horses`. Placings for today and yesterday come from `GET /api/racing/results` (meetings, races, and every runner). Newest meetings first, with major tracks ahead of the others on the same day. Meetings collapse. The finishing order marks 1st, 2nd and 3rd, reuses the racing silk and number, and greys out scratched runners. Filter by track or day, and search by horse name.

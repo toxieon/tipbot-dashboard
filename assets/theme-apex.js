@@ -928,7 +928,7 @@
       hero = doc.createElement("section");
       hero.className = "apex-hero";
       hero.setAttribute("aria-label", "Overview");
-      hero.innerHTML = '<p class="apex-kicker">Total profit</p><p class="apex-hero-num apex-display"></p><div class="apex-spark-slot"></div><div class="apex-facts"><div><b data-fact="queued"></b><span>Bets queued</span></div><div><b data-fact="live"></b><span>Live now</span></div><div><b data-fact="next"></b><span>Next start</span></div></div>';
+      hero.innerHTML = '<p class="apex-kicker">Total profit</p><p class="apex-hero-num apex-display"></p><div class="apex-spark-slot"></div><div class="apex-facts"><div><b data-fact="queued"></b><span>Bets queued</span></div><div><b data-fact="live"></b><span>Live now</span></div><div><b data-fact="next"></b><span>Next game</span></div></div>';
       var glowEl = ov.querySelector(".apex-glow");
       if (glowEl && glowEl.nextSibling) ov.insertBefore(hero, glowEl.nextSibling);
       else ov.insertBefore(hero, ov.firstChild);
