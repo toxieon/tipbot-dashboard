@@ -1,3 +1,7 @@
+## 0.56.2
+
+The Home “Next game” stat is now clearly separate from the Racing next-to-go times.
+
 ## 0.56.1
 
 Horse results for the last two days, from the Stats screen.
