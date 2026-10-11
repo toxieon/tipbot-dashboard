@@ -1,3 +1,8 @@
+## 0.56.3 · 2026-10-11 · `ops-presence` · Presence ping and Owner Who's Online
+
+- **Presence:** Clients POST a presence ping to `/api/presence` every 60s while the tipdash tab is visible. Returns 404 cleanly on unsupported backends.
+- **Ops:** Added an owner-only "Who's online" section in the ops panel. Loads live presence list (`/api/ops/presence/online`) and session history (`/api/ops/presence/history`) with CSV export (`/api/ops/presence/export.csv`). Added to `assets/owner-presence.js` for integration by the backend TipBot build.
+
 ## 0.56.2 · 2026-10-11 · `next-label` · Home hero: "Next game" (not "Next start")
 
 - **Home hero fact** renamed from **Next start** to **Next game**. It counts the soonest upcoming sport fixture (AFL/ESPN via `/api/upcoming` and cached upcoming context) and never included racing, so it could disagree with the Racing tile's next-to-go (e.g. a horse race minutes away vs a game in 2h). The label now names exactly what it counts; the Racing tile stays the source for next-to-go races.

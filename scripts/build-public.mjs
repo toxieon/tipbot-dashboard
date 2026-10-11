@@ -36,6 +36,7 @@ export const ASSET_DENY = new Set([
   "assets/admin.js",
   "assets/ext.js",
   "assets/owner-tools.js",
+  "assets/owner-presence.js",
 ]);
 
 // Phrases that must not appear in the public copy. The secret-word scan above
