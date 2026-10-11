@@ -1,3 +1,7 @@
+## 0.56.4 · 2026-10-11 · `ops-presence` · Who's online via TipBot owner path
+
+- **Who's online** panel loads only through TipBot `/api/ops/ext.js` (platform owner). Removed the public `TD.load("owner-presence")` path so `assets/owner-presence.js` stays out of the public build and returns 404 on tipdashhq.com.
+
 ## 0.56.3 · 2026-10-11 · `ops-presence` · Under-the-hood connection improvements
 
 - **Presence:** Clients gracefully ping `/api/presence` every 60s while the tipdash tab is visible to improve connection stability and tracking. Returns 404 cleanly on unsupported backends.
