@@ -65,7 +65,7 @@ test("accepted user sees no gate", async ({ page }) => {
 
 test("legal footer links and cookie banner stays off", async ({ page }) => {
   await boot(page, true);
-  for (const href of ["/terms/", "/privacy/", "/refund/", "/renewal/", "/cookies/", "/accessibility/"])
+  for (const href of ["/terms/", "/privacy/", "/refund/", "/renewal/", "/cookies/", "/accessibility/", "/age/", "/content-licence/"])
     expect(await page.locator(`footer.legal-foot a[href="${href}"]`).count()).toBe(1);
   expect(await page.locator("#cookie-banner").count()).toBe(0);
   expect(await page.evaluate(() => window.TBCookieConsent && window.TBCookieConsent.enabled())).toBe(false);
@@ -77,12 +77,16 @@ test("legal page loads its text from TipBot and renders it safely", async ({ pag
   await page.route(/afl-tipster-bot\.onrender\.com\/api\/legal\//, (route) => route.fulfill({
     status: 200, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*" },
     body: JSON.stringify({ ok: true, slug: "privacy", title: "Privacy Policy", version: "0.2",
-      text: "> **DRAFT**\n\n## 1. What we collect\n\n- Discord ID\n- IP address\n\nSee [Terms](/terms/) <script>x</script> [bad](javascript:alert(1))" }) }));
+      text: "> **DRAFT**\n\n## 1. What we collect\n\n| Data | Why |\n|---|---|\n| IP address | Security |\n\n- Discord ID\n- IP address\n\n## 2. Use\n\nSee [Terms](./terms-draft.md) <script>x</script> [bad](javascript:alert(1))" }) }));
   await page.goto(baseUrl + "privacy/index.html", { waitUntil: "domcontentloaded" });
   await expect(page.locator("#legal-ver")).toHaveText("Version 0.2");
-  await expect(page.locator("#legal-body h3")).toHaveText("1. What we collect");
+  await expect(page.locator("#legal-body h3#s1")).toHaveText("1.What we collect");
+  await expect(page.locator("#legal-body table.legal-table th")).toHaveText(["Data", "Why"]);
+  await expect(page.locator("#legal-body td").first()).toHaveText("IP address");
+  await expect(page.locator("#legal-toc")).toBeVisible();
+  expect(await page.locator('#legal-toc a[href="#s2"]').count()).toBe(1);
   await expect(page.locator("#legal-body li")).toHaveCount(2);
-  expect(await page.locator('#legal-body a[href="/terms/"]').count()).toBe(1);
+  expect(await page.locator('#legal-body a[href="/terms/"]').count()).toBe(1);  // ./terms-draft.md relinked
   expect(await page.locator("#legal-body script").count()).toBe(0);
   expect(await page.locator('#legal-body a[href^="javascript"]').count()).toBe(0);
 });
