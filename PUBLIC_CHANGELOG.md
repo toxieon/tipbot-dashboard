@@ -1,3 +1,7 @@
+## 0.56.7
+
+Server stats charts are easier to explore: hover the units line and monthly bars for detail, click bookies, sports or a month to filter, and hover form squares for each bet. Command access adds a Lockdown preset and short descriptions for each command.
+
 ## 0.56.6
 
 Wording tidy-up.
