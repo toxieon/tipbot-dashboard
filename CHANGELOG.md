@@ -1,3 +1,7 @@
+## 0.56.5 · 2026-10-12 · `desktop-nav` · Desktop sidebar matches phone tabs
+
+- **Apex desktop rail** uses the same `hasServerContext()` split as the phone tab bar: Home · Build · Upcoming when you're in a server; Home · Servers · Upcoming · Settings on the overview with no server open. Removed Live from the rail.
+
 ## 0.56.4 · 2026-10-11 · `ops-presence` · Who's online via TipBot owner path
 
 - **Who's online** panel loads only through TipBot `/api/ops/ext.js` (platform owner). Removed the public `TD.load("owner-presence")` path so `assets/owner-presence.js` stays out of the public build and returns 404 on tipdashhq.com.

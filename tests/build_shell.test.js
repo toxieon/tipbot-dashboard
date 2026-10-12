@@ -29,7 +29,10 @@ test("phone tab bar hidden without server context; Build/Upcoming guarded", () =
   const js = read("assets/theme-apex.js");
   assert.match(js, /function hasServerContext\(/);
   assert.match(js, /dataset\.apexTabs = "off"/);
-  assert.match(js, /\(id === "build" \|\| id === "upcoming"\) && !hasServerContext\(\)\) return/);
+  assert.match(js, /id === "build" && !hasServerContext\(\)\) return/);
+  assert.match(js, /function railIds\(\)/);
+  assert.match(js, /hasServerContext\(\) \? TABS : RAIL_NO_SERVER/);
+  assert.match(js, /var RAIL_NO_SERVER = \["home", "servers", "upcoming", "settings"\]/);
   const css = read("assets/theme-apex.css");
   assert.match(css, /data-apex-tabs="off"\] \.apex-tabs\{display:none/);
 

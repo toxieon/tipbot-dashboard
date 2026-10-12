@@ -8,8 +8,14 @@ const css = fs.readFileSync(path.join(__dirname, "..", "assets", "theme-apex.css
 
 test("phone tab order is Home | Build | Upcoming", () => {
   assert.match(js, /var TABS = \["home", "build", "upcoming"\];/);
-  assert.match(js, /var tabItems = TABS\.map\(/);
-  assert.doesNotMatch(js, /var tabItems = NAV\.filter/);
+  assert.match(js, /buttonRow\(navItems\(TABS\)/);
+});
+
+test("desktop rail mirrors phone: in-server uses TABS; no-server uses Home, Servers, Upcoming, Settings", () => {
+  assert.match(js, /var RAIL_NO_SERVER = \["home", "servers", "upcoming", "settings"\]/);
+  assert.match(js, /hasServerContext\(\) \? TABS : RAIL_NO_SERVER/);
+  assert.match(js, /function syncRailNav\(/);
+  assert.doesNotMatch(js, /buttonRow\(NAV,/);
 });
 
 test("Build is the centred middle column of the phone tab bar", () => {
