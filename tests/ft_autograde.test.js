@@ -13,14 +13,13 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const start = html.indexOf("/*__FT_GRADE__*/");
 const end = html.indexOf("/*__FT_GRADE_END__*/");
 assert.ok(start > 0 && end > start, "ft-grade helper block missing");
-const ctx = {esc: (s) => String(s == null ? "" : s)};
+const ctx = {esc: (s) => String(s == null ? "" : s), window: {}};
 vm.createContext(ctx);
 vm.runInContext(html.slice(start + "/*__FT_GRADE__*/".length, end), ctx);
 vm.runInContext(html.slice(html.indexOf("function ftGradeSwitchHtml"), html.indexOf("function setFtSwitch")), ctx);
 const read = (expr) => vm.runInContext(expr, ctx);
 const plain = (v) => JSON.parse(JSON.stringify(v));
 ctx.FT_GRADE_TOGGLES = read("FT_GRADE_TOGGLES");
-ctx.FT_GRADE_ENV_NOTE = read("FT_GRADE_ENV_NOTE");
 
 const AFL = "feat.auto_push_ft";
 const NFL = "feat.auto_push_ft_nfl";
@@ -46,7 +45,7 @@ test("settings switches are AFL, then NFL, then NBA/WNBA, all role=switch and of
   assert.match(on, /class="toggle on"/);
   assert.match(on, /aria-checked="true"/);
   assert.match(html, /id="ft-grade-switches"/);
-  assert.match(html, /id="autopush-env"/);
+  assert.doesNotMatch(html, /id="autopush-env"/);
   assert.match(html, /FT_GRADE_TOGGLES\.map\(function\(spec\)/);
 });
 
@@ -106,19 +105,11 @@ test("the feature list keeps registry order and uses the Auto-grade labels", () 
   assert.deepEqual(checked.slice(1, 4), [false, false, false]);
 });
 
-test("NFL and NBA note the server env switch, and show it when the API includes it", () => {
-  const note = ctx.FT_GRADE_ENV_NOTE;
-  assert.match(note, /ESPN_AUTO_PUSH_FT/);
-  assert.match(note, /ESPN_AUTO_PUSH_FT_NBA/);
-  assert.match(note, /won't grade if that's off/);
-  assert.equal(ctx.ftGradeEnvText({flags: {}}), note);
-  assert.equal(ctx.ftGradeEnvState({flags: {}}, NFL), null);
-  const withEnv = ctx.ftGradeEnvText({env: {ESPN_AUTO_PUSH_FT: false, ESPN_AUTO_PUSH_FT_NBA: true}});
-  assert.match(withEnv, /Server env: NFL off, NBA\/WNBA on\./);
-  assert.match(ctx.ftGradeRowNote({espn_auto_push_ft: 1}, NFL), /ESPN_AUTO_PUSH_FT/);
-  assert.match(ctx.ftGradeRowNote({espn_auto_push_ft: 1}, NFL), /Server env is on/);
-  assert.equal(ctx.ftGradeRowNote({}, AFL), "");
-  assert.match(ctx.ftGradeRowNote({}, NBA), /ESPN_AUTO_PUSH_FT_NBA/);
+test("public build carries no server env names; the row note comes from owner tools only", () => {
+  assert.doesNotMatch(html, /ESPN_AUTO_PUSH_FT/);
+  assert.equal(ctx.ftGradeRowNote({}, NFL), "");
+  ctx.window = {TBOwner: {ftGradeRowNote: () => "owner note"}};
+  assert.equal(ctx.ftGradeRowNote({}, NFL), "owner note");
   assert.match(html, /ftGradeRowNote\(d, k\)/);
 });
 

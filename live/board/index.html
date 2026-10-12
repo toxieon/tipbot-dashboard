@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png" sizes="180x180">
 <link rel="manifest" href="../../manifest.webmanifest">
 <link rel="preconnect" href="https://afl-tipster-bot.onrender.com" crossorigin>
-<script src="../../assets/tbtime.js?v=0.56.5"></script>
+<script src="../../assets/tbtime.js?v=0.56.6"></script>
 <script>
 /* Same theme pre-paint as the main dashboard (no flash). Auto day/night and
    "today" use the Sydney clock (assets/tbtime.js). */
@@ -272,7 +272,7 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
   <div id="content"></div>
   <div class="foot" id="foot"></div>
 </main>
-<script src="../../assets/sport-marks.js?v=0.56.5"></script>
+<script src="../../assets/sport-marks.js?v=0.56.6"></script>
 <script>
 (function(){
   "use strict";
@@ -387,7 +387,7 @@ span.logo{display:inline-flex;align-items:center;justify-content:center;backgrou
       var q=S.guild?"?guild_id="+encodeURIComponent(S.guild):"";
       var r=await api("/api/live-board"+q,{retries:first?3:1,timeoutMs:first?60000:40000});
       if(r.status===404||r.status===501){S.banner=null;return renderMessage("Live board isn't on the bot yet","TipBot needs its latest deploy to serve <code>/api/live-board</code>. Once that's out, refresh this page.");}
-      if(!r.ok){S.banner={cls:"warn",text:"Couldn't refresh (TipBot "+r.status+"). Showing the last update. Retrying…"};return S.data?render():renderBannerOnly();}
+      if(!r.ok){S.banner={cls:"warn",text:"Couldn't refresh. Showing the last update. Retrying…"};return S.data?render():renderBannerOnly();}
       var data=await r.json();
       if(!data||!Array.isArray(data.games))throw new Error("bad payload");
       if(data.auth_expired&&token()){

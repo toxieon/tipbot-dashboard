@@ -1,3 +1,7 @@
+## 0.56.6
+
+Wording tidy-up.
+
 ## 0.56.5
 
 Desktop navigation tidy-up.
