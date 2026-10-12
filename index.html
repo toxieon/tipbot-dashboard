@@ -3528,7 +3528,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     el.textContent=playerLinesStatusText();
   }
 
-  /* Owner-only settings rows live in the owner tools script; these are no-ops for everyone else. */
   function tbOwnerCall(name, args){ const o=window.TBOwner; if(o&&typeof o[name]==="function"){ try{ return o[name].apply(null, args||[]); }catch(e){} } }
   function paintOddsQuotaRow(){ return tbOwnerCall("paintOddsQuotaRow"); }
   function noteOddsQuotaFromLines(pack){ return tbOwnerCall("noteOddsQuotaFromLines", [pack]); }
