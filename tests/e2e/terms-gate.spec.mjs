@@ -46,6 +46,17 @@ test("unaccepted user is blocked until Accept; version line shows", async ({ pag
   await expect(page.locator("#terms-ver")).toHaveText("Terms v2.0");
 });
 
+test("prompts once: after accepting, a reload/new login does not prompt again", async ({ page }) => {
+  const state = await boot(page, false);
+  await page.locator("#tg-age").check();
+  await page.locator("#tg-accept").click();
+  await expect(page.locator("#terms-gate")).toBeHidden();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => { const v = document.getElementById("terms-ver"); return v && !v.hidden; });
+  expect(await page.locator("#terms-gate").count()).toBe(0);
+  expect(state.posts.length).toBe(1);
+});
+
 test("accepted user sees no gate", async ({ page }) => {
   await boot(page, true);
   await page.waitForFunction(() => { const v = document.getElementById("terms-ver"); return v && !v.hidden; });
