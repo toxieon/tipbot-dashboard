@@ -6843,7 +6843,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     meta=meta||{};
     var presets=Array.isArray(meta.presets)?meta.presets.slice():[];
     if(!presets.some(function(p){ return p&&p.name==="Lockdown"; })){
-      presets.push({name:"Lockdown", description:"Every slash command is limited to server admins and the owner.", builtin:true});
+      presets.push({name:"Lockdown", description:"Every slash command is limited to Discord server administrators.", builtin:true});
     }
     meta.presets=presets;
     return meta;
