@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.56.6" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.56.6" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.56.6" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.56.6">
+<link rel="icon" href="./assets/favicon.ico?v=0.57.1" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.57.1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.57.1" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.57.1">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.56.6"></script>
+<script src="./assets/tbtime.js?v=0.57.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -937,8 +937,21 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .sv-donut-row{display:flex;align-items:center;gap:14px;min-width:0}
 .sv-donut{width:96px;height:96px;flex:none}
 .sv-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.sv-legend div{display:flex;align-items:center;gap:8px;font-size:var(--t-sub);min-width:0}
+.sv-legend .sv-legend-pick{display:flex;align-items:center;gap:8px;font-size:var(--t-sub);min-width:0;width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:4px 2px;border-radius:var(--r-sm);cursor:pointer}
+.sv-legend .sv-legend-pick.sv-pick-on{background:var(--card2);outline:1px solid var(--line)}
 .sv-legend i{width:8px;height:8px;border-radius:3px;flex:none;display:block}
+.sv-donut-slice{cursor:pointer}
+.sv-donut-slice.sv-pick-on{filter:brightness(1.12)}
+.sv-bar-slice{cursor:pointer}
+.sv-chart-scrub{position:relative;touch-action:none}
+.sv-scrub-ui{position:absolute;inset:0;pointer-events:none}
+.sv-scrub-guide{position:absolute;top:0;bottom:0;width:1px;background:var(--accent);opacity:.85;transform:translateX(-50%);left:0}
+.sv-scrub-tip{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);border-radius:var(--r-sm);padding:6px 10px;font-size:var(--t-foot);line-height:1.35;box-shadow:0 6px 20px rgba(0,0,0,.25);min-width:120px;max-width:90%}
+.sv-scrub-tip-u{font-weight:700;font-variant-numeric:tabular-nums}
+.sv-scrub-tip-r{color:var(--muted);margin-top:2px}
+.sv-month-sum{margin-top:8px;font-size:var(--t-sub);color:var(--muted);font-variant-numeric:tabular-nums}
+.sv-bet-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 12px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--card2);font-size:var(--t-sub)}
+.sv-bet-filter-t{font-weight:650}
 .sv-legend .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sv-legend b{margin-left:auto;font-weight:650;font-variant-numeric:tabular-nums}
 .sv-legend em{font-style:normal;color:var(--muted);width:38px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
@@ -966,6 +979,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
   .sv-stat.sv-form{grid-column:auto}
   .sv-charts{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
   .sv-split{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .sv-panel.sv-tipsters{grid-column:1 / -1}
 }
 .dc-pill{font-size:var(--t-cap);font-weight:700;padding:2px 8px;border-radius:999px}
 .dc-pill--w{background:rgba(46,175,98,.16);color:var(--win-ink)}
@@ -1175,7 +1189,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.56.6" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.57.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1186,7 +1200,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.56.6" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.57.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1195,7 +1209,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.56.6" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.57.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1214,7 +1228,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.56.6</div>
+          <div class="dd-label" id="dd-version">tipdash v0.57.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1237,24 +1251,25 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.56.6"></script>
-<script src="./assets/light-data.js?v=0.56.6"></script>
-<script src="./assets/lines.js?v=0.56.6"></script>
-<script src="./assets/racing-legs.js?v=0.56.6"></script>
-<script src="./assets/afl-guernseys.js?v=0.56.6"></script>
-<script src="./assets/compare-ui.js?v=0.56.6"></script>
-<script src="./assets/sport-keywords.js?v=0.56.6"></script>
-<script src="./assets/sport-marks.js?v=0.56.6"></script>
-<script src="./assets/routing.js?v=0.56.6"></script>
-<script src="./assets/scheduled-tips.js?v=0.56.6"></script>
-<script src="./assets/upcoming-split.js?v=0.56.6"></script>
-<script src="./assets/espn-props.js?v=0.56.6"></script>
-<script src="./assets/tb-motion.js?v=0.56.6"></script>
-<script src="./assets/form-badges.js?v=0.56.6"></script>
-<script src="./assets/svg-charts.js?v=0.56.6"></script>
-<script src="./assets/server-view.js?v=0.56.6"></script>
-<script src="./assets/stats.js?v=0.56.6"></script>
-<script src="./assets/horse-results.js?v=0.56.6"></script>
+<script src="./assets/req-pool.js?v=0.57.1"></script>
+<script src="./assets/light-data.js?v=0.57.1"></script>
+<script src="./assets/lines.js?v=0.57.1"></script>
+<script src="./assets/racing-legs.js?v=0.57.1"></script>
+<script src="./assets/afl-guernseys.js?v=0.57.1"></script>
+<script src="./assets/compare-ui.js?v=0.57.1"></script>
+<script src="./assets/sport-keywords.js?v=0.57.1"></script>
+<script src="./assets/sport-marks.js?v=0.57.1"></script>
+<script src="./assets/routing.js?v=0.57.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.57.1"></script>
+<script src="./assets/upcoming-split.js?v=0.57.1"></script>
+<script src="./assets/espn-props.js?v=0.57.1"></script>
+<script src="./assets/tb-motion.js?v=0.57.1"></script>
+<script src="./assets/form-badges.js?v=0.57.1"></script>
+<script src="./assets/svg-charts.js?v=0.57.1"></script>
+<script src="./assets/server-view.js?v=0.57.1"></script>
+<script src="./assets/server-interact.js?v=0.57.1"></script>
+<script src="./assets/stats.js?v=0.57.1"></script>
+<script src="./assets/horse-results.js?v=0.57.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1603,7 +1618,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.56.6";
+  TD.version="0.57.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -6417,7 +6432,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     const total=Math.max(Number(wonN)+Number(lostN)+Number(pushN),1);
     const wl='<span style="width:'+(wonN/total*100)+'%;background:var(--win)"></span><span style="width:'+(lostN/total*100)+'%;background:var(--loss)"></span><span style="width:'+(pushN/total*100)+'%;background:var(--push)"></span>';
-    const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(d,{formHtml:guildBadge,period:period,stale:qStale}):null;
+    const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(d,{formHtml:guildBadge,period:period,stale:qStale,monthKey:curMonth||""}):null;
     const serverTitle=(!sv&&guildBadge)?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
     const qTxt=qStale?'<span class="st-updating">Updating…</span>':(st.queued==null?"—":st.queued);
     const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won==null?"—":st.won,"pos",""],["Lost",st.lost==null?"—":st.lost,"neg",""],["Success Rate",st.strike_rate==null?"—":st.strike_rate+"%","",""],["Profit",u(st.profit_units),(Number(st.profit_units)||0)>=0?"pos":"neg",""],["ROI",st.roi==null?"—":st.roi+"%",(Number(st.roi)||0)>=0?"pos":"neg",""],["Followers",st.followers==null?"—":st.followers,"","followers"]];
@@ -6454,6 +6469,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+wonN+'–'+lostN+'–'+pushN+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+wonN+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+lostN+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+pushN+'</span><span class="lg" style="margin-left:auto">'+settledN+' settled · '+stakedN+'u staked</span></div></div>'
       +renderCalendar(d.cal_month,d.daily_series)
       +settingsPanel
+      +'<div class="sv-bet-filter" id="sv-bet-filter" hidden><span>Filtered:</span> <span class="sv-bet-filter-t"></span><button type="button" class="btn sm ghost" id="sv-bet-filter-clear">Clear filter</button></div>'
       +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent tips</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     { const stb=$("statsbtn"); if(stb) stb.onclick=()=>openStats(); }
@@ -6492,6 +6508,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     loadLiveTipsPanel(s.guild_id);
     mountScheduled(s.guild_id);
     if(formOn&&s.guild_id!=null) loadTipsterForm(s.guild_id);
+    if(window.ServerInteract&&typeof ServerInteract.wireDetail==="function"){
+      ServerInteract.wireDetail($("detail"),{detail:d,tips:tips,guildId:s.guild_id,loadDetail:loadDetail,renderTipRow:recentTipRow,wireTipRows:wireTipRows});
+    }
   }
   // 0.41.1: Scheduled Tips (assets/scheduled-tips.js). One live instance; it stops
   // itself when the server page is re-rendered or left.
@@ -6584,7 +6603,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.56.6');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.57.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -6846,6 +6865,7 @@ async function loadPerms(gid){
       cmds.forEach(function(c){
         html+='<div style="border-bottom:1px solid var(--line);padding:8px 0">'
           +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="min-width:150px;font-weight:600;font-size:var(--t-callout)">'+esc(c.label)+' <span style="color:var(--faint);font-weight:400">/'+esc(c.name)+'</span></div>'+modeSelect(c.name)+'</div>'
+          +(c.description?'<div style="color:var(--faint);font-size:var(--t-foot);margin:4px 0 0;line-height:1.4">'+esc(c.description)+'</div>':'')
           +(PERM.cmd[c.name].mode==="roles"?roleChecks(c.name):"")
           +'</div>';
       });

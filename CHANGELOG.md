@@ -1,3 +1,10 @@
+## 0.57.1 · 2026-10-12 · `stats-interact` · Server stats cards: scrub, filters, sport split
+
+- **Units over time:** drag or hover along the line for a vertical guide, date, running units total, and that settlement’s result when the point is a graded tip. Works with touch on phones.
+- **Bets by bookie / sport:** new sport donut beside bookie; tap a legend row or slice to filter Recent tips, with a clear control.
+- **Monthly P&amp;L:** tap a month bar to switch the stats period to that month; the card shows a short units / ROI / W–L summary.
+- **Command access:** one-line command descriptions when TipBot sends them in the permissions payload.
+
 ## 0.56.6 · 2026-10-13 · `copy` · Wording tidy-up
 
 - Plainer wording in a few messages and settings notes.

@@ -1,6 +1,6 @@
-## 0.56.6
+## 0.57.1
 
-Wording tidy-up.
+Server stats cards: scrub the units chart, filter bets by bookie or sport, tap a month in P&amp;L to focus that period.
 
 ## 0.56.5
 

@@ -1,4 +1,4 @@
-/* Hand-written SVG charts for the server page (tipdash 0.44.1).
+/* Hand-written SVG charts for the server page (tipdash 0.57.1).
  * Colours are theme variables (day / night / ochre). No chart library.
  * window.SvgCharts + CommonJS for node --test.
  */
@@ -137,7 +137,12 @@
       var y=Y(v);
       var top=Math.min(y, zero), bh=Math.max(1, Math.abs(y-zero));
       var fill=v>0?"var(--win)":(v<0?"var(--loss)":"var(--faint)");
-      g+='<rect x="'+r1(x)+'" y="'+r1(top)+'" width="'+r1(bw)+'" height="'+r1(bh)+'" rx="2" fill="'+fill+'"><title>'+esc((b.label||"")+" "+yFmt(v))+'</title></rect>';
+      var pick="";
+      if(opts.interactive && (b.key||b.month)){
+        var mk=String(b.key||b.month);
+        pick=' class="sv-bar-slice" tabindex="0" role="button" data-sv-month="'+esc(mk)+'" aria-label="'+esc((b.label||mk)+" "+yFmt(v))+'"';
+      }
+      g+='<rect'+pick+' x="'+r1(x)+'" y="'+r1(top)+'" width="'+r1(bw)+'" height="'+r1(bh)+'" rx="2" fill="'+fill+'"><title>'+esc((b.label||"")+" "+yFmt(v))+'</title></rect>';
       if(i%step===0 || i===bars.length-1){
         var anchor=i===0?"start":(i===bars.length-1?"end":"middle");
         var tx=i===0?x:(i===bars.length-1?x+bw:x+bw/2);
@@ -155,7 +160,7 @@
     var cx=50, cy=50, R=44, r=30;
     var a0=-Math.PI/2;
     var seg="";
-    slices.forEach(function(s){
+    slices.forEach(function(s, si){
       var frac=n(s.n)/total;
       var a1=a0+2*Math.PI*frac;
       var gap=slices.length>1?0.04:0;
@@ -164,7 +169,8 @@
       var large=(eA-sA)>Math.PI?1:0;
       function p(rad, ang){ return [cx+rad*Math.cos(ang), cy+rad*Math.sin(ang)]; }
       var p1=p(R,sA), p2=p(R,eA), p3=p(r,eA), p4=p(r,sA);
-      seg+='<path d="M'+r1(p1[0])+' '+r1(p1[1])+' A'+R+' '+R+' 0 '+large+' 1 '+r1(p2[0])+' '+r1(p2[1])
+      var pick=opts.interactive&&s.name?(' class="sv-donut-slice" tabindex="0" role="button" data-sv-kind="'+esc(String(opts.filterKind||"bookie"))+'" data-sv-pick="'+esc(String(s.name))+'" aria-label="'+esc(String(s.name))+'"'):"";
+      seg+='<path'+pick+' d="M'+r1(p1[0])+' '+r1(p1[1])+' A'+R+' '+R+' 0 '+large+' 1 '+r1(p2[0])+' '+r1(p2[1])
         +' L'+r1(p3[0])+' '+r1(p3[1])+' A'+r+' '+r+' 0 '+large+' 0 '+r1(p4[0])+' '+r1(p4[1])+' Z" fill="'+(s.color||"var(--accent)")+'"/>';
       a0=a1;
     });
