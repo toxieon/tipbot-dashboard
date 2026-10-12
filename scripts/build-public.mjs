@@ -26,6 +26,14 @@ export const ALLOW = [
   "live",
   "compare",
   "brownlow",
+  "terms",
+  "privacy",
+  "refund",
+  "renewal",
+  "cookies",
+  "accessibility",
+  "age",
+  "content-licence",
 ];
 
 // These stay in the private repo and must not be copied, even from assets/.

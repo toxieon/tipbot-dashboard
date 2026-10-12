@@ -1,0 +1,21 @@
+/* Terms gate: plain on purpose; reskin by restyling the tg-* classes. */
+html.tg-locked,html.tg-locked body{overflow:hidden}
+.tg-overlay{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72)}
+.tg-overlay[hidden]{display:none}
+.tg-card{width:100%;max-width:640px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;background:var(--card,#16181d);color:var(--txt,#eee);border:1px solid var(--line,#333);border-radius:12px;padding:20px}
+.tg-title{margin:0 0 4px;font-size:1.25rem}
+.tg-ver{color:var(--faint,#999);font-size:.8rem;margin-bottom:12px}
+.tg-body{overflow:auto;flex:1;line-height:1.5;font-size:.95rem;padding-right:4px}
+.tg-msg{min-height:1.2em;margin:10px 0 0;font-size:.85rem;color:var(--faint,#999)}
+.tg-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.tg-accept{min-height:44px;padding:0 22px;border-radius:8px;border:0;background:var(--accent,#5865f2);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.tg-accept[disabled]{opacity:.6;cursor:default}
+.terms-ver{text-align:center;color:var(--faint,#888);font-size:11px;opacity:.7;padding:18px 0 calc(10px + env(safe-area-inset-bottom))}
+.tg-age{display:flex;gap:8px;align-items:center;margin-top:12px;font-weight:600;cursor:pointer}
+.tg-age input{width:20px;height:20px}
+.tg-links{font-size:.8rem;color:var(--faint,#999);margin:8px 0 0}
+.tg-links a{color:inherit}
+.tg-hint{font-size:.75rem;color:var(--faint,#999);text-align:right;margin:6px 0 0}
+.tg-hint[hidden]{display:none}
+.tg-body h2,.tg-body h3,.tg-body h4{margin:1em 0 .4em}
+.tg-body blockquote{margin:8px 0;padding:6px 12px;border-left:3px solid var(--line,#444)}

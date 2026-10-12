@@ -137,7 +137,7 @@ test("finishing order highlights 1st 2nd 3rd, greys out scratches, and reuses th
   assert.match(colour, /class="silk"/);
   assert.match(colour, /#222222/);
   assert.match(colour, /<b>4<\/b>/);
-  assert.equal(R.silkInnerHtml({ silk_url: "https://example.com/s.png" }), '<img src="https://example.com/s.png" alt="">');
+  assert.equal(R.silkInnerHtml({ silk_url: "https://example.com/s.png" }), '<img src="https://example.com/s.png" alt="Jockey silks">');
 });
 
 test("track, day and horse-name filters narrow the list without dropping the field", () => {

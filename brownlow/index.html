@@ -132,7 +132,7 @@ function squiggleLogo(path){
 
 function teamSideHtml(name, side){
   const info = teamInfo(name);
-  const logo = info.logo ? `<img class="tlogo" src="${escAttr(info.logo)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="tlogo" aria-hidden="true"></span>`;
+  const logo = info.logo ? `<img class="tlogo" src="${escAttr(info.logo)}" alt="Team logo" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="tlogo" aria-hidden="true"></span>`;
   return `<div class="side ${side}">${logo}<div class="tname">${esc(info.name)}${info.abbrev?`<span class="tabbrev">${esc(info.abbrev)}</span>`:""}</div></div>`;
 }
 

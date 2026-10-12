@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const MOCK = {
+  "/api/terms/status": { ok: true, version: "1.0", accepted: true, accepted_at: "2026-10-13T00:00:00Z" },
+  "/api/terms": { ok: true, version: "1.0", title: "Terms & Conditions", text: "Placeholder terms." },
   "/api/servers": {
     role: "mod",
     servers: [{ guild_id: "1", display_name: "Test", enabled: 1, subscription_active: 1, unit_size: 20, won: 1, lost: 0, profit_units: 1, roi: 10, queued: 0 }],

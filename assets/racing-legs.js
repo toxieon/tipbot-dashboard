@@ -235,7 +235,7 @@
       '"' +
       (animate ? "" : ' data-reduced="1"') +
       ' aria-hidden="true">' +
-      '<svg viewBox="0 0 20 20" width="20" height="20">' +
+      '<svg aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="20" height="20">' +
       silk +
       '<text x="10" y="17" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">' +
       num +
@@ -328,7 +328,7 @@
   /** Inner silk mark used on race cards (image, or the accent silk). */
   function silkInnerHtml(runner) {
     var url = safeSilkUrl(runner && runner.silk_url);
-    if (url) return '<img src="' + escHtml(url) + '" alt="">';
+    if (url) return '<img src="' + escHtml(url) + '" alt="Jockey silks">';
     return SILK_FALLBACK;
   }
 
@@ -338,7 +338,7 @@
     var label = num != null && num !== "" ? String(num) : "?";
     var url = safeSilkUrl(runner && runner.silk_url);
     var colours = explicitColours(runner);
-    var inner = url ? '<img src="' + escHtml(url) + '" alt="">' : (colours ? colourSilkSvg(colours) : SILK_FALLBACK);
+    var inner = url ? '<img src="' + escHtml(url) + '" alt="Jockey silks">' : (colours ? colourSilkSvg(colours) : SILK_FALLBACK);
     return '<span class="silk">' + inner + "<b>" + escHtml(label) + "</b></span>";
   }
 
