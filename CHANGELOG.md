@@ -1,3 +1,13 @@
+## 0.56.7 · 2026-10-13 · `server-stats-ui` · Chart hovers, click-to-filter, Lockdown preset
+
+- **Units over time:** crosshair and tooltip with cumulative units and date on hover or touch-drag along the line.
+- **Monthly P&amp;L:** tooltip shows month, units, bet count and win rate; clicking a bar filters the server view to that month (clear chip).
+- **Bets by bookie / Bets by sport:** sport donut beside bookie; legend rows and donut slices filter stats and recent tips (clear chip).
+- **Form strip:** when the API sends `form.entries`, hovering (or tap on mobile) a square shows selection, market, odds, stake, result and date.
+- **Command access:** **Lockdown** preset (admin-only every command) merged when the API has not shipped it yet; short description under each command from the API or a local fallback map. Preset cards show their blurb inline.
+
+Tests: `tests/server_view.test.js`, `tests/form_badges.test.js`.
+
 ## 0.56.6 · 2026-10-13 · `copy` · Wording tidy-up
 
 - Plainer wording in a few messages and settings notes.

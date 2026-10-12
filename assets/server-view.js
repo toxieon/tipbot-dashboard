@@ -153,6 +153,13 @@
     if(withYear && p[0]) return name+" "+String(p[0]).slice(2);
     return name;
   }
+  function sportOf(tip){
+    var raw=tip.sport!=null?tip.sport:(tip.league!=null?tip.league:tip.comp);
+    if(!raw && tip.tags && tip.tags.length) raw=tip.tags[0];
+    raw=String(raw==null?"":raw).trim();
+    if(!raw) return "";
+    return raw;
+  }
   function bookieOf(tip){
     var b=tip.bookie!=null?tip.bookie:(tip.bookmaker!=null?tip.bookmaker:(tip.book!=null?tip.book:tip.bookie_name));
     if(b && typeof b==="object") b=b.name||b.label||b.title||b.id||"";
@@ -347,8 +354,13 @@
     clean.forEach(function(t){
       var key=monthOf(t);
       if(!key) return;
-      if(!map[key]){ map[key]={key:key, value:0}; order.push(key); }
-      map[key].value=round2(map[key].value+profitOf(t));
+      if(!map[key]){ map[key]={key:key, value:0, bets:0, wins:0, losses:0}; order.push(key); }
+      var row=map[key];
+      row.value=round2(row.value+profitOf(t));
+      row.bets++;
+      var res=resultOf(t);
+      if(res==="win") row.wins++;
+      else if(res==="loss") row.losses++;
     });
     order.sort();
     if(order.length){
@@ -356,7 +368,13 @@
       order.forEach(function(k){ years[k.slice(0,4)]=1; });
       var multi=Object.keys(years).length>1;
       return order.map(function(k){
-        return {key:k, label:monthLabel(k, multi), value:map[k].value};
+        var row=map[k];
+        var decided=row.wins+row.losses;
+        return {
+          key:k, label:monthLabel(k, multi), value:row.value,
+          bets:row.bets, wins:row.wins,
+          winRate:decided?round1((row.wins/decided)*100):0
+        };
       });
     }
     if(flagged) return [];
@@ -365,8 +383,72 @@
     series.forEach(function(p){ if(p && p.month) years2[String(p.month).slice(0,4)]=1; });
     var multi2=Object.keys(years2).length>1;
     return series.filter(function(p){ return p && p.month; }).map(function(p){
-      return {key:String(p.month), label:monthLabel(p.month, multi2), value:round2(Number(p.profit)||0)};
+      return {key:String(p.month), label:monthLabel(p.month, multi2), value:round2(Number(p.profit)||0), bets:0, wins:0, winRate:0};
     });
+  }
+  function sportBreakdown(detail){
+    var b=buckets(detail);
+    var tips=b.settled.concat(b.queued).filter(function(t){ return !isHistoricalImport(t); });
+    var counts={}, named=0;
+    tips.forEach(function(t){
+      var name=sportOf(t);
+      if(!name) return;
+      named++;
+      counts[name]=(counts[name]||0)+1;
+    });
+    if(!named) return null;
+    var rows=Object.keys(counts).map(function(name){ return {name:name, n:counts[name]}; });
+    rows.sort(function(a,b){ return b.n-a.n || a.name.localeCompare(b.name); });
+    if(rows.length>8){
+      var top=rows.slice(0,7);
+      var rest=rows.slice(7).reduce(function(a,r){ return a+r.n; }, 0);
+      top.push({name:"Other", n:rest});
+      rows=top;
+    }
+    var total=rows.reduce(function(a,r){ return a+r.n; }, 0);
+    return {
+      total:total,
+      slices:rows.map(function(r,i){
+        return {name:r.name, n:r.n, pct:Math.round(r.n/total*100), color:DONUT_COLORS[i%DONUT_COLORS.length]};
+      })
+    };
+  }
+  function tipMatchesFilter(t, filter){
+    if(!filter || !filter.kind) return true;
+    if(filter.kind==="bookie") return bookieOf(t)===filter.key;
+    if(filter.kind==="sport") return sportOf(t)===filter.key;
+    if(filter.kind==="month") return monthOf(t)===filter.key;
+    return true;
+  }
+  function detailWithFilter(detail, filter){
+    if(!filter || !filter.kind) return detail;
+    detail=detail||{};
+    var b=buckets(detail);
+    var fSettled=b.settled.filter(function(t){ return tipMatchesFilter(t, filter); });
+    var fQueued=b.queued.filter(function(t){ return tipMatchesFilter(t, filter); });
+    var clean=fSettled.filter(function(t){ return !isHistoricalImport(t); });
+    var core=computeFromTips(clean);
+    var q=fQueued.filter(function(t){ return !isHistoricalImport(t); }).length;
+    var out=Object.assign({}, detail);
+    out.tips={settled:fSettled, queued:fQueued};
+    out.stats=Object.assign({}, detail.stats||{}, {
+      won:core.won, lost:core.lost, push:core.push, settled:core.settled,
+      profit_units:core.profit, staked_units:core.staked, roi:core.roi, strike_rate:core.strike,
+      queued:q
+    });
+    out.profit_series=undefined;
+    out.daily_series=undefined;
+    return out;
+  }
+  function filterChipHtml(filter){
+    if(!filter || !filter.label) return "";
+    var kind=filter.kind||"";
+    return '<span class="sv-filter-chip chip"><span>'+esc(filter.label)+'</span><button type="button" class="x sv-filter-clear" aria-label="Clear filter" data-sv-clear="1">×</button></span>';
+  }
+  function legendRow(s, kind, active){
+    var on=active && active.kind===kind && active.key===s.name;
+    return '<div class="sv-legend-row clk'+(on?" sv-active":"")+'" role="button" tabindex="0" data-sv-kind="'+esc(kind)+'" data-sv-key="'+esc(s.name)+'">'
+      +'<i style="background:'+s.color+'"></i><span class="nm">'+esc(s.name)+'</span><b>'+s.n+"</b><em>"+s.pct+"%</em></div>";
   }
   var DONUT_COLORS=["var(--accent)","var(--accent2)","var(--win)","var(--warn, #e0a04a)","var(--push)"];
   function bookieBreakdown(detail){
@@ -479,10 +561,10 @@
       });
     }
     var lineBody=line
-      ?('<div class="sv-big"><b class="'+m.unitsCls+'" data-sv="units-big">'+esc(m.unitsText)+"</b> across "+esc(String(m.settled))+" settled</div><div class=\"sv-chart\">"+line+"</div>")
+      ?('<div class="sv-big"><b class="'+m.unitsCls+'" data-sv="units-big">'+esc(m.unitsText)+"</b> across "+esc(String(m.settled))+" settled</div><div class=\"sv-chart\" data-sv-chart=\"units\">"+line+"</div>")
       :'<div class="sv-empty">Not enough settled tips to draw a line yet.</div>';
     var barBody=bar
-      ?'<div class="sv-chart">'+bar+"</div>"
+      ?'<div class="sv-chart" data-sv-chart="monthly">'+bar+"</div>"
       :'<div class="sv-empty">No monthly results in this view yet.</div>';
     return '<div class="sv-charts">'
       +'<section class="sv-panel" aria-label="Units over time"><div class="sv-ph"><h2>Units over time</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"+lineBody+"</section>"
@@ -492,23 +574,31 @@
   function splitsHtml(detail, opts){
     opts=opts||{};
     var books=bookieBreakdown(detail);
+    var sports=sportBreakdown(detail);
     var people=tipsterBreakdown(detail);
-    if(!books && !people.length) return "";
+    if(!books && !sports && !people.length) return "";
     var period=opts.period?String(opts.period):"";
+    var active=opts.filter||null;
     var html='<div class="sv-split">';
     if(books){
       var C=chartsApi();
       var svg=C?C.donut({slices:books.slices, center:String(books.total), sub:"bets", aria:"Bets by bookie, "+books.total+" bets"}):"";
       html+='<section class="sv-panel" aria-label="Bets by bookie"><div class="sv-ph"><h2>Bets by bookie</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"
         +'<div class="sv-donut-row">'+svg+'<div class="sv-legend">'
-        +books.slices.map(function(s){
-          return '<div><i style="background:'+s.color+'"></i><span class="nm">'+esc(s.name)+'</span><b>'+s.n+"</b><em>"+s.pct+"%</em></div>";
-        }).join("")
+        +books.slices.map(function(s){ return legendRow(s, "bookie", active); }).join("")
+        +"</div></div></section>";
+    }
+    if(sports){
+      var C2=chartsApi();
+      var svg2=C2?C2.donut({slices:sports.slices, center:String(sports.total), sub:"bets", aria:"Bets by sport, "+sports.total+" bets"}):"";
+      html+='<section class="sv-panel" aria-label="Bets by sport"><div class="sv-ph"><h2>Bets by sport</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"
+        +'<div class="sv-donut-row">'+svg2+'<div class="sv-legend">'
+        +sports.slices.map(function(s){ return legendRow(s, "sport", active); }).join("")
         +"</div></div></section>";
     }
     if(people.length){
       var show=people.slice(0,12);
-      html+='<section class="sv-panel" aria-label="Tipsters in this server"><div class="sv-ph"><h2>Tipsters in this server</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"
+      html+='<section class="sv-panel sv-tipsters" aria-label="Tipsters in this server"><div class="sv-ph"><h2>Tipsters in this server</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"
         +'<div class="sv-ranks">'
         +show.map(function(t,i){
           return '<div class="sv-rank"><span class="sv-n">'+(i+1)+'</span><span class="sv-av" aria-hidden="true">'+esc(t.initials)+'</span>'
@@ -521,7 +611,172 @@
   }
   function blocks(detail, opts){
     opts=opts||{};
-    return {stats:statsHtml(detail, opts), charts:chartsHtml(detail, opts), splits:splitsHtml(detail, opts)};
+    return {stats:statsHtml(detail, opts), charts:chartsHtml(detail, opts), splits:splitsHtml(detail, opts), filterChip:filterChipHtml(opts.filter)};
+  }
+  function filterLabel(kind, key){
+    if(kind==="month") return monthLabel(key, true);
+    return String(key||"");
+  }
+  function nearestIndex(n, len){
+    if(!(len>1)) return 0;
+    var i=Math.round(n*(len-1));
+    if(i<0) return 0;
+    if(i>len-1) return len-1;
+    return i;
+  }
+  function chartTip(el, text, x, y){
+    if(!el) return;
+    var tip=el.querySelector(".sv-chart-tip");
+    if(!tip){
+      tip=document.createElement("div");
+      tip.className="sv-chart-tip";
+      tip.setAttribute("role","tooltip");
+      el.appendChild(tip);
+    }
+    tip.textContent=text;
+    tip.hidden=false;
+    tip.style.left=Math.round(x)+"px";
+    tip.style.top=Math.round(y)+"px";
+  }
+  function hideChartTip(el){
+    if(!el) return;
+    var tip=el.querySelector(".sv-chart-tip");
+    if(tip) tip.hidden=true;
+  }
+  function bindUnitsChart(wrap, series){
+    if(!wrap || !series || !series.points || series.points.length<2) return;
+    var svg=wrap.querySelector("svg");
+    if(!svg) return;
+    var pts=series.points;
+    var padL=48, w=640, h=220, padT=12, padB=26, padR=12;
+    var data=pts.map(function(p){ return p.y; });
+    var lo=Math.min.apply(null, data.concat([0]));
+    var hi=Math.max.apply(null, data.concat([0]));
+    if(!(hi>lo)){ lo-=1; hi+=1; }
+    var pad=(hi-lo)*0.08;
+    lo-=pad; hi+=pad;
+    function X(i){ return padL+(w-padL-padR)*i/(data.length-1); }
+    function Y(v){ return padT+(h-padT-padB)*(1-(v-lo)/(hi-lo)); }
+    var cross=svg.querySelector(".sv-crosshair");
+    if(!cross){
+      cross=document.createElementNS("http://www.w3.org/2000/svg","g");
+      cross.setAttribute("class","sv-crosshair");
+      cross.setAttribute("aria-hidden","true");
+      cross.innerHTML='<line class="sv-cross-v" y1="'+padT+'" y2="'+(h-padB)+'" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/><circle class="sv-cross-dot" r="4" fill="var(--accent)" stroke="var(--card)" stroke-width="1.5"/>';
+      svg.appendChild(cross);
+    }
+    var vLine=cross.querySelector(".sv-cross-v");
+    var dot=cross.querySelector(".sv-cross-dot");
+    function showAt(i, clientX, clientY){
+      var p=pts[i];
+      if(!p) return;
+      var cx=X(i), cy=Y(p.y);
+      vLine.setAttribute("x1", r1(cx)); vLine.setAttribute("x2", r1(cx));
+      dot.setAttribute("cx", r1(cx)); dot.setAttribute("cy", r1(cy));
+      cross.style.opacity="1";
+      var label=(p.label||"")+(p.ms?(" · "+pointLabel(p.ms)):"");
+      var tipTxt=fmtUnits(p.y)+(label?(" · "+label):"");
+      var rect=wrap.getBoundingClientRect();
+      chartTip(wrap, tipTxt, clientX-rect.left, clientY-rect.top-36);
+    }
+    function hide(){
+      cross.style.opacity="0";
+      hideChartTip(wrap);
+    }
+    function pick(ev){
+      var hit=svg.querySelector(".sv-chart-hit");
+      if(!hit) return;
+      var box=hit.getBoundingClientRect();
+      var n=(ev.clientX-box.left)/Math.max(1, box.width);
+      showAt(nearestIndex(n, data.length), ev.clientX, ev.clientY);
+    }
+    svg.onpointermove=function(ev){
+      if(ev.pointerType==="mouse") pick(ev);
+      else if(wrap.hasPointerCapture&&wrap.hasPointerCapture(ev.pointerId)) pick(ev);
+    };
+    svg.onpointerdown=function(ev){
+      if(ev.pointerType!=="mouse"&&wrap.setPointerCapture) wrap.setPointerCapture(ev.pointerId);
+      pick(ev);
+    };
+    svg.onpointerup=function(ev){
+      if(ev.pointerType!=="mouse"&&wrap.releasePointerCapture) try{ wrap.releasePointerCapture(ev.pointerId); }catch(_){}
+    };
+    svg.onpointerleave=hide;
+    wrap.onmouseleave=hide;
+  }
+  function bindMonthlyChart(wrap, bars, onFilter){
+    if(!wrap || !bars || !bars.length) return;
+    var meta={};
+    bars.forEach(function(b){ meta[b.key]=b; });
+    function tipText(b){
+      var wr=b.winRate!=null?(" · "+fmtPct(b.winRate, false)+" win rate"):"";
+      return (b.label||b.key)+": "+fmtUnits(b.value)+" · "+(b.bets||0)+" bets"+wr;
+    }
+    wrap.querySelectorAll(".sv-bar").forEach(function(rect){
+      rect.style.cursor="pointer";
+      var key=rect.getAttribute("data-sv-month")||"";
+      var b=meta[key];
+      if(!b) return;
+      rect.onmouseenter=function(ev){
+        var box=wrap.getBoundingClientRect();
+        chartTip(wrap, tipText(b), ev.clientX-box.left, ev.clientY-box.top-32);
+      };
+      rect.onmousemove=function(ev){
+        var box=wrap.getBoundingClientRect();
+        chartTip(wrap, tipText(b), ev.clientX-box.left, ev.clientY-box.top-32);
+      };
+      rect.onmouseleave=function(){ hideChartTip(wrap); };
+      rect.onclick=function(){
+        if(typeof onFilter==="function") onFilter({kind:"month", key:key, label:filterLabel("month", key)});
+      };
+      rect.onkeydown=function(ev){
+        if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); rect.click(); }
+      };
+    });
+  }
+  function bindLegend(mount, onFilter, active){
+    mount.querySelectorAll(".sv-legend-row").forEach(function(row){
+      var kind=row.getAttribute("data-sv-kind")||"";
+      var key=row.getAttribute("data-sv-key")||"";
+      row.onclick=function(){
+        if(typeof onFilter!=="function") return;
+        if(active && active.kind===kind && active.key===key) onFilter(null);
+        else onFilter({kind:kind, key:key, label:filterLabel(kind, key)});
+      };
+      row.onkeydown=function(ev){
+        if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); row.click(); }
+      };
+    });
+    mount.querySelectorAll(".sv-donut-slice").forEach(function(path){
+      var key=path.getAttribute("data-sv-slice")||"";
+      var panel=path.closest(".sv-panel");
+      var kind=panel && /sport/i.test(panel.getAttribute("aria-label")||"")?"sport":"bookie";
+      path.style.cursor="pointer";
+      path.onclick=function(){
+        if(typeof onFilter!=="function") return;
+        if(active && active.kind===kind && active.key===key) onFilter(null);
+        else onFilter({kind:kind, key:key, label:filterLabel(kind, key)});
+      };
+      path.onkeydown=function(ev){
+        if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); path.click(); }
+      };
+    });
+  }
+  function bindInteractions(mount, detail, opts, handlers){
+    if(!mount || !handlers) return;
+    opts=opts||{};
+    handlers=handlers||{};
+    var onFilter=handlers.onFilter;
+    var active=opts.filter||null;
+    bindUnitsChart(mount.querySelector('[data-sv-chart="units"]'), unitsSeries(detail));
+    bindMonthlyChart(mount.querySelector('[data-sv-chart="monthly"]'), monthlyBars(detail), onFilter);
+    bindLegend(mount, onFilter, active);
+    mount.querySelectorAll(".sv-filter-clear").forEach(function(btn){
+      btn.onclick=function(ev){ ev.preventDefault(); if(typeof handlers.onClear==="function") handlers.onClear(); };
+    });
+    if(handlers.form && typeof root.FormBadges!=="undefined" && root.FormBadges && typeof root.FormBadges.bindTooltips==="function"){
+      root.FormBadges.bindTooltips(mount, handlers.form);
+    }
   }
   function applyCards(rootEl, detail, opts){
     if(!rootEl || !rootEl.querySelector) return;
@@ -559,11 +814,16 @@
     unitsSeries:unitsSeries,
     monthlyBars:monthlyBars,
     bookieBreakdown:bookieBreakdown,
+    sportBreakdown:sportBreakdown,
+    sportOf:sportOf,
     tipsterBreakdown:tipsterBreakdown,
+    detailWithFilter:detailWithFilter,
+    filterChipHtml:filterChipHtml,
     statsHtml:statsHtml,
     chartsHtml:chartsHtml,
     splitsHtml:splitsHtml,
     blocks:blocks,
+    bindInteractions:bindInteractions,
     applyCards:applyCards,
     fmtUnits:fmtUnits,
     bookieOf:bookieOf,

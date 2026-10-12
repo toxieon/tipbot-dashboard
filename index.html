@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.56.6" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.56.6" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.56.6" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.56.6">
+<link rel="icon" href="./assets/favicon.ico?v=0.56.7" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.56.7" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.56.7" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.56.7">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.56.6"></script>
+<script src="./assets/tbtime.js?v=0.56.7"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Day/night and "today" are Sydney time (assets/tbtime.js). */
@@ -937,7 +937,18 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .sv-donut-row{display:flex;align-items:center;gap:14px;min-width:0}
 .sv-donut{width:96px;height:96px;flex:none}
 .sv-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.sv-legend div{display:flex;align-items:center;gap:8px;font-size:var(--t-sub);min-width:0}
+.sv-legend div,.sv-legend-row{display:flex;align-items:center;gap:8px;font-size:var(--t-sub);min-width:0}
+.sv-legend-row{border-radius:var(--r-sm);padding:4px 6px;margin:0 -6px;cursor:pointer}
+.sv-legend-row:hover,.sv-legend-row:focus-visible{background:var(--card2);outline:none}
+.sv-legend-row.sv-active{box-shadow:inset 0 0 0 1px var(--accent)}
+.sv-donut-slice{cursor:pointer}
+.sv-donut-slice:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.sv-chart{position:relative}
+.sv-chart-tip,.tb-form-tip{position:absolute;z-index:6;pointer-events:none;max-width:min(280px,92vw);padding:6px 10px;border-radius:var(--r-sm);background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:var(--t-foot);line-height:1.35;box-shadow:0 8px 24px rgba(0,0,0,.22);transform:translate(-50%,-100%)}
+.sv-crosshair{opacity:0;transition:opacity .12s}
+.sv-filter-chip{margin-left:8px}
+.sv-period{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sv-split .sv-tipsters{grid-column:1 / -1}
 .sv-legend i{width:8px;height:8px;border-radius:3px;flex:none;display:block}
 .sv-legend .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sv-legend b{margin-left:auto;font-weight:650;font-variant-numeric:tabular-nums}
@@ -1175,7 +1186,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.56.6" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.56.7" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1186,7 +1197,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.56.6" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.56.7" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1195,7 +1206,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.56.6" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.56.7" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1214,7 +1225,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.56.6</div>
+          <div class="dd-label" id="dd-version">tipdash v0.56.7</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1237,24 +1248,24 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.56.6"></script>
-<script src="./assets/light-data.js?v=0.56.6"></script>
-<script src="./assets/lines.js?v=0.56.6"></script>
-<script src="./assets/racing-legs.js?v=0.56.6"></script>
-<script src="./assets/afl-guernseys.js?v=0.56.6"></script>
-<script src="./assets/compare-ui.js?v=0.56.6"></script>
-<script src="./assets/sport-keywords.js?v=0.56.6"></script>
-<script src="./assets/sport-marks.js?v=0.56.6"></script>
-<script src="./assets/routing.js?v=0.56.6"></script>
-<script src="./assets/scheduled-tips.js?v=0.56.6"></script>
-<script src="./assets/upcoming-split.js?v=0.56.6"></script>
-<script src="./assets/espn-props.js?v=0.56.6"></script>
-<script src="./assets/tb-motion.js?v=0.56.6"></script>
-<script src="./assets/form-badges.js?v=0.56.6"></script>
-<script src="./assets/svg-charts.js?v=0.56.6"></script>
-<script src="./assets/server-view.js?v=0.56.6"></script>
-<script src="./assets/stats.js?v=0.56.6"></script>
-<script src="./assets/horse-results.js?v=0.56.6"></script>
+<script src="./assets/req-pool.js?v=0.56.7"></script>
+<script src="./assets/light-data.js?v=0.56.7"></script>
+<script src="./assets/lines.js?v=0.56.7"></script>
+<script src="./assets/racing-legs.js?v=0.56.7"></script>
+<script src="./assets/afl-guernseys.js?v=0.56.7"></script>
+<script src="./assets/compare-ui.js?v=0.56.7"></script>
+<script src="./assets/sport-keywords.js?v=0.56.7"></script>
+<script src="./assets/sport-marks.js?v=0.56.7"></script>
+<script src="./assets/routing.js?v=0.56.7"></script>
+<script src="./assets/scheduled-tips.js?v=0.56.7"></script>
+<script src="./assets/upcoming-split.js?v=0.56.7"></script>
+<script src="./assets/espn-props.js?v=0.56.7"></script>
+<script src="./assets/tb-motion.js?v=0.56.7"></script>
+<script src="./assets/form-badges.js?v=0.56.7"></script>
+<script src="./assets/svg-charts.js?v=0.56.7"></script>
+<script src="./assets/server-view.js?v=0.56.7"></script>
+<script src="./assets/stats.js?v=0.56.7"></script>
+<script src="./assets/horse-results.js?v=0.56.7"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1603,7 +1614,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.56.6";
+  TD.version="0.56.7";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -6383,6 +6394,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
   }
   let DETAIL_RENDER_GEN=0;
+  let DETAIL_FILTER=null;
   async function renderDetail(d){
     const gen=++DETAIL_RENDER_GEN;
     clearDetailTimers();
@@ -6409,15 +6421,17 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const showBack=visibleServers().length>1;               // a lone-server tipster has nowhere to go back to
     const months=d.months||[],curMonth=d.month||"";
     const period=curMonth?fmtMonth(curMonth):"Lifetime";
+    const viewDetail=(DETAIL_FILTER&&window.ServerView&&typeof ServerView.detailWithFilter==="function")?ServerView.detailWithFilter(d,DETAIL_FILTER):d;
+    const filterChip=(DETAIL_FILTER&&window.ServerView&&typeof ServerView.filterChipHtml==="function")?ServerView.filterChipHtml(DETAIL_FILTER):"";
     const qStale=DETAIL_STALE.has(d);
     let wonN=Number(st.won)||0, lostN=Number(st.lost)||0, pushN=Number(st.push)||0, settledN=Number(st.settled)||0, stakedN=Number(st.staked_units)||0;
     if(window.ServerView&&typeof ServerView.cardModel==="function"){
-      const m=ServerView.cardModel(d,{stale:qStale});
+      const m=ServerView.cardModel(viewDetail,{stale:qStale});
       if(m&&m.source==="tips"){ wonN=m.won; lostN=m.lost; pushN=m.push; settledN=m.settled; stakedN=m.staked; }
     }
     const total=Math.max(Number(wonN)+Number(lostN)+Number(pushN),1);
     const wl='<span style="width:'+(wonN/total*100)+'%;background:var(--win)"></span><span style="width:'+(lostN/total*100)+'%;background:var(--loss)"></span><span style="width:'+(pushN/total*100)+'%;background:var(--push)"></span>';
-    const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(d,{formHtml:guildBadge,period:period,stale:qStale}):null;
+    const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(viewDetail,{formHtml:guildBadge,period:period,stale:qStale,filter:DETAIL_FILTER}):null;
     const serverTitle=(!sv&&guildBadge)?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
     const qTxt=qStale?'<span class="st-updating">Updating…</span>':(st.queued==null?"—":st.queued);
     const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won==null?"—":st.won,"pos",""],["Lost",st.lost==null?"—":st.lost,"neg",""],["Success Rate",st.strike_rate==null?"—":st.strike_rate+"%","",""],["Profit",u(st.profit_units),(Number(st.profit_units)||0)>=0?"pos":"neg",""],["ROI",st.roi==null?"—":st.roi+"%",(Number(st.roi)||0)>=0?"pos":"neg",""],["Followers",st.followers==null?"—":st.followers,"","followers"]];
@@ -6432,7 +6446,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<span class="st-caret">▾</span></button>'
       +'<div class="tiles">'+tiles+'</div></div>');
     const sw=TOGGLES.map(([k,l])=>'<div class="switch"><button type="button" class="toggle '+(s[k]?"on":"")+'" data-g="'+s.guild_id+'" data-c="'+k+'" aria-label="'+esc(l)+'" aria-pressed="'+(s[k]?"true":"false")+'"></button><span>'+l+'</span></div>').join("")+trialControlsHTML(s);
-    const se=tips.settled.length?tips.settled.map(t=>recentTipRow(t)).join(""):'<div class="empty">No settled tips yet.</div>';
+    const viewTips=viewDetail.tips||tips;
+    const se=(viewTips.settled&&viewTips.settled.length)?viewTips.settled.map(t=>recentTipRow(t)).join(""):'<div class="empty">No settled tips yet.</div>';
     const monthSel='<label class="sv-period-k" for="monthsel">Showing</label><select id="monthsel" aria-label="Stats period" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
     const adminPanel=(isAdmin && window.TBOwner && typeof TBOwner.adminHtml==="function")?TBOwner.adminHtml(s, sw):"";
     const settingsPanel='<div class="panel" id="settings-panel" data-sec="settings">'
@@ -6443,7 +6458,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
-      +'<div class="sv-period">'+monthSel+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
+      +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
       +(sv?sv.charts:"")
       +(sv?sv.splits:"")
@@ -6463,7 +6478,14 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
     { const af=$("asfollowerbtn"); if(af)af.onclick=()=>openFollowerView(s.guild_id,s.display_name); }
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
-    { const ms=$("monthsel"); if(ms)ms.onchange=()=>loadDetail(s.guild_id,ms.value||null); }
+    { const ms=$("monthsel"); if(ms)ms.onchange=()=>{ DETAIL_FILTER=null; loadDetail(s.guild_id,ms.value||null); }; }
+    if(sv&&window.ServerView&&typeof ServerView.bindInteractions==="function"){
+      ServerView.bindInteractions($("detail"), viewDetail, {filter:DETAIL_FILTER}, {
+        form:formOn?d.form:null,
+        onFilter(f){ DETAIL_FILTER=f; renderDetail(STATE._detailShown); },
+        onClear(){ DETAIL_FILTER=null; renderDetail(STATE._detailShown); }
+      });
+    }
     // Calendar arrows step months; they drive the whole period (stats follow),
     // matching the dropdown. Uses the resolved cal_month, not the raw selection.
     $("detail").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
@@ -6584,7 +6606,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.56.6');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.56.7');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -6802,6 +6824,30 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){ if(e&&e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t reach the bot.</div>'; }
   }
 
+  var COMMAND_DESC_FALLBACK={
+    tip:"Post a new tip to the tips channel.",
+    grade:"Mark a tip won, lost or void.",
+    queue:"See tips waiting to post.",
+    stats:"Show this server's strike rate and units.",
+    follow:"Follow this server's tips in your dashboard.",
+    settings:"Open server settings (admins).",
+    import:"Import historical tips from a sheet.",
+    delete:"Remove a tip (admins)."
+  };
+  function commandDescription(c){
+    if(c&&c.description) return String(c.description);
+    if(c&&c.name&&COMMAND_DESC_FALLBACK[c.name]) return COMMAND_DESC_FALLBACK[c.name];
+    return "";
+  }
+  function mergeLockdownPreset(meta){
+    meta=meta||{};
+    var presets=Array.isArray(meta.presets)?meta.presets.slice():[];
+    if(!presets.some(function(p){ return p&&p.name==="Lockdown"; })){
+      presets.push({name:"Lockdown", description:"Every slash command is limited to server admins and the owner.", builtin:true});
+    }
+    meta.presets=presets;
+    return meta;
+  }
 async function loadPerms(gid){
     var box=$("perms-box"); if(!box)return;
     box.innerHTML=NDSkeleton.lines(6);
@@ -6809,6 +6855,7 @@ async function loadPerms(gid){
     try{ var r=await api("/api/mod-settings?guild_id="+encodeURIComponent(gid));
       if(!r.ok){ box.innerHTML='<div class="empty">Couldn\'t load permissions for this server.</div>'; return; }
       data=await r.json();
+      data=mergeLockdownPreset(data);
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); box.innerHTML='<div class="empty">Couldn\'t reach the bot.</div>'; return; }
     PERM={gid:gid, meta:data, cmd:{}, dash:{}};
     (data.commands||[]).forEach(function(c){ PERM.cmd[c.name]={mode:c.mode, roles:(c.roles||[]).map(String)}; });
@@ -6835,7 +6882,7 @@ async function loadPerms(gid){
     html+='<div style="margin-bottom:14px"><div style="color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Presets</div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">';
     (m.presets||[]).forEach(function(p){
-      html+='<span style="display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 4px"><button class="btn sm papply" data-p="'+esc(p.name)+'" title="'+esc(p.description||"")+'">'+esc(p.name)+'</button>'+(p.builtin?'':'<button class="pdel" data-p="'+esc(p.name)+'" title="Delete preset" style="border:0;background:transparent;color:var(--loss);cursor:pointer;font-size:var(--t-callout);padding:0 6px">✕</button>')+'</span>';
+      html+='<span style="display:inline-flex;flex-direction:column;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-md);padding:6px 8px;gap:4px"><span style="display:inline-flex;align-items:center;gap:4px"><button class="btn sm papply" data-p="'+esc(p.name)+'" title="'+esc(p.description||"")+'">'+esc(p.name)+'</button>'+(p.builtin?'':'<button class="pdel" data-p="'+esc(p.name)+'" title="Delete preset" style="border:0;background:transparent;color:var(--loss);cursor:pointer;font-size:var(--t-callout);padding:0 6px">✕</button>')+'</span>'+(p.description?'<span style="color:var(--faint);font-size:var(--t-foot);line-height:1.35;max-width:280px">'+esc(p.description)+'</span>':'')+'</span>';
     });
     html+='</div>';
     html+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="pname" placeholder="Save current as preset…" maxlength="60" style="flex:1;min-width:180px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;font:inherit"><button class="btn sm" id="psave-preset">Save preset</button></div></div>';
@@ -6844,8 +6891,10 @@ async function loadPerms(gid){
       if(!cmds.length)return;
       html+='<div style="color:var(--faint);font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px">'+esc(g)+'</div>';
       cmds.forEach(function(c){
+        var cdesc=commandDescription(c);
         html+='<div style="border-bottom:1px solid var(--line);padding:8px 0">'
           +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="min-width:150px;font-weight:600;font-size:var(--t-callout)">'+esc(c.label)+' <span style="color:var(--faint);font-weight:400">/'+esc(c.name)+'</span></div>'+modeSelect(c.name)+'</div>'
+          +(cdesc?'<div style="color:var(--faint);font-size:var(--t-foot);margin:4px 0 0;line-height:1.4">'+esc(cdesc)+'</div>':'')
           +(PERM.cmd[c.name].mode==="roles"?roleChecks(c.name):"")
           +'</div>';
       });
@@ -6881,7 +6930,26 @@ async function loadPerms(gid){
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); if(msg){msg.textContent="couldn't save";msg.style.color="var(--loss)";} }
     finally{ if(btn)btn.disabled=false; }
   }
+  function applyLockdownLocal(){
+    var adminMode="admin";
+    if(Array.isArray(PERM.meta.modes)){
+      var hit=PERM.meta.modes.find(function(m){ return m&&/admin/i.test(String(m.label||m.value||"")); });
+      if(hit&&hit.value) adminMode=hit.value;
+    }
+    Object.keys(PERM.cmd).forEach(function(n){ PERM.cmd[n].mode=adminMode; PERM.cmd[n].roles=[]; });
+    renderPerms();
+    var m=$("pmsg"); if(m){ m.textContent="Lockdown applied — review and Save permissions."; m.style.color="var(--win)"; }
+  }
   async function applyPreset(name){
+    if(name==="Lockdown"){
+      try{
+        var r=await api("/api/preset-apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,name:name})});
+        var j=await r.json();
+        if(j.ok){ loadPerms(PERM.gid); return; }
+      }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
+      applyLockdownLocal();
+      return;
+    }
     try{ var r=await api("/api/preset-apply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:PERM.gid,name:name})});
       var j=await r.json(); if(j.ok){ loadPerms(PERM.gid); } else { var m=$("pmsg"); if(m){m.textContent=j.message||"error";m.style.color="var(--loss)";} }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); }
