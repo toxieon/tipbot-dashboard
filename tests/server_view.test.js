@@ -1,4 +1,4 @@
-// node --test tests/   0.44.1: server page stats, charts, bookie donut, tipster breakdown.
+// node --test tests/   0.57.1: server page stats, charts, bookie/sport donuts, scrub meta.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -204,18 +204,46 @@ test("stale queued tile says Updating", () => {
   assert.match(htmlStr, /data-sv="queued">Updating…/);
 });
 
+test("sport breakdown groups tips and scrub meta is emitted for charts", () => {
+  const sports = SV.sportBreakdown({tips: {
+    settled: [
+      tip({sport: "AFL", bookmaker: "TAB"}),
+      tip({tip_id: "2", league: "NRL", bookmaker: "Sportsbet"}),
+      tip({tip_id: "3", comp: "AFL", bookmaker: "Sportsbet"}),
+      tip({tip_id: "4", bookmaker: "TAB"})
+    ],
+    queued: [tip({tip_id: "5", result: "", status: "Pending", sport: "Racing"})]
+  }});
+  assert.ok(sports && sports.total >= 4);
+  assert.ok(sports.slices.some((s) => /AFL/i.test(s.name)));
+  const series = SV.unitsSeries({tips: {settled: [tip({profit_units: 1, settled_at: "2026-08-01T02:00:00Z", result: "Win"})], queued: []}});
+  const meta = SV.scrubMeta(series);
+  assert.ok(meta && meta.points.length >= 2);
+  assert.equal(meta.points[1].result, "win");
+  const charts = SV.chartsHtml({tips: {settled: [tip(), tip({tip_id: "2", settled_at: "2026-09-01T02:00:00Z", profit_units: -1, result: "Loss"})], queued: []},
+    stats: {won: 1, lost: 1, push: 0, profit_units: 0, roi: 0, strike_rate: 50, staked_units: 2, settled: 2, queued: 0, followers: 0}}, {monthKey: "2026-09"});
+  assert.match(charts, /data-sv-scrub=/);
+  assert.match(charts, /sv-month-sum/);
+  const split = SV.splitsHtml({tips: {settled: [tip({sport: "AFL"}), tip({tip_id: "2", sport: "NRL"})], queued: []}});
+  assert.match(split, /Bets by sport/);
+  assert.match(split, /sv-legend-pick/);
+  assert.match(split, /data-sv-kind="sport"/);
+});
+
 test("area, bar and donut are inline SVG and use theme variables", () => {
   const area = SC.areaChart({data: [0, 2, 1, 4], xLabels: [[0, "Start"], [3, "End"]], id: "t", aria: "units"});
   assert.match(area, /^<svg /);
   assert.match(area, /stroke="var\(--accent\)"/);
   assert.match(area, /<path /);
   assert.equal(SC.areaChart({data: [1]}), "");
-  const bars = SC.barChart({bars: [{label: "Aug", value: 3}, {label: "Sep", value: -2}]});
+  const bars = SC.barChart({bars: [{label: "Aug", value: 3, key: "2026-08"}, {label: "Sep", value: -2, key: "2026-09"}], interactive: true});
   assert.equal((bars.match(/<rect /g) || []).length, 2);
+  assert.match(bars, /data-sv-month="2026-09"/);
   assert.match(bars, /fill="var\(--win\)"/);
   assert.match(bars, /fill="var\(--loss\)"/);
-  const ring = SC.donut({slices: [{name: "TAB", n: 2, color: "var(--accent)"}, {name: "Neds", n: 1, color: "var(--win)"}]});
+  const ring = SC.donut({slices: [{name: "TAB", n: 2, color: "var(--accent)"}, {name: "Neds", n: 1, color: "var(--win)"}], interactive: true, filterKind: "bookie"});
   assert.equal((ring.match(/<path /g) || []).length, 2);
+  assert.match(ring, /sv-donut-slice/);
   assert.match(ring, />3</);
   assert.equal(SC.donut({slices: []}), "");
   assert.doesNotMatch(area + bars + ring, /font-family:\s*"?Inter/i);
@@ -224,6 +252,7 @@ test("area, bar and donut are inline SVG and use theme variables", () => {
 test("the server page wires the helpers and keeps the old panels", () => {
   assert.match(html, new RegExp('<script src="\\./assets/svg-charts\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
   assert.match(html, new RegExp('<script src="\\./assets/server-view\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
+  assert.match(html, new RegExp('<script src="\\./assets/server-interact\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
   const detail = html.slice(html.indexOf("function renderDetail"), html.indexOf("function mountScheduled"));
   assert.match(detail, /ServerView\.blocks/);
   assert.match(detail, /id="monthsel"/);
