@@ -322,7 +322,7 @@
   }
   async function espnFetchJson(url){
     const r=await fetch(url,{mode:"cors",cache:"no-store"});
-    if(!r.ok) throw new Error("ESPN HTTP "+r.status);
+    if(!r.ok) throw new Error("scoreboard "+r.status);
     return r.json();
   }
   function resetEspnBuild(guildId,name,league){
@@ -419,7 +419,7 @@
       BUILD.espnErr="";
       renderEspnGames();
     }catch(e){
-      BUILD.espnErr="Couldn't reach ESPN scoreboard.";
+      BUILD.espnErr="Couldn't load the scoreboard.";
       renderEspnGames();
     }
   }
@@ -717,7 +717,7 @@
     const shown=games.filter(g=>BUILD.compFilter==="All"||gameComp(g)===BUILD.compFilter);
     if(!games.length){
       const err=(STATE.playerMeta&&STATE.playerMeta.error)||"";
-      html+='<div class="panel"><div class="empty">'+(err?("Couldn't load games — "+err+". If the bot was just redeployed, give it a minute and refresh."):"No games in the next 7 days (off-season or none scheduled). Live games show here too.")+'</div></div>';
+      html+='<div class="panel"><div class="empty">'+(err?("Couldn't load games — "+err+". TipBot may be busy, try again in a minute."):"No games in the next 7 days (off-season or none scheduled). Live games show here too.")+'</div></div>';
     }
     else if(!shown.length){ html+='<div class="panel"><div class="empty">No '+BUILD.compFilter+' games in the next 7 days.</div></div>'; }
     else{ html+='<div class="gcards">'+shown.map((g,i)=>{
@@ -1415,8 +1415,8 @@
         return "Bot is updating — Trickle API not live yet. Try again in a minute.";
       }
       const bodyMsg=(j&&(j.message||j.error||j.detail))||"";
-      if(bodyMsg) return (r&&r.status?("HTTP "+r.status+": "):"")+bodyMsg;
-      if(r&&!r.ok) return "Couldn't schedule batch (HTTP "+r.status+")."+(raw&&raw.length<180?" "+raw:"");
+      if(bodyMsg) return bodyMsg;
+      if(r&&!r.ok) return "Couldn't schedule batch. Please try again.";
       return "Couldn't schedule batch.";
     }
     async function sequentialFallback(){

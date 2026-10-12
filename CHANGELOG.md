@@ -1,3 +1,7 @@
+## 0.56.6 · 2026-10-13 · `copy` · Wording tidy-up
+
+- Plainer wording in a few messages and settings notes.
+
 ## 0.56.5 · 2026-10-12 · `desktop-nav` · Desktop sidebar matches phone tabs
 
 - **Apex desktop rail** uses the same `hasServerContext()` split as the phone tab bar: Home · Build · Upcoming when you're in a server; Home · Servers · Upcoming · Settings on the overview with no server open. Removed Live from the rail.
