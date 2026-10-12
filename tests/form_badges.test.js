@@ -25,6 +25,20 @@ test("absent or empty form renders nothing", () => {
   assert.equal(FB.render({streak: {type: "W", n: Infinity}}), "");
 });
 
+test("entries add title tooltips on form dots", () => {
+  const htmlStr = FB.render({
+    last10: ["W", "L"],
+    entries: [
+      {selection: "Cats", market: "H2H", odds: 1.9, stake: 1, result: "win", date: "2026-10-01"},
+      {selection: "Dogs", market: "Line", odds: 2.1, units: 2, outcome: "loss", settled_at: "2026-10-02T00:00:00Z"}
+    ]
+  });
+  assert.match(htmlStr, /data-form-i="0"/);
+  assert.match(htmlStr, /title="Cats · H2H · @1\.90 · 1u · win · 2026-10-01"/);
+  assert.match(htmlStr, /Dogs · Line/);
+  assert.equal(typeof FB.bindTooltips, "function");
+});
+
 test("dots are newest-left, at most 10, win/loss/push-void", () => {
   const htmlStr = FB.render({last10: ["W", "L", "P", "win", "loss", "push", "V", "VOID"], hot: false});
   assert.deepEqual(dots(htmlStr), [

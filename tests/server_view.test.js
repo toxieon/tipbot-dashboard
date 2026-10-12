@@ -141,6 +141,47 @@ test("without dates, monthly bars fall back to the API series", () => {
   assert.deepEqual(bars.map((b) => [b.key, b.value]), [["2026-07", 3], ["2026-08", -1]]);
 });
 
+test("sport donut only when a sport field is present", () => {
+  assert.equal(SV.sportBreakdown({tips: {settled: [tip({sport: ""})], queued: []}}), null);
+  const sports = SV.sportBreakdown({tips: {
+    settled: [tip({sport: "AFL"}), tip({tip_id: "2", league: "NRL"})],
+    queued: [tip({tip_id: "3", result: "", status: "Pending", sport: "AFL"})]
+  }});
+  assert.equal(sports.total, 3);
+  assert.ok(sports.slices.some((s) => s.name === "AFL" && s.n === 2));
+});
+
+test("detailWithFilter keeps matching tips and recomputes stats", () => {
+  const detail = {
+    stats: {won: 2, lost: 0, push: 0, profit_units: 5, roi: 50, strike_rate: 100, staked_units: 10, settled: 2, queued: 0},
+    tips: {settled: [
+      tip({tip_id: "a", bookmaker: "Sportsbet", profit_units: 2, sport: "AFL"}),
+      tip({tip_id: "b", bookmaker: "TAB", profit_units: -1, sport: "NRL"}),
+      tip({tip_id: "c", bookmaker: "Sportsbet", profit_units: 3, sport: "AFL"})
+    ], queued: []}
+  };
+  const books = SV.detailWithFilter(detail, {kind: "bookie", key: "Sportsbet", label: "Sportsbet"});
+  assert.equal(books.tips.settled.length, 2);
+  assert.equal(books.stats.profit_units, 5);
+  const month = SV.detailWithFilter(detail, {kind: "sport", key: "NRL", label: "NRL"});
+  assert.equal(month.tips.settled.length, 1);
+  assert.equal(month.stats.profit_units, -1);
+});
+
+test("monthly bars include bet counts and win rate", () => {
+  const detail = {
+    tips: {settled: [
+      tip({settled_at: "2026-09-01T02:00:00Z", profit_units: 2, result: "Win"}),
+      tip({tip_id: "2", settled_at: "2026-09-03T02:00:00Z", profit_units: -1, result: "Loss"}),
+      tip({tip_id: "3", settled_at: "2026-09-04T02:00:00Z", profit_units: 1, result: "Win"})
+    ], queued: []}
+  };
+  const bars = SV.monthlyBars(detail);
+  assert.equal(bars[0].bets, 3);
+  assert.equal(bars[0].wins, 2);
+  assert.equal(bars[0].winRate, 66.7);
+});
+
 test("bookie donut only when a bookie field is present", () => {
   assert.equal(SV.bookieBreakdown({tips: {settled: [tip({bookmaker: "", bookie: ""})], queued: []}}), null);
   assert.equal(SV.bookieBreakdown({tips: {settled: [tip({bookmaker: "No bookie"})], queued: []}}), null);
@@ -192,9 +233,11 @@ test("render hides the donut and the tipster list when there is nothing to show"
   assert.match(blocks.charts, /Units over time/);
   assert.match(blocks.charts, /Monthly P&amp;L/);
   assert.equal(blocks.splits, "");
-  const rich = SV.splitsHtml({tips: {settled: [tip(), tip({tip_id: "2", tipster_name: "Rhi", bookmaker: "TAB", profit_units: -1, result: "Loss"})], queued: []}});
+  const rich = SV.splitsHtml({tips: {settled: [tip({sport: "AFL"}), tip({tip_id: "2", tipster_name: "Rhi", bookmaker: "TAB", sport: "NRL", profit_units: -1, result: "Loss"})], queued: []}});
   assert.match(rich, /Bets by bookie/);
+  assert.match(rich, /Bets by sport/);
   assert.match(rich, /Tipsters in this server/);
+  assert.match(rich, /sv-legend-row/);
   assert.match(rich, /Sportsbet/);
   assert.match(rich, /<path /);
 });
@@ -226,6 +269,9 @@ test("the server page wires the helpers and keeps the old panels", () => {
   assert.match(html, new RegExp('<script src="\\./assets/server-view\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
   const detail = html.slice(html.indexOf("function renderDetail"), html.indexOf("function mountScheduled"));
   assert.match(detail, /ServerView\.blocks/);
+  assert.match(detail, /ServerView\.bindInteractions/);
+  assert.match(html, /mergeLockdownPreset/);
+  assert.match(detail, /DETAIL_FILTER/);
   assert.match(detail, /id="monthsel"/);
   assert.match(detail, /id="scheduled-panel"/);
   assert.match(detail, /id="live-tips-panel"/);

@@ -95,6 +95,7 @@
       g+='<text x="'+r1(X(i))+'" y="'+(h-6)+'" text-anchor="'+anchor+'" fill="var(--faint)" font-size="'+font+'">'+esc(lab)+'</text>';
     });
     g+='<path d="'+area+'" fill="url(#'+id+')"/><path class="sv-line" d="'+line+'" fill="none" stroke="'+color+'" stroke-width="'+(opts.strokeW||2.2)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+    g+='<rect class="sv-chart-hit" x="'+padL+'" y="'+padT+'" width="'+(w-padL-padR)+'" height="'+(h-padT-padB)+'" fill="transparent" pointer-events="all"/>';
     if(opts.endDot!==false){
       var p=pts[pts.length-1];
       g+='<circle cx="'+r1(p[0])+'" cy="'+r1(p[1])+'" r="6" fill="'+color+'" opacity="0.22"/>';
@@ -137,7 +138,8 @@
       var y=Y(v);
       var top=Math.min(y, zero), bh=Math.max(1, Math.abs(y-zero));
       var fill=v>0?"var(--win)":(v<0?"var(--loss)":"var(--faint)");
-      g+='<rect x="'+r1(x)+'" y="'+r1(top)+'" width="'+r1(bw)+'" height="'+r1(bh)+'" rx="2" fill="'+fill+'"><title>'+esc((b.label||"")+" "+yFmt(v))+'</title></rect>';
+      var key=b.key!=null?String(b.key):"";
+      g+='<rect class="sv-bar" data-sv-month="'+esc(key)+'" x="'+r1(x)+'" y="'+r1(top)+'" width="'+r1(bw)+'" height="'+r1(bh)+'" rx="2" fill="'+fill+'" tabindex="0" role="button"><title>'+esc((b.label||"")+" "+yFmt(v))+'</title></rect>';
       if(i%step===0 || i===bars.length-1){
         var anchor=i===0?"start":(i===bars.length-1?"end":"middle");
         var tx=i===0?x:(i===bars.length-1?x+bw:x+bw/2);
@@ -164,8 +166,8 @@
       var large=(eA-sA)>Math.PI?1:0;
       function p(rad, ang){ return [cx+rad*Math.cos(ang), cy+rad*Math.sin(ang)]; }
       var p1=p(R,sA), p2=p(R,eA), p3=p(r,eA), p4=p(r,sA);
-      seg+='<path d="M'+r1(p1[0])+' '+r1(p1[1])+' A'+R+' '+R+' 0 '+large+' 1 '+r1(p2[0])+' '+r1(p2[1])
-        +' L'+r1(p3[0])+' '+r1(p3[1])+' A'+r+' '+r+' 0 '+large+' 0 '+r1(p4[0])+' '+r1(p4[1])+' Z" fill="'+(s.color||"var(--accent)")+'"/>';
+      seg+='<path class="sv-donut-slice" data-sv-slice="'+esc(s.name||"")+'" d="M'+r1(p1[0])+' '+r1(p1[1])+' A'+R+' '+R+' 0 '+large+' 1 '+r1(p2[0])+' '+r1(p2[1])
+        +' L'+r1(p3[0])+' '+r1(p3[1])+' A'+r+' '+r+' 0 '+large+' 0 '+r1(p4[0])+' '+r1(p4[1])+' Z" fill="'+(s.color||"var(--accent)")+'" tabindex="0" role="button"/>';
       a0=a1;
     });
     var mid=opts.center!=null?String(opts.center):String(total);
