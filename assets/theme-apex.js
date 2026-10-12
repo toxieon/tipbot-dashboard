@@ -471,6 +471,14 @@
     { id: "settings", label: "Settings", d: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4-2.1-.6a6 6 0 0 0-.5-1.2l1.2-1.8-1.4-1.4-1.8 1.2a6 6 0 0 0-1.2-.5L12 4l-.6 2.1a6 6 0 0 0-1.2.5L8.4 5.4 7 6.8l1.2 1.8a6 6 0 0 0-.5 1.2L4 12l2.1.6a6 6 0 0 0 .5 1.2L5.4 15.6 6.8 17l1.8-1.2a6 6 0 0 0 1.2.5L12 20l.6-2.1a6 6 0 0 0 1.2-.5l1.8 1.2 1.4-1.4-1.2-1.8a6 6 0 0 0 .5-1.2z" }
   ];
   var TABS = ["home", "build", "upcoming"];
+  var RAIL_NO_SERVER = ["home", "servers", "upcoming", "settings"];
+
+  function navItems(ids) {
+    return ids.map(function (id) { return NAV.filter(function (item) { return item.id === id; })[0]; }).filter(Boolean);
+  }
+  function railIds() {
+    return hasServerContext() ? TABS : RAIL_NO_SERVER;
+  }
 
   function icon(d) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"></path></svg>';
@@ -558,7 +566,7 @@
     } catch (e2) {}
   }
   function go(id) {
-    if ((id === "build" || id === "upcoming") && !hasServerContext()) return;
+    if (id === "build" && !hasServerContext()) return;
     picked = id;
     paintNav();
     if (!onDash()) {
@@ -579,6 +587,11 @@
       } else if (id === "upcoming") {
         var visUpc = doc.getElementById("upcoming");
         if (visUpc && !visUpc.hidden) return;
+        if (!hasServerContext()) {
+          if (typeof root.TBOpenUpcoming === "function") { try { root.TBOpenUpcoming(); } catch (e3) {} }
+          else { pending = "upcoming"; pendingFired = false; }
+          return;
+        }
         var u = doc.getElementById("upcomingbtn");
         var detail = doc.getElementById("detail");
         if (u && detail && !detail.hidden) u.click();
@@ -658,6 +671,16 @@
     if (hasServerContext()) delete doc.documentElement.dataset.apexTabs;
     else doc.documentElement.dataset.apexTabs = "off";
   }
+  function syncRailNav() {
+    if (!railNav) return;
+    var ids = railIds();
+    var key = ids.join(",");
+    if (railNav.dataset.apexRail === key) return;
+    railNav.dataset.apexRail = key;
+    var ind = railNav.querySelector(".apex-indicator");
+    var indHtml = ind ? ind.outerHTML : '<i class="apex-indicator" aria-hidden="true"></i>';
+    railNav.innerHTML = indHtml + buttonRow(navItems(ids), "");
+  }
   function sectionNow() {
     if (livePath() && !onDash()) return "live";
     var builder = doc.getElementById("builder");
@@ -691,13 +714,13 @@
     var rail = doc.createElement("nav");
     rail.className = "apex-rail";
     rail.setAttribute("aria-label", "Sections");
-    rail.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(NAV, "");
+    rail.dataset.apexRail = railIds().join(",");
+    rail.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(navItems(railIds()), "");
     var tabs = doc.createElement("nav");
     tabs.className = "apex-tabs";
     tabs.setAttribute("aria-label", "Sections");
     // 0.53.3: phone tabs follow TABS order (Home | Build | Upcoming), not NAV order.
-    var tabItems = TABS.map(function (id) { return NAV.filter(function (item) { return item.id === id; })[0]; }).filter(Boolean);
-    tabs.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(tabItems, "");
+    tabs.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(navItems(TABS), "");
     host.insertBefore(rail, host.firstChild);
     host.appendChild(tabs);
     railNav = rail;
@@ -724,6 +747,7 @@
   }
   function paintNav() {
     syncPhoneTabs();
+    syncRailNav();
     var id = sectionNow();
     doc.querySelectorAll("[data-apex-nav]").forEach(function (btn) {
       var on = btn.getAttribute("data-apex-nav") === id;
