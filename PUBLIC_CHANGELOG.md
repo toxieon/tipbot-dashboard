@@ -1,3 +1,7 @@
+## 0.57.6
+
+Import a bet slip from a screenshot: the slip is read on your device and filled into the builder for you to check.
+
 ## 0.57.5
 
 Building a multi on mobile is easier: a compact tray that stays out of the way, plus an Anytime TD market with a position filter.

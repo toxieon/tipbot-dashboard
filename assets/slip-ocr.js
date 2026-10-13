@@ -1,0 +1,832 @@
+/* Client-side bet-slip OCR (Sportsbet layout first; Ladbrokes, Neds, TAB, Pointsbet share it).
+ * Browser global TBSlipOcr + CommonJS for node --test. No console.*.
+ *
+ * Pipeline: recognizeImage() (browser: canvas preprocess + tesseract.js with word boxes)
+ *   -> cleanOcrLines() (drops leading icon glyphs by box gap, or by shape for plain text)
+ *   -> parseSlipLines() (header, per-leg game detection, structured legs, confidence flags).
+ * Nothing low-confidence is filled in silently: every doubt becomes an entry in slip.flags
+ * (and leg.flags) that the review screen highlights for the tipster to edit.
+ */
+(function (root) {
+  "use strict";
+
+  var LOW_CONF = 70;            // tesseract line confidence below this is flagged
+  var RESPONSIBLE_RE = /think\.|is this a bet|deposit\s*limit|gamble\s*responsibly|set\s*a\s*limit|want\s*to\s*place/i;
+  var DATE_RE = /^(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|^(?:mon|tue|wed|thu|fri|sat|sun)\b[ ,]|^\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+  var DATE_PARTS_RE = /^(mon|tue|wed|thu|fri|sat|sun)[a-z]*,?\s+(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})[:.](\d{2})/i;
+  var BET_RE = /\b(same\s*game\s*multi|sgm|multi(?:\s*bet)?|single)\b\s*@\s*([\d.,]+)/i;
+  var BET_WORD_RE = /^(same\s*game\s*multi|sgm|multi(?:\s*bet)?|single)\b/i;
+  var TITLE_AT_RE = /^(.+?)\s*@\s*(\d+(?:[.,]\d+)?)\s*$/;
+  var RACE_EVENT_RE = /^(.+?)\s*(?:[•·\-–—*]|\.)?\s*\bRace\s*(\d{1,2})\b\s*$/i;
+  var EVENT_RE = /^(.+?)\s+(v|vs\.?|@)\s+(.+)$/i;
+  var RUNNER_RE = /^(\d{1,2})\s*[.)]\s*(.+)$/;
+  var MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  var DOW = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+
+  // Canonical stat names. `unit` is the word a Sportsbet title uses for it ("70+ Yards").
+  var STATS = [
+    { stat: "Disposals", re: /^disposals?$/i, sport: "AFL" },
+    { stat: "Goals", re: /^goals?$/i, sport: "AFL" },
+    { stat: "Marks", re: /^marks?$/i, sport: "AFL" },
+    { stat: "Tackles", re: /^tackles?$/i, sport: "AFL" },
+    { stat: "Kicks", re: /^kicks?$/i, sport: "AFL" },
+    { stat: "Handballs", re: /^handballs?$/i, sport: "AFL" },
+    { stat: "Fantasy Points", re: /^(afl\s*)?fantasy(\s*points)?$/i, sport: "AFL" },
+    { stat: "Points", re: /^points?$/i, sport: "BASKETBALL" },
+    { stat: "Rebounds", re: /^rebounds?$/i, sport: "BASKETBALL" },
+    { stat: "Assists", re: /^assists?$/i, sport: "BASKETBALL" },
+    { stat: "Threes Made", re: /^(threes?(\s*made)?|3\s*pointers?(\s*made)?)$/i, sport: "BASKETBALL" },
+    { stat: "Passing Yards", re: /^pass(ing)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
+    { stat: "Rushing Yards", re: /^rush(ing)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
+    { stat: "Receiving Yards", re: /^rec(eiving)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
+    { stat: "Receptions", re: /^receptions?$/i, sport: "NFL", unit: "receptions" },
+    { stat: "Passing TDs", re: /^pass(ing)?\s*(tds?|touchdowns?)$/i, sport: "NFL", unit: "touchdowns" },
+    { stat: "Rushing TDs", re: /^rush(ing)?\s*(tds?|touchdowns?)$/i, sport: "NFL", unit: "touchdowns" },
+    { stat: "Receiving TDs", re: /^rec(eiving)?\s*(tds?|touchdowns?)$/i, sport: "NFL", unit: "touchdowns" },
+    { stat: "Completions", re: /^(pass(ing)?\s*)?completions?$/i, sport: "NFL", unit: "completions" },
+    { stat: "Interceptions", re: /^(interceptions?|ints?)$/i, sport: "NFL" }
+  ];
+  // Long spellings used to finish a label cut short with "..." (unique prefix only).
+  var STAT_SPELLINGS = [
+    ["Passing Yards", "passing yds"], ["Passing Yards", "passing yards"], ["Rushing Yards", "rushing yds"],
+    ["Rushing Yards", "rushing yards"], ["Receiving Yards", "receiving yds"], ["Receiving Yards", "receiving yards"],
+    ["Receptions", "receptions"], ["Passing TDs", "passing touchdowns"], ["Passing TDs", "passing tds"],
+    ["Rushing TDs", "rushing touchdowns"], ["Rushing TDs", "rushing tds"], ["Receiving TDs", "receiving touchdowns"],
+    ["Receiving TDs", "receiving tds"], ["Completions", "completions"], ["Interceptions", "interceptions"],
+    ["Disposals", "disposals"], ["Goals", "goals"], ["Marks", "marks"], ["Tackles", "tackles"],
+    ["Points", "points"], ["Rebounds", "rebounds"], ["Assists", "assists"]
+  ];
+  var H2H_MARKETS = [
+    { re: /^(head\s*to\s*head|h2h|match\s*betting|money\s*line|moneyline|to\s*win)$/i, market: "Head to Head" },
+    { re: /^(win\s*-?\s*draw\s*-?\s*win|match\s*result|1x2|full\s*time\s*result)$/i, market: "Win-Draw-Win" }
+  ];
+  var RACE_MARKETS = /^(win|place|each\s*way|win\s*&\s*place|top\s*\d)$/i;
+
+  // Team names for sport detection (clubs only; nothing slip-specific).
+  var TEAMS = {
+    AFL: ["adelaide", "crows", "brisbane", "lions", "carlton", "blues", "collingwood", "magpies", "essendon", "bombers",
+      "fremantle", "dockers", "geelong", "cats", "gold coast", "suns", "gws", "giants", "hawthorn", "hawks", "melbourne",
+      "demons", "north melbourne", "kangaroos", "port adelaide", "power", "richmond", "tigers", "st kilda", "saints",
+      "sydney", "swans", "west coast", "eagles", "western bulldogs", "bulldogs"],
+    NFL: ["cardinals", "falcons", "ravens", "bills", "panthers", "bears", "bengals", "browns", "cowboys", "broncos",
+      "lions", "packers", "texans", "colts", "jaguars", "chiefs", "raiders", "chargers", "rams", "dolphins", "vikings",
+      "patriots", "saints", "giants", "jets", "eagles", "steelers", "49ers", "seahawks", "buccaneers", "titans", "commanders"],
+    WNBA: ["dream", "sky", "sun", "wings", "valkyries", "fever", "aces", "sparks", "lynx", "liberty", "mercury", "storm",
+      "mystics", "tempo", "fire"],
+    NBA: ["hawks", "celtics", "nets", "hornets", "bulls", "cavaliers", "mavericks", "nuggets", "pistons", "warriors",
+      "rockets", "pacers", "clippers", "lakers", "grizzlies", "heat", "bucks", "timberwolves", "pelicans", "knicks",
+      "thunder", "magic", "76ers", "suns", "trail blazers", "kings", "spurs", "raptors", "jazz", "wizards"],
+    Soccer: ["arsenal", "aston villa", "bournemouth", "brentford", "brighton", "burnley", "chelsea", "crystal palace",
+      "everton", "fulham", "leeds", "liverpool", "manchester city", "man city", "manchester united", "man utd",
+      "newcastle", "nottingham forest", "sunderland", "tottenham", "west ham", "wolves", "wolverhampton"]
+  };
+
+  function normalizeText(text) {
+    return String(text || "")
+      .replace(/^\uFEFF/, "")
+      .replace(/\r\n/g, "\n")
+      .replace(/[|]/g, "I")
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/\u2026/g, "...")
+      .trim();
+  }
+  function squash(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
+  function low(s) { return squash(s).toLowerCase(); }
+
+  // ── Line cleaning ─────────────────────────────────────────────────────────
+  function letters(s) { return (String(s).match(/[A-Za-z]/g) || []).length; }
+  /** A token that looks like an icon glyph tesseract turned into text ("®", "[\", "2]", "a%"). */
+  function iconish(tok) {
+    var t = String(tok || "");
+    if (!t) return true;
+    if (!/[A-Za-z0-9]/.test(t)) return true;                       // pure symbols
+    if (/[^A-Za-z0-9'().,+\-&]/.test(t) && t.length <= 4) return true; // short, odd symbols
+    if (/^\d\]$/.test(t)) return true;
+    return false;
+  }
+  /** Drop leading icon tokens. With word boxes: a short token followed by a wide gap
+   *  (icons sit in their own column). Plain text: only tokens that cannot be words. */
+  function stripLeadingIcons(words, width) {
+    var w = words.slice();
+    var gapMin = Math.max(8, (width || 600) * 0.03);
+    while (w.length > 1) {
+      var a = w[0], b = w[1];
+      var hasBox = a.x1 != null && b.x0 != null;
+      var gap = hasBox ? b.x0 - a.x1 : 0;
+      var shortTok = a.text.length <= 4;
+      var dropBox = hasBox && shortTok && gap >= gapMin && !/^\d+(\.\d+)?\+?$/.test(a.text) && !/^\d{1,2}\.$/.test(a.text);
+      var dropShape = iconish(a.text) || (/^[a-z]{1,4}$/.test(a.text) && /^[A-Z]/.test(b.text)) ||
+        (/^\d$/.test(a.text) && /^[A-Z][a-z]/.test(b.text) && !/^legs?$/i.test(b.text));
+      if (dropBox || dropShape) { w.shift(); continue; }
+      break;
+    }
+    if (w.length === 1 && iconish(w[0].text)) w = [];
+    return w;
+  }
+  /** OCR result -> [{text, conf}] with icon glyphs and pure-noise lines removed. */
+  function cleanOcrLines(input) {
+    var raw = [];
+    var width = 0;
+    if (input && typeof input === "object" && Array.isArray(input.lines)) {
+      width = input.width || 0;
+      input.lines.forEach(function (ln) {
+        var words = (ln.words || []).map(function (wd) {
+          return { text: String(wd.text || "").trim(), conf: wd.conf, x0: wd.x0, x1: wd.x1 };
+        }).filter(function (wd) { return wd.text; });
+        if (!words.length && ln.text) words = squash(ln.text).split(" ").map(function (t) { return { text: t, conf: ln.conf }; });
+        raw.push({ words: words, conf: ln.conf });
+      });
+    } else {
+      normalizeText(input && input.text != null ? input.text : input).split("\n").forEach(function (l) {
+        var t = squash(l);
+        if (t) raw.push({ words: t.split(" ").map(function (x) { return { text: x }; }), conf: null });
+      });
+    }
+    var out = [];
+    raw.forEach(function (ln) {
+      var words = stripLeadingIcons(ln.words.map(function (w) { return Object.assign({}, w, { text: normalizeText(w.text) }); }), width);
+      var text = squash(words.map(function (w) { return w.text; }).join(" "));
+      // A short leftover glyph in front of a market line ("SO Head to Head").
+      if (words.length > 1 && words[0].text.length <= 3 && !/\d/.test(words[0].text) && !isSubLine(text)) {
+        var rest = squash(words.slice(1).map(function (w) { return w.text; }).join(" "));
+        if (isSubLine(rest)) { words = words.slice(1); text = rest; }
+      }
+      // Trailing icon junk on short lines ("8% %"), and lines with no real word left.
+      if (!text) return;
+      if (!/[A-Za-z]{3,}|[A-Za-z]+\s*@|^\d+\s*legs?$|^\d+\s*\+|@\s*\d/i.test(text) && !/^(v|vs)$/i.test(text)) {
+        if (!/^[A-Za-z]{1,2}$/.test(text)) return;
+      }
+      if (/^[A-Za-z0-9]{6,}$/.test(text) && !/[aeiou]/i.test(text)) return;   // "PI999999999"-style icon strips
+      if (/^\d{5,}$/.test(text)) return;
+      var confs = words.map(function (w) { return w.conf; }).filter(function (c) { return typeof c === "number"; });
+      var conf = confs.length ? Math.min.apply(null, confs) : (typeof ln.conf === "number" ? ln.conf : null);
+      out.push({ text: text, conf: conf });
+    });
+    return out;
+  }
+
+  // ── Small parsers ─────────────────────────────────────────────────────────
+  function num(s) {
+    var m = String(s == null ? "" : s).replace(",", ".").match(/\d+(?:\.\d+)?/);
+    return m ? parseFloat(m[0]) : null;
+  }
+  function normalizeBetType(raw) {
+    var s = low(raw);
+    if (s.indexOf("same game") >= 0 || s.replace(/\s/g, "") === "samegamemulti" || s === "sgm") return "Same Game Multi";
+    if (s.indexOf("single") >= 0) return "Single";
+    return "Multi";
+  }
+  function parseBetTypeLine(line) {
+    var t = String(line || "");
+    var m = t.match(BET_RE);
+    if (m) return { bet_type: normalizeBetType(m[1]), odds: num(m[2]) };
+    m = t.match(BET_WORD_RE);
+    if (m) {
+      var o = t.match(/@\s*([\d.,]+)/);
+      return { bet_type: normalizeBetType(m[1]), odds: o ? num(o[1]) : null };
+    }
+    return null;
+  }
+  function parseLegCount(t) { var m = String(t).match(/(\d{1,2})\s*legs?\b/i); return m ? parseInt(m[1], 10) : null; }
+  function isDateLine(t) { return DATE_RE.test(String(t || "")); }
+  function isEventLine(t) {
+    var s = String(t || "");
+    if (TITLE_AT_RE.test(s) || isDateLine(s)) return false;
+    if (RACE_EVENT_RE.test(s)) return true;
+    var m = s.match(EVENT_RE);
+    return !!(m && letters(m[1]) >= 3 && letters(m[3]) >= 3);
+  }
+  function canonicalEvent(t) {
+    var s = squash(t);
+    var r = s.match(RACE_EVENT_RE);
+    if (r) return squash(r[1]).replace(/[•·\-–—*.]+$/, "").trim() + " R" + parseInt(r[2], 10);
+    var m = s.match(EVENT_RE);
+    if (!m) return s;
+    var sep = m[2] === "@" ? "@" : "v";
+    return squash(m[1]) + " " + sep + " " + squash(m[3]);
+  }
+  /** "Friday, 16 Oct 19:15" -> { display: "Fri 16 Oct 19:15", local: "2026-10-16T19:15", ok } */
+  function parseSlipDate(t, nowMs) {
+    var m = String(t || "").match(DATE_PARTS_RE);
+    if (!m) return { display: squash(t), local: "", ok: false };
+    var dow = DOW[m[1].toLowerCase()], day = parseInt(m[2], 10), mon = MONTHS[m[3].toLowerCase()];
+    var hh = parseInt(m[4], 10), mm = parseInt(m[5], 10);
+    var now = new Date(nowMs != null ? nowMs : Date.now());
+    var y0 = now.getUTCFullYear(), year = null;
+    // The year whose calendar puts that date on the shown weekday, nearest to now.
+    [y0, y0 + 1, y0 - 1].some(function (y) {
+      if (new Date(Date.UTC(y, mon, day)).getUTCDay() === dow) { year = y; return true; }
+      return false;
+    });
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    var dname = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dow];
+    var mname = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mon];
+    var ok = year != null && hh < 24 && mm < 60 && day >= 1 && day <= 31;
+    return {
+      display: dname + " " + day + " " + mname + " " + pad(hh) + ":" + pad(mm),
+      local: ok ? year + "-" + pad(mon + 1) + "-" + pad(day) + "T" + pad(hh) + ":" + pad(mm) : "",
+      ok: ok
+    };
+  }
+  function canonStat(raw, titleUnit) {
+    var s = low(raw).replace(/^alt(ernate)?\s+/, "").replace(/\.+$/, "").trim();
+    var truncated = /\.\.\.$|…$/.test(squash(raw));
+    for (var i = 0; i < STATS.length; i++) if (STATS[i].re.test(s)) return { stat: STATS[i].stat, sport: STATS[i].sport, truncated: false };
+    if (truncated || titleUnit) {
+      var hits = [];
+      STAT_SPELLINGS.forEach(function (p) { if (s && p[1].indexOf(s) === 0 && hits.indexOf(p[0]) < 0) hits.push(p[0]); });
+      if (titleUnit && hits.length > 1) {
+        hits = hits.filter(function (h) {
+          var def = STATS.find(function (x) { return x.stat === h; });
+          return def && def.unit === titleUnit;
+        });
+      }
+      if (hits.length === 1) {
+        var d = STATS.find(function (x) { return x.stat === hits[0]; });
+        return { stat: hits[0], sport: d ? d.sport : "", truncated: true };
+      }
+    }
+    return { stat: squash(raw).replace(/\.\.\.$/, ""), sport: "", truncated: truncated, unknown: true };
+  }
+  function titleUnit(title) {
+    var m = low(title).replace(/\.\.\.$/, "").match(/\d+(?:\.\d+)?\+\s*([a-z]+)/);
+    if (!m) return "";
+    var u = m[1];
+    if (/^yard/.test(u)) return "yards";
+    if (/^recep/.test(u)) return "receptions";
+    if (/^(passing|rushing|receiving)$/.test(u)) {
+      var rest = low(title).match(/\d+\+\s*\w+\s+([a-z]+)/);
+      if (rest && /^touch/.test(rest[1])) return "touchdowns";
+      if (rest && /^(yds|yard)/.test(rest[1])) return "yards";
+    }
+    if (/^touch/.test(u)) return "touchdowns";
+    if (/^complet/.test(u)) return "completions";
+    return "";
+  }
+
+  // ── Sport detection ───────────────────────────────────────────────────────
+  function teamHits(text, sport) {
+    var s = " " + low(text).replace(/[^a-z0-9 ]/g, " ") + " ";
+    return TEAMS[sport].filter(function (t) { return s.indexOf(" " + t + " ") >= 0; }).length;
+  }
+  function detectSport(eventName, legs) {
+    legs = legs || [];
+    var ev = String(eventName || "");
+    var blob = ev + " " + legs.map(function (l) { return (l.selection || "") + " " + (l.market || "") + " " + (l.event || ""); }).join(" ");
+    if (RACE_EVENT_RE.test(ev) || legs.some(function (l) { return l.kind === "racing"; })) return "Racing";
+    if (/\bnrl\b/i.test(blob)) return "NRL";
+    if (/\(w\)/i.test(ev || blob) || /\baflw\b/i.test(blob)) return "AFLW";
+    if (/\bafl\b/i.test(blob)) return "AFL";
+    var statSports = legs.map(function (l) { return l.stat_sport; }).filter(Boolean);
+    if (legs.some(function (l) { return l.market === "Win-Draw-Win"; })) return "Soccer";
+    var scores = {};
+    ["AFL", "NFL", "WNBA", "NBA", "Soccer"].forEach(function (k) { scores[k] = teamHits(ev, k); });
+    if (statSports.indexOf("NFL") >= 0) scores.NFL += 3;
+    if (statSports.indexOf("AFL") >= 0) scores.AFL += 3;
+    if (statSports.indexOf("BASKETBALL") >= 0) { scores.WNBA += 1; scores.NBA += 1; }
+    var best = "", bestN = 0, tie = false;
+    Object.keys(scores).forEach(function (k) {
+      if (scores[k] > bestN) { best = k; bestN = scores[k]; tie = false; } else if (scores[k] === bestN && bestN > 0) tie = true;
+    });
+    if (!bestN || tie) return "";
+    return best;
+  }
+
+  // ── Leg builder ───────────────────────────────────────────────────────────
+  function legFromPair(title, sub) {
+    var t = squash(title && title.text), s = squash(sub && sub.text);
+    var conf = [title && title.conf, sub && sub.conf].filter(function (c) { return typeof c === "number"; });
+    var leg = { selection: t, market: s, player: "", team: "", stat: "", line: null, side: "", plus: false,
+      odds: null, kind: "", flags: [], conf: conf.length ? Math.min.apply(null, conf) : null };
+    var m;
+    // Racing: "2. Royal Press" (odds already stripped) + "Win".
+    var rt = t.replace(/^\S{1,2}\s+(?=\d{1,2}\s*[.)]\s*[A-Z])/, "");
+    if (RACE_MARKETS.test(s) && RUNNER_RE.test(rt)) {
+      m = rt.match(RUNNER_RE);
+      leg.kind = "racing"; leg.runner_number = parseInt(m[1], 10); leg.runner = squash(m[2]);
+      leg.selection = leg.runner_number + ". " + leg.runner; leg.market = s.replace(/^./, function (c) { return c.toUpperCase(); });
+      leg.stat = leg.market;
+      return leg;
+    }
+    for (var i = 0; i < H2H_MARKETS.length; i++) {
+      if (H2H_MARKETS[i].re.test(s)) {
+        leg.kind = "team"; leg.team = t; leg.market = H2H_MARKETS[i].market; leg.stat = H2H_MARKETS[i].market; return leg;
+      }
+    }
+    if (/^any\s*time\s*(touchdown|td)\s*(scorer)?$/i.test(s) || /^anytime\s*(touchdown|td)/i.test(s)) {
+      leg.kind = "player"; leg.player = t; leg.stat = "Anytime TD"; leg.stat_sport = "NFL";
+      leg.line = 1; leg.side = "Over"; leg.plus = true; return leg;
+    }
+    // "To Score 15+ Points", "15+ Disposals", "1+ Goal"
+    m = s.match(/^(?:to\s+(?:score|get|have|record)\s+)?(\d+(?:\.\d+)?)\s*\+\s*(.+)$/i);
+    if (m) {
+      var cs = canonStat(m[2]);
+      leg.kind = "player"; leg.player = t; leg.stat = cs.stat; leg.stat_sport = cs.sport;
+      leg.line = parseFloat(m[1]); leg.side = "Over"; leg.plus = true;
+      if (cs.unknown) leg.flags.push({ field: "stat", reason: "Unrecognised market \u201c" + cs.stat + "\u201d" });
+      return leg;
+    }
+    // "Jaxon Smith-Njigba - Alt Receiving Yds" with the line in the title.
+    m = s.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+    if (m) {
+      var unit = titleUnit(t);
+      var cs2 = canonStat(m[2], unit);
+      leg.kind = "player"; leg.player = squash(m[1]); leg.stat = cs2.stat; leg.stat_sport = cs2.sport;
+      var tl = t.replace(/\.\.\.$/, "");
+      var plus = tl.match(/(\d+(?:\.\d+)?)\s*\+/);
+      var ou = tl.match(/\b(over|under)\b\s*\(?\s*\+?\s*(\d+(?:\.\d+)?)?\s*\)?/i);
+      if (ou) { leg.side = ou[1].charAt(0).toUpperCase() + ou[1].slice(1).toLowerCase(); leg.line = ou[2] != null ? parseFloat(ou[2]) : null; }
+      else if (plus) { leg.side = "Over"; leg.line = parseFloat(plus[1]); leg.plus = true; }
+      if (leg.line == null) leg.flags.push({ field: "line", reason: "No line found" });
+      if (cs2.unknown) leg.flags.push({ field: "stat", reason: "Unrecognised market \u201c" + cs2.stat + "\u201d" });
+      // Title should name the same player (catches a paired-up wrong line).
+      if (tl.toLowerCase().indexOf(leg.player.toLowerCase().slice(0, 4)) !== 0) leg.flags.push({ field: "player", reason: "Title and subtitle name different players" });
+      return leg;
+    }
+    if (/^(over|under)\b/i.test(s)) {
+      m = s.match(/^(over|under)\s*\(?\+?(\d+(?:\.\d+)?)\)?\s*(.*)$/i);
+      if (m) {
+        var cs3 = canonStat(m[3] || "");
+        leg.kind = "player"; leg.player = t; leg.side = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+        leg.line = parseFloat(m[2]); leg.stat = cs3.stat; leg.stat_sport = cs3.sport;
+        if (cs3.unknown) leg.flags.push({ field: "stat", reason: "Unrecognised market" });
+        return leg;
+      }
+    }
+    leg.kind = "unknown";
+    leg.flags.push({ field: "market", reason: "Couldn't work out this market \u2014 check it" });
+    return leg;
+  }
+  function isSubLine(t) {
+    var s = squash(t);
+    if (RACE_MARKETS.test(s)) return true;
+    if (H2H_MARKETS.some(function (h) { return h.re.test(s); })) return true;
+    if (/^any\s*time\s*(touchdown|td)/i.test(s) || /^anytime\s*(touchdown|td)/i.test(s)) return true;
+    if (/^(?:to\s+(?:score|get|have|record)\s+)?\d+(?:\.\d+)?\s*\+\s*[A-Za-z]/i.test(s)) return true;
+    if (/^(over|under)\s*\(?\+?\d/i.test(s)) return true;
+    if (/^.+?\s+[-–—]\s+(alt(ernate)?\s+)?[A-Za-z]/.test(s)) return true;
+    return false;
+  }
+
+  // ── Slip parser ───────────────────────────────────────────────────────────
+  function detectBookie(text) {
+    var s = low(text);
+    if (/\bsports\s*b[ae]t\b|\bsportsb[ae]t|\bsportshet|^sports\b|\bsports\b/m.test(s)) return "sportsbet";
+    if (/\bladbrokes\b/.test(s)) return "ladbrokes";
+    if (/\bneds\b/.test(s)) return "neds";
+    if (/\bpointsbet\b|\bpoints\s*bet\b/.test(s)) return "pointsbet";
+    if (/\btab\b/.test(s) && !/\btable\b/.test(s)) return "tab";
+    return "unknown";
+  }
+  function flag(list, field, reason, leg) {
+    var f = { field: field, reason: reason };
+    if (leg != null) f.leg = leg;
+    list.push(f);
+  }
+  function lowConf(line) { return line && typeof line.conf === "number" && line.conf < LOW_CONF; }
+
+  function isNoiseTitle(ln) {
+    var letters = String(ln.text || "").replace(/[^A-Za-z]/g, "");
+    if (letters.length <= 4) return true;
+    return ln.conf != null && ln.conf < LOW_CONF && !/\s/.test(String(ln.text).trim());
+  }
+  function parseSlipLines(input, opts) {
+    opts = opts || {};
+    var lines = cleanOcrLines(input);
+    var flags = [];
+    var rawText = input && typeof input === "object" && input.text != null ? input.text : (typeof input === "string" ? input : lines.map(function (l) { return l.text; }).join("\n"));
+    var slip = { bookie: detectBookie(rawText), bet_type: "", odds: null, leg_count: null, stake: null, sport: "",
+      event: "", date_time: "", start_local: "", legs: [], flags: flags, raw_text: normalizeText(rawText) };
+    var end = lines.length;
+    for (var e = 0; e < lines.length; e++) if (RESPONSIBLE_RE.test(lines[e].text)) { end = e; break; }
+    lines = lines.slice(0, end).filter(function (l) {
+      return !/^proposed(\s*bet)?$/i.test(l.text) && !/^(sports|sportsbet|sportshet)[^a-z]*$/i.test(l.text) && !/^(v|vs)$/i.test(l.text);
+    });
+    // Header: bet type @ odds (or "Selection @ odds" for singles / racing), legs, event, date.
+    var idx = 0, headTitle = null, betLine = null;
+    for (; idx < lines.length; idx++) {
+      var bt = parseBetTypeLine(lines[idx].text);
+      if (bt) { betLine = lines[idx]; slip.bet_type = bt.bet_type; slip.odds = bt.odds; idx++; break; }
+      var ta = lines[idx].text.match(TITLE_AT_RE);
+      if (ta && letters(ta[1]) >= 2) { headTitle = { text: squash(ta[1]), conf: lines[idx].conf }; betLine = lines[idx]; slip.odds = num(ta[2]); idx++; break; }
+    }
+    if (!betLine) { flag(flags, "bet_type", "No bet type / odds line found"); idx = 0; }
+    else if (lowConf(betLine)) { flag(flags, "odds", "Odds read with low confidence"); }
+    if (slip.odds == null || !(slip.odds > 1)) flag(flags, "odds", "Total odds not read");
+    if (idx < lines.length && lines[idx].text.length < 20 && /\b\d{1,2}\s*legs?\s*$/i.test(lines[idx].text)) {
+      slip.leg_count = parseLegCount(lines[idx].text); idx++;
+    }
+    var body = lines.slice(idx);
+
+    if (headTitle) {
+      // Single / racing: title, market, event, date.
+      var sub = body.length && !isEventLine(body[0].text) && !isDateLine(body[0].text) ? body.shift() : null;
+      var leg = legFromPair(headTitle, sub || { text: "" });
+      var evL = body.find(function (l) { return isEventLine(l.text); });
+      var dtL = body.find(function (l) { return isDateLine(l.text); });
+      leg.event = evL ? canonicalEvent(evL.text) : "";
+      if (leg.kind === "racing" || RACE_EVENT_RE.test(leg.event)) {
+        slip.bet_type = slip.bet_type || "Racing";
+        if (leg.kind !== "racing") { leg.kind = "racing"; }
+        var rr = leg.event.match(/^(.+?) • Race (\d+)$/);
+        if (rr) { leg.venue = rr[1]; leg.race = parseInt(rr[2], 10); }
+      } else slip.bet_type = slip.bet_type || "Single";
+      leg.odds = slip.odds;
+      if (dtL) { var pd = parseSlipDate(dtL.text, opts.now); leg.date_time = pd.display; leg.start_local = pd.local; }
+      if (lowConf(evL)) flag(leg.flags, "event", "Event read with low confidence");
+      slip.legs = [leg];
+      slip.leg_count = 1;
+      slip.event = leg.event;
+      if (dtL) { slip.date_time = leg.date_time; slip.start_local = leg.start_local; if (!parseSlipDate(dtL.text, opts.now).ok) flag(flags, "date_time", "Date/time not understood"); }
+      else flag(flags, "date_time", "No date/time found");
+      if (!evL) flag(flags, "event", "No event found");
+    } else {
+      // Multi / SGM. Event + date lines either head the slip (SGM) or sit with each leg.
+      var curEvent = null, curDate = null, legs = [], pendingTitle = null, dropped = [];
+      var evBefore = null;   // multi layout: event block before (true) or after (false) its leg
+      var attach = function (leg) { leg.event = curEvent ? canonicalEvent(curEvent.text) : ""; leg.event_conf = curEvent ? curEvent.conf : null; leg._date = curDate; legs.push(leg); };
+      for (var k = 0; k < body.length; k++) {
+        var ln = body[k];
+        if (isEventLine(ln.text)) {
+          if (evBefore === null) evBefore = legs.length === 0 && !pendingTitle;
+          if (pendingTitle) { attach(legFromPair(pendingTitle, null)); pendingTitle = null; }
+          if (!evBefore && legs.length) {
+            // Event-after layout: this block belongs to legs collected since the last block.
+            var dt = body[k + 1] && isDateLine(body[k + 1].text) ? body[k + 1] : null;
+            for (var q = legs.length - 1; q >= 0 && !legs[q]._evAfter; q--) {
+              legs[q].event = canonicalEvent(ln.text); legs[q].event_conf = ln.conf; legs[q]._date = dt; legs[q]._evAfter = true;
+            }
+            if (dt) k++;
+            continue;
+          }
+          curEvent = ln; curDate = null; continue;
+        }
+        if (isDateLine(ln.text)) { curDate = ln; continue; }
+        if (slip.leg_count == null && ln.text.length < 20 && /\b\d{1,2}\s*legs?\s*$/i.test(ln.text)) { slip.leg_count = parseInt(ln.text.match(/(\d{1,2})\s*legs?\s*$/i)[1], 10); continue; }
+        if (isSubLine(ln.text)) {
+          if (pendingTitle) { attach(legFromPair(pendingTitle, ln)); pendingTitle = null; }
+          else { var orphan = legFromPair({ text: "", conf: ln.conf }, ln); orphan.flags.push({ field: "selection", reason: "Selection missing" }); attach(orphan); }
+        } else {
+          // A title with no market under it, followed by another title, is usually icon/header
+          // noise. Drop it only when it is clearly noise (tiny or low-confidence); otherwise keep it
+          // as a leg and let the market flag ask the user.
+          if (pendingTitle) {
+            if (isNoiseTitle(pendingTitle)) dropped.push(pendingTitle.text);
+            else attach(legFromPair(pendingTitle, null));
+          }
+          pendingTitle = ln;
+        }
+      }
+      if (pendingTitle) attach(legFromPair(pendingTitle, null));
+      legs.forEach(function (leg) {
+        if (leg._date) { var p = parseSlipDate(leg._date.text, opts.now); leg.date_time = p.display; leg.start_local = p.local;
+          if (!p.ok) flag(leg.flags, "date_time", "Date/time not understood"); }
+        else { leg.date_time = ""; leg.start_local = ""; }
+        if (!leg.event) flag(leg.flags, "event", "No game found for this leg");
+        if (lowConf({ conf: leg.event_conf })) flag(leg.flags, "event", "Game read with low confidence");
+        delete leg._date; delete leg._evAfter; delete leg.event_conf;
+      });
+      slip.legs = legs;
+      if (dropped.length) slip.dropped_lines = dropped;
+      if (!slip.bet_type) slip.bet_type = legs.length > 1 ? "Multi" : "Single";
+    }
+
+    // Per-leg sport + confidence, then slip-level fields.
+    slip.legs.forEach(function (leg, i) {
+      leg.sport = detectSport(leg.event, [leg]);
+      if (!leg.sport) flag(leg.flags, "sport", "Sport not recognised");
+      if (lowConf({ conf: leg.conf })) flag(leg.flags, "selection", "Leg read with low confidence");
+      if (!leg.flags.some(function (f) { return f.field === "line"; }) && leg.kind === "player" && leg.line == null) flag(leg.flags, "line", "No line found");
+      leg.flags.forEach(function (f) { flag(flags, f.field, f.reason, i); });
+    });
+    var evs = uniqueEvents(slip.legs);
+    if (!slip.event) slip.event = evs.length === 1 ? evs[0] : evs.length ? evs.join(" · ") : "";
+    if (!slip.date_time && slip.legs.length) {
+      var dts = slip.legs.map(function (l) { return l.start_local; }).filter(Boolean).sort();
+      var first = slip.legs.find(function (l) { return l.start_local === dts[0]; });
+      if (first) { slip.date_time = first.date_time; slip.start_local = first.start_local; }
+    }
+    var sports = slip.legs.map(function (l) { return l.sport; }).filter(Boolean);
+    slip.sport = sports.length && sports.every(function (s) { return s === sports[0]; }) ? sports[0] : (sports.length ? "Mixed" : "");
+    if (!slip.sport) flag(flags, "sport", "Sport not recognised");
+    if (slip.bet_type === "Same Game Multi" && evs.length > 1) flag(flags, "event", "Same game multi shows more than one game");
+    if (slip.leg_count != null && slip.leg_count !== slip.legs.length) flag(flags, "legs", "Slip says " + slip.leg_count + " legs but " + slip.legs.length + " were read");
+    if (slip.leg_count == null) slip.leg_count = slip.legs.length;
+    flag(flags, "stake", "Stake isn't on the slip \u2014 enter it");
+    slip.game_groups = groupLegsByEvent(slip.legs);
+    return slip;
+  }
+
+  function parseSlipText(text, opts) { return parseSlipLines(String(text || ""), opts); }
+  function parseSportsbet(text, opts) { var s = parseSlipLines(text, opts); s.bookie = "sportsbet"; return s; }
+
+  // ── Browser OCR (same code path the harness drives in headless Chromium) ──
+  /** Preprocess on a canvas: upscale small shots (tesseract wants ~30px glyphs), grayscale,
+   *  and invert dark-mode slips so text is dark on light. Returns a canvas. */
+  function preprocessToCanvas(img, doc) {
+    doc = doc || root.document;
+    var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    var scale = w < 1000 ? Math.min(3, 1000 / w) : 1;
+    var c = doc.createElement("canvas");
+    c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+    var ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    var d = ctx.getImageData(0, 0, c.width, c.height), p = d.data, lumSum = 0, n = 0;
+    for (var i = 0; i < p.length; i += 4) {
+      var y = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+      p[i] = p[i + 1] = p[i + 2] = y; lumSum += y; n++;
+    }
+    // Dark slip: the card itself is dark. Sample the central band (cards sit there).
+    var cx0 = Math.round(c.width * 0.2), cx1 = Math.round(c.width * 0.8), cy0 = Math.round(c.height * 0.25), cy1 = Math.round(c.height * 0.75);
+    var cs = 0, cn = 0;
+    for (var yy = cy0; yy < cy1; yy += 4) for (var xx = cx0; xx < cx1; xx += 4) { cs += p[(yy * c.width + xx) * 4]; cn++; }
+    var invert = cn && cs / cn < 110;
+    if (invert) for (var j = 0; j < p.length; j += 4) { p[j] = p[j + 1] = p[j + 2] = 255 - p[j]; }
+    ctx.putImageData(d, 0, 0);
+    c._slipInverted = !!invert; c._slipScale = scale;
+    return c;
+  }
+  function loadImage(src, doc) {
+    doc = doc || root.document;
+    return new Promise(function (res, rej) {
+      var img = new root.Image();
+      var url = typeof src === "string" ? src : root.URL.createObjectURL(src);
+      img.onload = function () { if (typeof src !== "string") root.URL.revokeObjectURL(url); res(img); };
+      img.onerror = function () { rej(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+  /** Run tesseract on an image (File/Blob/URL). Returns { text, lines:[{text, conf, words}], width }. */
+  async function recognizeImage(Tesseract, src, base) {
+    var img = await loadImage(src);
+    var canvas = preprocessToCanvas(img);
+    var worker = await Tesseract.createWorker("eng", 1, {
+      workerPath: base + "worker.min.js", corePath: base + "core/", langPath: base + "lang/", gzip: true
+    });
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" });
+      var out = await worker.recognize(canvas, {}, { text: true, blocks: true });
+      var data = (out && out.data) || {};
+      var lines = [];
+      (data.blocks || []).forEach(function (b) {
+        (b.paragraphs || []).forEach(function (pp) {
+          (pp.lines || []).forEach(function (l) {
+            lines.push({
+              text: l.text, conf: l.confidence,
+              words: (l.words || []).map(function (wd) { return { text: wd.text, conf: wd.confidence, x0: wd.bbox.x0, x1: wd.bbox.x1 }; })
+            });
+          });
+        });
+      });
+      return { text: data.text || "", lines: lines, width: canvas.width, inverted: canvas._slipInverted };
+    } finally {
+      await worker.terminate();
+    }
+  }
+
+  function uniqueEvents(legs) {
+    var seen = [];
+    (legs || []).forEach(function (l) {
+      var e = (l && l.event) || "";
+      if (e && seen.indexOf(e) < 0) seen.push(e);
+    });
+    return seen;
+  }
+
+  function groupLegsByEvent(legs) {
+    var map = new Map();
+    (legs || []).forEach(function (leg, idx) {
+      var key = (leg && leg.event) || "";
+      if (!map.has(key)) map.set(key, { event: key, date_time: leg.date_time || "", sport: leg.sport || "", legs: [] });
+      var g = map.get(key);
+      if (!g.date_time && leg.date_time) g.date_time = leg.date_time;
+      g.legs.push({ leg: leg, index: idx });
+    });
+    return Array.from(map.values());
+  }
+
+  function normTeamToken(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/\s*\(w\)\s*/g, " w ")
+      .replace(/[^a-z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function fixtureTeamName(t) {
+    if (!t) return "";
+    if (typeof t === "string") return t.trim();
+    return String(t.name || t.aflName || t.abbrev || "").trim();
+  }
+
+  function fixtureEventLabel(g) {
+    if (!g) return "";
+    if (g.game_name) return String(g.game_name).trim();
+    var h = fixtureTeamName(g.hteam);
+    var a = fixtureTeamName(g.ateam);
+    if (h && a) return h + " v " + a;
+    return "";
+  }
+
+  function fixtureComp(g) {
+    return String((g && g.comp) || "AFL").trim();
+  }
+
+  function teamsMatchEvent(game, eventName) {
+    var teams = splitEventTeams(eventName);
+    if (!teams.home || !teams.away) return false;
+    var ht = normTeamToken(teams.home);
+    var at = normTeamToken(teams.away);
+    var gh = normTeamToken(fixtureTeamName(game.hteam));
+    var ga = normTeamToken(fixtureTeamName(game.ateam));
+    if (gh === ht && ga === at) return true;
+    if (gh.indexOf(ht) >= 0 && ga.indexOf(at) >= 0) return true;
+    var htBare = ht.replace(/\bw\b/g, "").trim();
+    var atBare = at.replace(/\bw\b/g, "").trim();
+    if (gh.indexOf(htBare) >= 0 && ga.indexOf(atBare) >= 0) return true;
+    return false;
+  }
+
+  function fixtureGameId(g) {
+    if (!g) return "";
+    return String(g.aflMatchId || g.id || g.game_id || "").trim();
+  }
+
+  /** Match one event string to a row from /api/fixtures (AFL, AFLW, NRL, …). */
+  function matchEventToFixture(games, eventName, sportHint) {
+    var list = Array.isArray(games) ? games : [];
+    if (!eventName || !list.length) return null;
+    var hint = String(sportHint || "").toUpperCase();
+    var hits = list.filter(function (g) {
+      return teamsMatchEvent(g, eventName);
+    });
+    if (!hits.length) return null;
+    if (hint) {
+      var byComp = hits.filter(function (g) {
+        return fixtureComp(g).toUpperCase() === hint || (hint === "AFLW" && fixtureComp(g) === "AFLW");
+      });
+      if (byComp.length) hits = byComp;
+    }
+    if (hits.length > 1 && /\(w\)/i.test(eventName)) {
+      var w = hits.filter(function (g) {
+        return fixtureComp(g) === "AFLW";
+      });
+      if (w.length) hits = w;
+    }
+    return hits[0] || null;
+  }
+
+  function attachFixtureMatches(legs, games) {
+    return (legs || []).map(function (leg) {
+      var copy = Object.assign({}, leg);
+      var hit = matchEventToFixture(games, copy.event, copy.sport);
+      if (hit) {
+        copy.fixture_id = fixtureGameId(hit);
+        copy.game_id = copy.fixture_id;
+        copy.sport = fixtureComp(hit);
+        copy.matched_event = fixtureEventLabel(hit);
+      }
+      return copy;
+    });
+  }
+
+  /** Tip import draft — same fields the builder review / queue-tip path expects. */
+  function slipToTipDraft(slip) {
+    slip = slip || {};
+    var parsedLegs = slip.legs || [];
+    var legs = parsedLegs.map(function (leg) {
+      return legToBuilderLeg(leg);
+    });
+    var events = uniqueEvents(parsedLegs);
+    var gameName = slip.event || "";
+    if (!gameName && events.length) gameName = events.length === 1 ? events[0] : events.length + " games";
+    var sports = parsedLegs.map(function (l) {
+      return l.sport || detectSport(l.event, [l]);
+    }).filter(Boolean);
+    var sport = slip.sport || "";
+    if (!sport && sports.length) {
+      var same = sports.every(function (s) {
+        return s === sports[0];
+      });
+      sport = same ? sports[0] : "Custom";
+    }
+    return {
+      bet_type: slip.bet_type || "",
+      odds: slip.odds,
+      leg_count: slip.leg_count != null ? slip.leg_count : legs.length,
+      game_name: gameName,
+      sport: sport || detectSport(gameName, parsedLegs),
+      bookmaker: bookmakerName(slip.bookie),
+      date_time: slip.date_time || "",
+      legs: legs,
+      parsed_legs: parsedLegs,
+      bookie: slip.bookie || "unknown",
+    };
+  }
+
+  function bookmakerName(slug) {
+    var map = {
+      sportsbet: "Sportsbet",
+      ladbrokes: "Ladbrokes",
+      neds: "Neds",
+      tab: "TAB",
+      pointsbet: "PointsBet",
+    };
+    return map[slug] || "";
+  }
+
+  var NFL_PROP_KEYS = { "Passing Yards": "passing_yards", "Rushing Yards": "rushing_yards", "Receiving Yards": "receiving_yards",
+    "Receptions": "receptions", "Passing TDs": "passing_tds", "Rushing TDs": "rushing_tds", "Receiving TDs": "receiving_tds",
+    "Completions": "completions", "Interceptions": "interceptions", "Anytime TD": "anytime_td" };
+  var AFL_STATS = { Disposals: 1, Goals: 1, Marks: 1, Tackles: 1, Kicks: 1, Handballs: 1, "Fantasy Points": 1 };
+  /** Human description of a structured leg ("Megan Fitzsimon 15+ Disposals"). */
+  function legDescription(leg) {
+    leg = leg || {};
+    if (leg.kind === "racing") return String(leg.selection || "") + (leg.market ? " (" + leg.market + ")" : "");
+    if (leg.kind === "team") return String(leg.team || leg.selection || "") + " " + (leg.market || "");
+    if (leg.player && leg.stat) {
+      if (leg.stat === "Anytime TD") return leg.player + " Anytime TD";
+      var ln = leg.line != null ? String(leg.line) : "?";
+      if (leg.side === "Under") return leg.player + " Under " + ln + " " + leg.stat;
+      if (leg.plus || leg.side !== "Over") return leg.player + " " + ln + "+ " + leg.stat;
+      return leg.player + " Over " + ln + " " + leg.stat;
+    }
+    var sel = String(leg.selection || "").trim(), mkt = String(leg.market || "").trim();
+    return sel && mkt ? sel + " \u2014 " + mkt : sel || mkt;
+  }
+  /** Builder leg. AFL/AFLW player props and H2H become structured legs; everything else is a
+   *  custom leg whose desc carries the structured reading (player, stat, line, side). */
+  function legToBuilderLeg(leg) {
+    leg = leg || {};
+    var out = { custom: true, desc: legDescription(leg) };
+    if (leg.game_id) out.game_id = String(leg.game_id);
+    if (leg.event) out.game = leg.event;
+    if (leg.odds > 1) out.odds = leg.odds;
+    var afl = leg.sport === "AFL" || leg.sport === "AFLW";
+    var mkt = String(leg.market || "");
+    if (/head\s*to\s*head/i.test(mkt) || leg.market === "Head to Head") {
+      out.market = "Head to Head";
+      out.player = leg.team || leg.selection;
+    }
+    if (afl && leg.player && AFL_STATS[leg.stat] && leg.line != null) {
+      out.player = leg.player; out.stat = leg.stat; out.line = leg.line; out.side = leg.side || "Over";
+      delete out.custom;
+    } else if (leg.sport === "NFL" && leg.player && NFL_PROP_KEYS[leg.stat]) {
+      out.player = leg.player; out.stat = leg.stat; out.prop = NFL_PROP_KEYS[leg.stat];
+      out.line = leg.line; out.side = leg.side || "Over"; out.league = "nfl";
+    } else if (leg.player && leg.stat) {
+      out.player = leg.player; out.stat = leg.stat; out.line = leg.line; out.side = leg.side || "Over";
+    }
+    return out;
+  }
+
+  /** "A v B" -> home A, away B. "A @ B" (US style) -> away A, home B. */
+  function splitEventTeams(eventName) {
+    var m = String(eventName || "").match(EVENT_RE);
+    if (!m) return { home: "", away: "" };
+    if (m[2] === "@") return { home: m[3].trim(), away: m[1].trim() };
+    return { home: m[1].trim(), away: m[3].trim() };
+  }
+
+
+  function parseLadbrokes(text, opts) { return parseSlipLines(text, opts); }
+  function parseNeds(text, opts) { return parseSlipLines(text, opts); }
+  function parseTab(text, opts) { return parseSlipLines(text, opts); }
+  function parsePointsbet(text, opts) { return parseSlipLines(text, opts); }
+
+  var API = {
+    LOW_CONF: LOW_CONF,
+    normalizeText: normalizeText,
+    detectBookie: detectBookie,
+    detectSport: detectSport,
+    cleanOcrLines: cleanOcrLines,
+    parseSlipLines: parseSlipLines,
+    parseSlipText: parseSlipText,
+    parseSlipDate: parseSlipDate,
+    parseSportsbet: parseSportsbet,
+    parseLadbrokes: parseLadbrokes,
+    parseNeds: parseNeds,
+    parseTab: parseTab,
+    parsePointsbet: parsePointsbet,
+    recognizeImage: recognizeImage,
+    preprocessToCanvas: preprocessToCanvas,
+    slipToTipDraft: slipToTipDraft,
+    legToBuilderLeg: legToBuilderLeg,
+    legDescription: legDescription,
+    splitEventTeams: splitEventTeams,
+    bookmakerName: bookmakerName,
+    uniqueEvents: uniqueEvents,
+    groupLegsByEvent: groupLegsByEvent,
+    fixtureEventLabel: fixtureEventLabel,
+    fixtureGameId: fixtureGameId,
+    fixtureComp: fixtureComp,
+    matchEventToFixture: matchEventToFixture,
+    attachFixtureMatches: attachFixtureMatches,
+    teamsMatchEvent: teamsMatchEvent,
+  };
+
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.TBSlipOcr = API;
+})(typeof window !== "undefined" ? window : globalThis);

@@ -4,7 +4,8 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
-    "perf": "node scripts/perf-headless.mjs"
+    "perf": "node scripts/perf-headless.mjs",
+    "test:slips": "node tests/slip-harness/run.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

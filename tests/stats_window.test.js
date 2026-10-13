@@ -1,4 +1,4 @@
-// node --test tests/   0.57.5: Stats fetches settled rows for the selected window.
+// node --test tests/   0.57.6: Stats fetches settled rows for the selected window.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

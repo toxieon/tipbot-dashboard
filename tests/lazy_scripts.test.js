@@ -1,4 +1,4 @@
-// node --test tests/   0.57.5: Stats/Horses scripts are not on the first-paint path.
+// node --test tests/   0.57.6: Stats/Horses scripts are not on the first-paint path.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
