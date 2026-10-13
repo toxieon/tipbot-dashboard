@@ -46,13 +46,9 @@
   function syncTone() {
     if (!doc) return;
     var el = doc.documentElement;
-    var auto = false;
-    try { auto = root.localStorage.getItem("tipbot_theme_auto") === "true"; } catch (e) {}
-    var day = false;
-    try { day = !!(root.TBTime && root.TBTime.isDaytime(Date.now())); } catch (e2) {}
     var v = el.dataset.theme === "apex" ? (el.dataset.apexVariant || "") : "";
     // Only write on change: the theme observer watches data-apex-light, so a same-value write would loop.
-    var wantLight = v === "light" || (el.dataset.theme === "apex" && !v && auto && day);
+    var wantLight = v === "light";
     if (wantLight && el.dataset.apexLight !== "1") el.dataset.apexLight = "1";
     else if (!wantLight && "apexLight" in el.dataset) delete el.dataset.apexLight;
     var meta = doc.querySelector('meta[name="theme-color"]');

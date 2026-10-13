@@ -1,3 +1,7 @@
+## 0.57.2
+
+Theme settings are simpler: pick a theme and it stays until you change it.
+
 ## 0.57.1
 
 Small reliability fix for server stats.
