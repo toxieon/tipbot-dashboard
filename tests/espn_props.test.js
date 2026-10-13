@@ -12,7 +12,7 @@ const APP = HTML + "\n" + fs.readFileSync(path.join(__dirname, "..", "assets", "
 
 test("prop tables: NFL unchanged, NBA/WNBA share the five markets TipBot grades", () => {
   assert.deepEqual(P.NFL_PROP_TABS.map(t => t.key), ["passing_yards", "passing_tds", "completions", "interceptions",
-    "rushing_yards", "rushing_tds", "receiving_yards", "receptions", "receiving_tds"]);
+    "rushing_yards", "rushing_tds", "receiving_yards", "receptions", "receiving_tds", "anytime_td"]);
   assert.equal(P.NFL_PROP_TABS[0].def, 249.5);
   assert.deepEqual(P.propTabs("nba").map(t => t.key), ["points", "rebounds", "assists", "threes_made", "pra"]);
   assert.equal(P.propTabs("WNBA"), P.propTabs("nba"));

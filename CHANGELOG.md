@@ -1,3 +1,10 @@
+## 0.57.5 · 2026-10-13 · `build-mobile` · Build: compact multi tray, Anytime TD filter
+
+- The multi tray is a compact "Review multi (N)" bar; tap to expand the legs, combined odds and same-game warning. The builder pads its bottom while the tray is open so every card's controls scroll clear.
+- NFL props gain an Anytime TD tab with an All/QB/RB/WR/TE position filter (default All, HB/FB count as RB); QBs are listed first.
+
+Tests: `tests/anytime_td_filter.test.js`, `tests/e2e/build-tray.spec.mjs` (390×844).
+
 ## 0.57.4 · 2026-10-13 · `stats-window` · Stats loads only the selected window
 
 - Stats requests settled rows with `settled_since` for the chosen window (7d, 30d, season) and refetches when the window changes.
