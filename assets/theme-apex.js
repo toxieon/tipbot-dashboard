@@ -353,7 +353,7 @@
       ring = doc.createElement("span");
       ring.className = "apex-ring";
       ring.setAttribute("aria-hidden", "true");
-      ring.innerHTML = '<svg viewBox="0 0 36 36"><circle class="apex-ring-track" cx="18" cy="18" r="15"></circle><circle class="apex-ring-value" cx="18" cy="18" r="15"></circle></svg>';
+      ring.innerHTML = '<svg aria-hidden="true" focusable="false" viewBox="0 0 36 36"><circle class="apex-ring-track" cx="18" cy="18" r="15"></circle><circle class="apex-ring-value" cx="18" cy="18" r="15"></circle></svg>';
       host.insertBefore(ring, host.firstChild);
     }
     var value = ring.querySelector(".apex-ring-value");
@@ -1147,11 +1147,11 @@
       var text = el.textContent || "";
       var svg = "";
       if (text.indexOf("Nothing here yet") !== -1) {
-        svg = `<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><rect x="20" y="30" width="80" height="60" rx="12" fill="var(--card2)" stroke="var(--line)" stroke-width="2"/><circle cx="60" cy="60" r="16" fill="var(--bg)" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 52v16M52 60h16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
+        svg = `<svg aria-hidden="true" focusable="false" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><rect x="20" y="30" width="80" height="60" rx="12" fill="var(--card2)" stroke="var(--line)" stroke-width="2"/><circle cx="60" cy="60" r="16" fill="var(--bg)" stroke="var(--line)" stroke-width="2" stroke-dasharray="4 4"/><path d="M60 52v16M52 60h16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>`;
       } else if (text.indexOf("No upcoming bets") !== -1) {
-        svg = `<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><rect x="24" y="28" width="72" height="64" rx="10" fill="var(--card2)" stroke="var(--line)" stroke-width="2"/><path d="M36 20v16M84 20v16M24 48h72" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/><rect x="40" y="60" width="16" height="16" rx="4" fill="var(--accent)" opacity="0.2"/><rect x="64" y="60" width="16" height="16" rx="4" fill="var(--line)" opacity="0.5"/></svg>`;
+        svg = `<svg aria-hidden="true" focusable="false" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><rect x="24" y="28" width="72" height="64" rx="10" fill="var(--card2)" stroke="var(--line)" stroke-width="2"/><path d="M36 20v16M84 20v16M24 48h72" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/><rect x="40" y="60" width="16" height="16" rx="4" fill="var(--accent)" opacity="0.2"/><rect x="64" y="60" width="16" height="16" rx="4" fill="var(--line)" opacity="0.5"/></svg>`;
       } else if (text.indexOf("No settled tips yet") !== -1 || text.indexOf("No results yet") !== -1 || text.indexOf("No finished games") !== -1) {
-        svg = `<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><path d="M20 90h80" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/><path d="M30 80l20-30 15 10 25-35" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="90" cy="25" r="5" fill="var(--accent)"/><rect x="25" y="50" width="10" height="30" rx="2" fill="var(--line)" opacity="0.3"/><rect x="45" y="30" width="10" height="50" rx="2" fill="var(--line)" opacity="0.3"/><rect x="65" y="40" width="10" height="40" rx="2" fill="var(--line)" opacity="0.3"/></svg>`;
+        svg = `<svg aria-hidden="true" focusable="false" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto 16px"><path d="M20 90h80" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/><path d="M30 80l20-30 15 10 25-35" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="90" cy="25" r="5" fill="var(--accent)"/><rect x="25" y="50" width="10" height="30" rx="2" fill="var(--line)" opacity="0.3"/><rect x="45" y="30" width="10" height="50" rx="2" fill="var(--line)" opacity="0.3"/><rect x="65" y="40" width="10" height="40" rx="2" fill="var(--line)" opacity="0.3"/></svg>`;
       }
       if (svg) {
         el.dataset.apexEmpty = "1";

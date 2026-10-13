@@ -1,3 +1,7 @@
+## 0.57.0
+
+Terms & Conditions acceptance with 18+ confirmation, legal pages (Privacy, Refunds, Renewals, Cookies, Accessibility), and accessibility improvements.
+
 ## 0.56.7
 
 Server stats charts are easier to explore: hover the units line and monthly bars for detail, click bookies, sports or a month to filter, and hover form squares for each bet. Command access adds a Lockdown preset and short descriptions for each command.
