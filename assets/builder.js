@@ -276,7 +276,7 @@
   }
   function espnLogoHtml(t){
     const u=espnLogoUrl(t);
-    return u?'<img class="espn-logo" src="'+esc(u)+'" alt="" loading="lazy" width="32" height="32">':'<span class="espn-logo-ph" aria-hidden="true"></span>';
+    return u?'<img class="espn-logo" src="'+esc(u)+'" alt="Team logo" loading="lazy" width="32" height="32">':'<span class="espn-logo-ph" aria-hidden="true"></span>';
   }
   function espnTeamFromCompetitor(c){
     const t=(c&&c.team)||{};
@@ -437,16 +437,16 @@
     if(league==="nfl"){
       const weeks=BUILD.espnWeeks||[];
       html+='<div style="display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap">'
-        +'<button class="ghost" id="espnprevw" '+(BUILD.espnWeekIndex<=0?"disabled":"")+'>‹</button>'
+        +'<button class="ghost" id="espnprevw" '+(BUILD.espnWeekIndex<=0?"disabled":"")+' aria-label="Previous">‹</button>'
         +'<select id="espnweek" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit;min-width:min(100%,280px)">'
         +(weeks.length?weeks.map((w,i)=>'<option value="'+i+'">'+esc((BUILD.espnSeasonYear?BUILD.espnSeasonYear+" · ":"")+(w.label||("Week "+w.value))+(w.phase&&String(w.type)!=="2"?" · "+w.phase:""))+'</option>').join(""):'<option>Loading weeks…</option>')
         +'</select>'
         +'<button class="ghost" id="espnnextw" '+(BUILD.espnWeekIndex>=weeks.length-1?"disabled":"")+'>›</button></div>';
     }else{
       html+='<div style="display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap">'
-        +'<button class="ghost" id="espnprevd">‹</button>'
+        +'<button class="ghost" id="espnprevd" aria-label="Previous">‹</button>'
         +'<input type="date" id="espndate" value="'+esc(BUILD.espnDate||"")+'" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit">'
-        +'<button class="ghost" id="espnnextd">›</button>'
+        +'<button class="ghost" id="espnnextd" aria-label="Next">›</button>'
         +'<button class="ghost" id="espntoday">Today (ET)</button>'
         +'<span style="color:var(--faint);font-size:var(--t-foot)">Schedule date · US Eastern</span></div>';
     }
@@ -809,7 +809,7 @@
       +'<button type="button" class="toggle'+(BUILD.autoLines?" on":"")+'" id="autolines-toggle" aria-pressed="'+(BUILD.autoLines?"true":"false")+'" title="Seed lines from TipBot book cache"></button>'
       +'<span class="auto-hint">Book line + ~under from TipBot cache (Sportsbet first). Manual O/U still works.</span>'
       +'<span class="auto-status" id="auto-status"></span>'
-      +(STATE.role==="owner"&&!STATE.viewAs?'<button type="button" class="ghost" id="autolines-refresh" title="Refresh TipBot cache (owner)" style="padding:6px 10px;font-size:var(--t-foot)">↻</button>':"")
+      +(STATE.role==="owner"&&!STATE.viewAs?'<button type="button" class="ghost" id="autolines-refresh" title="Refresh TipBot cache" style="padding:6px 10px;font-size:var(--t-foot)" aria-label="Refresh TipBot cache">↻</button>':"")
       +'</div>'
       +(!MARKETS[BUILD.tab]?'<div class="panel" id="compare-panel" data-sec="builder-compare"><h3>Compare</h3><div id="compare-body"></div></div>':'')
       +'<div id="players"></div>';
@@ -1244,7 +1244,7 @@
       if(!file){ BUILD.image=null; prev.innerHTML=""; return; }
       prev.innerHTML='<span style="color:var(--muted);font-size:var(--t-foot)">Compressing…</span>';
       try{ BUILD.image=await compressImage(file);
-        prev.innerHTML='<img src="'+BUILD.image+'" style="max-height:120px;border-radius:var(--r-sm);border:1px solid var(--line)"> <span style="color:var(--faint);font-size:var(--t-foot)">attached — the bot posts it with the tip</span>';
+        prev.innerHTML='<img src="'+BUILD.image+'" alt="Uploaded bet slip" style="max-height:120px;border-radius:var(--r-sm);border:1px solid var(--line)"> <span style="color:var(--faint);font-size:var(--t-foot)">attached — the bot posts it with the tip</span>';
       }catch(e){ BUILD.image=null; prev.innerHTML='<span class="err" style="font-size:var(--t-foot)">Couldn\'t read that image.</span>'; }
     };
   }
@@ -1830,7 +1830,7 @@
   }
   function racingSilk(rn){
     if(window.TBRacingLegs && typeof TBRacingLegs.silkInnerHtml==="function") return TBRacingLegs.silkInnerHtml(rn);
-    if(rn && rn.silk_url) return '<img src="'+esc(rn.silk_url)+'" alt="">';
+    if(rn && rn.silk_url) return '<img src="'+esc(rn.silk_url)+'" alt="Jockey silks">';
     return RACING_SILK;
   }
   function racingIsFinal(r){
@@ -2062,7 +2062,7 @@
     }
     let html = '<div class="app'+(category==="T"?"":" no-hero")+'" id="race-app">'
       + '<header class="top">'
-      + '<a class="back" id="bx" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>'
+      + '<a class="back" id="bx" aria-label="Back"><svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>'
       + '<h2>'+esc(meetingName)+'</h2>'
       + '</header>';
     if (category === 'T') {

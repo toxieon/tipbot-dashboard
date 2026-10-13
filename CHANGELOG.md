@@ -1,3 +1,13 @@
+## 0.57.0 · 2026-10-13 · `terms` · Terms & Conditions acceptance
+
+- Legal pages: `/terms/`, `/privacy/`, `/refund/`, `/renewal/`, `/cookies/`, `/accessibility/`, `/age/`, `/content-licence/` load their text from TipBot (`GET /api/legal/<slug>`, `assets/legal-page.js` + safe markdown renderer `assets/legal-md.js`), linked from a small footer.
+- 18+ confirmation checkbox on the acceptance prompt; Accept stays disabled until ticked and the POST sends `age_confirmed: true`.
+- Cookie consent banner (`assets/cookie-consent.js`), built but off (`COOKIE_BANNER_ENABLED=false`): no cookies are used yet.
+- Accessibility: alt text on all images, icons marked decorative or labelled, aria-labels on icon-only buttons.
+- Signed-in users accept the current Terms & Conditions before using the dashboard, and again when the terms version changes. Text and version come from TipBot (`GET /api/terms`); acceptance via `/api/terms/status` and `POST /api/terms/accept`. Plain styling in `assets/terms-gate.css`. Small "Terms vX" line at the bottom.
+
+Tests: `tests/e2e/terms-gate.spec.mjs`.
+
 ## 0.56.7 · 2026-10-13 · `server-stats-ui` · Chart hovers, click-to-filter, Lockdown preset
 
 - **Units over time:** crosshair and tooltip with cumulative units and date on hover or touch-drag along the line.
