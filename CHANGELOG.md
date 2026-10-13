@@ -1,3 +1,9 @@
+## 0.57.3 · 2026-10-13 · `lazy-js` · Lighter first paint
+
+- Stats and Horses scripts (`assets/stats.js`, `assets/horse-results.js`) are no longer blocking tags; they load on first use or when the browser is idle. Opening `#/stats` or `#/stats/horses` directly waits for them.
+
+Tests: `tests/lazy_scripts.test.js`.
+
 ## 0.57.2 · 2026-10-13 · `theme-manual` · Theme is a manual choice only
 
 - Removed the automatic theme options (time of day, follow device) from Settings, the stored preferences and the page pre-paint; no theme listeners or timers remain.

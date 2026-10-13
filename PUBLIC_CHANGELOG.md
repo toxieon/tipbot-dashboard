@@ -1,3 +1,7 @@
+## 0.57.3
+
+The dashboard opens faster.
+
 ## 0.57.2
 
 Theme settings are simpler: pick a theme and it stays until you change it.
