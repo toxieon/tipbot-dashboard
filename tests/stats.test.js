@@ -119,7 +119,7 @@ test("index.html wires Stats from Home, not a bottom tab, and keeps the API base
   assert.match(html, /home-stats-tile/);
   const panelList = JSON.parse(html.match(/const panel=p=>\{for\(const x of (\[[^\]]*\])\)/)[1]);
   assert.ok(panelList.includes("stats"), "stats must be in panel()'s fixed list or it stays hidden");
-  // 0.57.4: loaded on first use (lazyScript), versioned like the other assets.
+  // 0.57.5: loaded on first use (lazyScript), versioned like the other assets.
   assert.match(html, new RegExp('s\\.src="\\./assets/"\\+name\\+"\\.js\\?v=' + version.replace(/\./g, "\\.") + '"'));
   assert.match(html, /lazyScript\("stats"\)/);
   assert.match(html, /if\(m\[0\]==="stats"\) return openStats\(\), true;/);

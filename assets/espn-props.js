@@ -14,8 +14,16 @@
     {key: "rushing_tds", stat: "Rushing TDs", def: 0.5, max: 4},
     {key: "receiving_yards", stat: "Receiving Yards", def: 54.5, max: 200},
     {key: "receptions", stat: "Receptions", def: 4.5, max: 15},
-    {key: "receiving_tds", stat: "Receiving TDs", def: 0.5, max: 4}
+    {key: "receiving_tds", stat: "Receiving TDs", def: 0.5, max: 4},
+    // TipBot grades this as rushing + receiving TDs (services/espn.py anytime_td).
+    {key: "anytime_td", stat: "Anytime TD", def: 0.5, max: 4, posFilter: true}
   ];
+  var NFL_POSITIONS = ["All", "QB", "RB", "WR", "TE"];
+  /** Position bucket for the Anytime TD filter (HB/FB count as RB). */
+  function posBucket(p) {
+    var x = String((p && p.position) || "").toUpperCase();
+    return x === "HB" || x === "FB" ? "RB" : x;
+  }
   // NBA and WNBA share one table (same ESPN box score).
   var NBA_PROP_TABS = [
     {key: "points", stat: "Points", def: 19.5, max: 60},
@@ -47,14 +55,19 @@
     return filtered.length ? filtered : list;
   }
   /** The displayed list for one team: used by BOTH the render and the button wiring so row ids line up. */
-  function visiblePlayers(list, league, search, matches) {
+  function visiblePlayers(list, league, search, matches, pos, pinQB) {
     var out = propPlayers(list, league);
+    if (pos && pos !== "All") out = out.filter(function (p) { return posBucket(p) === pos; });
     if (String(search || "").trim()) {
       out = out.filter(function (p) {
         return matches(p.name, p.number, search) || matches(p.position || "", "", search);
       });
     }
-    return out.slice().sort(function (a, b) { return String(a.name || "").localeCompare(String(b.name || "")); });
+    out = out.slice().sort(function (a, b) { return String(a.name || "").localeCompare(String(b.name || "")); });
+    // Anytime TD: QBs first, everyone else below in the usual order.
+    if (pinQB) out = out.filter(function (p) { return posBucket(p) === "QB"; })
+      .concat(out.filter(function (p) { return posBucket(p) !== "QB"; }));
+    return out;
   }
   /** The leg the picker adds (same shape as NFL legs; league is the event's league). */
   function buildLeg(o) {
@@ -89,7 +102,7 @@
   var API = {
     NFL_PROP_TABS: NFL_PROP_TABS, NBA_PROP_TABS: NBA_PROP_TABS, "hasProps": hasProps, isBasketball: isBasketball,
     propTabs: propTabs, playersUrl: playersUrl, propPlayers: propPlayers, visiblePlayers: visiblePlayers,
-    buildLeg: buildLeg, applyMarketLabels: applyMarketLabels
+    buildLeg: buildLeg, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket
   };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBEspnProps = API;
