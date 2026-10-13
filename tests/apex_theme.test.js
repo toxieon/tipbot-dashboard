@@ -32,7 +32,7 @@ test("apex is in every hard-coded theme names list", () => {
   for (const f of PAGES) {
     const src = read(f);
     const lists = src.match(/\[[^\]]*'navy'[^\]]*\]/g) || [];
-    // 0.57.2: pre-paint names list lives in assets/tbtime.js (manualTheme).
+    // 0.57.3: pre-paint names list lives in assets/tbtime.js (manualTheme).
     assert.ok(lists.length >= 1 || /TBTime\.manualTheme\(/.test(src), f + " has a names list");
     for (const list of lists) {
       if (list.indexOf("'apex'") === -1 && list.indexOf("'navy'") !== -1 && list.indexOf("'day'") !== -1 && list.indexOf("'ochre'") !== -1 && list.length < 30) {
