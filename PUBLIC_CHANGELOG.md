@@ -1,3 +1,7 @@
+## 0.57.4
+
+Stats load faster.
+
 ## 0.57.3
 
 The dashboard opens faster.

@@ -102,7 +102,7 @@
   /** Day/night theme: 7 am to 7 pm Sydney is "day". */
   function isDaytime(v) { var h = hour(v); return h >= 7 && h < 19; }
 
-  /** Manual-only theme (0.57.3). A saved automatic preference (time of day or
+  /** Manual-only theme (0.57.4). A saved automatic preference (time of day or
    *  device) is migrated once to the theme it currently shows, then saved.
    *  Returns the theme name to apply. ``prefersDark`` is read once, only for
    *  migrating a device-following preference; nothing listens for changes. */
