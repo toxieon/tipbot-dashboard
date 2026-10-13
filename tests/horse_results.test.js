@@ -209,7 +209,7 @@ test("Stats links to Horses and the dashboard keeps the TipBot API base", () => 
   assert.match(html, /if\(m\[0\]==="stats" && m\[1\]==="horses"\) return openHorseResults\(\), true;/);
   assert.match(html, /if\(m\[0\]==="stats"\) return openStats\(\), true;/);
   assert.match(html, /onHorses: openHorseResults/);
-  // 0.57.3: loaded on first use (lazyScript), versioned like the other assets.
+  // 0.57.4: loaded on first use (lazyScript), versioned like the other assets.
   assert.match(html, new RegExp('s\\.src="\\./assets/"\\+name\\+"\\.js\\?v=' + version.replace(/\./g, "\\.") + '"'));
   assert.match(html, /lazyScript\("horse-results"\)/);
   assert.match(html, /const API="https:\/\/afl-tipster-bot\.onrender\.com";/);

@@ -17,7 +17,7 @@ test("detailFromSettledSummary maps TipBot payloads into tips.settled", () => {
 
 test("openStats prefers settled-summary then falls back to /api/server", () => {
   assert.match(html, /async function fetchSettledSummaryDetail\(gid\)/);
-  assert.match(html, /\/api\/server\/settled-summary\?settled_limit=2000&guild_id=/);
+  assert.match(html, /\/api\/server\/settled-summary\?settled_limit=2000&settled_since="\+encodeURIComponent\(statsSince\(STATS_WINDOW\)\)\+"&guild_id=/);
   assert.match(html, /return fetchServerDetail\(gid\)/);
   assert.match(html, /detail:await fetchSettledSummaryDetail\(s\.guild_id\)/);
 });

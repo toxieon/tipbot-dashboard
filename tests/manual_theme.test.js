@@ -1,4 +1,4 @@
-// node --test tests/   0.57.3: manual theme only; automatic prefs migrate to the shown theme.
+// node --test tests/   0.57.4: manual theme only; automatic prefs migrate to the shown theme.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
