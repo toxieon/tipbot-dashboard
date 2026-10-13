@@ -579,8 +579,13 @@
       +'<input id="psearch" placeholder="Search players… e.g. '+(bball?'Gilgeous-Alexander, Shai':'Hill, Tyreek')+'" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit;flex:1">'
       +'</div>';
     if(BUILD.espnErr) html+='<div class="empty" style="margin-bottom:12px">'+esc(BUILD.espnErr)+'</div>';
+    if(prop.posFilter){
+      const cur=BUILD.espnPos||"All";
+      html+='<div class="tabs pos-filter" role="group" aria-label="Position" style="flex-wrap:wrap">'+TBEspnProps.NFL_POSITIONS.map(x=>'<div class="tab '+(x===cur?"active":"")+'" data-pos="'+x+'" role="button" tabindex="0" aria-pressed="'+(x===cur)+'">'+x+'</div>').join("")+'</div>';
+    }
     html+='<div id="players"></div>';
     $("builder").innerHTML=html;
+    $("builder").querySelectorAll(".tab[data-pos]").forEach(t=>t.onclick=()=>{BUILD.espnPos=t.dataset.pos;renderEspnNflProps();});
     $("bg").onclick=()=>navBack(()=>{ BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); });
     const pr=$("espnplayref"); if(pr)pr.onclick=()=>loadEspnNflPlayers();
     const ft=$("espnfreetext"); if(ft)ft.onclick=()=>renderEspnBasketballPick();
@@ -592,7 +597,8 @@
     const box=$("players"); if(!box)return;
     const TABS=TBEspnProps.propTabs(BUILD.espnLeague);
     const prop=TABS.find(t=>t.key===BUILD.espnPropKey)||TABS[0];
-    const shown=list=>TBEspnProps.visiblePlayers(list, BUILD.espnLeague, BUILD.search, nameMatchesSearch);
+    const pos=prop.posFilter?(BUILD.espnPos||"All"):"All";
+    const shown=list=>TBEspnProps.visiblePlayers(list, BUILD.espnLeague, BUILD.search, nameMatchesSearch, pos, !!prop.posFilter);
     const teams=BUILD.espnTeams&&BUILD.espnTeams.length?BUILD.espnTeams:(()=>{
       // Fallback: group flat players list.
       const map=new Map();
@@ -1113,10 +1119,17 @@
     const t=$("tray");
     if(!BUILD.legs.length){ t.hidden=true; syncTrayStack(); return; }
     t.hidden=false;
-    t.innerHTML='<div class="tray-in"><div class="legchips">'+BUILD.legs.map((l,i)=>trayLegChip(l,i)).join("")+'</div>'
-      +trayCombinedOddsHtml()
-      +'<button class="btn" id="reviewbtn">Review multi ('+BUILD.legs.length+')</button>'+TB.multiSummary(BUILD.legs)+'</div>';
+    // Compact bar; chips, combined odds and the SGM warning expand on tap.
+    const open=!!BUILD.trayOpen, n=BUILD.legs.length;
+    const warn=TB.corrWarn?TB.corrWarn(BUILD.legs):"";
+    t.classList.toggle("tray-open",open);
+    t.innerHTML='<div class="tray-in tray-compact">'
+      +'<button type="button" class="tray-toggle" id="traytoggle" aria-expanded="'+open+'" aria-controls="traybody">Review multi ('+n+')'+(warn?' <span class="tray-warn-dot" aria-label="Same-game warning">△</span>':'')+' <span aria-hidden="true">'+(open?"▾":"▴")+'</span></button>'
+      +'<button class="btn" id="reviewbtn">Review</button>'
+      +'<div class="tray-body" id="traybody"'+(open?'':' hidden')+'><div class="legchips">'+BUILD.legs.map((l,i)=>trayLegChip(l,i)).join("")+'</div>'
+      +trayCombinedOddsHtml()+TB.multiSummary(BUILD.legs)+'</div></div>';
     t.querySelectorAll(".x").forEach(x=>x.onclick=()=>{BUILD.legs.splice(+x.dataset.i,1);renderTray(); if(BUILD.legs.length)saveMultiDraft(); else clearMultiDraft(BUILD.guildId);});
+    $("traytoggle").onclick=()=>{BUILD.trayOpen=!BUILD.trayOpen;renderTray();};
     $("reviewbtn").onclick=renderConfirm;
     syncTrayStack();
   }
