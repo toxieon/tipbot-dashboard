@@ -22,3 +22,19 @@ If you want the original file stored server-side separately from the compressed 
 - Fixture image: `tests/fixtures/sportsbet-proposed-bet.png`
 - OCR text captured once from tesseract: `tests/fixtures/sportsbet-proposed-bet.ocr.txt`
 - Parser unit test: `tests/slip_ocr.test.js`
+
+## Parser and fixture harness (0.57.6)
+
+- `TBSlipOcr.recognizeImage(Tesseract, file, base)` upscales/greyscales the image (inverting dark-mode
+  screenshots), runs tesseract with word boxes, and returns `{text, lines, width}`.
+- `TBSlipOcr.parseSlipLines(ocr)` strips icon glyphs using word gaps, then reads bet type, total odds,
+  leg count, event and time (per leg for cross-game multis, `v` and `@` events), and maps each leg to
+  `player`/`team`, `stat`, `line`, `side` and `odds` (SGM legs have no own odds). Truncated labels
+  ("Receiving Yar...") are completed only from a unique known stat that matches the subtitle.
+- Anything read below confidence 70, missing, or inconsistent (leg count mismatch) goes into
+  `slip.flags` / `leg.flags` and is highlighted on the review screen. Stake is never on a slip and is
+  always flagged.
+- `npm run test:slips` runs the same browser pipeline in headless Chromium over
+  `tests/fixtures/slips` (7 real Sportsbet slips + 9 labelled synthetic variants) and prints a
+  per-fixture, per-field pass table; it fails if any real fixture misses a field.
+- The vendored core is the SIMD build only; browsers without wasm SIMD can't run the import.

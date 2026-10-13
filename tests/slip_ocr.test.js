@@ -15,7 +15,7 @@ test("Sportsbet fixture OCR parses to 3 legs at 7.00", () => {
   assert.equal(slip.odds, 7);
   assert.equal(slip.leg_count, 3);
   assert.equal(slip.event, "Richmond (W) v Adelaide Crows (W)");
-  assert.match(slip.date_time, /Saturday, 10 Oct 19:15/);
+  assert.equal(slip.date_time, "Sat 10 Oct 19:15");
   assert.equal(slip.sport, "AFLW");
   assert.equal(slip.legs.length, 3);
   assert.equal(slip.legs[0].selection, "Richmond (W)");
@@ -33,11 +33,11 @@ test("cross-game Multi OCR assigns each leg its own event block", () => {
   assert.equal(slip.leg_count, 2);
   assert.equal(slip.legs.length, 2);
   assert.equal(slip.legs[0].event, "Geelong v Carlton");
-  assert.match(slip.legs[0].date_time, /Friday, 12 Sep 19:20/);
+  assert.equal(slip.legs[0].date_time, "Fri 12 Sep 19:20");
   assert.equal(slip.legs[0].selection, "Geelong");
   assert.equal(slip.legs[0].market, "Head to Head");
   assert.equal(slip.legs[1].event, "Sydney Swans v Brisbane Lions");
-  assert.match(slip.legs[1].date_time, /Saturday, 13 Sep 14:10/);
+  assert.equal(slip.legs[1].date_time, "Sat 13 Sep 14:10");
   assert.equal(slip.legs[1].selection, "Brisbane Lions");
   assert.equal(slip.game_groups.length, 2);
 });

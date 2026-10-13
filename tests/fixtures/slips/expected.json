@@ -1,0 +1,661 @@
+{
+ "_note": "Real = user-supplied Sportsbet screenshots. synthetic = generated variants (PIL crop/invert/downscale/resize of real slips, or an HTML render) and are labelled as such.",
+ "now": "2026-10-13T12:00:00+11:00",
+ "fixtures": [
+  {
+   "id": "01",
+   "file": "real/01-wnba-sgm-5.00.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 5.0,
+    "leg_count": 3,
+    "sport": "WNBA",
+    "event": "Atlanta Dream @ Golden State Valkyries",
+    "date_time": "Sun 18 Oct 06:30",
+    "legs": [
+     {
+      "who": "Golden State Valkyries",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Rhyne Howard",
+      "stat": "Points",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Allisha Gray",
+      "stat": "Points",
+      "line": 15,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "02",
+   "file": "real/02-aflw-mel-ric-sgm-80.50.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 80.5,
+    "leg_count": 5,
+    "sport": "AFLW",
+    "event": "Melbourne (W) v Richmond (W)",
+    "date_time": "Fri 16 Oct 19:15",
+    "legs": [
+     {
+      "who": "Richmond (W)",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Ryleigh Wotherspoon",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Georgia Gall",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Megan Fitzsimon",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Maeve Chaplin",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "03",
+   "file": "real/03-aflw-ade-gcs-sgm-18.50.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 18.5,
+    "leg_count": 6,
+    "sport": "AFLW",
+    "event": "Adelaide Crows (W) v Gold Coast SUNS (W)",
+    "date_time": "Sat 17 Oct 13:05",
+    "legs": [
+     {
+      "who": "Gold Coast SUNS (W)",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Madison Newman",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Chelsea Biddell",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Ebony Marinoff",
+      "stat": "Disposals",
+      "line": 25,
+      "side": "Over"
+     },
+     {
+      "who": "Caitlin Gould",
+      "stat": "Goals",
+      "line": 2,
+      "side": "Over"
+     },
+     {
+      "who": "Eloise Jones",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "04",
+   "file": "real/04-racing-caulfield-r1-win-2.35.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Racing",
+    "odds": 2.35,
+    "leg_count": 1,
+    "sport": "Racing",
+    "event": "Caulfield R1",
+    "date_time": "Wed 14 Oct 13:40",
+    "legs": [
+     {
+      "who": "2. Royal Press",
+      "stat": "Win"
+     }
+    ]
+   }
+  },
+  {
+   "id": "05",
+   "file": "real/05-nfl-sea-den-sgm-476.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 476.0,
+    "leg_count": 10,
+    "sport": "NFL",
+    "event": "Seattle Seahawks @ Denver Broncos",
+    "date_time": "Fri 16 Oct 11:16",
+    "legs": [
+     {
+      "who": "Emanuel Wilson",
+      "stat": "Anytime TD",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Jaxon Smith-Njigba",
+      "stat": "Anytime TD",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Jaxon Smith-Njigba",
+      "stat": "Receiving Yards",
+      "line": 70,
+      "side": "Over"
+     },
+     {
+      "who": "Jaylen Waddle",
+      "stat": "Receiving Yards",
+      "line": 25,
+      "side": "Over"
+     },
+     {
+      "who": "Courtland Sutton",
+      "stat": "Receiving Yards",
+      "line": 125,
+      "side": "Over"
+     },
+     {
+      "who": "Sam Darnold",
+      "stat": "Passing Yards",
+      "line": 150,
+      "side": "Over"
+     },
+     {
+      "who": "Bo Nix",
+      "stat": "Passing Yards",
+      "line": 125,
+      "side": "Over"
+     },
+     {
+      "who": "Emanuel Wilson",
+      "stat": "Rushing Yards",
+      "line": 30,
+      "side": "Over"
+     },
+     {
+      "who": "Jaxon Smith-Njigba",
+      "stat": "Receptions",
+      "line": 6,
+      "side": "Over"
+     },
+     {
+      "who": "Sam Darnold",
+      "stat": "Passing TDs",
+      "line": 1,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "06",
+   "file": "real/06-nfl-hou-jax-sgm-22.75.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 22.75,
+    "leg_count": 4,
+    "sport": "NFL",
+    "event": "Houston Texans @ Jacksonville Jaguars",
+    "date_time": "Mon 19 Oct 00:30",
+    "legs": [
+     {
+      "who": "Houston Texans",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Woody Marks",
+      "stat": "Rushing Yards",
+      "line": 49.5,
+      "side": "Under"
+     },
+     {
+      "who": "Bhayshul Tuten",
+      "stat": "Rushing Yards",
+      "line": 63.5,
+      "side": "Over"
+     },
+     {
+      "who": "Trevor Lawrence",
+      "stat": "Rushing Yards",
+      "line": 12.5,
+      "side": "Under"
+     }
+    ]
+   }
+  },
+  {
+   "id": "07",
+   "file": "real/07-epl-eve-che-single-2.12.png",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 2.12,
+    "leg_count": 1,
+    "sport": "Soccer",
+    "event": "Everton v Chelsea",
+    "date_time": "Sat 17 Oct 22:30",
+    "legs": [
+     {
+      "who": "Chelsea",
+      "stat": "Win-Draw-Win"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s01",
+   "file": "synthetic/s01-from02-cropped.png",
+   "synthetic": true,
+   "variant": "cropped",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 80.5,
+    "leg_count": 5,
+    "sport": "AFLW",
+    "event": "Melbourne (W) v Richmond (W)",
+    "date_time": "Fri 16 Oct 19:15",
+    "legs": [
+     {
+      "who": "Richmond (W)",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Ryleigh Wotherspoon",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Georgia Gall",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Megan Fitzsimon",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Maeve Chaplin",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s02",
+   "file": "synthetic/s02-from01-cropped.png",
+   "synthetic": true,
+   "variant": "cropped",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 5.0,
+    "leg_count": 3,
+    "sport": "WNBA",
+    "event": "Atlanta Dream @ Golden State Valkyries",
+    "date_time": "Sun 18 Oct 06:30",
+    "legs": [
+     {
+      "who": "Golden State Valkyries",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Rhyne Howard",
+      "stat": "Points",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Allisha Gray",
+      "stat": "Points",
+      "line": 15,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s03",
+   "file": "synthetic/s03-from02-dark.png",
+   "synthetic": true,
+   "variant": "dark",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 80.5,
+    "leg_count": 5,
+    "sport": "AFLW",
+    "event": "Melbourne (W) v Richmond (W)",
+    "date_time": "Fri 16 Oct 19:15",
+    "legs": [
+     {
+      "who": "Richmond (W)",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Ryleigh Wotherspoon",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Georgia Gall",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Megan Fitzsimon",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Maeve Chaplin",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s04",
+   "file": "synthetic/s04-from06-dark.png",
+   "synthetic": true,
+   "variant": "dark",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 22.75,
+    "leg_count": 4,
+    "sport": "NFL",
+    "event": "Houston Texans @ Jacksonville Jaguars",
+    "date_time": "Mon 19 Oct 00:30",
+    "legs": [
+     {
+      "who": "Houston Texans",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Woody Marks",
+      "stat": "Rushing Yards",
+      "line": 49.5,
+      "side": "Under"
+     },
+     {
+      "who": "Bhayshul Tuten",
+      "stat": "Rushing Yards",
+      "line": 63.5,
+      "side": "Over"
+     },
+     {
+      "who": "Trevor Lawrence",
+      "stat": "Rushing Yards",
+      "line": 12.5,
+      "side": "Under"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s05",
+   "file": "synthetic/s05-from02-lowres.png",
+   "synthetic": true,
+   "variant": "lowres",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 80.5,
+    "leg_count": 5,
+    "sport": "AFLW",
+    "event": "Melbourne (W) v Richmond (W)",
+    "date_time": "Fri 16 Oct 19:15",
+    "legs": [
+     {
+      "who": "Richmond (W)",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Ryleigh Wotherspoon",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Georgia Gall",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Megan Fitzsimon",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Maeve Chaplin",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s06",
+   "file": "synthetic/s06-from03-lowres.png",
+   "synthetic": true,
+   "variant": "lowres",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 18.5,
+    "leg_count": 6,
+    "sport": "AFLW",
+    "event": "Adelaide Crows (W) v Gold Coast SUNS (W)",
+    "date_time": "Sat 17 Oct 13:05",
+    "legs": [
+     {
+      "who": "Gold Coast SUNS (W)",
+      "stat": "Head to Head"
+     },
+     {
+      "who": "Madison Newman",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Chelsea Biddell",
+      "stat": "Disposals",
+      "line": 15,
+      "side": "Over"
+     },
+     {
+      "who": "Ebony Marinoff",
+      "stat": "Disposals",
+      "line": 25,
+      "side": "Over"
+     },
+     {
+      "who": "Caitlin Gould",
+      "stat": "Goals",
+      "line": 2,
+      "side": "Over"
+     },
+     {
+      "who": "Eloise Jones",
+      "stat": "Goals",
+      "line": 1,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s07",
+   "file": "synthetic/s07-from05-rescaled.png",
+   "synthetic": true,
+   "variant": "rescaled",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 476.0,
+    "leg_count": 10,
+    "sport": "NFL",
+    "event": "Seattle Seahawks @ Denver Broncos",
+    "date_time": "Fri 16 Oct 11:16",
+    "legs": [
+     {
+      "who": "Emanuel Wilson",
+      "stat": "Anytime TD",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Jaxon Smith-Njigba",
+      "stat": "Anytime TD",
+      "line": 1,
+      "side": "Over"
+     },
+     {
+      "who": "Jaxon Smith-Njigba",
+      "stat": "Receiving Yards",
+      "line": 70,
+      "side": "Over"
+     },
+     {
+      "who": "Jaylen Waddle",
+      "stat": "Receiving Yards",
+      "line": 25,
+      "side": "Over"
+     },
+     {
+      "who": "Courtland Sutton",
+      "stat": "Receiving Yards",
+      "line": 125,
+      "side": "Over"
+     },
+     {
+      "who": "Sam Darnold",
+      "stat": "Passing Yards",
+      "line": 150,
+      "side": "Over"
+     },
+     {
+      "who": "Bo Nix",
+      "stat": "Passing Yards",
+      "line": 125,
+      "side": "Over"
+     },
+     {
+      "who": "Emanuel Wilson",
+      "stat": "Rushing Yards",
+      "line": 30,
+      "side": "Over"
+     },
+     {
+      "who": "Jaxon Smith-Njigba",
+      "stat": "Receptions",
+      "line": 6,
+      "side": "Over"
+     },
+     {
+      "who": "Sam Darnold",
+      "stat": "Passing TDs",
+      "line": 1,
+      "side": "Over"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s08",
+   "file": "synthetic/s08-from07-rescaled.png",
+   "synthetic": true,
+   "variant": "rescaled",
+   "expect": {
+    "bet_type": "Single",
+    "odds": 2.12,
+    "leg_count": 1,
+    "sport": "Soccer",
+    "event": "Everton v Chelsea",
+    "date_time": "Sat 17 Oct 22:30",
+    "legs": [
+     {
+      "who": "Chelsea",
+      "stat": "Win-Draw-Win"
+     }
+    ]
+   }
+  },
+  {
+   "id": "s09",
+   "file": "synthetic/s09-cross-game-multi.png",
+   "synthetic": true,
+   "variant": "cross-game multi (HTML render)",
+   "expect": {
+    "bet_type": "Multi",
+    "odds": 9.6,
+    "leg_count": 3,
+    "legs": [
+     {
+      "who": "North Melbourne (W)",
+      "stat": "Head to Head",
+      "event": "North Melbourne (W) v Essendon (W)",
+      "date_time": "Sat 17 Oct 15:05",
+      "sport": "AFLW"
+     },
+     {
+      "who": "Sydney Swans (W)",
+      "stat": "Head to Head",
+      "event": "Sydney Swans (W) v Fremantle (W)",
+      "date_time": "Sun 18 Oct 13:05",
+      "sport": "AFLW"
+     },
+     {
+      "who": "Buffalo Bills",
+      "stat": "Head to Head",
+      "event": "Buffalo Bills @ Miami Dolphins",
+      "date_time": "Mon 19 Oct 04:00",
+      "sport": "NFL"
+     }
+    ]
+   }
+  }
+ ]
+}

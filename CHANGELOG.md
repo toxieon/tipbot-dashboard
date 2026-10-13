@@ -1,3 +1,11 @@
+## 0.57.6 · 2026-10-14 · `slip-ocr` · Import a bet slip from a screenshot
+
+- Build gains "Import from screenshot": the image is read in the browser (tesseract.js, nothing uploaded for OCR) and turned into a tip draft: bet type, total odds, event, time, sport and each leg as player/team, stat, line, over/under and odds. Same-game and cross-game multis, singles and racing are supported; `v` and `@` events, dark-mode screenshots and truncated labels are handled.
+- Low-confidence or missing fields are highlighted on the review screen for editing; stake is always asked for.
+- Fixture harness: `npm run test:slips` runs the browser OCR pipeline headless over 16 slip images (7 real, 9 synthetic) and reports per-field pass rates.
+
+Tests: `tests/slip_ocr.test.js`, `tests/slip-harness/run.mjs`, `tests/e2e/slip-import.spec.mjs` (390×844).
+
 ## 0.57.5 · 2026-10-13 · `build-mobile` · Build: compact multi tray, Anytime TD filter
 
 - The multi tray is a compact "Review multi (N)" bar; tap to expand the legs, combined odds and same-game warning. The builder pads its bottom while the tray is open so every card's controls scroll clear.

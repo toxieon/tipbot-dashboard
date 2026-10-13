@@ -84,21 +84,11 @@
     });
   }
 
+  // Same pipeline the fixture harness runs (tests/slip-harness/run.mjs): preprocess + tesseract
+  // with word boxes, then the structured slip parser.
   async function runOcr(file) {
     await loadTesseract();
-    var base = slipBase();
-    var worker = await Tesseract.createWorker("eng", 1, {
-      workerPath: base + "worker.min.js",
-      corePath: base + "core/",
-      langPath: base + "lang/",
-      gzip: true,
-    });
-    try {
-      var out = await worker.recognize(file);
-      return out && out.data && out.data.text ? out.data.text : "";
-    } finally {
-      await worker.terminate();
-    }
+    return TBSlipOcr.recognizeImage(Tesseract, file, slipBase());
   }
 
   async function loadFixtureGames() {
@@ -198,8 +188,9 @@
     }
     try {
       await ensureSlipOcr();
-      SLIP.ocrText = await runOcr(file);
-      SLIP.parsed = TBSlipOcr.parseSlipText(SLIP.ocrText);
+      var ocr = await runOcr(file);
+      SLIP.ocrText = ocr.text || "";
+      SLIP.parsed = TBSlipOcr.parseSlipLines(ocr);
       SLIP.fixtures = await loadFixtureGames();
       SLIP.parsedLegs = TBSlipOcr.attachFixtureMatches(SLIP.parsed.legs || [], SLIP.fixtures);
       SLIP.parsed = Object.assign({}, SLIP.parsed, { legs: SLIP.parsedLegs });
@@ -232,47 +223,43 @@
     return html;
   }
 
+  function legFlagFields(leg) {
+    var out = {};
+    ((leg && leg.flags) || []).forEach(function (f) { out[f.field] = f.reason; });
+    return out;
+  }
+  function flagStyle(on) { return on ? ";outline:2px solid var(--warn, #e0a100);outline-offset:1px" : ""; }
   function legRowHtml(leg, idx) {
-    var sel = leg && leg.selection != null ? leg.selection : "";
-    var mkt = leg && leg.market != null ? leg.market : "";
-    var ev = leg && leg.event != null ? leg.event : "";
-    var gid = leg && leg.game_id != null ? leg.game_id : "";
+    leg = leg || {};
+    var who = leg.player || leg.team || leg.selection || "";
+    var stat = leg.stat || leg.market || "";
+    var ev = leg.event != null ? leg.event : "";
+    var gid = leg.game_id != null ? leg.game_id : "";
+    var ff = legFlagFields(leg);
+    var reasons = Object.keys(ff).map(function (k) { return ff[k]; });
+    var side = leg.side || "";
+    var whoFlag = ff.selection || ff.player || ff.team;
+    var statFlag = ff.market || ff.stat;
     return (
-      '<div class="paste-card slip-leg-row" data-i="' +
-      idx +
-      '" style="margin-top:10px">' +
+      '<div class="paste-card slip-leg-row" data-i="' + idx + '" data-kind="' + escAttr(leg.kind || "") + '" style="margin-top:10px">' +
+      (reasons.length
+        ? '<div class="slip-leg-flags" style="color:var(--warn, #e0a100);font-size:var(--t-foot);margin-bottom:6px">⚠ ' + esc(reasons.join(" · ")) + "</div>"
+        : "") +
       '<div class="field" style="margin-bottom:8px"><label>Game / event</label>' +
-      '<input class="slip-leg-event" data-i="' +
-      idx +
-      '" value="' +
-      esc(ev) +
-      '" placeholder="e.g. Geelong v Carlton" style="width:100%">' +
+      '<input class="slip-leg-event" data-i="' + idx + '" value="' + esc(ev) + '" placeholder="e.g. Geelong v Carlton" style="width:100%' + flagStyle(ff.event) + '">' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">' +
-      '<select class="slip-leg-fixture" data-i="' +
-      idx +
-      '" style="flex:1;min-width:200px">' +
-      fixturePickerOptions(SLIP.fixtures, gid) +
-      "</select>" +
-      '<span class="slip-leg-sport" style="font-size:var(--t-foot);color:var(--muted)">' +
-      esc(leg && leg.sport ? leg.sport : "") +
-      "</span>" +
-      '<input type="hidden" class="slip-leg-gid" data-i="' +
-      idx +
-      '" value="' +
-      escAttr(gid) +
-      '">' +
+      '<select class="slip-leg-fixture" data-i="' + idx + '" style="flex:1;min-width:200px">' + fixturePickerOptions(SLIP.fixtures, gid) + "</select>" +
+      '<span class="slip-leg-sport" style="font-size:var(--t-foot);color:var(--muted)">' + esc(leg.sport || "") + "</span>" +
+      '<input type="hidden" class="slip-leg-gid" data-i="' + idx + '" value="' + escAttr(gid) + '">' +
       "</div></div>" +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-      '<input class="slip-leg-sel" data-i="' +
-      idx +
-      '" placeholder="Selection" value="' +
-      esc(sel) +
-      '" style="flex:1;min-width:140px">' +
-      '<input class="slip-leg-mkt" data-i="' +
-      idx +
-      '" placeholder="Market / line" value="' +
-      esc(mkt) +
-      '" style="flex:1;min-width:140px">' +
+      '<input class="slip-leg-sel" data-i="' + idx + '" placeholder="Player / team / runner" aria-label="Player or team" value="' + esc(who) + '" style="flex:2;min-width:140px' + flagStyle(whoFlag) + '">' +
+      '<input class="slip-leg-mkt" data-i="' + idx + '" placeholder="Stat / market" aria-label="Stat or market" value="' + esc(stat) + '" style="flex:2;min-width:120px' + flagStyle(statFlag) + '">' +
+      '<input class="slip-leg-line" data-i="' + idx + '" type="number" step="0.5" placeholder="Line" aria-label="Line" value="' + esc(leg.line != null ? String(leg.line) : "") + '" style="width:76px' + flagStyle(ff.line) + '">' +
+      '<select class="slip-leg-side" data-i="' + idx + '" aria-label="Over or under" style="width:92px' + flagStyle(ff.side) + '">' +
+      ["", "Over", "Under"].map(function (o) { return '<option value="' + o + '"' + (o === side ? " selected" : "") + ">" + (o || "—") + "</option>"; }).join("") +
+      "</select>" +
+      '<input class="slip-leg-odds" data-i="' + idx + '" type="number" step="0.01" placeholder="Leg odds" aria-label="Leg odds" value="' + esc(leg.odds != null ? String(leg.odds) : "") + '" style="width:92px">' +
       "</div></div>"
     );
   }
@@ -318,6 +305,15 @@
     });
   }
 
+  function slipFlagsHtml() {
+    var fl = ((SLIP.parsed && SLIP.parsed.flags) || []).filter(function (f) { return f.leg == null; });
+    if (!fl.length) return "";
+    return '<div id="slip-flags" class="paste-card" style="margin-bottom:12px;color:var(--warn, #e0a100);font-size:var(--t-foot)">' +
+      fl.map(function (f) { return "⚠ " + esc(f.reason); }).join("<br>") + "</div>";
+  }
+  function slipFlagged(field) {
+    return ((SLIP.parsed && SLIP.parsed.flags) || []).some(function (f) { return f.leg == null && f.field === field; });
+  }
   function renderReviewScreen() {
     var d = SLIP.draft || {};
     var legs = (SLIP.parsedLegs && SLIP.parsedLegs.length ? SLIP.parsedLegs : d.parsed_legs || []).slice();
@@ -326,26 +322,30 @@
     $("builder").innerHTML =
       '<div class="back" id="slip-back">← Back</div>' +
       '<h1 style="margin:0 0 12px">Review imported slip</h1>' +
-      '<p style="color:var(--muted);margin:0 0 14px">Fix anything the OCR misread. Cross-game multis need the right fixture on each leg.</p>' +
+      '<p style="color:var(--muted);margin:0 0 14px">Fix anything the OCR misread. Highlighted fields were read with low confidence or not found. Cross-game multis need the right fixture on each leg.</p>' +
+      slipFlagsHtml() +
       '<div class="panel">' +
-      '<div class="field"><label>Bet type</label><input id="slip-bet-type" value="' +
+      '<div class="field"><label>Bet type</label><input id="slip-bet-type" style="' + flagStyle(slipFlagged("bet_type")).slice(1) + '" value="' +
       esc(d.bet_type || "") +
       '"></div>' +
-      '<div class="field"><label>Total odds</label><input id="slip-odds" type="number" step="0.01" value="' +
+      '<div class="field"><label>Total odds</label><input id="slip-odds" style="' + flagStyle(slipFlagged("odds")).slice(1) + '" type="number" step="0.01" value="' +
       esc(d.odds != null ? String(d.odds) : "") +
       '"></div>' +
       (multiEvent
         ? ""
-        : '<div class="field"><label>Event</label><input id="slip-event" value="' + esc(d.game_name || "") + '"></div>') +
-      '<div class="field"><label>Date & time</label><input id="slip-when" value="' +
+        : '<div class="field"><label>Event</label><input id="slip-event" style="' + flagStyle(slipFlagged("event")).slice(1) + '" value="' + esc(d.game_name || "") + '"></div>') +
+      '<div class="field"><label>Date & time</label><input id="slip-when" style="' + flagStyle(slipFlagged("date_time")).slice(1) + '" value="' +
       esc(d.date_time || "") +
       '"></div>' +
-      '<div class="field"><label>Sport</label><input id="slip-sport" value="' +
+      '<div class="field"><label>Sport</label><input id="slip-sport" style="' + flagStyle(slipFlagged("sport")).slice(1) + '" value="' +
       esc(d.sport || "") +
       '"></div>' +
       '<div class="field"><label>Bookmaker</label><input id="slip-book" value="' +
       esc(d.bookmaker || "") +
       '"></div>' +
+      '<div class="field"><label>Stake (units)</label><input id="slip-stake" type="number" step="0.5" placeholder="Not on the slip — enter it" value="' +
+      esc(SLIP.parsed && SLIP.parsed.stake != null ? String(SLIP.parsed.stake) : "") +
+      '" style="' + flagStyle(!(SLIP.parsed && SLIP.parsed.stake != null)).slice(1) + '"></div>' +
       '<h3 style="margin:18px 0 8px">' +
       esc(String(legs.length)) +
       " leg" +
@@ -370,19 +370,27 @@
     var legs = [];
     if (legsBox) {
       legsBox.querySelectorAll(".slip-leg-row").forEach(function (row) {
-        var selIn = row.querySelector(".slip-leg-sel");
-        var mktIn = row.querySelector(".slip-leg-mkt");
-        var evIn = row.querySelector(".slip-leg-event");
-        var gidIn = row.querySelector(".slip-leg-gid");
+        var q = function (c) { var el = row.querySelector(c); return el && el.value != null ? String(el.value).trim() : ""; };
         var sportEl = row.querySelector(".slip-leg-sport");
-        var event = (evIn && evIn.value ? evIn.value : "").trim();
-        legs.push({
-          selection: (selIn && selIn.value ? selIn.value : "").trim(),
-          market: (mktIn && mktIn.value ? mktIn.value : "").trim(),
+        var kind = row.getAttribute("data-kind") || "";
+        var event = q(".slip-leg-event");
+        var who = q(".slip-leg-sel"), stat = q(".slip-leg-mkt");
+        var line = parseFloat(q(".slip-leg-line")), lo = parseFloat(q(".slip-leg-odds"));
+        var leg = {
+          kind: kind,
+          selection: who,
+          market: stat,
+          stat: stat,
+          line: isFinite(line) ? line : null,
+          side: q(".slip-leg-side"),
+          odds: isFinite(lo) && lo > 1 ? lo : null,
           event: event,
-          sport: sportEl && sportEl.textContent ? sportEl.textContent.trim() : TBSlipOcr.detectSport(event, []),
-          game_id: gidIn && gidIn.value ? gidIn.value.trim() : "",
-        });
+          game_id: q(".slip-leg-gid"),
+        };
+        if (kind === "team") leg.team = who;
+        else if (kind !== "racing" && leg.line != null) leg.player = who;
+        leg.sport = sportEl && sportEl.textContent ? sportEl.textContent.trim() : TBSlipOcr.detectSport(event, [leg]);
+        legs.push(leg);
       });
     }
     var odds = parseFloat(($("slip-odds") || {}).value);
@@ -400,6 +408,7 @@
       date_time: (($("slip-when") || {}).value || "").trim(),
       sport: (($("slip-sport") || {}).value || "").trim(),
       bookmaker: (($("slip-book") || {}).value || "").trim(),
+      stake: parseFloat(($("slip-stake") || {}).value) > 0 ? parseFloat(($("slip-stake") || {}).value) : null,
       legs: legs,
     };
   }
@@ -476,6 +485,8 @@
     panel("builder");
     renderTray();
     renderConfirm();
+    var fu = $("f_units");
+    if (fu && reviewed.stake > 0) fu.value = String(reviewed.stake);
     var fo = $("f_odds");
     if (fo && reviewed.odds > 1) fo.value = String(reviewed.odds);
     var fb = $("f_book");
