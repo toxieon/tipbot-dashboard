@@ -32,7 +32,8 @@ test("apex is in every hard-coded theme names list", () => {
   for (const f of PAGES) {
     const src = read(f);
     const lists = src.match(/\[[^\]]*'navy'[^\]]*\]/g) || [];
-    assert.ok(lists.length >= 1, f + " has a names list");
+    // 0.57.2: pre-paint names list lives in assets/tbtime.js (manualTheme).
+    assert.ok(lists.length >= 1 || /TBTime\.manualTheme\(/.test(src), f + " has a names list");
     for (const list of lists) {
       if (list.indexOf("'apex'") === -1 && list.indexOf("'navy'") !== -1 && list.indexOf("'day'") !== -1 && list.indexOf("'ochre'") !== -1 && list.length < 30) {
         // legacy names list
@@ -223,10 +224,12 @@ test("next start counts down, and an empty slate says No games", () => {
 test("apex is the default when a visitor has not chosen a theme", () => {
   for (const f of PAGES) {
     const src = read(f);
-    assert.match(src, /APEX_DEFAULT=true/, f);
-    assert.match(src, /APEX_DEFAULT\?'apex':'navy'/, f);
+    assert.match(src, /TBTime\.manualTheme\(localStorage,mm\)/, f);
   }
-  assert.match(read("index.html"), /return savedOk\?saved:\(APEX_DEFAULT\?'apex':'navy'\)/);
+  const tbt = read("assets/tbtime.js");
+  assert.match(tbt, /var DEFAULT_THEME = "apex";/);
+  assert.match(tbt, /var THEMES = \["apex", "apex-light", "apex-oled", "apex-mono", "apex-ochre", "navy", "day", "ochre"\];/);
+  assert.match(read("index.html"), /return valid\(saved\)\?saved:\(APEX_DEFAULT\?'apex':'navy'\)/);
 });
 
 test("streak flame chip is added for 3+ consecutive wins", () => {

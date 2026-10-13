@@ -1,3 +1,10 @@
+## 0.57.2 · 2026-10-13 · `theme-manual` · Theme is a manual choice only
+
+- Removed the automatic theme options (time of day, follow device) from Settings, the stored preferences and the page pre-paint; no theme listeners or timers remain.
+- A saved automatic preference migrates once to the theme it was showing (or the default if unknown) and is saved, locally and to the account. Shared logic: `TBTime.manualTheme` in `assets/tbtime.js`.
+
+Tests: `tests/manual_theme.test.js`.
+
 ## 0.57.1 · 2026-10-13 · `stats-rows` · Stats keep their full settled history
 
 - Stats asks for its settled rows explicitly (`settled_limit=2000`), so it is unaffected by TipBot 0.60.4 lowering the settled summary default to 200.
