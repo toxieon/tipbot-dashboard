@@ -1,3 +1,9 @@
+## 0.57.4 · 2026-10-13 · `stats-window` · Stats loads only the selected window
+
+- Stats requests settled rows with `settled_since` for the chosen window (7d, 30d, season) and refetches when the window changes.
+
+Tests: `tests/stats_window.test.js`.
+
 ## 0.57.3 · 2026-10-13 · `lazy-js` · Lighter first paint
 
 - Stats and Horses scripts (`assets/stats.js`, `assets/horse-results.js`) are no longer blocking tags; they load on first use or when the browser is idle. Opening `#/stats` or `#/stats/horses` directly waits for them.
