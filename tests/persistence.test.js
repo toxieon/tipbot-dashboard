@@ -55,8 +55,7 @@ test("Theme and accent persistence works with new variants", () => {
   mockEnv.TB.theme.setAccent("#fbbf24");
   assert.equal(store["tipbot_theme_accent"], "#fbbf24");
 
-  // System toggle
-  mockEnv.TB.theme.setSystem(true);
-  assert.equal(store["tipbot_theme_system"], "true");
-  assert.equal(store["tipbot_theme_auto"], "false");
+  // Automatic theme controls are gone (manual choice only)
+  assert.equal(mockEnv.TB.theme.setSystem, undefined);
+  assert.equal(mockEnv.TB.theme.setAuto, undefined);
 });

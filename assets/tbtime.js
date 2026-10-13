@@ -102,7 +102,37 @@
   /** Day/night theme: 7 am to 7 pm Sydney is "day". */
   function isDaytime(v) { var h = hour(v); return h >= 7 && h < 19; }
 
-  return { TZ: TZ, toMs: toMs, parts: parts, dayKey: dayKey, monthKey: monthKey, hour: hour,
+  /** Manual-only theme (0.57.2). A saved automatic preference (time of day or
+   *  device) is migrated once to the theme it currently shows, then saved.
+   *  Returns the theme name to apply. ``prefersDark`` is read once, only for
+   *  migrating a device-following preference; nothing listens for changes. */
+  var THEMES = ["apex", "apex-light", "apex-oled", "apex-mono", "apex-ochre", "navy", "day", "ochre"];
+  var DEFAULT_THEME = "apex";
+  function manualTheme(store, prefersDark, now) {
+    function get(k) { try { return store.getItem(k); } catch (e) { return null; } }
+    var name = get("tipbot_theme");
+    var valid = THEMES.indexOf(name) !== -1;
+    var auto = get("tipbot_theme_auto") === "true", sys = get("tipbot_theme_system") === "true";
+    var stale = get("tipbot_theme_auto") !== null || get("tipbot_theme_system") !== null || get("tipbot_theme_manual_date") !== null;
+    if (!stale) return valid ? name : DEFAULT_THEME;
+    var t = now == null ? Date.now() : now;
+    var shown = valid ? name : DEFAULT_THEME;
+    if (sys && typeof prefersDark === "boolean") shown = prefersDark ? "apex" : "apex-light";
+    else if (sys) shown = valid ? name : DEFAULT_THEME;
+    else if (auto && !(valid && get("tipbot_theme_manual_date") === dayKey(t))) {
+      shown = !valid ? DEFAULT_THEME : (isDaytime(t) ? "day" : "navy");
+    }
+    if (shown === "apex" && auto && !sys && isDaytime(t)) shown = "apex-light";
+    try {
+      store.setItem("tipbot_theme", shown);
+      store.removeItem("tipbot_theme_auto");
+      store.removeItem("tipbot_theme_system");
+      store.removeItem("tipbot_theme_manual_date");
+    } catch (e) {}
+    return shown;
+  }
+
+  return { TZ: TZ, manualTheme: manualTheme, THEMES: THEMES, DEFAULT_THEME: DEFAULT_THEME, toMs: toMs, parts: parts, dayKey: dayKey, monthKey: monthKey, hour: hour,
            fromLocal: fromLocal, msUntilHour: msUntilHour, relDay: relDay, fmt: fmt, fmtWhen: fmtWhen,
            isDaytime: isDaytime };
 }));
