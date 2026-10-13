@@ -1,3 +1,7 @@
+## 0.57.1
+
+Small reliability fix for server stats.
+
 ## 0.57.0
 
 Terms & Conditions acceptance with 18+ confirmation, legal pages (Privacy, Refunds, Renewals, Cookies, Accessibility), and accessibility improvements.

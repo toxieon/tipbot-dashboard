@@ -1,3 +1,7 @@
+## 0.57.1 · 2026-10-13 · `stats-rows` · Stats keep their full settled history
+
+- Stats asks for its settled rows explicitly (`settled_limit=2000`), so it is unaffected by TipBot 0.60.4 lowering the settled summary default to 200.
+
 ## 0.57.0 · 2026-10-13 · `terms` · Terms & Conditions acceptance
 
 - Legal pages: `/terms/`, `/privacy/`, `/refund/`, `/renewal/`, `/cookies/`, `/accessibility/`, `/age/`, `/content-licence/` load their text from TipBot (`GET /api/legal/<slug>`, `assets/legal-page.js` + safe markdown renderer `assets/legal-md.js`), linked from a small footer.
