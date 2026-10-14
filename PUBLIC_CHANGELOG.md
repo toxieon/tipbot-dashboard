@@ -1,3 +1,7 @@
+## 0.58.2
+
+Discover filters tipsters by sport. Pick more than one. Cards show the sports they tip most.
+
 ## 0.58.1
 
 Small improvements to server settings.
