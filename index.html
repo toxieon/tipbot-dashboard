@@ -5678,7 +5678,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(tab==="connectors"){
       if(!(STATE.ops===true&&!STATE.viewAs)){ body.innerHTML=""; return; }
       if(window.TBConnectors&&typeof TBConnectors.mount==="function"){
-        TBConnectors.mount(body,{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired."),confirm:tbConfirm,when:fmtDate});
+        TBConnectors.mount(body,{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired."),confirm:tbConfirm,when:fmtDate,fetchRaw:function(path,opts){
+          opts=opts||{};
+          var headers=Object.assign({Authorization:"Bearer "+getToken()}, opts.headers||{});
+          return fetch(API+path,{method:opts.method||"GET",headers:headers,credentials:"include",cache:"no-store",signal:opts.signal});
+        }});
       }else body.innerHTML='<div class="empty">Connectors aren\'t available right now.</div>';
       return;
     }

@@ -65,7 +65,27 @@ test.describe("connectors settings", () => {
   });
   test.afterAll(async () => { if (server) server.close(); });
 
-  async function install(page, { ops } = {}) {
+  const liveTip = {
+    event: "Randwick R4",
+    selection: { number: 5, name: "Splendid Win" },
+    market: "Win",
+    odds: 4.2,
+    bookie: "BetDeluxe",
+    stake_units: 4.5,
+    confidence: { models_agreeing: 3, models_total: 4, rating: "High" },
+  };
+  const liveEvents = [
+    { id: "p1", type: "poll", at: "2026-10-14T07:21:00Z", count: 4 },
+    { id: "t1", type: "tip_received", at: "2026-10-14T07:21:04Z", tip: liveTip },
+    { id: "t2", type: "posted", at: "2026-10-14T07:21:05Z", tip: liveTip },
+    { id: "s1", type: "status_update", at: "2026-10-14T07:21:06Z", status: "scratched", tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } } },
+    { id: "s2", type: "status_update", at: "2026-10-14T07:21:07Z", status: "won", tip: { event: "Randwick R4", selection: { number: 2, name: "Fast Lane" } } },
+    { id: "s3", type: "status_update", at: "2026-10-14T07:21:08Z", status: "lost", tip: { event: "Randwick R4", selection: { number: 8, name: "Slow Bolt" } } },
+    { id: "k1", type: "skipped", at: "2026-10-14T07:21:09Z", message: "past", tip: { event: "Randwick R4", selection: { number: 1, name: "Old News" } } },
+    { id: "e1", type: "error", at: "2026-10-14T07:21:10Z", message: "upstream 502" },
+  ];
+
+  async function install(page, { ops, stream } = {}) {
     const bag = { calls: [], current: connector() };
     await page.route("**/*", async (route) => {
       const url = route.request().url();
@@ -132,6 +152,26 @@ test.describe("connectors settings", () => {
       } else if (parsed.pathname === "/api/connectors/c1/toggle") {
         bag.current = Object.assign({}, bag.current, { enabled: !!(body && body.enabled) });
         payload = { ok: true, connector: bag.current };
+      } else if (parsed.pathname === "/api/connectors/c1/events/stream") {
+        if (stream === "sse") {
+          const frame = [
+            "id: t1",
+            "event: tip_received",
+            "data: " + JSON.stringify({ id: "t1", type: "tip_received", at: "2026-10-14T07:21:04Z", tip: liveTip }),
+            "",
+            "",
+          ].join("\n");
+          await route.fulfill({
+            status: 200,
+            headers: Object.assign({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache" }, cors),
+            body: frame,
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, contentType: "application/json", headers: cors, body: "{}" });
+        return;
+      } else if (parsed.pathname === "/api/connectors/c1/events") {
+        payload = { ok: true, events: parsed.searchParams.get("after") ? [] : liveEvents };
       }
       await route.fulfill({ status, contentType: "application/json", headers: cors, body: JSON.stringify(payload) });
     });
@@ -242,6 +282,7 @@ test.describe("connectors settings", () => {
     await page.locator('.tbs-btn[data-act="ok"]').click();
     await expect(page.locator("#cx-msg")).toContainText("Removed");
     await expect(page.locator("#cx-test")).toBeDisabled();
+    await expect(page.locator(".cx-board")).toHaveCount(0);
     const removed = bag.calls.find((c) => c.method === "DELETE");
     expect(removed.path).toBe("/api/connectors");
     expect(removed.search).toContain("guild_id=1");
@@ -260,5 +301,76 @@ test.describe("connectors settings", () => {
     expect(bag.calls.filter((c) => c.path.startsWith("/api/connectors"))).toEqual([]);
     expect(errors).toEqual([]);
     await page.locator("#settings-panel").screenshot({ path: path.join(SHOTS, "connectors_hidden_390.png") });
+  });
+
+  test("live log falls back to a 3s poll and filters at 390px", async ({ page }) => {
+    const bag = await install(page, { ops: true });
+    const errors = await boot(page);
+    await openSettings(page);
+    await page.locator("#stab-connectors").click();
+    await page.waitForSelector(".cx-board");
+    const recv = page.locator('.cx-line[data-tag="RECV"]');
+    await expect(recv).toContainText("18:21:04 RECV Randwick R4 #5 Splendid Win @4.20 BetDeluxe 4.5u [3/4 HIGH]");
+    await expect(page.locator('.cx-line[data-tag="POSTED"]')).toContainText("POSTED");
+    await expect(page.locator('.cx-line[data-tag="SCRATCHED"]')).toContainText("SCRATCHED");
+    await expect(page.locator('.cx-line[data-tag="WON"]')).toContainText("WON");
+    await expect(page.locator('.cx-line[data-tag="LOST"]')).toContainText("LOST");
+    await expect(page.locator('.cx-line[data-tag="SKIP"]')).toContainText("SKIP");
+    await expect(page.locator('.cx-line[data-tag="ERR"]')).toContainText("ERR upstream 502");
+    await expect(page.locator(".cx-cursor")).toHaveCount(1);
+    const paths = bag.calls.map((c) => c.path);
+    const streamAt = paths.indexOf("/api/connectors/c1/events/stream");
+    const eventsAt = paths.indexOf("/api/connectors/c1/events");
+    expect(streamAt).toBeGreaterThanOrEqual(0);
+    expect(eventsAt).toBeGreaterThan(streamAt);
+    const polled = bag.calls.find((c) => c.path === "/api/connectors/c1/events");
+    expect(polled.method).toBe("GET");
+    expect(polled.search).toBe("");
+
+    const chip = await page.locator('.cx-chip[data-filter="errors"]').boundingBox();
+    expect(chip.height).toBeGreaterThanOrEqual(44);
+    const logBox = await page.locator(".cx-log").boundingBox();
+    expect(logBox.height).toBeLessThanOrEqual(180);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+    expect(overflow).toBe(false);
+    const scrolls = await page.locator(".cx-log").evaluate((el) => el.scrollHeight > el.clientHeight + 8);
+    expect(scrolls).toBe(true);
+    await page.locator(".cx-board").screenshot({ path: path.join(SHOTS, "connectors_live_390.png") });
+
+    await page.locator(".cx-log").evaluate((el) => { el.scrollTop = 0; });
+    await expect(page.locator(".cx-log-jump")).toBeVisible();
+    await page.locator(".cx-log-jump").click();
+    await expect(page.locator(".cx-log-jump")).toBeHidden();
+    const atEnd = await page.locator(".cx-log").evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight <= 28);
+    expect(atEnd).toBe(true);
+
+    await page.locator('.cx-chip[data-filter="errors"]').click();
+    await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="ERR"]')).toHaveCount(1);
+    await page.locator('.cx-chip[data-filter="results"]').click();
+    await expect(page.locator('.cx-line[data-tag="WON"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="LOST"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="SCRATCHED"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="ERR"]')).toHaveCount(0);
+    await page.locator('.cx-chip[data-filter="tips"]').click();
+    await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="POSTED"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="SKIP"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="ERR"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="WON"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="POLL"]')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test("a live stream paints a tip before the poll starts", async ({ page }) => {
+    const bag = await install(page, { ops: true, stream: "sse" });
+    const errors = await boot(page);
+    await openSettings(page);
+    await page.locator("#stab-connectors").click();
+    await expect(page.locator('.cx-line[data-tag="RECV"]')).toContainText("Splendid Win @4.20");
+    expect(bag.calls.some((c) => c.path === "/api/connectors/c1/events/stream")).toBe(true);
+    expect(bag.calls.some((c) => c.path === "/api/connectors/c1/events")).toBe(false);
+    expect(errors).toEqual([]);
   });
 });

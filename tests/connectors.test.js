@@ -65,6 +65,10 @@ test("routes match the connector contract", () => {
   assert.equal(p.test, "/api/connectors/id%202/test");
   assert.equal(p.dryRun, "/api/connectors/id%202/dry-run");
   assert.equal(p.toggle, "/api/connectors/id%202/toggle");
+  assert.equal(p.events, "/api/connectors/id%202/events");
+  assert.equal(p.stream, "/api/connectors/id%202/events/stream");
+  assert.equal(C.pathsFor("g", "c1", "ev/1").events, "/api/connectors/c1/events?after=ev%2F1");
+  assert.equal(C.POLL_MS, 3000);
 });
 
 test("test preview keeps the count and only the first three mapped tips", () => {
@@ -114,12 +118,108 @@ test("the settings tab is owner-gated the same way as the other owner tools", ()
   assert.match(html, /tab==="connectors"/);
   assert.match(html, /STATE\.ops===true&&!STATE\.viewAs/);
   assert.match(html, /TBConnectors\.mount\(body,/);
+  assert.match(html, /fetchRaw:function/);
   assert.match(html, /assets\/connectors\.js\?v=/);
   assert.doesNotMatch(html, /id="stab-connectors"[^<]*Connectors<\/button><\/div>/);
+});
+
+const recv = {
+  id: "e1",
+  type: "tip_received",
+  at: "2026-10-14T18:21:04Z",
+  tip: {
+    event: "Randwick R4",
+    selection: { number: 5, name: "Splendid Win" },
+    market: "Win",
+    odds: 4.2,
+    bookie: "BetDeluxe",
+    stake_units: 4.5,
+    confidence: { models_agreeing: 3, models_total: 4, rating: "High" },
+  },
+};
+
+test("a received tip formats as a terminal line in UTC when no Sydney clock is loaded", () => {
+  assert.equal(
+    C.formatLine(recv),
+    "18:21:04 RECV Randwick R4 #5 Splendid Win @4.20 BetDeluxe 4.5u [3/4 HIGH]"
+  );
+  assert.equal(C.tagOf({ type: "posted", at: "2026-10-14T18:21:05Z", tip: recv.tip }), "POSTED");
+  assert.equal(C.tagOf({ type: "status_update", status: "scratched" }), "SCRATCHED");
+  assert.equal(C.tagOf({ type: "status_update", status: "void" }), "SCRATCHED");
+  assert.equal(C.tagOf({ type: "status_update", status: "won" }), "WON");
+  assert.equal(C.tagOf({ type: "status_update", status: "lost" }), "LOST");
+  assert.equal(C.tagOf({ type: "status_update", status: "placed" }), "PLACED");
+  assert.equal(C.tagOf({ type: "skipped" }), "SKIP");
+  assert.equal(C.tagOf({ type: "error", message: "upstream 502" }), "ERR");
+  assert.equal(C.tagOf({ type: "poll" }), "POLL");
+  assert.equal(C.bucketOf("RECV"), "tips");
+  assert.equal(C.bucketOf("POSTED"), "tips");
+  assert.equal(C.bucketOf("SKIP"), "tips");
+  assert.equal(C.bucketOf("WON"), "results");
+  assert.equal(C.bucketOf("LOST"), "results");
+  assert.equal(C.bucketOf("SCRATCHED"), "results");
+  assert.equal(C.bucketOf("ERR"), "errors");
+  assert.equal(C.bucketOf("POLL"), "");
+  assert.equal(C.toneOf("RECV"), "ok");
+  assert.equal(C.toneOf("SKIP"), "warn");
+  assert.equal(C.toneOf("LOST"), "bad");
+  assert.equal(C.toneOf("POLL"), "dim");
+  assert.equal(C.formatLine({ type: "error", at: "2026-10-14T18:21:10Z", message: "upstream 502" }), "18:21:10 ERR upstream 502");
+});
+
+test("the live log parses a stream, dedupes, and filters", () => {
+  const parsed = C.parseSse('id: t1\nevent: tip_received\ndata: {"id":"t1","type":"tip_received","at":"2026-10-14T18:21:04Z","tip":{"event":"Randwick R4","selection":{"number":5,"name":"Splendid Win"},"odds":4.2,"bookie":"BetDeluxe","stake_units":4.5,"confidence":{"models_agreeing":3,"models_total":4,"rating":"High"}}}\n\ndata: {"type":"err');
+  assert.equal(parsed.events.length, 1);
+  assert.equal(parsed.events[0].id, "t1");
+  assert.equal(parsed.events[0].type, "tip_received");
+  assert.match(parsed.rest, /err/);
+  assert.match(C.formatLine(parsed.events[0]), /RECV Randwick R4 #5 Splendid Win @4\.20/);
+
+  const body = C.eventsFrom({
+    ok: true,
+    events: [recv, { id: "err1", type: "error", at: "2026-10-14T18:21:10Z", message: "upstream 502" }, { id: "p1", type: "poll", at: "2026-10-14T18:21:00Z", count: 4 }],
+  });
+  assert.equal(body.length, 3);
+  const merged = C.mergeEvents(body, [recv, { id: "n1", type: "posted", at: "2026-10-14T18:21:05Z", tip: recv.tip }]);
+  assert.equal(merged.added, 1);
+  assert.equal(merged.events.length, 4);
+
+  const prev = [];
+  for (let i = 0; i < 400; i++) prev.push({ id: "a" + i, type: "poll", at: "2026-10-14T00:00:00Z" });
+  const capped = C.mergeEvents(prev, [{ id: "new", type: "error", message: "x" }]);
+  assert.equal(capped.added, 1);
+  assert.equal(capped.events.length, 400);
+  assert.equal(capped.events[0].id, "a1");
+  assert.equal(capped.events[399].id, "new");
+  assert.equal(C.mergeEvents(capped.events, [{ id: "new", type: "error", message: "x" }]).added, 0);
+
+  const all = C.boardsHtml([{ id: "c1", tipster_label: "HorsePicks AI" }], { c1: { events: body, filter: "all", follow: true } });
+  assert.match(all, /data-tag="RECV"/);
+  assert.match(all, /data-tag="ERR"/);
+  assert.match(all, /data-tag="POLL"/);
+  assert.match(all, /cx-cursor/);
+  assert.match(all, />All</);
+  assert.match(all, />Tips</);
+  assert.match(all, />Results</);
+  assert.match(all, />Errors</);
+  assert.match(all, /cx-log-jump" hidden/);
+  const tips = C.boardsHtml([{ id: "c1" }], { c1: { events: body, filter: "tips", follow: false } });
+  assert.match(tips, /data-tag="RECV"/);
+  assert.doesNotMatch(tips, /data-tag="ERR"/);
+  assert.doesNotMatch(tips, /data-tag="POLL"/);
+  assert.match(tips, /cx-log-jump">Latest/);
+  const errors = C.boardsHtml([{ id: "c1" }], { c1: { events: body, filter: "errors", follow: true } });
+  assert.match(errors, /data-tag="ERR"/);
+  assert.doesNotMatch(errors, /data-tag="RECV"/);
+  assert.equal(C.boardsHtml([{ id: "" }]), "");
+  assert.equal(C.stickToEnd({ scrollHeight: 400, scrollTop: 0, clientHeight: 168 }), false);
+  assert.equal(C.stickToEnd({ scrollHeight: 400, scrollTop: 210, clientHeight: 168 }), true);
 });
 
 test("connector source adds no blocked words", () => {
   assert.doesNotMatch(src, /forward|mirror|master|consensus/i);
   assert.doesNotMatch(src, /console\.(?:log|debug|info|warn|error|trace)\s*\(/);
+  assert.match(src, /prefers-reduced-motion:reduce/);
+  assert.match(src, /events\/stream/);
   assert.doesNotMatch(html, /mirror|forwarding/i);
 });

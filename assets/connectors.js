@@ -6,8 +6,12 @@
      POST   /api/connectors/{id}/test                 fetch + first 3 mapped tips, posts nothing
      POST   /api/connectors/{id}/dry-run              embed preview, posts nothing
      POST   /api/connectors/{id}/toggle               { guild_id, enabled }
+     GET    /api/connectors/{id}/events?after=        events since the last id
+     GET    /api/connectors/{id}/events/stream        text/event-stream, when the bot offers it
    The API key is write-only: it is sent only when someone types one, and it is
    never copied back into the form. A new connector stays paused until Enable.
+   Each saved connector keeps a live log. A stream is used when the response is
+   text/event-stream; otherwise the log polls /events every 3 seconds.
 */
 (function (root) {
   "use strict";
@@ -15,6 +19,9 @@
   var DEFAULT_ENDPOINT = "https://horsepicks-tips.horsepicksai.workers.dev/tips";
   var DEFAULT_LABEL = "HorsePicks AI";
   var ALONGSIDE = "alongside";
+  var POLL_MS = 3000;
+  var LOG_CAP = 400;
+  var STICK_PX = 28;
 
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
@@ -24,8 +31,10 @@
 
   function enc(v) { return encodeURIComponent(v == null ? "" : String(v)); }
 
-  function pathsFor(gid, id) {
+  function pathsFor(gid, id, after) {
     var g = enc(gid);
+    var events = "/api/connectors/" + enc(id) + "/events";
+    if (after) events += "?after=" + enc(after);
     return {
       list: "/api/connectors?guild_id=" + g,
       save: "/api/connectors?guild_id=" + g,
@@ -33,6 +42,8 @@
       test: "/api/connectors/" + enc(id) + "/test",
       dryRun: "/api/connectors/" + enc(id) + "/dry-run",
       toggle: "/api/connectors/" + enc(id) + "/toggle",
+      events: events,
+      stream: "/api/connectors/" + enc(id) + "/events/stream",
     };
   }
 
@@ -271,6 +282,310 @@
     return "#" + hex;
   }
 
+  function pad2(n) {
+    n = Number(n);
+    if (!Number.isFinite(n)) return "00";
+    return (n < 10 ? "0" : "") + n;
+  }
+
+  function clockOf(at) {
+    var value = at == null || at === "" ? new Date() : at;
+    var TB = root.TBTime;
+    if (TB && typeof TB.parts === "function") {
+      try {
+        var p = TB.parts(value);
+        if (p && Number.isFinite(p.hour)) return pad2(p.hour) + ":" + pad2(p.minute) + ":" + pad2(p.second);
+      } catch (e) {}
+    }
+    var ms = value instanceof Date ? value.getTime() : Date.parse(String(value));
+    if (!Number.isFinite(ms) && typeof value === "number") ms = value > 1e12 ? value : value * 1000;
+    if (!Number.isFinite(ms)) return "--:--:--";
+    var d = new Date(ms);
+    return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes()) + ":" + pad2(d.getUTCSeconds());
+  }
+
+  function oddsText(v) {
+    if (v == null || v === "") return "";
+    var s = String(v).trim();
+    if (s.charAt(0) === "@") s = s.slice(1);
+    var n = Number(s);
+    if (!Number.isFinite(n)) return "@" + s;
+    return "@" + n.toFixed(2);
+  }
+
+  function stakeText(v) {
+    if (v == null || v === "") return "";
+    var s = String(v).trim();
+    if (/u$/i.test(s)) return s;
+    var n = Number(s);
+    if (!Number.isFinite(n)) return s + "u";
+    return String(n) + "u";
+  }
+
+  function bracketConf(conf) {
+    if (conf == null || conf === "") return "";
+    if (typeof conf !== "object") return "[" + String(conf).toUpperCase() + "]";
+    var bits = [];
+    if (conf.models_agreeing != null && conf.models_total != null) bits.push(conf.models_agreeing + "/" + conf.models_total);
+    if (conf.rating) bits.push(String(conf.rating).toUpperCase());
+    return bits.length ? ("[" + bits.join(" ") + "]") : "";
+  }
+
+  function selectionBoard(sel) {
+    if (sel == null || sel === "") return "";
+    if (typeof sel !== "object") return String(sel);
+    var num = sel.number != null && sel.number !== "" ? ("#" + sel.number) : "";
+    return [num, sel.name || ""].filter(Boolean).join(" ");
+  }
+
+  function looksLikeTip(o) {
+    return !!(o && typeof o === "object" && (o.event || o.event_name || o.selection || o.runner || o.odds != null || o.bookie || o.stake_units != null));
+  }
+
+  function knownType(type) {
+    if (type === "tip" || type === "recv" || type === "received") return "tip_received";
+    if (type === "post") return "posted";
+    if (type === "skip") return "skipped";
+    if (type === "err") return "error";
+    if (type === "status") return "status_update";
+    if (type === "poll" || type === "tip_received" || type === "posted" || type === "status_update" || type === "skipped" || type === "error") return type;
+    return "";
+  }
+
+  function normalizeEvent(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    var type = knownType(String(raw.type || raw.event_type || "").toLowerCase());
+    if (!type) return null;
+    var id = raw.id != null && raw.id !== "" ? String(raw.id) : (raw.event_id != null && raw.event_id !== "" ? String(raw.event_id) : "");
+    var tip = raw.tip || raw.payload || null;
+    if (!tip && looksLikeTip(raw)) tip = raw;
+    var status = raw.status || raw.outcome || "";
+    if (!status && tip && typeof tip === "object") {
+      status = tip.status || tip.outcome || "";
+      if (!status && tip.result && typeof tip.result === "object") status = tip.result.outcome || "";
+    }
+    return {
+      id: id,
+      type: type,
+      at: raw.at || raw.ts || raw.time || raw.created_at || raw.timestamp || null,
+      tip: tip,
+      status: status ? String(status) : "",
+      message: raw.message || raw.error || raw.reason ? String(raw.message || raw.error || raw.reason) : "",
+      count: raw.count != null ? raw.count : null,
+    };
+  }
+
+  function outcomeOf(ev) {
+    return String(ev && ev.status || "").toLowerCase();
+  }
+
+  function tagOf(ev) {
+    ev = normalizeEvent(ev) || ev || {};
+    if (ev.type === "tip_received") return "RECV";
+    if (ev.type === "posted") return "POSTED";
+    if (ev.type === "skipped") return "SKIP";
+    if (ev.type === "error") return "ERR";
+    if (ev.type === "poll") return "POLL";
+    if (ev.type === "status_update") {
+      var s = outcomeOf(ev);
+      if (s.indexOf("scratch") !== -1 || s === "void" || s === "voided") return "SCRATCHED";
+      if (s === "won" || s === "win" || s === "winner") return "WON";
+      if (s === "lost" || s === "loss" || s === "lose" || s === "loser") return "LOST";
+      if (s === "placed" || s === "place") return "PLACED";
+      return "SCRATCHED";
+    }
+    return "POLL";
+  }
+
+  function bucketOf(tag) {
+    if (tag === "RECV" || tag === "POSTED" || tag === "SKIP") return "tips";
+    if (tag === "SCRATCHED" || tag === "WON" || tag === "LOST" || tag === "PLACED") return "results";
+    if (tag === "ERR") return "errors";
+    return "";
+  }
+
+  function toneOf(tag) {
+    if (tag === "RECV" || tag === "POSTED" || tag === "WON") return "ok";
+    if (tag === "SKIP" || tag === "SCRATCHED" || tag === "PLACED") return "warn";
+    if (tag === "LOST" || tag === "ERR") return "bad";
+    return "dim";
+  }
+
+  function detailText(ev) {
+    ev = ev || {};
+    if (ev.type === "poll") {
+      if (ev.count != null && ev.count !== "") return String(ev.count) + (Number(ev.count) === 1 ? " tip" : " tips");
+      return ev.message ? String(ev.message) : "";
+    }
+    if (ev.type === "error") return ev.message ? String(ev.message) : "";
+    var tip = ev.tip;
+    var line = "";
+    if (typeof tip === "string") line = tip;
+    else if (tip && typeof tip === "object") {
+      var market = tip.market || tip.bet_type || "";
+      if (String(market).toLowerCase() === "win") market = "";
+      line = [
+        tip.event || tip.event_name || "",
+        selectionBoard(tip.selection || tip.runner),
+        market,
+        oddsText(tip.odds),
+        tip.bookie || "",
+        stakeText(tip.stake_units != null ? tip.stake_units : tip.stake),
+        bracketConf(tip.confidence),
+      ].filter(Boolean).join(" ");
+    }
+    if (ev.message && ev.type === "skipped") return line ? (line + " " + ev.message) : String(ev.message);
+    return line || (ev.message ? String(ev.message) : "");
+  }
+
+  function formatLine(ev) {
+    var norm = normalizeEvent(ev) || ev || {};
+    var tag = tagOf(norm);
+    var detail = detailText(norm);
+    return clockOf(norm.at) + " " + tag + (detail ? " " + detail : "");
+  }
+
+  function eventKey(ev) {
+    if (ev.id) return "id:" + ev.id;
+    var tip = "";
+    if (ev.tip && typeof ev.tip === "object") tip = String(ev.tip.event || ev.tip.event_name || "") + "|" + String(ev.tip.odds || "");
+    else if (ev.tip) tip = String(ev.tip);
+    return "fp:" + ev.type + "|" + (ev.at || "") + "|" + (ev.status || "") + "|" + (ev.message || "") + "|" + tip;
+  }
+
+  function mergeEvents(prev, next) {
+    var out = [];
+    var seen = {};
+    var added = 0;
+    function push(raw, countAdd) {
+      var ev = normalizeEvent(raw);
+      if (!ev) return;
+      var key = eventKey(ev);
+      if (seen[key]) return;
+      seen[key] = 1;
+      out.push(ev);
+      if (countAdd) added += 1;
+    }
+    (prev || []).forEach(function (e) { push(e, false); });
+    (next || []).forEach(function (e) { push(e, true); });
+    if (out.length > LOG_CAP) out = out.slice(out.length - LOG_CAP);
+    return { events: out, added: added };
+  }
+
+  function eventsFrom(body) {
+    if (!body) return [];
+    if (Array.isArray(body)) return body.map(normalizeEvent).filter(Boolean);
+    if (typeof body !== "object") return [];
+    if (Array.isArray(body.events)) return body.events.map(normalizeEvent).filter(Boolean);
+    if (body.event && typeof body.event === "object") return [normalizeEvent(body.event)].filter(Boolean);
+    var one = normalizeEvent(body);
+    return one ? [one] : [];
+  }
+
+  function parseSse(text) {
+    var raw = String(text == null ? "" : text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    var parts = raw.split("\n\n");
+    var rest = parts.pop();
+    var events = [];
+    parts.forEach(function (block) {
+      var data = [];
+      var id = "";
+      var eventName = "";
+      block.split("\n").forEach(function (line) {
+        if (!line || line.charAt(0) === ":") return;
+        var i = line.indexOf(":");
+        var field = i === -1 ? line : line.slice(0, i);
+        var val = i === -1 ? "" : line.slice(i + 1).replace(/^ /, "");
+        if (field === "data") data.push(val);
+        else if (field === "id") id = val;
+        else if (field === "event") eventName = val;
+      });
+      if (!data.length) return;
+      var payload = data.join("\n");
+      var obj;
+      try { obj = JSON.parse(payload); } catch (e) { obj = { type: eventName || "error", message: payload }; }
+      var list = Array.isArray(obj) ? obj : (obj && Array.isArray(obj.events) ? obj.events : [obj]);
+      list.forEach(function (item) {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+          if (id && (item.id == null || item.id === "")) item.id = id;
+          if (eventName && !item.type && !item.event_type) item.type = eventName;
+        }
+        var ev = normalizeEvent(item);
+        if (ev) events.push(ev);
+      });
+    });
+    return { events: events, rest: rest };
+  }
+
+  function stickToEnd(node) {
+    if (!node) return true;
+    return node.scrollHeight - node.scrollTop - node.clientHeight <= STICK_PX;
+  }
+
+  function passesFilter(ev, filter) {
+    if (!filter || filter === "all") return true;
+    return bucketOf(tagOf(ev)) === filter;
+  }
+
+  function linesHtml(log) {
+    var filter = log && log.filter || "all";
+    return ((log && log.events) || []).filter(function (ev) {
+      return passesFilter(ev, filter);
+    }).map(function (ev) {
+      var tag = tagOf(ev);
+      return '<div class="cx-line cx-' + toneOf(tag) + '" data-tag="' + tag + '">' + esc(formatLine(ev)) + "</div>";
+    }).join("");
+  }
+
+  function cursorHtml() {
+    return '<div class="cx-cursor-line" aria-hidden="true"><span class="cx-cursor"></span></div>';
+  }
+
+  function boardSources(state) {
+    var list = [];
+    var seen = {};
+    (state.list || []).forEach(function (c) {
+      if (!c || c.id == null || c.id === "") return;
+      var id = String(c.id);
+      if (seen[id]) return;
+      seen[id] = 1;
+      list.push(c);
+    });
+    if (!list.length && state.form && state.form.id) list.push(state.form);
+    return list;
+  }
+
+  function chipBtn(filter, label, on) {
+    return '<button type="button" class="cx-chip' + (on ? " on" : "") + '" data-filter="' + filter + '" aria-pressed="' + (on ? "true" : "false") + '">' + esc(label) + "</button>";
+  }
+
+  function boardHtml(c, log) {
+    var id = String(c.id);
+    log = log || { events: [], filter: "all", follow: true };
+    var filter = log.filter || "all";
+    var label = c.tipster_label || c.tipster_name || "";
+    var title = label ? ("Live · " + label) : "Live";
+    var jumpHidden = log.follow !== false ? " hidden" : "";
+    return '<section class="cx-board" data-id="' + esc(id) + '" aria-label="' + esc(title) + '">'
+      + '<div class="cx-board-hd"><span>' + esc(title) + "</span></div>"
+      + '<div class="cx-chips" role="toolbar" aria-label="Log filters">'
+      + chipBtn("all", "All", filter === "all")
+      + chipBtn("tips", "Tips", filter === "tips")
+      + chipBtn("results", "Results", filter === "results")
+      + chipBtn("errors", "Errors", filter === "errors")
+      + "</div>"
+      + '<div class="cx-log" role="log" aria-label="Connector live log" tabindex="0">' + linesHtml(log) + cursorHtml() + "</div>"
+      + '<button type="button" class="cx-log-jump"' + jumpHidden + ">Latest</button>"
+      + "</section>";
+  }
+
+  function boardsHtml(list, logs) {
+    logs = logs || {};
+    return (list || []).filter(function (c) { return c && c.id != null && c.id !== ""; }).map(function (c) {
+      return boardHtml(c, logs[String(c.id)]);
+    }).join("");
+  }
+
   function injectCss() {
     if (root.document && root.document.getElementById("cx-css")) return;
     if (!root.document) return;
@@ -304,6 +619,22 @@
       "#cx-root .cx-fields{display:flex;flex-direction:column;gap:8px;margin-top:8px}",
       "#cx-root .cx-fn{font-size:var(--t-cap);color:var(--muted);font-weight:700}",
       "#cx-root .cx-msg{display:block;font-size:var(--t-foot);margin-top:8px;min-height:1.2em}",
+      "#cx-root .cx-board{position:relative;margin-top:14px;border:1px solid #1c3a28;border-radius:var(--r-md);background:#0c1210;color:#d7ffe4;min-width:0;max-width:100%}",
+      "#cx-root .cx-board-hd{display:flex;align-items:center;padding:8px 10px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#8fbfa2}",
+      "#cx-root .cx-chips{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;max-width:100%;min-width:0}",
+      "#cx-root .cx-chip{flex:none;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid #244433;background:transparent;color:#b7d7c4;font:inherit;font-size:13px;font-weight:650}",
+      "#cx-root .cx-chip.on{background:#143224;color:#7dffb2;border-color:#2eaf62}",
+      "#cx-root .cx-log{height:168px;max-width:100%;overflow:auto;padding:4px 10px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;scrollbar-color:#244433 #0c1210}",
+      "#cx-root .cx-line{overflow-wrap:anywhere;word-break:break-word}",
+      "#cx-root .cx-ok{color:#3dff8a}",
+      "#cx-root .cx-warn{color:#ffbf47}",
+      "#cx-root .cx-bad{color:#ff5c5c}",
+      "#cx-root .cx-dim{color:#6d8a78}",
+      "#cx-root .cx-cursor{display:inline-block;width:8px;height:13px;margin-left:2px;background:#3dff8a;vertical-align:text-bottom;animation:cx-blink 1.05s steps(1) infinite}",
+      "@keyframes cx-blink{0%,49%{opacity:1}50%,100%{opacity:0}}",
+      "@media (prefers-reduced-motion:reduce){#cx-root .cx-cursor{animation:none}}",
+      "#cx-root .cx-log-jump{position:absolute;right:10px;bottom:8px;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid #2eaf62;background:#10281c;color:#7dffb2;font:inherit;font-weight:700}",
+      "#cx-root .cx-log-jump[hidden]{display:none}",
       "@media(min-width:480px){#cx-root .cx-actions{flex-direction:row;flex-wrap:wrap}#cx-root .cx-actions .btn,#cx-root .cx-actions .ghost,#cx-root .cx-row .ghost{width:auto;flex:1 1 140px}#cx-root .cx-status{grid-template-columns:1fr 1fr}#cx-root .cx-row{flex-direction:row;align-items:flex-end}#cx-root .cx-row .cx-field{flex:1}#cx-root .cx-row .ghost{flex:none}}"
     ].join("");
     root.document.head.appendChild(style);
@@ -379,7 +710,8 @@
       + '<span id="cx-msg" class="cx-msg" role="status"></span>'
       + "</form>"
       + statusHtml(form.status, state.when)
-      + '<div id="cx-result"></div>';
+      + '<div id="cx-result"></div>'
+      + boardsHtml(boardSources(state), state.logs);
   }
 
   function resultHtml(kind, body) {
@@ -461,10 +793,16 @@
   function mount(el, ctx) {
     if (!el) return;
     ctx = ctx || {};
+    if (typeof el._cxStop === "function") el._cxStop();
     injectCss();
+    var gidKey = String(ctx.gid == null ? "" : ctx.gid);
+    if (!el._cxLogs) el._cxLogs = {};
+    if (!el._cxLogs[gidKey]) el._cxLogs[gidKey] = {};
     var state = {
       gid: ctx.gid,
       form: blankForm(),
+      list: [],
+      logs: el._cxLogs[gidKey],
       channels: [],
       when: ctx.when,
       busy: false,
@@ -474,6 +812,281 @@
       resultBody: null,
     };
     var gen = 0;
+    var stopped = false;
+    var feeds = {};
+    var sessionWatch = null;
+
+    function stillOpen() {
+      if (stopped || !root.document || !el.querySelector) return false;
+      if (el.isConnected === false) return false;
+      return !!el.querySelector("#cx-root");
+    }
+
+    function teardown() {
+      if (stopped) return;
+      stopped = true;
+      gen += 1;
+      if (sessionWatch) clearInterval(sessionWatch);
+      Object.keys(feeds).forEach(function (id) { stopFeed(id); });
+    }
+    el._cxStop = teardown;
+
+    function armWatch() {
+      if (sessionWatch || stopped) return;
+      sessionWatch = setInterval(function () {
+        if (!stillOpen()) teardown();
+      }, 1000);
+    }
+
+    function ensureLog(id) {
+      id = String(id);
+      if (!state.logs[id]) state.logs[id] = { events: [], filter: "all", follow: true, cursor: "", scrollTop: 0 };
+      return state.logs[id];
+    }
+
+    function boardEl(id) {
+      if (!el.querySelectorAll) return null;
+      var want = String(id);
+      var nodes = el.querySelectorAll(".cx-board");
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].getAttribute("data-id") === want) return nodes[i];
+      }
+      return null;
+    }
+
+    function renderBoard(id) {
+      var board = boardEl(id);
+      if (!board) return;
+      var log = ensureLog(id);
+      var logEl = board.querySelector(".cx-log");
+      var jump = board.querySelector(".cx-log-jump");
+      if (logEl) {
+        log._paint = true;
+        logEl.innerHTML = linesHtml(log) + cursorHtml();
+        logEl.scrollTop = log.follow !== false ? logEl.scrollHeight : (log.scrollTop || 0);
+        log._paint = false;
+      }
+      if (jump) jump.hidden = log.follow !== false;
+      var filter = log.filter || "all";
+      var chips = board.querySelectorAll(".cx-chip");
+      for (var i = 0; i < chips.length; i++) {
+        var on = chips[i].getAttribute("data-filter") === filter;
+        chips[i].classList.toggle("on", on);
+        chips[i].setAttribute("aria-pressed", on ? "true" : "false");
+      }
+    }
+
+    function bindBoards() {
+      var boards = el.querySelectorAll(".cx-board");
+      for (var i = 0; i < boards.length; i++) {
+        (function (board) {
+          var id = board.getAttribute("data-id");
+          var log = ensureLog(id);
+          var logEl = board.querySelector(".cx-log");
+          var jump = board.querySelector(".cx-log-jump");
+          if (logEl) {
+            logEl.onscroll = function () {
+              if (log._paint) return;
+              log.scrollTop = logEl.scrollTop;
+              log.follow = stickToEnd(logEl);
+              if (jump) jump.hidden = log.follow !== false;
+            };
+            log._paint = true;
+            logEl.scrollTop = log.follow !== false ? logEl.scrollHeight : (log.scrollTop || 0);
+            log._paint = false;
+            if (root.requestAnimationFrame) {
+              root.requestAnimationFrame(function () {
+                if (!logEl.isConnected || log.follow === false) return;
+                log._paint = true;
+                logEl.scrollTop = logEl.scrollHeight;
+                log._paint = false;
+              });
+            }
+          }
+          if (jump) {
+            jump.hidden = log.follow !== false;
+            jump.onclick = function () {
+              log.follow = true;
+              if (logEl) {
+                log._paint = true;
+                logEl.scrollTop = logEl.scrollHeight;
+                log.scrollTop = logEl.scrollTop;
+                log._paint = false;
+              }
+              jump.hidden = true;
+            };
+          }
+          var chips = board.querySelector(".cx-chips");
+          if (chips) {
+            chips.onclick = function (ev) {
+              var btn = ev.target && ev.target.closest ? ev.target.closest(".cx-chip") : null;
+              if (!btn) return;
+              log.filter = btn.getAttribute("data-filter") || "all";
+              renderBoard(id);
+            };
+          }
+        })(boards[i]);
+      }
+    }
+
+    function ingest(id, incoming) {
+      if (!incoming || !incoming.length || stopped) return;
+      var log = ensureLog(id);
+      var merged = mergeEvents(log.events, incoming);
+      if (!merged.added) return;
+      log.events = merged.events;
+      for (var i = log.events.length - 1; i >= 0; i--) {
+        if (log.events[i].id) { log.cursor = log.events[i].id; break; }
+      }
+      renderBoard(id);
+    }
+
+    function stopFeed(id) {
+      var feed = feeds[id];
+      if (!feed) return;
+      feed.stopped = true;
+      if (feed.timer) clearTimeout(feed.timer);
+      if (feed.abort) { try { feed.abort.abort(); } catch (e) {} }
+      delete feeds[id];
+    }
+
+    function schedule(feed, ms) {
+      if (feed.stopped || stopped) return;
+      if (feed.timer) clearTimeout(feed.timer);
+      feed.timer = setTimeout(function () { pollOnce(feed); }, ms);
+    }
+
+    function beginPoll(feed) {
+      if (feed.stopped || stopped) return;
+      feed.mode = "poll";
+      if (feed.abort) {
+        try { feed.abort.abort(); } catch (e) {}
+        feed.abort = null;
+      }
+      pollOnce(feed);
+    }
+
+    async function pollOnce(feed) {
+      if (feed.stopped || stopped) return;
+      feed.mode = "poll";
+      feed.timer = null;
+      if (!stillOpen()) { teardown(); return; }
+      var log = state.logs[feed.id];
+      var after = log && log.cursor ? log.cursor : "";
+      try {
+        var r = await ctx.api(pathsFor(state.gid, feed.id, after).events, { retries: 1, timeoutMs: 8000 });
+        if (feed.stopped || stopped) return;
+        if (r && r.status === 401) {
+          teardown();
+          if (ctx.onUnauth) ctx.onUnauth();
+          return;
+        }
+        if (r && r.ok) {
+          var body = await readBody(r);
+          if (!feed.stopped && !stopped) ingest(feed.id, eventsFrom(body));
+        }
+      } catch (e) {
+        if (e && e.unauth) {
+          teardown();
+          if (ctx.onUnauth) ctx.onUnauth();
+          return;
+        }
+      }
+      if (!feed.stopped && !stopped && feed.mode === "poll") schedule(feed, POLL_MS);
+    }
+
+    function isEventStream(res) {
+      if (!res || !res.ok || !res.body || typeof res.body.getReader !== "function") return false;
+      var ctype = "";
+      try { ctype = res.headers && res.headers.get ? (res.headers.get("content-type") || "") : ""; } catch (e) { ctype = ""; }
+      return /text\/event-stream/i.test(String(ctype));
+    }
+
+    async function readStream(feed, res) {
+      var reader;
+      try { reader = res.body.getReader(); } catch (e) { beginPoll(feed); return; }
+      var Decoder = root.TextDecoder || (typeof TextDecoder !== "undefined" ? TextDecoder : null);
+      var decoder = Decoder ? new Decoder() : null;
+      var buf = "";
+      try {
+        while (!feed.stopped && !stopped) {
+          var step = await reader.read();
+          if (feed.stopped || stopped) return;
+          if (step.done) break;
+          if (decoder) buf += decoder.decode(step.value, { stream: true });
+          else buf += String.fromCharCode.apply(null, step.value);
+          var parsed = parseSse(buf);
+          buf = parsed.rest;
+          if (parsed.events.length) ingest(feed.id, parsed.events);
+        }
+      } catch (e) {
+        if (feed.stopped || stopped) return;
+      }
+      if (feed.stopped || stopped) return;
+      if (decoder) { try { buf += decoder.decode(); } catch (e2) {} }
+      if (buf && String(buf).trim()) {
+        var tail = parseSse(buf + "\n\n");
+        if (tail.events.length) ingest(feed.id, tail.events);
+      }
+      feed.mode = "poll";
+      schedule(feed, POLL_MS);
+    }
+
+    async function tryStream(feed) {
+      if (feed.stopped || stopped) return;
+      if (typeof ctx.fetchRaw !== "function") { beginPoll(feed); return; }
+      var AC = root.AbortController || (typeof AbortController !== "undefined" ? AbortController : null);
+      var ac = AC ? new AC() : null;
+      feed.abort = ac;
+      var res;
+      try {
+        res = await ctx.fetchRaw(pathsFor(state.gid, feed.id).stream, { signal: ac && ac.signal });
+      } catch (e) {
+        if (feed.stopped || stopped) return;
+        beginPoll(feed);
+        return;
+      }
+      if (feed.stopped || stopped) return;
+      if (res && res.status === 401) {
+        teardown();
+        if (ctx.onUnauth) ctx.onUnauth();
+        return;
+      }
+      if (!isEventStream(res)) {
+        try { if (res && res.body && res.body.cancel) res.body.cancel(); } catch (e2) {}
+        beginPoll(feed);
+        return;
+      }
+      feed.mode = "stream";
+      await readStream(feed, res);
+    }
+
+    function syncFeeds() {
+      if (stopped) return;
+      var keep = {};
+      boardSources(state).forEach(function (c) {
+        var id = String(c.id);
+        keep[id] = 1;
+        if (!feeds[id]) {
+          var feed = { id: id, stopped: false, timer: null, abort: null, mode: "" };
+          feeds[id] = feed;
+          tryStream(feed);
+        }
+      });
+      Object.keys(feeds).forEach(function (id) {
+        if (!keep[id]) stopFeed(id);
+      });
+    }
+
+    function syncFormToList() {
+      var form = state.form;
+      if (!form || !form.id) return;
+      var id = String(form.id);
+      var idx = -1;
+      state.list.forEach(function (c, i) { if (c && String(c.id) === id) idx = i; });
+      if (idx >= 0) state.list[idx] = form;
+      else state.list.unshift(form);
+    }
 
     function setNote(text, isErr) {
       state.note = text || "";
@@ -485,11 +1098,14 @@
     }
 
     function paint() {
+      if (stopped) return;
       el.innerHTML = '<div id="cx-root">' + formHtml(state) + "</div>";
       var result = root.document.getElementById("cx-result");
       if (result && state.resultKind) result.innerHTML = resultHtml(state.resultKind, state.resultBody);
       if (state.note) setNote(state.note, state.noteErr);
       bind();
+      bindBoards();
+      syncFeeds();
     }
 
     function bind() {
@@ -544,6 +1160,7 @@
           state.form.has_api_key = true;
         }
         state.form.api_key = "";
+        syncFormToList();
         state.resultKind = "";
         state.resultBody = null;
         paint();
@@ -635,7 +1252,10 @@
         if (r && r.status === 401) return ctx.onUnauth && ctx.onUnauth();
         if (!r || r.status === 404 || r.status === 501) { setNote("Connectors aren't on this bot yet.", true); return; }
         if (!r.ok || body.ok === false) { setNote(messageOf(body, "Couldn't remove"), true); return; }
-        state.form = blankForm();
+        var gone = String(state.form.id);
+        delete state.logs[gone];
+        state.list = state.list.filter(function (c) { return c && String(c.id) !== gone; });
+        state.form = state.list.length ? state.list[0] : blankForm();
         state.resultKind = "";
         state.resultBody = null;
         paint();
@@ -661,19 +1281,21 @@
         if (mine !== gen) return;
         state.channels = channelsFrom(chBody);
         if (!lr || lr.status === 404 || lr.status === 501) {
+          state.list = [];
           state.form = blankForm();
           paint();
           setNote("Connectors aren't on this bot yet.", true);
           return;
         }
         if (!lr.ok || body.ok === false) {
+          state.list = [];
           state.form = blankForm();
           paint();
           setNote(messageOf(body, "Couldn't load connectors"), true);
           return;
         }
-        var list = listFrom(body);
-        state.form = list.length ? formFrom(list[0]) : blankForm();
+        state.list = listFrom(body).map(formFrom).filter(function (c) { return c.id; });
+        state.form = state.list.length ? state.list[0] : blankForm();
         state.form.api_key = "";
         paint();
       } catch (e) {
@@ -683,6 +1305,7 @@
       }
     }
 
+    armWatch();
     load();
     return { reload: load };
   }
@@ -699,6 +1322,18 @@
     postModeLabel: postModeLabel,
     keyNote: keyNote,
     tipLine: tipLine,
+    POLL_MS: POLL_MS,
+    formatLine: formatLine,
+    clockOf: clockOf,
+    tagOf: tagOf,
+    bucketOf: bucketOf,
+    toneOf: toneOf,
+    parseSse: parseSse,
+    mergeEvents: mergeEvents,
+    eventsFrom: eventsFrom,
+    normalizeEvent: normalizeEvent,
+    stickToEnd: stickToEnd,
+    boardsHtml: boardsHtml,
     testView: testView,
     embedsFrom: embedsFrom,
     channelsFrom: channelsFrom,
