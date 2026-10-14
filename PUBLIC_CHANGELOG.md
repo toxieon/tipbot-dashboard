@@ -1,3 +1,7 @@
+## 0.60.1
+
+See the history of access changes on a server. Older entries load as you scroll.
+
 ## 0.59.1
 
 Turn Marketplace and Build your own tips on or off for everyone, from the Home settings menu. When one is off, other people don't see it; you still do, marked off for users.

@@ -56,8 +56,23 @@ test.describe("owner access panel", () => {
   });
   test.afterAll(async () => { if (server) server.close(); });
 
-  async function install(page, { ops = true, access = null, empty = false, hold = null, search = null } = {}) {
-    const bag = { posts: [], dels: [], gets: [], access: access || (empty ? { admins: [], mods: [], followers: [] } : people()) };
+  function auditRows() {
+    const rows = [];
+    for (let i = 0; i < 24; i++) {
+      const at = new Date(Date.parse("2026-10-14T01:00:00Z") - i * 60000).toISOString();
+      rows.push({
+        id: String(5000 - i),
+        action: i === 23 ? "remove_mod" : "add_mod",
+        target_user: { id: "222222222222222222", name: i === 23 ? "Older Mod" : "Bea Mod" },
+        actor: { id: "111111111111111111", name: "Ada Admin" },
+        created_at: at
+      });
+    }
+    return rows;
+  }
+
+  async function install(page, { ops = true, access = null, empty = false, hold = null, search = null, audit = null } = {}) {
+    const bag = { posts: [], dels: [], gets: [], access: access || (empty ? { admins: [], mods: [], followers: [] } : people()), audit: audit || [] };
     await page.route("**/*", async (route) => {
       const url = route.request().url();
       if (!url.includes("afl-tipster-bot.onrender.com")) { await route.continue(); return; }
@@ -110,6 +125,12 @@ test.describe("owner access panel", () => {
           { id: "555555555555555555", name: "Eve Other", avatar: "" }
         ];
         payload = { ok: true, members: members.filter((m) => m.name.toLowerCase().includes(q) || m.id.includes(q)) };
+      } else if (parsed.pathname === "/api/owner/access/audit") {
+        const before = parsed.searchParams.get("before") || "";
+        const limit = Number(parsed.searchParams.get("limit") || "20");
+        const all = bag.audit || [];
+        const start = before ? all.findIndex((row) => String(row.created_at) === before) + 1 : 0;
+        payload = { ok: true, entries: all.slice(Math.max(start, 0), Math.max(start, 0) + limit) };
       } else if (parsed.pathname === "/api/feature-flags") payload = { ok: true, flags: {}, labels: {}, keys: [] };
       else if (parsed.pathname === "/api/auto-recap") payload = { ok: true, settings: {}, outputs: [], channels: [] };
       await route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(payload) });
@@ -209,6 +230,32 @@ test.describe("owner access panel", () => {
     await expect(page.locator("#stab-access")).toHaveCount(0);
     expect(bag.gets.some((g) => g.startsWith("/api/owner/access"))).toBe(false);
     await noOverflow(page);
+    expect(errors).toEqual([]);
+  });
+
+  test("history loads older audit rows as the list scrolls", async ({ page }) => {
+    const rows = auditRows();
+    const bag = await install(page, { ops: true, audit: rows });
+    const errors = await boot(page);
+    await openAccess(page);
+    await page.locator("#oa-tab-history").click();
+    await expect(page.locator("#oa-log")).toContainText("Add mod");
+    await expect(page.locator("#oa-log")).toContainText("Bea Mod");
+    await expect(page.locator("#oa-log")).toContainText("Ada Admin");
+    await expect(page.locator(".oa-event")).toHaveCount(20);
+    await expect(page.locator("#oa-log")).not.toContainText("Older Mod");
+    const first = bag.gets.filter((g) => g.startsWith("/api/owner/access/audit"));
+    expect(first.some((g) => g.includes("guild_id=1") && g.includes("limit=20") && !g.includes("before="))).toBe(true);
+    await page.locator("#oa-more").scrollIntoViewIfNeeded();
+    await expect(page.locator("#oa-log")).toContainText("Older Mod");
+    await expect(page.locator("#oa-log")).toContainText("Remove mod");
+    await expect(page.locator(".oa-event")).toHaveCount(24);
+    const auditGets = bag.gets.filter((g) => g.startsWith("/api/owner/access/audit"));
+    expect(auditGets.some((g) => g.includes("before=" + encodeURIComponent(rows[19].created_at)))).toBe(true);
+    await expect(page.locator("#oa-more")).toHaveCount(0);
+    await noOverflow(page);
+    await page.locator("#oa-tab-history").scrollIntoViewIfNeeded();
+    await page.locator("#settings-panel").screenshot({ path: path.join(SHOTS, "owner-access-history.png") });
     expect(errors).toEqual([]);
   });
 });

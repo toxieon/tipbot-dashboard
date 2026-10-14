@@ -1,3 +1,10 @@
+## 0.60.1 · 2026-10-14 · `access-history` · History tab on Access
+
+- Access gains a History tab beside People. It lists the audit log from `GET /api/owner/access/audit?guild_id=&before=&limit=`: the action, the person it applies to, who did it, and the time in Sydney.
+- Older rows load as the list scrolls. A short page is the end.
+
+Tests: `tests/owner_access.test.js`, `tests/e2e/owner-access.spec.mjs` (390×844).
+
 ## 0.59.1 · 2026-10-14 · `global-flags` · Global switches for Marketplace and Build
 
 - The Home screen’s settings menu gains an owner-only Global section, separate from any one server. Two switches: Marketplace, and Build your own tips. They read and save through `GET`/`POST /api/owner/global-flags` as `{marketplace_enabled, build_tips_enabled}`.

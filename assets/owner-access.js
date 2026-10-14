@@ -6,14 +6,17 @@
      POST   /api/owner/access/mod   {guild_id, user_id, assign_role}
      DELETE /api/owner/access/mod   {guild_id, user_id, remove_role}
      GET    /api/owner/access/members?guild_id=&q=   member search for the picker
+     GET    /api/owner/access/audit?guild_id=&before=&limit=   history, older pages as you scroll
 */
 (function (root) {
   "use strict";
   var PATHS = {
     list: "/api/owner/access",
     mod: "/api/owner/access/mod",
-    search: "/api/owner/access/members"
+    search: "/api/owner/access/members",
+    audit: "/api/owner/access/audit"
   };
+  var AUDIT_LIMIT = 20;
   var SOURCES = { role: "Role", manual: "Manual", permission: "Permission" };
   var GROUPS = [
     { key: "admins", label: "Admins", removable: false },
@@ -48,7 +51,14 @@
     + ".oa-badge-permission{color:#c9b8ff;background:rgba(123,91,255,.16);border-color:transparent}"
     + ".oa-side{grid-column:1 / -1}"
     + ".oa-remove{width:100%;box-sizing:border-box;min-height:44px}"
-    + ".oa .empty{padding:8px 0}";
+    + ".oa .empty{padding:8px 0}"
+    + ".oa-tabs{display:flex;gap:8px;overflow-x:auto;margin:0 0 12px}"
+    + ".oa-log{list-style:none;margin:0;padding:0}"
+    + ".oa-event{padding:12px 0;border-bottom:1px solid var(--line);min-width:0}"
+    + ".oa-action{font-weight:750;font-size:var(--t-callout);overflow-wrap:anywhere}"
+    + ".oa-target{margin-top:2px;font-size:var(--t-callout);overflow-wrap:anywhere}"
+    + ".oa-by{margin-top:3px;color:var(--faint);font-size:var(--t-foot);overflow-wrap:anywhere}"
+    + ".oa-more{min-height:44px;padding:10px 0;color:var(--faint);font-size:var(--t-foot)}";
 
   function esc(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
@@ -192,9 +202,173 @@
         + avatarHtml(person) + "<span>" + esc(person.name) + "</span></button>";
     }).join("");
   }
+  function firstOf(raw, keys) {
+    for (var i = 0; i < keys.length; i++) {
+      if (raw[keys[i]] != null && raw[keys[i]] !== "") return raw[keys[i]];
+    }
+    return null;
+  }
+  function who(value) {
+    if (value == null || value === "") return { name: "", id: "" };
+    if (typeof value === "object") {
+      var id = value.id != null ? value.id : (value.user_id != null ? value.user_id : "");
+      var name = value.name || value.display_name || value.username || "";
+      return { name: String(name || id || ""), id: id === "" || id == null ? "" : String(id) };
+    }
+    return { name: String(value), id: "" };
+  }
+  function whoFrom(raw, objKeys, nameKeys, idKeys) {
+    var i, obj;
+    for (i = 0; i < objKeys.length; i++) {
+      obj = raw[objKeys[i]];
+      if (obj && typeof obj === "object") return who(obj);
+    }
+    var named = firstOf(raw, nameKeys);
+    var ided = firstOf(raw, idKeys);
+    if (named != null && (typeof named === "string" || typeof named === "number")) {
+      return { name: String(named), id: ided == null ? "" : String(ided) };
+    }
+    if (ided != null) return { name: String(ided), id: String(ided) };
+    return { name: "", id: "" };
+  }
+  function actionLabel(value) {
+    var s = String(value || "").trim();
+    if (!s) return "Update";
+    if (/^[a-z0-9]+(?:[_-][a-z0-9]+)+$/.test(s)) {
+      s = s.replace(/[_-]+/g, " ");
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    return s;
+  }
+  function auditList(payload) {
+    if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== "object") return [];
+    var keys = ["entries", "events", "items", "log", "history", "rows"];
+    var i;
+    for (i = 0; i < keys.length; i++) {
+      if (Array.isArray(payload[keys[i]])) return payload[keys[i]];
+    }
+    if (payload.audit && Array.isArray(payload.audit)) return payload.audit;
+    if (payload.audit && typeof payload.audit === "object") {
+      if (Array.isArray(payload.audit.entries)) return payload.audit.entries;
+      if (Array.isArray(payload.audit.events)) return payload.audit.events;
+    }
+    return [];
+  }
+  function auditRow(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    var action = firstOf(raw, ["action", "event", "type"]);
+    var target = whoFrom(raw, ["target_user", "target", "user", "subject"], ["target_name", "user_name"], ["target_id", "target_user_id", "user_id"]);
+    var actor = whoFrom(raw, ["actor", "actor_user", "by"], ["actor_name", "by_name"], ["actor_id", "by_id"]);
+    var at = firstOf(raw, ["at", "ts", "timestamp", "created_at", "time"]);
+    var id = raw.id != null && raw.id !== "" ? String(raw.id) : "";
+    if ((action == null || action === "") && !target.name && !actor.name && (at == null || at === "")) return null;
+    var cursor = raw.cursor != null && raw.cursor !== "" ? String(raw.cursor) : (at != null && at !== "" ? String(at) : id);
+    return {
+      id: id,
+      action: actionLabel(action),
+      target: target,
+      actor: actor,
+      at: at == null ? "" : String(at),
+      cursor: cursor,
+      key: id ? ("id:" + id) : (cursor + "|" + actionLabel(action) + "|" + target.name + "|" + actor.name)
+    };
+  }
+  function auditFrom(payload, limit) {
+    limit = limit || AUDIT_LIMIT;
+    var list = auditList(payload);
+    var rows = [];
+    for (var i = 0; i < list.length; i++) {
+      var row = auditRow(list[i]);
+      if (row) rows.push(row);
+    }
+    var before = "";
+    var more = false;
+    if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "next_before")) {
+      before = payload.next_before ? String(payload.next_before) : "";
+      more = !!before;
+    } else if (payload && payload.has_more === false) {
+      before = "";
+      more = false;
+    } else if (rows.length >= limit) {
+      var last = rows[rows.length - 1];
+      before = last && last.cursor ? last.cursor : "";
+      more = !!before;
+    }
+    return { rows: rows, before: before, more: more };
+  }
+  function auditUrl(guildId, before, limit) {
+    var q = "guild_id=" + encodeURIComponent(String(guildId)) + "&limit=" + encodeURIComponent(String(limit || AUDIT_LIMIT));
+    if (before) q += "&before=" + encodeURIComponent(String(before));
+    return PATHS.audit + "?" + q;
+  }
+  function sydneyStamp(value) {
+    var clock = root.TBTime;
+    if (clock && typeof clock.fmt === "function") {
+      try {
+        var text = clock.fmt(value, { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+        if (text) return text;
+      } catch (e) {}
+    }
+    return value == null || value === "" ? "" : String(value);
+  }
+  function mergeRows(prev, next) {
+    var seen = {};
+    var out = [];
+    var i, row;
+    for (i = 0; i < prev.length; i++) { seen[prev[i].key] = true; out.push(prev[i]); }
+    for (i = 0; i < next.length; i++) {
+      row = next[i];
+      if (seen[row.key]) continue;
+      seen[row.key] = true;
+      out.push(row);
+    }
+    return out;
+  }
+  function eventHtml(row) {
+    var when = sydneyStamp(row.at);
+    var time = row.at
+      ? '<time datetime="' + esc(row.at) + '">' + esc(when || row.at) + "</time>"
+      : "";
+    var actor = row.actor && row.actor.name ? row.actor.name : "Unknown";
+    var target = row.target && row.target.name ? row.target.name : "Unknown";
+    var meta = "by " + esc(actor) + (time ? " · " + time : "");
+    return '<li class="oa-event">'
+      + '<div class="oa-action">' + esc(row.action) + "</div>"
+      + '<div class="oa-target">' + esc(target) + "</div>"
+      + '<div class="oa-by">' + meta + "</div></li>";
+  }
+  function historyHtml(state) {
+    var audit = state.audit || { phase: "idle", rows: [], more: false };
+    if ((audit.phase === "loading" || audit.phase === "idle") && (!audit.rows || !audit.rows.length)) {
+      return '<div class="empty" role="status">Loading history…</div>';
+    }
+    if (audit.phase === "missing") return '<div class="empty" role="status">This needs TipBot’s latest deploy.</div><button type="button" class="ghost" id="oa-audit-retry">Retry</button>';
+    if (audit.phase === "error" && (!audit.rows || !audit.rows.length)) {
+      return '<div class="empty" role="status">Couldn’t load history.</div><button type="button" class="ghost" id="oa-audit-retry">Retry</button>';
+    }
+    if (!audit.rows || !audit.rows.length) return '<div class="empty">No history yet.</div>';
+    var foot = "";
+    if (audit.phase === "error") foot = '<div class="empty" role="status">Couldn’t load more.</div><button type="button" class="ghost" id="oa-audit-retry">Retry</button>';
+    else if (audit.more) foot = '<div class="oa-more" id="oa-more" role="status">' + (audit.phase === "more" ? "Loading more…" : "") + "</div>";
+    return '<p class="oa-lead">Changes to access on this server.</p>'
+      + '<ol class="oa-log" id="oa-log">' + audit.rows.map(eventHtml).join("") + "</ol>" + foot;
+  }
+  function tabsHtml(view) {
+    var people = view !== "history";
+    return '<div class="oa-tabs" role="tablist" aria-label="Access">'
+      + '<button type="button" class="tab' + (people ? " active" : "") + '" id="oa-tab-people" role="tab" aria-selected="' + (people ? "true" : "false") + '">People</button>'
+      + '<button type="button" class="tab' + (people ? "" : " active") + '" id="oa-tab-history" role="tab" aria-selected="' + (people ? "false" : "true") + '">History</button>'
+      + "</div>";
+  }
   function panelHtml(state, fmt) {
     var hits = hitsHtml(state);
+    var view = state.view === "history" ? "history" : "people";
+    if (view === "history") {
+      return '<div class="oa">' + tabsHtml(view) + '<div id="oa-history">' + historyHtml(state) + "</div></div>";
+    }
     return '<div class="oa">'
+      + tabsHtml(view)
       + '<p class="oa-lead">Admins, mods and followers on this server. Only you can see this.</p>'
       + '<form class="oa-form" id="oa-add">'
       + '<label class="oa-field">Find a member<input id="oa-search" type="search" autocomplete="off" placeholder="Name" aria-label="Search members" aria-controls="oa-hits" aria-expanded="' + (hits ? "true" : "false") + '"></label>'
@@ -242,7 +416,15 @@
     opts = opts || {};
     if (current) current.stop();
     var alive = true;
-    var ctrl = { stop: function () { alive = false; if (timer) clearTimeout(timer); if (current === ctrl) current = null; }, reload: function () { return load(); } };
+    var timer = null;
+    var io = null;
+    var ctrl = { stop: function () {
+      alive = false;
+      if (timer) clearTimeout(timer);
+      if (io) { io.disconnect(); io = null; }
+      if (root.removeEventListener) root.removeEventListener("scroll", onScroll);
+      if (current === ctrl) current = null;
+    }, reload: function () { return load(); } };
     current = ctrl;
     if (!el) return ctrl;
     injectCss();
@@ -252,10 +434,12 @@
     }
     var gid = opts.gid;
     var fmt = opts.when;
-    var state = { phase: "loading", groups: null, message: "", error: false, busy: false, hits: null, hitsPhase: "idle" };
-    var timer = null;
+    var state = { phase: "loading", groups: null, message: "", error: false, busy: false, hits: null, hitsPhase: "idle", view: "people", audit: { phase: "idle", rows: [], before: "", more: true } };
     var searchGen = 0;
     var loadGen = 0;
+    var auditGen = 0;
+    var auditBusy = false;
+    if (root.addEventListener) root.addEventListener("scroll", onScroll, { passive: true });
     function paint() {
       if (!alive) return;
       var search = el.querySelector("#oa-search");
@@ -277,6 +461,7 @@
       wire();
       if (keep.focus === "oa-search" && s2) s2.focus();
       if (keep.focus === "oa-uid" && u2) u2.focus();
+      if (state.view === "history") watchMore();
     }
     function paintHits() {
       if (!alive) return;
@@ -313,6 +498,17 @@
       if (form) form.onsubmit = function (ev) { ev.preventDefault(); add(); };
       if (search) search.oninput = function () { queueSearch(search.value); };
       if (retry) retry.onclick = function () { load(); };
+      var people = el.querySelector("#oa-tab-people");
+      var history = el.querySelector("#oa-tab-history");
+      var auditRetry = el.querySelector("#oa-audit-retry");
+      if (people) people.onclick = function () { showPeople(); };
+      if (history) history.onclick = function () { showHistory(); };
+      if (auditRetry) auditRetry.onclick = function () {
+        auditGen++;
+        auditBusy = false;
+        state.audit = { phase: "idle", rows: [], before: "", more: true };
+        loadAudit(false);
+      };
       var removes = el.querySelectorAll(".oa-remove");
       for (var i = 0; i < removes.length; i++) {
         removes[i].onclick = function (ev) {
@@ -354,6 +550,104 @@
         if (!alive || gen !== searchGen) return;
         state.hitsPhase = "error";
         paintHits();
+      }
+    }
+    function showPeople() {
+      if (state.view === "people") return;
+      state.view = "people";
+      auditGen++;
+      auditBusy = false;
+      state.audit = { phase: "idle", rows: [], before: "", more: true };
+      paint();
+    }
+    function showHistory() {
+      if (state.view === "history") return;
+      state.view = "history";
+      auditGen++;
+      auditBusy = false;
+      state.audit = { phase: "idle", rows: [], before: "", more: true };
+      paint();
+      loadAudit(false);
+    }
+    function renderHistory() {
+      if (!alive || state.view !== "history") return;
+      var box = el.querySelector("#oa-history");
+      if (!box) { paint(); return; }
+      box.innerHTML = historyHtml(state);
+      wire();
+      watchMore();
+    }
+    function watchMore() {
+      if (io) { io.disconnect(); io = null; }
+      var node = el.querySelector("#oa-more");
+      if (!node || state.view !== "history" || !state.audit.more) return;
+      if (!root.IntersectionObserver) { onScroll(); return; }
+      io = new root.IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) loadAudit(true);
+        }
+      }, { root: null, rootMargin: "200px 0px" });
+      io.observe(node);
+    }
+    function onScroll() {
+      if (!alive || state.view !== "history" || !state.audit || !state.audit.more) return;
+      var node = el.querySelector("#oa-more");
+      if (!node || !node.getBoundingClientRect) return;
+      var vh = root.innerHeight || (root.document && root.document.documentElement && root.document.documentElement.clientHeight) || 800;
+      if (node.getBoundingClientRect().top < vh + 200) loadAudit(true);
+    }
+    async function loadAudit(older) {
+      if (!alive || auditBusy) return;
+      if (older && !state.audit.more) return;
+      auditBusy = true;
+      var gen = ++auditGen;
+      var prevCursor = state.audit.before || "";
+      if (!older) {
+        state.audit.phase = "loading";
+        state.audit.rows = [];
+        state.audit.before = "";
+        state.audit.more = true;
+        paint();
+      } else {
+        state.audit.phase = "more";
+        var moreEl = el.querySelector("#oa-more");
+        if (moreEl) moreEl.textContent = "Loading more…";
+      }
+      try {
+        var r = await opts.call(auditUrl(gid, older ? prevCursor : "", AUDIT_LIMIT));
+        if (!alive || gen !== auditGen) return;
+        if (r.status === 404 || r.status === 501) {
+          state.audit.phase = older && state.audit.rows.length ? "error" : "missing";
+          state.audit.more = false;
+          if (state.view === "history") renderHistory();
+          return;
+        }
+        var j = null;
+        try { j = await r.json(); } catch (e1) { j = null; }
+        if (!alive || gen !== auditGen) return;
+        if (!r.ok || !j || j.ok === false) {
+          state.audit.phase = "error";
+          state.audit.more = older ? state.audit.more : false;
+          if (state.view === "history") renderHistory();
+          return;
+        }
+        var parsed = auditFrom(j, AUDIT_LIMIT);
+        var merged = older ? mergeRows(state.audit.rows, parsed.rows) : parsed.rows;
+        if (older && merged.length === state.audit.rows.length) parsed = { rows: parsed.rows, before: "", more: false };
+        state.audit.rows = older ? merged : parsed.rows;
+        state.audit.before = parsed.before;
+        state.audit.more = !!parsed.more && !!parsed.before && parsed.before !== (older ? prevCursor : "");
+        if (older && parsed.before === prevCursor) state.audit.more = false;
+        state.audit.phase = "ready";
+        if (state.view === "history") renderHistory();
+      } catch (e2) {
+        if (e2 && e2.unauth && opts.onUnauth) { opts.onUnauth(); return; }
+        if (!alive || gen !== auditGen) return;
+        state.audit.phase = "error";
+        if (!older) state.audit.more = false;
+        if (state.view === "history") renderHistory();
+      } finally {
+        if (gen === auditGen) auditBusy = false;
       }
     }
     async function load() {
@@ -498,6 +792,11 @@
     panelHtml: panelHtml,
     groupsHtml: groupsHtml,
     hitsHtml: hitsHtml,
+    historyHtml: historyHtml,
+    auditFrom: auditFrom,
+    auditUrl: auditUrl,
+    mergeRows: mergeRows,
+    AUDIT_LIMIT: AUDIT_LIMIT,
     confirmRemove: confirmRemove,
     mount: mount
   };
