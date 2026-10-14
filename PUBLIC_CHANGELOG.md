@@ -1,3 +1,7 @@
+## 0.57.7
+
+Schedule daily, weekly or monthly results recaps to your Discord — rich summaries with a one-tap preview for admins.
+
 ## 0.57.6
 
 Import a bet slip from a screenshot: the slip is read on your device and filled into the builder for you to check.

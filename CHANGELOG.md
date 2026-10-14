@@ -1,3 +1,9 @@
+## 0.57.7 · 2026-10-14 · `auto-recaps` · Auto recaps settings
+
+- Settings → General gains Auto recaps: independent daily / weekly / monthly toggles, Sydney post time, target channel, skip-empty option, and an admin-only “Send preview now” button. Nothing posts until a server turns a period on.
+
+Tests: TipBot `tests/test_auto_recaps.py` (embed, empty, toggles, timezone, idempotency, preview auth).
+
 ## 0.57.6 · 2026-10-14 · `slip-ocr` · Import a bet slip from a screenshot
 
 - Build gains "Import from screenshot": the image is read in the browser (tesseract.js, nothing uploaded for OCR) and turned into a tip draft: bet type, total odds, event, time, sport and each leg as player/team, stat, line, over/under and odds. Same-game and cross-game multis, singles and racing are supported; `v` and `@` events, dark-mode screenshots and truncated labels are handled.
