@@ -1816,7 +1816,7 @@
     }
     return null;
   }
-  // TipBot 0.60.1 sends runner.fixed {win, place}: the opening price, captured once.
+  // TipBot 0.58.2 sends runner.fixed {win, place}: the opening price, captured once.
   function racingOpeningWin(rn){
     const f = rn && rn.fixed && racingPick(rn.fixed, ["win"]);
     return f!=null ? f : racingPick(rn, ["opening_win","open_win","opening_win_odds"]);

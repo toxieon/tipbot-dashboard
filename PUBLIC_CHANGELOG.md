@@ -1,14 +1,18 @@
 ## 0.60.1
 
-See the history of access changes on a server. Older entries load as you scroll.
+Small improvements to menus and settings.
 
 ## 0.59.1
 
-Turn Marketplace and Build your own tips on or off for everyone, from the Home settings menu. When one is off, other people don't see it; you still do, marked off for users.
+Small improvements to server settings.
+
+## 0.58.2
+
+Discover filters tipsters by sport. Pick more than one. Cards show the sports they tip most.
 
 ## 0.58.1
 
-See who admins, mods and follows a server, and add or remove a mod.
+Small improvements to server settings.
 
 ## 0.57.9
 

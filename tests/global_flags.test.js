@@ -50,22 +50,16 @@ test("a flag that is off stays visible for the owner, with the badge", () => {
   assert.equal(GF.badge("marketplace_enabled"), "");
 });
 
-test("the Global section names both switches and posts both booleans", () => {
+test("me nests the flags under global_flags, and the owner switch UI is not public", () => {
   GF.reset();
-  GF.noteSession({ owner: true });
-  GF.ingest({ marketplace_enabled: true, build_tips_enabled: false });
-  const body = GF.settingsHtml({ message: "" });
-  assert.match(body, /id="os-global"/);
-  assert.match(body, />Global</);
-  assert.match(body, />Marketplace</);
-  assert.match(body, />Build your own tips</);
-  assert.match(body, /data-gf="marketplace_enabled" checked/);
-  assert.match(body, /data-gf="build_tips_enabled"(?! checked)/);
-  assert.match(body, /data-gf-badge="build_tips_enabled"/);
-  assert.match(body, /Off for users/);
-  assert.equal(GF.PATH, "/api/owner/global-flags");
+  GF.ingest({ id: "9", global_flags: { marketplace_enabled: false, build_tips_enabled: true } });
+  assert.equal(GF.enabled("marketplace_enabled"), false);
   assert.equal(GF.CONFIG_PATH, "/api/config");
-  assert.deepEqual(Object.keys(GF.payload()).sort(), ["build_tips_enabled", "marketplace_enabled"]);
+  assert.equal(typeof GF.settingsHtml, "undefined");
+  assert.doesNotMatch(src, /\/api\/owner\//);
+  assert.equal(fs.existsSync(path.join(root, "assets", "owner-access.js")), false);
+  GF.set("marketplace_enabled", true);
+  assert.equal(GF.enabled("marketplace_enabled"), true);
 });
 
 test("the page wires the owner section, the public read, and both hide points", () => {
@@ -77,6 +71,7 @@ test("the page wires the owner section, the public read, and both hide points", 
   assert.match(html, /TBGlobalFlags\.ingest\(me\)/);
   assert.match(html, /id="dd-global"/);
   assert.match(html, /TBGlobalFlags\.mountSettings\(box/);
+  assert.doesNotMatch(html, /owner-access\.js|\/api\/owner\//);
   assert.doesNotMatch(html, /TBGlobalFlags\.mountSettings\(\$\("settings"\)/);
   assert.doesNotMatch(html, /id="stab-global"/);
   assert.match(html, /if\(m\[2\]==="build" && !buildTipsShown\(\)\) return enterHome\(\), true;/);

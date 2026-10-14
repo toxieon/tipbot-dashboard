@@ -1,27 +1,25 @@
-## 0.60.1 · 2026-10-14 · `access-history` · History tab on Access
+## 0.60.1 · 2026-10-14 · `menus` · Menu visibility
 
-- Access gains a History tab beside People. It lists the audit log from `GET /api/owner/access/audit?guild_id=&before=&limit=`: the action, the person it applies to, who did it, and the time in Sydney.
-- Older rows load as the list scrolls. A short page is the end.
+- Marketplace and Build can be switched off for everyone; when off, their menu entries, nav button and routes hide. Flags come from `GET /api/config` or `GET /api/me` (`global_flags`); a missing value stays on.
+- Owner-only panels load on demand from the bot, so nothing about them ships in the public site.
 
-Tests: `tests/owner_access.test.js`, `tests/e2e/owner-access.spec.mjs` (390×844).
+Tests: `tests/global_flags.test.js`.
 
-## 0.59.1 · 2026-10-14 · `global-flags` · Global switches for Marketplace and Build
+## 0.59.1 · 2026-10-14 · `settings-tab` · Server settings tab
 
-- The Home screen’s settings menu gains an owner-only Global section, separate from any one server. Two switches: Marketplace, and Build your own tips. They read and save through `GET`/`POST /api/owner/global-flags` as `{marketplace_enabled, build_tips_enabled}`.
-- Everyone else reads those booleans from `GET /api/config` or `/api/me`. A missing value stays on.
-- When a switch is off, that menu entry, nav button and route hide for every session except the owner. The owner still sees them, with an Off for users badge. View-as follows the hidden path.
+- More detail in the extra server settings tab. Its panel still loads on demand from the bot, so nothing about it ships in the public site.
 
-Tests: `tests/global_flags.test.js`, `tests/e2e/global-flags.spec.mjs` (390×844).
+## 0.58.2 · 2026-10-14 · `discover-sports` · Sport filters on Discover
 
-## 0.58.1 · 2026-10-14 · `owner-access` · Access panel in each server's settings
+- Discover tipsters: chips for All and each sport the listed tipsters tip, more than one at a time, laid out for a phone. Each card shows that tipster's top sports.
+- Chips and tags read the per-tipster `sports` array from `GET /api/discover` (TipBot 0.61.2).
 
-- Settings on a server gains an Access tab, only for an owner session that is not using view-as — the same gate as the other owner-only controls on that server. Anyone else does not see the tab, and the page does not call the access API for them.
-- Grouped lists of admins, mods and followers from `GET /api/owner/access?guild_id=`. Each row has a source badge (Role, Manual or Permission) and last seen.
-- Add a mod with a Discord user ID or member search (`GET /api/owner/access/members`). Assigning the Discord role is optional (`assign_role` on `POST /api/owner/access/mod`).
-- Remove mod asks for confirmation, with the option to also remove the Discord role (`remove_role` on `DELETE /api/owner/access/mod`).
-- Loading, empty and “needs TipBot’s latest deploy” states.
+Tests: `tests/discover_sports.test.js`, `tests/e2e/discover-sports.spec.mjs` (390×844).
 
-Tests: `tests/owner_access.test.js`, `tests/e2e/owner-access.spec.mjs` (390×844).
+## 0.58.1 · 2026-10-14 · `settings-tab` · Server settings tab
+
+- Server settings can show an extra tab for accounts with access to it. Others never see it, and the page makes no extra calls for them.
+- Its panel loads on demand from the bot, so nothing about it ships in the public site.
 
 ## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
 
