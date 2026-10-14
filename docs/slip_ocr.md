@@ -23,7 +23,7 @@ If you want the original file stored server-side separately from the compressed 
 - OCR text captured once from tesseract: `tests/fixtures/sportsbet-proposed-bet.ocr.txt`
 - Parser unit test: `tests/slip_ocr.test.js`
 
-## Parser and fixture harness (0.57.6)
+## Parser and fixture harness (0.57.7)
 
 - `TBSlipOcr.recognizeImage(Tesseract, file, base)` upscales/greyscales the image (inverting dark-mode
   screenshots), runs tesseract with word boxes, and returns `{text, lines, width}`.
