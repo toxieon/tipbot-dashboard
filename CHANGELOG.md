@@ -1,3 +1,13 @@
+## 0.58.1 · 2026-10-14 · `owner-access` · Access panel in each server's settings
+
+- Settings on a server gains an Access tab, only for an owner session that is not using view-as — the same gate as the other owner-only controls on that server. Anyone else does not see the tab, and the page does not call the access API for them.
+- Grouped lists of admins, mods and followers from `GET /api/owner/access?guild_id=`. Each row has a source badge (Role, Manual or Permission) and last seen.
+- Add a mod with a Discord user ID or member search (`GET /api/owner/access/members`). Assigning the Discord role is optional (`assign_role` on `POST /api/owner/access/mod`).
+- Remove mod asks for confirmation, with the option to also remove the Discord role (`remove_role` on `DELETE /api/owner/access/mod`).
+- Loading, empty and “needs TipBot’s latest deploy” states.
+
+Tests: `tests/owner_access.test.js`, `tests/e2e/owner-access.spec.mjs` (390×844).
+
 ## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
 
 - Settings → General: the follow emoji has a Choose picker showing this server's emojis (static and animated) plus standard emojis. Server emojis save as `<:name:id>` / `<a:name:id>`; the field fits long names. Older saved values still show and save. A note shows when the saved server emoji no longer exists.
