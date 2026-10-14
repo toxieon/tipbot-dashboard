@@ -1,9 +1,14 @@
-## 0.58.1 · 2026-10-14 · `discover-sports` · Sport filters on Discover
+## 0.58.2 · 2026-10-14 · `discover-sports` · Sport filters on Discover
 
 - Discover tipsters: chips for All and each sport the listed tipsters tip, more than one at a time, laid out for a phone. Each card shows that tipster's top sports.
-- `GET /api/discover` still has no per-tipster sport field. Chips and tags use `sports` (or a stats breakdown, or sport on tip rows) when the payload includes them.
+- Chips and tags read the per-tipster `sports` array from `GET /api/discover` (TipBot 0.61.2).
 
 Tests: `tests/discover_sports.test.js`, `tests/e2e/discover-sports.spec.mjs` (390×844).
+
+## 0.58.1 · 2026-10-14 · `settings-tab` · Server settings tab
+
+- Server settings can show an extra tab for accounts with access to it. Others never see it, and the page makes no extra calls for them.
+- Its panel loads on demand from the bot, so nothing about it ships in the public site.
 
 ## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
 
