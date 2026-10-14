@@ -1217,6 +1217,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           <div class="dd-item" id="dd-marketplace" role="button" tabindex="0">Marketplace <span class="gf-badge" id="dd-marketplace-badge" hidden>Off for users</span> <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-owner-settings" role="button" tabindex="0" hidden>Owner settings <span style="color:var(--faint)">›</span></div>
+          <div id="dd-global" hidden></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
           <div id="tb-appearance"></div>
           <label class="tb-setting tb-grade-undo" id="dd-grade-undo" title="Gives you 4 seconds to undo a grade before it goes to Discord">
@@ -2057,7 +2058,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("dropdown").hidden=!$("dropdown").hidden;
     $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
     $("viewas-list").hidden=true;
-    if(opening){ paintOwnerSettingsEntry(); paintMarketplaceEntry(); }
+    if(opening){ paintOwnerSettingsEntry(); paintMarketplaceEntry(); mountGlobalMenu(); }
   };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
@@ -2078,6 +2079,25 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   function syncGlobalSession(){
     if(window.TBGlobalFlags) TBGlobalFlags.noteSession({ owner: ownerSettingsAllowed() });
+    mountGlobalMenu();
+  }
+  let GF_MOUNT=null;
+  function mountGlobalMenu(){
+    const box=$("dd-global");
+    if(!box||!window.TBGlobalFlags||typeof TBGlobalFlags.mountSettings!=="function") return;
+    const show=ownerSettingsAllowed();
+    box.hidden=!show;
+    if(!show){
+      if(GF_MOUNT){ try{ GF_MOUNT.destroy(); }catch(e){} GF_MOUNT=null; }
+      box.innerHTML="";
+      return;
+    }
+    if(GF_MOUNT && box.querySelector("#os-global")) return;
+    GF_MOUNT=TBGlobalFlags.mountSettings(box, {
+      call: api,
+      allowed: ownerSettingsAllowed,
+      onUnauth: ()=>renderLogin("Session expired.")
+    });
   }
   function paintMarketplaceEntry(){
     const el=$("dd-marketplace"); if(!el) return;
@@ -2142,14 +2162,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     panel("settings"); show("app");
     const extOk=await ensureExt();
     if(extOk && window.TBOwner && typeof TBOwner.ensureSettingsMarkup==="function") TBOwner.ensureSettingsMarkup($("settings"));
-    if(window.TBGlobalFlags && typeof TBGlobalFlags.mountSettings==="function"){
-      TBGlobalFlags.mountSettings($("settings"), {
-        call: api,
-        allowed: ownerSettingsAllowed,
-        onBack: ()=>navBack(()=>enterHome()),
-        onUnauth: ()=>renderLogin("Session expired.")
-      });
-    }
     refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow();
     window.scrollTo(0,0);
   }

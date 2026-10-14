@@ -122,15 +122,16 @@ test.describe("global flags", () => {
     const bag = await install(page, { ops: true, flags: { marketplace_enabled: true, build_tips_enabled: true } });
     const errors = await boot(page);
     await page.locator("#gear").click();
-    await page.locator("#dd-owner-settings").click();
-    await expect(page.locator("#os-global")).toContainText("Global");
-    await expect(page.locator("#os-global")).toContainText("Marketplace");
-    await expect(page.locator("#os-global")).toContainText("Build your own tips");
+    const menu = page.locator("#dropdown");
+    await expect(menu.locator("#os-global")).toContainText("Global");
+    await expect(menu.locator("#os-global")).toContainText("Marketplace");
+    await expect(menu.locator("#os-global")).toContainText("Build your own tips");
     await expect(page.locator("#gf-msg")).not.toHaveText("Loading…");
     await expect(page.locator('[data-gf="marketplace_enabled"]')).toBeChecked();
     await expect(page.locator('[data-gf="build_tips_enabled"]')).toBeChecked();
+    await expect(page.locator("#overview")).toBeVisible();
     await noOverflow(page);
-    await page.locator("#settings").screenshot({ path: path.join(SHOTS, "global-flags-settings.png") });
+    await menu.screenshot({ path: path.join(SHOTS, "global-flags-settings.png") });
 
     await page.locator('[data-gf="marketplace_enabled"]').uncheck();
     await expect(page.locator("#gf-msg")).toHaveText("Saved.");
@@ -142,9 +143,6 @@ test.describe("global flags", () => {
     expect(saved.some((p) => p.body.marketplace_enabled === false && p.body.build_tips_enabled === false)).toBe(true);
     expect(saved.every((p) => !("guild_id" in p.body))).toBe(true);
 
-    await page.locator("#os-back").click();
-    await page.waitForSelector("#overview .scard", { timeout: 20000 });
-    await page.locator("#gear").click();
     await expect(page.locator("#dd-marketplace")).toBeVisible();
     await expect(page.locator("#dd-marketplace-badge")).toHaveText("Off for users");
     await page.locator("#dropdown").screenshot({ path: path.join(SHOTS, "global-flags-menu.png") });
@@ -154,6 +152,8 @@ test.describe("global flags", () => {
     await page.locator("#mp-back").click();
     await page.locator("#overview .scard").filter({ hasText: "Test" }).click();
     await page.waitForSelector("#detail h1", { timeout: 20000 });
+    await expect(page.locator("#detail [data-gf]")).toHaveCount(0);
+    await expect(page.locator("#settings-panel")).not.toContainText("Build your own tips");
     await expect(page.locator('.apex-tabs [data-apex-nav="build"]')).toBeVisible();
     await expect(page.locator('.apex-tabs [data-apex-nav="build"] .gf-badge')).toHaveText("Off for users");
     await expect(page.locator("#buildbtn")).toBeVisible();
@@ -176,6 +176,7 @@ test.describe("global flags", () => {
     await expect(page.locator("#dd-logout")).toBeVisible();
     await expect(page.locator("#dd-marketplace")).toBeHidden();
     await expect(page.locator("#dd-owner-settings")).toBeHidden();
+    await expect(page.locator("#dd-global")).toBeHidden();
     await page.keyboard.press("Escape");
     await expect(page.locator("#dropdown")).toBeHidden();
     await page.locator("#overview .scard").filter({ hasText: "Test" }).click();

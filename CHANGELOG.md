@@ -1,6 +1,6 @@
 ## 0.59.1 · 2026-10-14 · `global-flags` · Global switches for Marketplace and Build
 
-- Owner settings gains a Global section, separate from any one server. Two switches: Marketplace, and Build your own tips. They read and save through `GET`/`POST /api/owner/global-flags` as `{marketplace_enabled, build_tips_enabled}`.
+- The Home screen’s settings menu gains an owner-only Global section, separate from any one server. Two switches: Marketplace, and Build your own tips. They read and save through `GET`/`POST /api/owner/global-flags` as `{marketplace_enabled, build_tips_enabled}`.
 - Everyone else reads those booleans from `GET /api/config` or `/api/me`. A missing value stays on.
 - When a switch is off, that menu entry, nav button and route hide for every session except the owner. The owner still sees them, with an Off for users badge. View-as follows the hidden path.
 

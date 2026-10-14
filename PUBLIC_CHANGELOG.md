@@ -1,6 +1,6 @@
 ## 0.59.1
 
-Turn Marketplace and Build your own tips on or off for everyone. When one is off, other people don't see it; you still do, marked off for users.
+Turn Marketplace and Build your own tips on or off for everyone, from the Home settings menu. When one is off, other people don't see it; you still do, marked off for users.
 
 ## 0.58.1
 

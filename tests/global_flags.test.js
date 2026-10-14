@@ -75,7 +75,10 @@ test("the page wires the owner section, the public read, and both hide points", 
   assert.match(html, /function openMarketplace\(/);
   assert.match(html, /api\("\/api\/config"/);
   assert.match(html, /TBGlobalFlags\.ingest\(me\)/);
-  assert.match(html, /TBGlobalFlags\.mountSettings/);
+  assert.match(html, /id="dd-global"/);
+  assert.match(html, /TBGlobalFlags\.mountSettings\(box/);
+  assert.doesNotMatch(html, /TBGlobalFlags\.mountSettings\(\$\("settings"\)/);
+  assert.doesNotMatch(html, /id="stab-global"/);
   assert.match(html, /if\(m\[2\]==="build" && !buildTipsShown\(\)\) return enterHome\(\), true;/);
   assert.match(html, /if\(m\[0\]==="marketplace"\)\{ if\(!marketplaceShown\(\)\) return enterHome\(\), true;/);
   assert.match(apex, /var TABS = \["home", "build", "upcoming"\];/);

@@ -16,10 +16,10 @@
   var owner = false;
   var listeners = [];
   var CSS = ""
-    + ".gf{min-width:0;max-width:100%}"
-    + ".gf h2{margin:0 0 6px;font-size:var(--t-h3)}"
-    + ".gf-lead{color:var(--faint);font-size:var(--t-foot);line-height:1.45;margin:0 0 4px}"
-    + ".gf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}"
+    + ".gf{min-width:0;max-width:100%;padding:2px 11px 6px}"
+    + ".gf h2{margin:8px 0 4px;font-size:var(--t-cap);font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}"
+    + ".gf-lead{color:var(--faint);font-size:var(--t-foot);line-height:1.45;margin:0 0 2px}"
+    + ".gf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}"
     + ".gf-row:last-of-type{border-bottom:0}"
     + ".gf-copy{min-width:0;display:flex;flex-direction:column;gap:2px}"
     + ".gf-title{font-weight:750;font-size:var(--t-callout);display:flex;flex-wrap:wrap;align-items:center;gap:6px}"
@@ -136,20 +136,9 @@
     opts = opts || {};
     if (!box || (typeof opts.allowed === "function" && !opts.allowed())) return null;
     ensureCss();
-    var body = box.querySelector(".os-body");
-    if (!body) {
-      var shell = "";
-      if (!box.querySelector(".back")) shell += '<div class="back" id="os-back">← Back</div>';
-      if (!box.querySelector("h1")) shell += "<h1>Owner settings</h1>";
-      shell += '<div class="os-body"></div>';
-      box.insertAdjacentHTML("beforeend", shell);
-      body = box.querySelector(".os-body");
-      var back = box.querySelector("#os-back");
-      if (back) back.onclick = function () { if (typeof opts.onBack === "function") opts.onBack(); };
-    }
     var previous = box.querySelector("#os-global");
     if (previous) previous.remove();
-    body.insertAdjacentHTML("beforeend", settingsHtml({ message: "Loading…" }));
+    box.insertAdjacentHTML("beforeend", settingsHtml({ message: "Loading…" }));
     var section = box.querySelector("#os-global");
     var alive = true;
     var missing = false;
