@@ -1,3 +1,10 @@
+## 0.60.1 · 2026-10-14 · `menus` · Menu visibility
+
+- Marketplace and Build can be switched off for everyone; when off, their menu entries, nav button and routes hide. Flags come from `GET /api/config` or `GET /api/me` (`global_flags`); a missing value stays on.
+- Owner-only panels load on demand from the bot, so nothing about them ships in the public site.
+
+Tests: `tests/global_flags.test.js`.
+
 ## 0.59.1 · 2026-10-14 · `settings-tab` · Server settings tab
 
 - More detail in the extra server settings tab. Its panel still loads on demand from the bot, so nothing about it ships in the public site.

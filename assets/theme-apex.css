@@ -597,6 +597,18 @@ html[data-theme="apex"] .top-in > .nav{display:none}
     box-shadow:0 10px 24px color-mix(in srgb, var(--accent) 35%, transparent);
   }
   html[data-theme="apex"] .apex-tabs .apex-tab-build[aria-current="page"]{color:var(--on-accent)}
+  html[data-theme="apex"] .apex-tabs.apex-tabs-nobuild{
+    grid-template-columns:1fr 1fr;
+  }
+  html[data-theme="apex"] .apex-tabs .apex-tab-build .gf-badge{
+    position:absolute;
+    z-index:2;
+    top:-16px;
+    left:50%;
+    margin:0;
+    transform:translateX(-50%);
+    pointer-events:none;
+  }
   html[data-theme="apex"] .wrap{
     padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px));
   }

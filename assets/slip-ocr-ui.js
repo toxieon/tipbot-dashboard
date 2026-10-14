@@ -508,6 +508,7 @@
   }
 
   async function openSlipImport(guildId, name) {
+    if (typeof buildTipsShown === "function" && !buildTipsShown()) return;
     navNote("#/s/" + encodeURIComponent(guildId) + "/build/import", function () {
       openSlipImport(guildId, name);
     });

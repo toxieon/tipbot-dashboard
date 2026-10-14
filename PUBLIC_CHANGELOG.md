@@ -1,3 +1,7 @@
+## 0.60.1
+
+Small improvements to menus and settings.
+
 ## 0.59.1
 
 Small improvements to server settings.
