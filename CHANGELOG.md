@@ -1,3 +1,9 @@
+## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
+
+- Settings → General: the follow emoji has a Choose picker showing this server's emojis (static and animated) plus standard emojis. Server emojis save as `<:name:id>` / `<a:name:id>`; the field fits long names. Older saved values still show and save. A note shows when the saved server emoji no longer exists.
+
+Tests: `tests/emoji_picker.test.js`.
+
 ## 0.57.8 · 2026-10-14 · `features-recaps` · Faster feature list, recaps beside Daily
 
 - The per-server feature list paints straight away from memory, with a placeholder while the first response is still on its way, instead of waiting out a round trip every time it is opened.
