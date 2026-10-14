@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.58.1" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.58.1" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.58.1" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.58.1">
+<link rel="icon" href="./assets/favicon.ico?v=0.59.1" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.59.1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.59.1" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.59.1">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.58.1"></script>
+<script src="./assets/tbtime.js?v=0.59.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -1182,13 +1182,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.58.1">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.59.1">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.58.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.59.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1199,7 +1199,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.58.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.59.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1208,12 +1208,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.58.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.59.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
           <a class="dd-item" href="./welcome/" style="color:inherit;text-decoration:none">Public site <span style="color:var(--faint)">›</span></a>
+          <div class="dd-item" id="dd-marketplace" role="button" tabindex="0">Marketplace <span class="gf-badge" id="dd-marketplace-badge" hidden>Off for users</span> <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-owner-settings" role="button" tabindex="0" hidden>Owner settings <span style="color:var(--faint)">›</span></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
@@ -1227,7 +1228,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.58.1</div>
+          <div class="dd-label" id="dd-version">tipdash v0.59.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1241,6 +1242,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     <div id="follower" hidden></div>
     <div id="mytips" hidden></div>
     <div id="discover" hidden></div>
+    <div id="marketplace" hidden></div>
     <div id="upcoming" hidden></div>
     <div id="builder" hidden></div>
     <div id="settings" hidden></div>
@@ -1251,28 +1253,29 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.58.1"></script>
-<script src="./assets/light-data.js?v=0.58.1"></script>
-<script src="./assets/lines.js?v=0.58.1"></script>
-<script src="./assets/racing-legs.js?v=0.58.1"></script>
-<script src="./assets/afl-guernseys.js?v=0.58.1"></script>
-<script src="./assets/compare-ui.js?v=0.58.1"></script>
-<script src="./assets/sport-keywords.js?v=0.58.1"></script>
-<script src="./assets/sport-marks.js?v=0.58.1"></script>
-<script src="./assets/routing.js?v=0.58.1"></script>
-<script src="./assets/scheduled-tips.js?v=0.58.1"></script>
-<script src="./assets/auto-recaps.js?v=0.58.1"></script>
-<script src="./assets/emoji-picker.js?v=0.58.1"></script>
-<script src="./assets/owner-access.js?v=0.58.1"></script>
-<script src="./assets/upcoming-split.js?v=0.58.1"></script>
-<script src="./assets/espn-props.js?v=0.58.1"></script>
-<script src="./assets/tb-motion.js?v=0.58.1"></script>
-<script src="./assets/form-badges.js?v=0.58.1"></script>
-<script src="./assets/svg-charts.js?v=0.58.1"></script>
-<script src="./assets/server-view.js?v=0.58.1"></script>
-<script src="./assets/legal-md.js?v=0.58.1"></script>
-<script src="./assets/terms-gate.js?v=0.58.1"></script>
-<script src="./assets/cookie-consent.js?v=0.58.1"></script>
+<script src="./assets/req-pool.js?v=0.59.1"></script>
+<script src="./assets/light-data.js?v=0.59.1"></script>
+<script src="./assets/lines.js?v=0.59.1"></script>
+<script src="./assets/racing-legs.js?v=0.59.1"></script>
+<script src="./assets/afl-guernseys.js?v=0.59.1"></script>
+<script src="./assets/compare-ui.js?v=0.59.1"></script>
+<script src="./assets/sport-keywords.js?v=0.59.1"></script>
+<script src="./assets/sport-marks.js?v=0.59.1"></script>
+<script src="./assets/routing.js?v=0.59.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.59.1"></script>
+<script src="./assets/auto-recaps.js?v=0.59.1"></script>
+<script src="./assets/emoji-picker.js?v=0.59.1"></script>
+<script src="./assets/owner-access.js?v=0.59.1"></script>
+<script src="./assets/global-flags.js?v=0.59.1"></script>
+<script src="./assets/upcoming-split.js?v=0.59.1"></script>
+<script src="./assets/espn-props.js?v=0.59.1"></script>
+<script src="./assets/tb-motion.js?v=0.59.1"></script>
+<script src="./assets/form-badges.js?v=0.59.1"></script>
+<script src="./assets/svg-charts.js?v=0.59.1"></script>
+<script src="./assets/server-view.js?v=0.59.1"></script>
+<script src="./assets/legal-md.js?v=0.59.1"></script>
+<script src="./assets/terms-gate.js?v=0.59.1"></script>
+<script src="./assets/cookie-consent.js?v=0.59.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1621,7 +1624,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.58.1";
+  TD.version="0.59.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1638,6 +1641,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   };
   // A placeholder's call: load the file once, then run the real function it declared.
   TD.call=function(name,fn,self,args){
+    if((name==="builder"||name==="slip-ocr-ui") && typeof buildTipsShown==="function" && !buildTipsShown()) return Promise.resolve();
     const stub=window[fn];
     return TD.load(name).then(function(){
       const real=window[fn];
@@ -1660,7 +1664,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","stats","builder","upcoming","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome; if(p!=="stats"&&window.TBHorseResults&&typeof TBHorseResults.stop==="function")TBHorseResults.stop();};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","marketplace","stats","builder","upcoming","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome; if(p!=="stats"&&window.TBHorseResults&&typeof TBHorseResults.stop==="function")TBHorseResults.stop();};
 
   // ── Back button / swipe-back stays in the app (0.43.1) ───────────────────────────
   // Every view opener calls navNote(hash, restore). We track the browser history with our
@@ -1696,6 +1700,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const gid=decodeURIComponent(m[1]), nm=navServerName(gid);
       if(m[2]==="followers") return openFollowers(gid,nm), true;
       if(m[2]==="results") return openResults(gid,nm), true;
+      if(m[2]==="build" && !buildTipsShown()) return enterHome(), true;
       if(m[2]==="build" && m[3]==="racing") return openRacingBuilder(gid,nm), true;
       if(m[2]==="build" && m[3]==="sports") return openSportsBuilder(gid,nm), true;
       if(m[2]==="build") return openBuilder(gid,nm), true;
@@ -1708,6 +1713,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(m[0]==="stats") return openStats(), true;
     if(m[0]==="mytips") return openMyTips(), true;
     if(m[0]==="discover") return openDiscover(), true;
+    if(m[0]==="marketplace"){ if(!marketplaceShown()) return enterHome(), true; return openMarketplace(), true; }
     if(m[0]==="following") return openFollowerAllView(), true;
     if(m[0]==="settings") return openOwnerSettings(), true;
     if(m[0]==="ops") return openOps(), true;
@@ -1749,7 +1755,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     };
   }
   function swipeBackPanel(){
-    const ids=["overview","stats","detail","followers","follower","mytips","discover","upcoming","builder","settings","ops"];
+    const ids=["overview","stats","detail","followers","follower","mytips","discover","marketplace","upcoming","builder","settings","ops"];
     for(const id of ids){ const p=$(id); if(p&&!p.hidden) return p; }
     return null;
   }
@@ -2051,7 +2057,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("dropdown").hidden=!$("dropdown").hidden;
     $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
     $("viewas-list").hidden=true;
-    if(opening){ paintOwnerSettingsEntry(); }
+    if(opening){ paintOwnerSettingsEntry(); paintMarketplaceEntry(); }
   };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
@@ -2064,17 +2070,94 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The rows are moved (not copied), so their ids and wiring are unchanged.
   function ownerSettingsAllowed(){ return STATE.ops===true && !STATE.viewAs; }
   function paintOwnerSettingsEntry(){ const e=$("dd-owner-settings"); if(e) e.hidden=!ownerSettingsAllowed(); }
+  function buildTipsShown(){
+    return !(window.TBGlobalFlags && typeof TBGlobalFlags.shown==="function" && !TBGlobalFlags.shown("build_tips_enabled"));
+  }
+  function marketplaceShown(){
+    return !(window.TBGlobalFlags && typeof TBGlobalFlags.shown==="function" && !TBGlobalFlags.shown("marketplace_enabled"));
+  }
+  function syncGlobalSession(){
+    if(window.TBGlobalFlags) TBGlobalFlags.noteSession({ owner: ownerSettingsAllowed() });
+  }
+  function paintMarketplaceEntry(){
+    const el=$("dd-marketplace"); if(!el) return;
+    el.hidden=!marketplaceShown();
+    const badge=$("dd-marketplace-badge");
+    const text=(window.TBGlobalFlags&&typeof TBGlobalFlags.badge==="function")?TBGlobalFlags.badge("marketplace_enabled"):"";
+    if(badge){ badge.hidden=!text; if(text) badge.textContent=text; }
+  }
+  function paintBuildEntries(){
+    const show=buildTipsShown();
+    const text=(window.TBGlobalFlags&&typeof TBGlobalFlags.badge==="function")?TBGlobalFlags.badge("build_tips_enabled"):"";
+    ["buildbtn","custombtn","flracebtn"].forEach(function(id){ const el=$(id); if(el) el.hidden=!show; });
+    const b=$("buildbtn");
+    if(b){
+      let tag=b.querySelector(".gf-badge");
+      if(text){
+        if(!tag){ tag=document.createElement("span"); tag.className="gf-badge"; b.appendChild(tag); }
+        tag.textContent=text; tag.hidden=false;
+      }else if(tag) tag.remove();
+    }
+    document.querySelectorAll(".home-racing-tile").forEach(function(el){
+      el.hidden=!show;
+      let tag=el.querySelector(".gf-badge");
+      if(text && show){
+        if(!tag){ tag=document.createElement("span"); tag.className="gf-badge"; const plan=el.querySelector(".plan"); if(plan&&plan.after) plan.after(tag); else el.appendChild(tag); }
+        tag.textContent=text;
+      }else if(tag) tag.remove();
+    });
+  }
+  function paintGlobalChrome(){
+    paintMarketplaceEntry();
+    paintBuildEntries();
+    syncGlobalSession();
+    if(window.ApexTheme && typeof ApexTheme.paintNav==="function"){ try{ ApexTheme.paintNav(); }catch(e){} }
+  }
+  let ENFORCING=false;
+  function enforceHiddenRoutes(){
+    if(ENFORCING) return;
+    const hash=location.hash||"";
+    const blockBuild=!buildTipsShown() && /\/build(?:\/|$)/.test(hash);
+    const blockMarket=!marketplaceShown() && /^#\/marketplace(?:\/|$|\?)/.test(hash);
+    if(!blockBuild && !blockMarket) return;
+    ENFORCING=true;
+    try{ enterHome(); }catch(e){}
+    ENFORCING=false;
+  }
+  function openMarketplace(){
+    if(!marketplaceShown()) return enterHome();
+    navNote("#/marketplace", ()=>openMarketplace());
+    $("dropdown").hidden=true; $("gear").setAttribute("aria-expanded","false");
+    panel("marketplace"); show("app");
+    const text=(window.TBGlobalFlags&&typeof TBGlobalFlags.badge==="function")?TBGlobalFlags.badge("marketplace_enabled"):"";
+    $("marketplace").innerHTML='<div class="back" id="mp-back">← Back</div>'
+      +'<h1 style="margin:0 0 12px">Marketplace'+(text?' <span class="gf-badge">'+esc(text)+'</span>':'')+'</h1>'
+      +'<div class="empty">Nothing is listed yet.</div>';
+    const back=$("mp-back"); if(back) back.onclick=()=>navBack(()=>enterHome());
+  }
   async function openOwnerSettings(){
     if(!ownerSettingsAllowed()) return enterHome();
     navNote("#/settings", ()=>openOwnerSettings());
     $("dropdown").hidden=true; $("gear").setAttribute("aria-expanded","false");
     panel("settings"); show("app");
-    if(!(await ensureExt())) return;
-    if(window.TBOwner) TBOwner.ensureSettingsMarkup($("settings"));
+    const extOk=await ensureExt();
+    if(extOk && window.TBOwner && typeof TBOwner.ensureSettingsMarkup==="function") TBOwner.ensureSettingsMarkup($("settings"));
+    if(window.TBGlobalFlags && typeof TBGlobalFlags.mountSettings==="function"){
+      TBGlobalFlags.mountSettings($("settings"), {
+        call: api,
+        allowed: ownerSettingsAllowed,
+        onBack: ()=>navBack(()=>enterHome()),
+        onUnauth: ()=>renderLogin("Session expired.")
+      });
+    }
     refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow();
     window.scrollTo(0,0);
   }
+  if(window.TBGlobalFlags && typeof TBGlobalFlags.onChange==="function"){
+    TBGlobalFlags.onChange(function(){ paintGlobalChrome(); enforceHiddenRoutes(); });
+  }
   { const e=$("dd-owner-settings"); if(e){ e.onclick=openOwnerSettings; e.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openOwnerSettings(); } }; } }
+  { const mp=$("dd-marketplace"); if(mp){ mp.onclick=openMarketplace; mp.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMarketplace(); } }; } }
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const no=$("nav-ops"); if(no) no.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); openOps(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
@@ -2082,11 +2165,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
   $("dd-logout").onclick=async()=>{
     try{ await api("/api/logout",{method:"POST",retries:0,timeoutMs:8000}); }catch(e){}
-    clearToken();STATE.ops=false;if(window.TBOwner&&TBOwner.clearOps)TBOwner.clearOps();paintOpsTab();location.hash="";renderLogin();
+    clearToken();STATE.ops=false;if(window.TBOwner&&TBOwner.clearOps)TBOwner.clearOps();syncGlobalSession();paintOpsTab();location.hash="";renderLogin();
   };
-  { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;enterHome();}; }
+  { const hl=$("homelogo"); if(hl)hl.onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;$("tray").hidden=true;syncGlobalSession();enterHome();}; }
   $("dd-viewas").onclick=()=>{$("viewas-list").hidden=!$("viewas-list").hidden;};
-  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
+  $("viewas-exit").onclick=()=>{STATE.viewAs=null;$("viewas-banner").hidden=true;syncGlobalSession();paintOddsQuotaRow();paintOddsMarkets();enterHome();};
   function enterHome(){
     const deep=NAV.initial && !NAV.routedInitial && NAV.initial!=="#" && NAV.initial!=="#/";
     if(deep){
@@ -2116,19 +2199,22 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const gid=window.__tbDetailGid;
     const shown=STATE._detailShown;
     const box=$("detail");
+    syncGlobalSession();
     if(!gid||!shown||!box||box.hidden) return;
     ensureExt().then(function(){
       if(STATE.ops===true && $("detail") && !$("detail").hidden && String(window.__tbDetailGid)===String(gid)) renderDetail(shown);
     });
   }
   async function loadSessionOps(){
-    if(STATE.ops===true){ paintOpsTab(); return; }
+    if(STATE.ops===true){ paintOpsTab(); syncGlobalSession(); return; }
     try{
       const r=await api("/api/me",{timeoutMs:8000,retries:1});
       if(!r||!r.ok) return;
       const me=await r.json();
+      if(window.TBGlobalFlags) TBGlobalFlags.ingest(me);
       if(me && me.ops===true){ const flag={}; flag.ops=true; noteOps(flag); }
     }catch(e){}
+    syncGlobalSession();
     paintOpsTab();
   }
   // The program-owner panel (TBOwner) is not shipped in this repo — this repo is
@@ -2461,7 +2547,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   function buildViewAsMenu(){const box=$("viewas-servers");box.innerHTML="";STATE.servers.forEach(s=>{
     const it=document.createElement("div");it.className="dd-item";it.textContent=s.display_name||"Unnamed";
-    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;paintOddsQuotaRow();paintOddsMarkets();enterHome();};
+    it.onclick=()=>{STATE.viewAs=s;$("dropdown").hidden=true;$("viewas-name").textContent=s.display_name||s.guild_id;$("viewas-banner").hidden=false;syncGlobalSession();paintOddsQuotaRow();paintOddsMarkets();enterHome();};
     box.appendChild(it);});}
   // Only guilds the API marks as listed reach any Home, Stats or Racing list.
   function listedOnly(a){return (Array.isArray(a)?a:[]).filter(s=>s&&s.guild_id!=null&&!s.hidden&&s.listed!==false);}
@@ -2492,6 +2578,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     const racingSrv=racingBuildServer();
     if(racingSrv) ov.appendChild(homeRacingTile(racingSrv));
+    paintBuildEntries();
     if(list.length){
       const lead=document.createElement("p");
       lead.style.cssText="color:var(--muted);margin:18px 0 16px";
@@ -2558,7 +2645,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     t.setAttribute("role","button"); t.tabIndex=0; t.setAttribute("aria-label","Racing: next to go");
     t.innerHTML='<div class="row1"><div><div class="sname">Racing</div><div class="sgid">Gallops &amp; harness · opening prices</div></div><span class="plan">next to go</span></div>'
       +'<div class="hr-strip" id="home-ntg"><div class="hr-empty">Loading…</div></div>';
-    const go=()=>openRacingBuilder(srv.guild_id, srv.display_name||"");
+    if(!buildTipsShown()) t.hidden=true;
+    const go=()=>{ if(!buildTipsShown()) return; openRacingBuilder(srv.guild_id, srv.display_name||""); };
     t.onclick=go;
     t.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); go(); } };
     paintHomeNextToGo(t.querySelector("#home-ntg"));
@@ -2645,7 +2733,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.58.1"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.59.1"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -4684,7 +4772,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +renderCalendar(d.cal_month,d.daily_series,"","follower-calendar");
     if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
     { const stb=$("flstatsbtn"); if(stb) stb.onclick=()=>openStats(); }
-    { const rb=$("flracebtn"); if(rb) rb.onclick=()=>openRacingBuilder(gid,nm); }
+    { const rb=$("flracebtn"); if(rb){ rb.hidden=!buildTipsShown(); rb.onclick=()=>{ if(buildTipsShown()) openRacingBuilder(gid,nm); }; } }
     { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
     $("follower").querySelectorAll(".calnav").forEach(b=>b.onclick=()=>{
@@ -6516,6 +6604,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
+    paintBuildEntries();
     { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
     { const af=$("asfollowerbtn"); if(af)af.onclick=()=>openFollowerView(s.guild_id,s.display_name); }
     { const rb=$("refreshbtn"); if(rb)rb.onclick=()=>loadDetail(s.guild_id,curMonth||null,{force:true}); }
@@ -6633,7 +6722,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.58.1');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.59.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -7462,6 +7551,10 @@ async function loadPerms(gid){
     }
     try{
       if(!paintedFromCache) TopBar.set(22, "Connecting…");
+      const configPromise=api("/api/config",{timeoutMs:8000,retries:1}).then(async function(rc){
+        if(!rc||!rc.ok) return null;
+        try{ return await rc.json(); }catch(e){ return null; }
+      }).catch(function(){ return null; });
       // lite=1 skips N× server_stats — paint fast; hydrate full stats after.
       const r=await api("/api/servers?lite=1",{
         onAttempt:function(attempt, maxAttempts, info){
@@ -7486,6 +7579,12 @@ async function loadPerms(gid){
       keepServerStats(data, (STATE.servers&&STATE.servers.length)?STATE.servers:((cached&&cached.servers)||[]));
       writeBootCache(data);
       noteOps(data);
+      if(window.TBGlobalFlags) TBGlobalFlags.ingest(data);
+      if(data.ops!==true) await loadSessionOps();
+      try{
+        const cfg=await configPromise;
+        if(cfg&&window.TBGlobalFlags) TBGlobalFlags.ingest(cfg);
+      }catch(e){}
       applyBootPayload(data);
       if(!paintedFromCache){
         TopBar.set(92, "Almost ready…");
@@ -7498,7 +7597,6 @@ async function loadPerms(gid){
       }
       TopBar.done(true);
       if(window.TBTerms) window.TBTerms.check(api);
-      if(data.ops!==true) loadSessionOps();
       // Background: full stats for home cards (non-blocking).
       api("/api/servers?lite=0").then(async function(r2){
         if(!r2 || !r2.ok) return;
@@ -7506,6 +7604,7 @@ async function loadPerms(gid){
           const full=await r2.json();
           writeBootCache(full);
           noteOps(full);
+          if(window.TBGlobalFlags) TBGlobalFlags.ingest(full);
           STATE.servers=full.servers?listedOnly(full.servers):STATE.servers;
           STATE.followerServers=full.follower_servers?listedOnly(full.follower_servers):STATE.followerServers;
           if(full.theme_prefs) hydrateTheme(full.theme_prefs);

@@ -1,3 +1,7 @@
+## 0.59.1
+
+Turn Marketplace and Build your own tips on or off for everyone. When one is off, other people don't see it; you still do, marked off for users.
+
 ## 0.58.1
 
 See who admins, mods and follows a server, and add or remove a mod.

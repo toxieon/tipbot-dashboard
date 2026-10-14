@@ -198,6 +198,7 @@
   /* ---------- BUILDER ---------- */
   
   async function openBuilder(guildId, name) {
+    if(typeof buildTipsShown==="function"&&!buildTipsShown())return;
     navNote("#/s/"+encodeURIComponent(guildId)+"/build", ()=>openBuilder(guildId,name));
     return openSportsBuilder(guildId, name, true);
   }
@@ -210,6 +211,7 @@
   }
 
   async function openSportsBuilder(guildId,name,skipNav){
+    if(typeof buildTipsShown==="function"&&!buildTipsShown())return;
     if(!skipNav) navNote("#/s/"+encodeURIComponent(guildId)+"/build/sports", ()=>openSportsBuilder(guildId,name));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
@@ -665,6 +667,7 @@
   const SPORT_STUBS=[{k:"Soccer",hint:"EPL · A-League"},{k:"NRL",hint:"NRL"}];
   const NFL_PROP_TABS=TBEspnProps.NFL_PROP_TABS;   // assets/espn-props.js (values unchanged)
   function openCustom(guildId,name,presetSport){
+    if(typeof buildTipsShown==="function"&&!buildTipsShown())return;
     navNote("#/s/"+encodeURIComponent(guildId)+"/build/custom", ()=>openCustom(guildId,name,presetSport));
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
@@ -1813,7 +1816,7 @@
     }
     return null;
   }
-  // TipBot 0.58.1 sends runner.fixed {win, place}: the opening price, captured once.
+  // TipBot 0.59.1 sends runner.fixed {win, place}: the opening price, captured once.
   function racingOpeningWin(rn){
     const f = rn && rn.fixed && racingPick(rn.fixed, ["win"]);
     return f!=null ? f : racingPick(rn, ["opening_win","open_win","opening_win_odds"]);
@@ -1967,6 +1970,7 @@
     return '<div class="race-soon-banner" role="status">Racing tips are coming soon on this TipBot — you can browse races, but posting isn\'t live yet.</div>';
   }
   async function openRacingBuilder(guildId, name, category){
+    if(typeof buildTipsShown==="function"&&!buildTipsShown())return;
     stopRacingCountdown();
     stopRacingHero();
     navNote("#/s/"+encodeURIComponent(guildId)+"/build/racing", function(){ openRacingBuilder(guildId,name,category); });

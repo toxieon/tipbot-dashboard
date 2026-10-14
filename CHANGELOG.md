@@ -1,3 +1,11 @@
+## 0.59.1 · 2026-10-14 · `global-flags` · Global switches for Marketplace and Build
+
+- Owner settings gains a Global section, separate from any one server. Two switches: Marketplace, and Build your own tips. They read and save through `GET`/`POST /api/owner/global-flags` as `{marketplace_enabled, build_tips_enabled}`.
+- Everyone else reads those booleans from `GET /api/config` or `/api/me`. A missing value stays on.
+- When a switch is off, that menu entry, nav button and route hide for every session except the owner. The owner still sees them, with an Off for users badge. View-as follows the hidden path.
+
+Tests: `tests/global_flags.test.js`, `tests/e2e/global-flags.spec.mjs` (390×844).
+
 ## 0.58.1 · 2026-10-14 · `owner-access` · Access panel in each server's settings
 
 - Settings on a server gains an Access tab, only for an owner session that is not using view-as — the same gate as the other owner-only controls on that server. Anyone else does not see the tab, and the page does not call the access API for them.
