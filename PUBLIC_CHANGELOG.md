@@ -1,3 +1,7 @@
+## 0.58.1
+
+Server settings can attach an external tip source. Owner only, and it stays paused until it's turned on.
+
 ## 0.57.8
 
 The feature list opens faster on a phone. Weekly and monthly recaps sit with the daily one.

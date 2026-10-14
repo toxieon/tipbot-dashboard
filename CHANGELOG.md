@@ -1,3 +1,11 @@
+## 0.58.1 · 2026-10-14 · `connectors` · Owner-only Connectors in server settings
+
+- Each server's Settings gains a Connectors tab for the program owner only, using the same gate as the other owner tools. Anyone else never sees the tab, and the page does not call the connector routes for them.
+- The form covers source type, endpoint, a write-only key, target channel, tipster label, poll interval, post mode, skip-past-events, and enabled. Test connection and Dry run preview post nothing. A new connector stays paused until Enable.
+- Talks to TipBot at `GET`/`POST`/`DELETE /api/connectors?guild_id=` and `POST /api/connectors/{id}/test`, `/dry-run`, and `/toggle`.
+
+Tests: `tests/connectors.test.js`, `tests/e2e/connectors.spec.mjs` (390×844).
+
 ## 0.57.8 · 2026-10-14 · `features-recaps` · Faster feature list, recaps beside Daily
 
 - The per-server feature list paints straight away from memory, with a placeholder while the first response is still on its way, instead of waiting out a round trip every time it is opened.
