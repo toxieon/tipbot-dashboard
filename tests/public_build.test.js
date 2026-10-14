@@ -32,6 +32,8 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     "PUBLIC_CHANGELOG.md",
     ".nojekyll",
     "manifest.webmanifest",
+    "sw.js",
+    "offline.html",
     "pricing/index.html",
     "assets/site/checkout.js",
     "welcome/index.html",

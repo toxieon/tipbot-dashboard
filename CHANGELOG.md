@@ -1,3 +1,13 @@
+## 0.59.1 · 2026-10-14 · `pwa` · Installable app
+
+- Web app manifest: name, the existing icons, theme colour `#0F1420`, standalone display.
+- Service worker stores the app shell and static assets only. `/api` and authenticated responses are never stored; those calls stay on the network with no cache.
+- Offline fallback page when a screen is not saved on the device.
+- iOS Add to Home Screen hint, shown once, and dismissible.
+- Update prompt when a new version is deployed.
+
+Tests: `tests/pwa.test.js`, `tests/e2e/pwa.spec.mjs` (390×844).
+
 ## 0.58.2 · 2026-10-14 · `discover-sports` · Sport filters on Discover
 
 - Discover tipsters: chips for All and each sport the listed tipsters tip, more than one at a time, laid out for a phone. Each card shows that tipster's top sports.

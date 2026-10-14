@@ -1,3 +1,7 @@
+## 0.59.1
+
+TipBot can be installed on your phone. A saved copy of the app opens if you are offline, and you are asked before a new version replaces it.
+
 ## 0.58.2
 
 Discover filters tipsters by sport. Pick more than one. Cards show the sports they tip most.

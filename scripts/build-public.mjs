@@ -17,6 +17,8 @@ export const ALLOW = [
   "PUBLIC_CHANGELOG.md",
   ".nojekyll",
   "manifest.webmanifest",
+  "sw.js",
+  "offline.html",
   "bookies.json",
   "players.json",
   "assets",

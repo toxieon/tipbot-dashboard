@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F1420">
+<meta name="robots" content="noindex">
+<title>Offline — TipBot</title>
+<link rel="icon" href="/assets/favicon.ico" sizes="any">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" sizes="180x180">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: #0F1420;
+    color: #eef2fa;
+    font: 0.9375rem/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: grid;
+    place-items: center;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  }
+  main { width: min(100%, 420px); text-align: center; }
+  img { width: 72px; height: 72px; border-radius: 16px; }
+  h1 { margin: 16px 0 8px; font-size: 1.375rem; line-height: 1.25; letter-spacing: -0.02em; }
+  p { margin: 0 0 20px; color: #8a95ad; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  a, button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 0 16px; border-radius: 12px;
+    font: inherit; font-weight: 700; text-decoration: none; cursor: pointer;
+  }
+  button { border: 0; background: #5b8cff; color: #0b0f1a; }
+  a { border: 1px solid #26304a; color: #eef2fa; background: transparent; }
+  button:focus-visible, a:focus-visible { outline: 2px solid #5b8cff; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/assets/icon-192.png" width="72" height="72" alt="TipBot">
+  <h1 id="offline-title">You're offline</h1>
+  <p>TipBot couldn't open this page. Reconnect, then try again. The dashboard is still saved on this device.</p>
+  <div class="actions">
+    <button type="button" id="offline-retry">Try again</button>
+    <a href="/">Dashboard</a>
+  </div>
+</main>
+<script>
+  document.getElementById("offline-retry").addEventListener("click", function () { location.reload(); });
+</script>
+</body>
+</html>

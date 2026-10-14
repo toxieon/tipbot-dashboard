@@ -1,0 +1,43 @@
+/* Install hint and update prompt. Fixed to the top so the sign-in control,
+   the terms gate, and the phone tab bar stay usable. */
+.pwa-banner{
+  position:fixed;
+  z-index:55;
+  left:max(12px, env(safe-area-inset-left, 0px));
+  right:max(12px, env(safe-area-inset-right, 0px));
+  top:calc(10px + env(safe-area-inset-top, 0px));
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px 12px;
+  box-sizing:border-box;
+  margin:0;
+  padding:12px 14px;
+  border:1px solid var(--line, #26304a);
+  border-radius:14px;
+  background:var(--card, #151b2b);
+  color:var(--txt, #eef2fa);
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  font:600 .8125rem/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.pwa-banner[hidden]{display:none !important}
+.pwa-banner p{margin:0;flex:1 1 12rem;min-width:0;overflow-wrap:anywhere}
+.pwa-banner-actions{display:flex;flex-wrap:wrap;gap:8px;flex:none}
+.pwa-banner button{
+  min-height:44px;
+  min-width:44px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid var(--line, #26304a);
+  background:transparent;
+  color:var(--txt, #eef2fa);
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+}
+.pwa-banner button.pwa-go{
+  background:var(--accent, #5b8cff);
+  border-color:transparent;
+  color:var(--on-accent, #0b0f1a);
+}
+.pwa-banner button:focus-visible{outline:2px solid var(--accent, #5b8cff);outline-offset:2px}
