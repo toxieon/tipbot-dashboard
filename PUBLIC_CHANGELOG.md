@@ -1,3 +1,7 @@
+## 0.59.1
+
+Connected feeds can show results for the day, week, month and all time, plus failure alerts. A generic JSON feed can map its own fields and preview a dry run.
+
 ## 0.58.1
 
 Small improvements to server settings.
