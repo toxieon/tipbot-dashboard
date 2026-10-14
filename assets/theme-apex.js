@@ -472,8 +472,27 @@
   function navItems(ids) {
     return ids.map(function (id) { return NAV.filter(function (item) { return item.id === id; })[0]; }).filter(Boolean);
   }
+  function flagShown(key) {
+    var api = root.TBGlobalFlags;
+    if (!api || typeof api.shown !== "function") return true;
+    return !!api.shown(key);
+  }
+  function flagBadge(key) {
+    var api = root.TBGlobalFlags;
+    if (!api || typeof api.badge !== "function") return "";
+    return api.badge(key) || "";
+  }
+  function visibleNavIds(ids) {
+    return ids.filter(function (id) {
+      if (id === "build" && !flagShown("build_tips_enabled")) return false;
+      return true;
+    });
+  }
   function railIds() {
-    return hasServerContext() ? TABS : RAIL_NO_SERVER;
+    return visibleNavIds(hasServerContext() ? TABS : RAIL_NO_SERVER);
+  }
+  function navKey(ids) {
+    return ids.join(",") + "|" + flagBadge("build_tips_enabled");
   }
 
   function icon(d) {
@@ -563,6 +582,7 @@
   }
   function go(id) {
     if (id === "build" && !hasServerContext()) return;
+    if (id === "build" && !flagShown("build_tips_enabled")) return;
     picked = id;
     paintNav();
     if (!onDash()) {
@@ -627,6 +647,7 @@
       return;
     }
     if (pending === "build") {
+      if (!flagShown("build_tips_enabled")) { pending = ""; return; }
       var btn = doc.getElementById("buildbtn");
       if (btn) { pending = ""; btn.click(); return; }
       if (!pendingFired) {
@@ -670,7 +691,7 @@
   function syncRailNav() {
     if (!railNav) return;
     var ids = railIds();
-    var key = ids.join(",");
+    var key = navKey(ids);
     if (railNav.dataset.apexRail === key) return;
     railNav.dataset.apexRail = key;
     var ind = railNav.querySelector(".apex-indicator");
@@ -695,8 +716,23 @@
   function buttonRow(items, extra) {
     return items.map(function (item) {
       var cls = "apex-navbtn" + (item.id === "build" ? " apex-tab-build" : "") + (extra || "");
-      return '<button type="button" class="' + cls + '" data-apex-nav="' + item.id + '" aria-label="' + item.label + '">' + icon(item.d) + "<span>" + item.label + "</span></button>";
+      var badge = item.id === "build" ? flagBadge("build_tips_enabled") : "";
+      if (badge) cls += " has-gf-badge";
+      var badgeHtml = badge ? '<span class="gf-badge">' + String(badge).replace(/[&<>]/g, "") + "</span>" : "";
+      var label = item.label + (badge ? ", " + badge : "");
+      return '<button type="button" class="' + cls + '" data-apex-nav="' + item.id + '" aria-label="' + label + '">' + icon(item.d) + "<span>" + item.label + "</span>" + badgeHtml + "</button>";
     }).join("");
+  }
+  function syncPhoneTabNav() {
+    if (!tabsNav) return;
+    var ids = visibleNavIds(TABS);
+    var key = navKey(ids);
+    tabsNav.classList.toggle("apex-tabs-nobuild", ids.indexOf("build") < 0);
+    if (tabsNav.dataset.apexTabIds === key) return;
+    tabsNav.dataset.apexTabIds = key;
+    var ind = tabsNav.querySelector(".apex-indicator");
+    var indHtml = ind ? ind.outerHTML : '<i class="apex-indicator" aria-hidden="true"></i>';
+    tabsNav.innerHTML = indHtml + buttonRow(navItems(ids), "");
   }
   function mountShell() {
     if (!active() || !doc.body || shellReady) return;
@@ -710,7 +746,7 @@
     var rail = doc.createElement("nav");
     rail.className = "apex-rail";
     rail.setAttribute("aria-label", "Sections");
-    rail.dataset.apexRail = railIds().join(",");
+    rail.dataset.apexRail = navKey(railIds());
     rail.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(navItems(railIds()), "");
     var tabs = doc.createElement("nav");
     tabs.className = "apex-tabs";
@@ -744,6 +780,7 @@
   function paintNav() {
     syncPhoneTabs();
     syncRailNav();
+    syncPhoneTabNav();
     var id = sectionNow();
     doc.querySelectorAll("[data-apex-nav]").forEach(function (btn) {
       var on = btn.getAttribute("data-apex-nav") === id;
@@ -1286,7 +1323,8 @@
     formStrip: formStrip,
     stamp: stamp,
     armEmptyStates: armEmptyStates,
-    hasServerContext: hasServerContext
+    hasServerContext: hasServerContext,
+    paintNav: paintNav
   };
   if (doc && doc.documentElement && doc.documentElement.dataset.theme === "apex") boot();
 })(typeof window !== "undefined" ? window : globalThis);
