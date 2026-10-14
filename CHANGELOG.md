@@ -1,3 +1,11 @@
+## 0.57.8 · 2026-10-14 · `features-recaps` · Faster feature list, recaps beside Daily
+
+- The per-server feature list paints straight away from memory, with a placeholder while the first response is still on its way, instead of waiting out a round trip every time it is opened.
+- Daily, weekly and monthly recap switches sit together in that list, with skip-empty and a preview for each period. They save through the existing recap endpoints and keep the Sydney 9:00am schedule (Monday, and the 1st). Nothing posts until a switch is turned on.
+- The separate recap block on Settings → General is gone.
+
+Tests: `tests/features_recap.test.js`, `tests/e2e/features-recap.spec.mjs` (390×844).
+
 ## 0.57.7 · 2026-10-14 · `auto-recaps` · Auto recaps settings
 
 - Settings → General gains Auto recaps: independent daily / weekly / monthly toggles, Sydney post time, target channel, skip-empty option, and an admin-only “Send preview now” button. Nothing posts until a server turns a period on.
