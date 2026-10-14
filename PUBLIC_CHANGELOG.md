@@ -1,6 +1,10 @@
 ## 0.58.1
 
-Server settings can attach an external tip source. Owner only, and it stays paused until it's turned on. A live log under each source shows tips, results and grades as they arrive.
+Small improvements to server settings.
+
+## 0.57.9
+
+Use your server's own emojis, including animated ones, as the follow reaction.
 
 ## 0.57.8
 

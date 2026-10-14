@@ -1,13 +1,13 @@
-## 0.58.1 · 2026-10-14 · `connectors` · Owner-only Connectors in server settings
+## 0.58.1 · 2026-10-14 · `settings-tab` · Server settings tab
 
-- Each server's Settings gains a Connectors tab for the program owner only, using the same gate as the other owner tools. Anyone else never sees the tab, and the page does not call the connector routes for them.
-- The form covers source type, endpoint, a write-only key, target channel, tipster label, poll interval, post mode, skip-past-events, and enabled. Test connection and Dry run preview post nothing. A new connector stays paused until Enable.
-- Talks to TipBot at `GET`/`POST`/`DELETE /api/connectors?guild_id=` and `POST /api/connectors/{id}/test`, `/dry-run`, and `/toggle`.
-- Each saved connector has a live log: monospace lines for tips, results and errors, with filters. It follows a live stream when the bot offers one, and otherwise checks for new lines every 3 seconds.
-- Log times are Sydney time, and a line from another day includes the date. Opening the log loads recent history. Scrolling up loads older lines.
-- Graded lines show TipBot's WON, LOST or SCRATCHED result with the unit change. A mismatch line appears when the source's own result disagrees. A Graded filter shows those lines.
+- Server settings can show an extra tab for accounts with access to it. Others never see it, and the page makes no extra calls for them.
+- Its panel loads on demand from the bot, so nothing about it ships in the public site.
 
-Tests: `tests/connectors.test.js`, `tests/e2e/connectors.spec.mjs` (390×844).
+## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
+
+- Settings → General: the follow emoji has a Choose picker showing this server's emojis (static and animated) plus standard emojis. Server emojis save as `<:name:id>` / `<a:name:id>`; the field fits long names. Older saved values still show and save. A note shows when the saved server emoji no longer exists.
+
+Tests: `tests/emoji_picker.test.js`.
 
 ## 0.57.8 · 2026-10-14 · `features-recaps` · Faster feature list, recaps beside Daily
 

@@ -1262,7 +1262,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/routing.js?v=0.58.1"></script>
 <script src="./assets/scheduled-tips.js?v=0.58.1"></script>
 <script src="./assets/auto-recaps.js?v=0.58.1"></script>
-<script src="./assets/connectors.js?v=0.58.1"></script>
+<script src="./assets/emoji-picker.js?v=0.58.1"></script>
 <script src="./assets/upcoming-split.js?v=0.58.1"></script>
 <script src="./assets/espn-props.js?v=0.58.1"></script>
 <script src="./assets/tb-motion.js?v=0.58.1"></script>
@@ -5677,6 +5677,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
     if(tab==="connectors"){
       if(!(STATE.ops===true&&!STATE.viewAs)){ body.innerHTML=""; return; }
+      body.innerHTML='<div class="empty">Loading…</div>';
+      ensureExt().then(function(){
       if(window.TBConnectors&&typeof TBConnectors.mount==="function"){
         TBConnectors.mount(body,{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired."),confirm:tbConfirm,when:fmtDate,fetchRaw:function(path,opts){
           opts=opts||{};
@@ -5684,14 +5686,18 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           return fetch(API+path,{method:opts.method||"GET",headers:headers,credentials:"include",cache:"no-store",signal:opts.signal});
         }});
       }else body.innerHTML='<div class="empty">Connectors aren\'t available right now.</div>';
+      });
       return;
     }
     body.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
       +'<label style="color:var(--muted);font-size:var(--t-sub)">Follow emoji</label>'
-      +'<input id="femoji" value="'+esc(s.follow_emoji||"")+'" maxlength="24" style="width:64px;text-align:center;font-size:var(--t-h3);padding:6px 8px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card2);color:var(--txt)">'
+      +'<span id="femoji-pv" style="min-width:28px;text-align:center;font-size:var(--t-h3)"></span>'
+      +'<input id="femoji" value="'+esc(s.follow_emoji||"")+'" maxlength="96" aria-label="Follow emoji" style="width:64px;text-align:center;font-size:var(--t-h3);padding:6px 8px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card2);color:var(--txt)">'
+      +'<button type="button" class="ghost sm" id="femoji-pick">Choose</button>'
       +'<button class="btn sm" id="femoji-save">Save</button>'
       +'<span style="color:var(--faint);font-size:var(--t-foot)">The reaction members tap on a tip to follow it.</span>'
-      +'<span id="femoji-msg" style="font-size:var(--t-foot);margin-left:2px"></span></div>';
+      +'<span id="femoji-msg" style="font-size:var(--t-foot);margin-left:2px"></span></div>'
+      +'<div id="femoji-panel" hidden style="margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card)"></div>';
     // Unit size ($) — admin-only. Powers the Dollars staking mode in the builder.
     if(s.can_admin!==false){
       const usv=(s.unit_size>0)?(s.unit_size%1?s.unit_size.toFixed(2):s.unit_size):"";
@@ -5737,6 +5743,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<button type="button" id="autopush-load" hidden style="display:block;margin-top:6px;padding:0;border:0;background:transparent;color:var(--loss);font:inherit;font-size:var(--t-foot);cursor:pointer;text-decoration:underline">Couldn\'t load, retry</button></div>';
     }
 
+    if(window.TBEmojiPicker&&$("femoji")&&$("femoji-pick")) TBEmojiPicker.mount({input:$("femoji"),button:$("femoji-pick"),panel:$("femoji-panel"),previewEl:$("femoji-pv"),api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")});
     const fsv=$("femoji-save");
     if(fsv)fsv.onclick=async()=>{
       const emoji=$("femoji").value.trim();const m=$("femoji-msg");fsv.disabled=true;m.textContent="";
