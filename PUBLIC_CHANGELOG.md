@@ -1,3 +1,7 @@
+## 0.57.8
+
+The feature list opens faster on a phone. Weekly and monthly recaps sit with the daily one.
+
 ## 0.57.7
 
 Schedule daily, weekly or monthly results recaps to your Discord — rich summaries with a one-tap preview for admins.
