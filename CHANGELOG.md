@@ -1,3 +1,10 @@
+## 0.58.1 · 2026-10-14 · `discover-sports` · Sport filters on Discover
+
+- Discover tipsters: chips for All and each sport the listed tipsters tip, more than one at a time, laid out for a phone. Each card shows that tipster's top sports.
+- `GET /api/discover` still has no per-tipster sport field. Chips and tags use `sports` (or a stats breakdown, or sport on tip rows) when the payload includes them.
+
+Tests: `tests/discover_sports.test.js`, `tests/e2e/discover-sports.spec.mjs` (390×844).
+
 ## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
 
 - Settings → General: the follow emoji has a Choose picker showing this server's emojis (static and animated) plus standard emojis. Server emojis save as `<:name:id>` / `<a:name:id>`; the field fits long names. Older saved values still show and save. A note shows when the saved server emoji no longer exists.

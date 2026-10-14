@@ -1,3 +1,7 @@
+## 0.58.1
+
+Discover filters tipsters by sport. Pick more than one. Cards show the sports they tip most.
+
 ## 0.57.9
 
 Use your server's own emojis, including animated ones, as the follow reaction.
