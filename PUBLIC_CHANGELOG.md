@@ -1,3 +1,7 @@
+## 0.57.9
+
+Use your server's own emojis, including animated ones, as the follow reaction.
+
 ## 0.57.8
 
 The feature list opens faster on a phone. Weekly and monthly recaps sit with the daily one.

@@ -141,6 +141,10 @@ test.describe("features recaps", () => {
       else if (parsed.pathname === "/api/me") payload = { ok: true, ops: !!ops };
       else if (parsed.pathname === "/api/feature-flags") payload = bag.flags;
       else if (parsed.pathname === "/api/auto-recap") payload = bag.recap;
+      else if (parsed.pathname === "/api/guild-emojis") payload = { ok: true, emojis: [
+        { id: "1234567890123456789", name: "tick", animated: false, url: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", token: "<:tick:1234567890123456789>" },
+        { id: "1234567890123456790", name: "party_parrot_long_name", animated: true, url: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", token: "<a:party_parrot_long_name:1234567890123456790>" },
+      ] };
       await route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(payload) });
     });
     return bag;
@@ -281,6 +285,22 @@ test.describe("features recaps", () => {
     expect(errors).toEqual([]);
     await page.locator("#settings-panel").scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(SHOTS, "settings_no_recaps_390.png") });
+  });
+
+  test("follow emoji picker offers server (incl. animated) and standard emojis and saves the token", async ({ page }) => {
+    const bag = await install(page, { ops: false });
+    const errors = await boot(page);
+    await page.locator("#settings-panel .panel-hd").click();
+    await page.waitForSelector("#femoji-pick");
+    await page.click("#femoji-pick");
+    const cells = page.locator("#femoji-panel .ep-cell");
+    await expect(cells.first()).toBeVisible();
+    await expect(page.locator('#femoji-panel .ep-cell[data-v="🫡"]')).toHaveCount(1);
+    await page.locator('#femoji-panel .ep-cell[data-v="<a:party_parrot_long_name:1234567890123456790>"]').click();
+    await expect(page.locator("#femoji")).toHaveValue("<a:party_parrot_long_name:1234567890123456790>");
+    await page.click("#femoji-save");
+    await expect.poll(() => bag.posts.filter((x) => x.path === "/api/follow-emoji").map((x) => x.body.emoji)).toEqual(["<a:party_parrot_long_name:1234567890123456790>"]);
+    expect(errors).toEqual([]);
   });
 
   test("a 404 preview is not treated as sent", async ({ page }) => {
