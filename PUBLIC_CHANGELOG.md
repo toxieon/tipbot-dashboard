@@ -1,3 +1,7 @@
+## 0.58.1
+
+Small improvements to server settings.
+
 ## 0.57.9
 
 Use your server's own emojis, including animated ones, as the follow reaction.

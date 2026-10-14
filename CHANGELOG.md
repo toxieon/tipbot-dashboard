@@ -1,3 +1,8 @@
+## 0.58.1 · 2026-10-14 · `settings-tab` · Server settings tab
+
+- Server settings can show an extra tab for accounts with access to it. Others never see it, and the page makes no extra calls for them.
+- Its panel loads on demand from the bot, so nothing about it ships in the public site.
+
 ## 0.57.9 · 2026-10-14 · `follow-emoji` · Pick a server emoji for follows
 
 - Settings → General: the follow emoji has a Choose picker showing this server's emojis (static and animated) plus standard emojis. Server emojis save as `<:name:id>` / `<a:name:id>`; the field fits long names. Older saved values still show and save. A note shows when the saved server emoji no longer exists.
