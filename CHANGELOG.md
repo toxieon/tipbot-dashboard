@@ -1,3 +1,7 @@
+## 0.59.1 · 2026-10-14 · `settings-tab` · Server settings tab
+
+- More detail in the extra server settings tab. Its panel still loads on demand from the bot, so nothing about it ships in the public site.
+
 ## 0.58.2 · 2026-10-14 · `discover-sports` · Sport filters on Discover
 
 - Discover tipsters: chips for All and each sport the listed tipsters tip, more than one at a time, laid out for a phone. Each card shows that tipster's top sports.
