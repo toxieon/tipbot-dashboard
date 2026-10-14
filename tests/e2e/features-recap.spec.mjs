@@ -4,6 +4,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import os from "node:os";
+import { mkdirSync } from "node:fs";
+const SHOTS = process.env.E2E_SHOTS_DIR || path.join(os.tmpdir(), "tipdash-e2e");
+mkdirSync(SHOTS, { recursive: true });
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const EXT = `
@@ -241,7 +245,7 @@ test.describe("features recaps", () => {
     const preview = bag.posts.find((p) => p.path === "/api/auto-recap/preview");
     expect(preview.body).toEqual({ guild_id: "1", kind: "daily" });
 
-    const shotDir = "/opt/cursor/artifacts";
+    const shotDir = SHOTS;
     await page.locator("#recap-group").scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(shotDir, "features_recaps_390.png") });
     const box = await page.locator("#recap-group").boundingBox();
@@ -276,7 +280,7 @@ test.describe("features recaps", () => {
     expect(bag.gets.filter((p) => p === "/api/auto-recap")).toEqual([]);
     expect(errors).toEqual([]);
     await page.locator("#settings-panel").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: "/opt/cursor/artifacts/settings_no_recaps_390.png" });
+    await page.screenshot({ path: path.join(SHOTS, "settings_no_recaps_390.png") });
   });
 
   test("a 404 preview is not treated as sent", async ({ page }) => {
