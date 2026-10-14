@@ -989,6 +989,40 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 
 .dc-spotlight{border-left:4px solid var(--win)}
 .dc-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.dc-sports{
+  display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;
+  margin:0 0 12px;padding:0 0 2px;max-width:100%;min-width:0;
+}
+.dc-sports[hidden]{display:none !important}
+.dc-sports::-webkit-scrollbar{display:none}
+.dc-sport{
+  flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--txt);font:inherit;font-size:var(--t-sub);font-weight:700;
+  cursor:pointer;white-space:nowrap;
+}
+.dc-sport.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.dc-sport:active{transform:scale(.96)}
+.dc-sport-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;min-width:0}
+.dc-sport-tag{
+  font-size:var(--t-cap);font-weight:700;line-height:1.3;padding:2px 7px;border-radius:999px;
+  background:var(--card2);border:1px solid var(--line);color:var(--muted);white-space:nowrap;
+}
+.dc-tools{display:flex;flex-direction:column;gap:8px;margin:0 0 14px;align-items:stretch;min-width:0}
+.dc-tools[hidden]{display:none !important}
+.dc-tools input,.dc-tools select{
+  width:100%;min-height:44px;box-sizing:border-box;background:var(--card2);color:var(--txt);
+  border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font:inherit;font-size:var(--t-body);
+}
+@media (min-width:640px){
+  .dc-tools{flex-direction:row;align-items:center}
+  .dc-tools input{flex:1;width:auto;min-width:160px}
+  .dc-tools select{width:auto}
+}
+@media (max-width:639px){
+  .dc-grid{grid-template-columns:minmax(0,1fr)}
+  .dc-hero,.dc-spotlight{padding:14px}
+}
 
 /* ===== Sportsbet odds (inline tip-leg display) ===== */
 .leg-odds{flex:none;display:inline-flex;align-items:baseline;gap:4px;font-variant-numeric:tabular-nums;font-weight:700;font-size:var(--t-foot);color:var(--muted);white-space:nowrap;margin-left:4px}
@@ -1259,6 +1293,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/compare-ui.js?v=0.59.1"></script>
 <script src="./assets/sport-keywords.js?v=0.59.1"></script>
 <script src="./assets/sport-marks.js?v=0.59.1"></script>
+<script src="./assets/discover-sports.js?v=0.59.1"></script>
 <script src="./assets/routing.js?v=0.59.1"></script>
 <script src="./assets/scheduled-tips.js?v=0.59.1"></script>
 <script src="./assets/auto-recaps.js?v=0.59.1"></script>
@@ -2168,21 +2203,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(STATE.ops!==true || STATE.viewAs) return Promise.resolve(false);
     if(window.TBOwner) return Promise.resolve(true);
     return loadExtPanel();
-  }
-  // Generic connector stats, alerts and the JSON field map. Loaded only after
-  // the gated settings tab opens. The client-specific panel still comes from the bot.
-  let CPX_PENDING=null;
-  function loadConnectorPanel(){
-    if(window.TBConnectorPanel) return Promise.resolve(true);
-    if(CPX_PENDING) return CPX_PENDING;
-    CPX_PENDING=new Promise(function(resolve){
-      const s=document.createElement("script");
-      s.src="./assets/connector-panel.js?v="+encodeURIComponent(TD.version);
-      s.onload=function(){ resolve(!!window.TBConnectorPanel); };
-      s.onerror=function(){ CPX_PENDING=null; resolve(false); };
-      document.head.appendChild(s);
-    });
-    return CPX_PENDING;
   }
   function openOps(){
     if(STATE.ops!==true){
@@ -5030,9 +5050,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="dc-hero"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">'
       +'<h1>Discover tipsters</h1><span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:rgba(91,140,255,.18);color:var(--accent);padding:2px 8px;border-radius:999px">FREE</span></div>'
       +'<p>Browse tipsters who opted in — ranked by <b>settled</b> units only. Pending tips never count. Join their Discord to follow.</p></div>'
-      +'<div id="dc-spot"></div><div id="dc-tools" hidden style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px;align-items:center">'
-      +'<input id="dc-q" placeholder="Search tipsters" style="flex:1;min-width:160px;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font:inherit">'
-      +'<select id="dc-sort" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-md);padding:8px 10px;font:inherit">'
+      +'<div id="dc-sports" class="dc-sports" role="group" aria-label="Filter by sport" hidden></div>'
+      +'<div id="dc-spot"></div><div id="dc-tools" class="dc-tools" hidden>'
+      +'<input id="dc-q" placeholder="Search tipsters" autocomplete="off">'
+      +'<select id="dc-sort">'
       +'<option value="net">Settled net</option><option value="strike">Strike</option><option value="volume">Volume</option></select></div>'
       +'<div id="dc-list"><div class="empty">Loading…</div></div>';
     $("dc-back").onclick=back;
@@ -5049,9 +5070,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const col=net>=0?"var(--win)":"var(--loss)";
       const name=t.display_name||t.guild_id;
       const form=(window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(t.form):"";
+      const tags=(window.DiscoverSports&&typeof DiscoverSports.tagsHtml==="function")?DiscoverSports.tagsHtml(DiscoverSports.topSports(t,3)):"";
       return '<div class="dc-card">'
         +'<div class="dc-top">'+dcGuildAvatar(t,name,40)
         +'<div style="min-width:0;flex:1"><div class="dc-name">'+esc(name)+'</div>'
+        +tags
         +'<div class="dc-pills"><span class="dc-pill dc-pill--w">'+(t.wins||0)+'W</span><span class="dc-pill dc-pill--l">'+(t.losses||0)+'L</span>'
         +'<span style="font-size:var(--t-cap);color:var(--faint);align-self:center">'+(t.strike!=null?t.strike+"% strike":"")+'</span></div>'
         +form+'</div></div>'
@@ -5059,10 +5082,14 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<div class="dc-stats"><span class="dc-net" style="color:'+col+'">'+(net>0?"+":"")+net+'u</span>'
         +'<button type="button" class="btn sm dc-open" data-g="'+esc(t.guild_id)+'" data-n="'+esc(name)+'">View</button></div></div>';
     };
-    const paint=(list)=>{
-      const spot=$("dc-spot"), box=$("dc-list"), tools=$("dc-tools");
-      if(!list.length){
+    let list=[];
+    let picked=[];
+    let apply=function(){};
+    const paint=(visible)=>{
+      const spot=$("dc-spot"), box=$("dc-list"), tools=$("dc-tools"), bar=$("dc-sports");
+      if(!visible.length && !list.length){
         if(tools) tools.hidden=true;
+        if(bar){ bar.hidden=true; bar.innerHTML=""; }
         spot.innerHTML="";
         box.innerHTML='<div class="dc-empty"><div class="dc-empty-mark" aria-hidden="true">🏆</div>'
           +'<h3>No tipsters to show yet</h3>'
@@ -5072,17 +5099,30 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         return;
       }
       if(tools) tools.hidden=false;
-      const featured=pickFeaturedTipster(list);
+      if(!visible.length){
+        spot.innerHTML="";
+        const qOn=!!(($("dc-q")||{}).value||"").trim();
+        box.innerHTML=picked.length
+          ?('<div class="dc-empty"><h3>'+(qOn?"No matches":"No tipsters for those sports")+'</h3>'
+            +'<p>'+(qOn?"Nothing matches that name in the selected sports.":"Try another sport, or show everyone.")+'</p>'
+            +'<button type="button" class="btn sm" id="dc-sports-clear" style="margin-top:14px">Show all sports</button></div>')
+          :('<div class="dc-empty"><h3>No matches</h3><p>Try a different name.</p></div>');
+        const clr=$("dc-sports-clear"); if(clr) clr.onclick=()=>{ picked=[]; apply(); };
+        return;
+      }
+      const featured=pickFeaturedTipster(visible);
       if(featured){
         const topNet=Number(featured.units_net||0);
         const topCol=topNet>=0?"var(--win)":"var(--loss)";
         const topName=featured.display_name||featured.guild_id;
         const featForm=(window.FormBadges&&typeof FormBadges.render==="function")?FormBadges.render(featured.form):"";
+        const featTags=(window.DiscoverSports&&typeof DiscoverSports.tagsHtml==="function")?DiscoverSports.tagsHtml(DiscoverSports.topSports(featured,3)):"";
         spot.innerHTML='<div class="dc-spotlight" style="flex-direction:column;align-items:stretch">'
           +'<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'
           +dcGuildAvatar(featured,topName,56)
           +'<div style="min-width:0;flex:1"><div style="font-size:var(--t-cap);font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px">Featured</div>'
           +'<div style="font-size:var(--t-h3);font-weight:800">'+esc(topName)+'</div>'
+          +featTags
           +'<div class="dc-pills" style="margin-top:6px"><span class="dc-pill dc-pill--w">'+(featured.wins||0)+'W</span><span class="dc-pill dc-pill--l">'+(featured.losses||0)+'L</span>'
           +'<span style="font-size:var(--t-foot);color:var(--muted);align-self:center">'+(featured.settled||0)+' settled</span></div>'
           +featForm+'</div>'
@@ -5090,20 +5130,48 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           +'<button type="button" class="btn sm dc-open" data-g="'+esc(featured.guild_id)+'" data-n="'+esc(topName)+'">View</button></div>'
           +dcMiniSpark(featured,true)+'</div>';
       } else spot.innerHTML="";
-      box.innerHTML='<div style="color:var(--faint);font-size:var(--t-foot);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px">All tipsters</div>'
-        +'<div class="dc-grid">'+list.map(card).join("")+'</div>';
+      box.innerHTML='<div style="color:var(--faint);font-size:var(--t-foot);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px">'+(picked.length?"Matching tipsters":"All tipsters")+'</div>'
+        +'<div class="dc-grid">'+visible.map(card).join("")+'</div>';
       wireOpen($("discover"));
     };
     try{
       const r=await api("/api/discover");
       if(!r.ok){ $("dc-list").innerHTML='<div class="empty">Couldn\'t load Discover. <button type="button" class="btn sm" id="dc-retry">Retry</button></div>'; const rb=$("dc-retry"); if(rb)rb.onclick=()=>openDiscover(fromGid,fromName); return; }
       const j=await r.json();
-      let list=(j&&j.tipsters)||[];
-      const apply=()=>{
+      list=(j&&j.tipsters)||[];
+      picked=[];
+      let chipSig="";
+      const syncChips=()=>{
+        const bar=$("dc-sports");
+        if(!bar||!window.DiscoverSports) return;
+        const names=DiscoverSports.catalog(list);
+        if(!names.length){ bar.hidden=true; bar.innerHTML=""; chipSig=""; return; }
+        const sig=names.join("\0")+"|"+picked.join("\0");
+        bar.hidden=false;
+        if(sig===chipSig) return;
+        const left=bar.scrollLeft;
+        const focusEl=document.activeElement;
+        const focusSport=focusEl&&bar.contains(focusEl)?(focusEl.getAttribute("data-sport")||""):null;
+        bar.innerHTML=DiscoverSports.chipsHtml(names, picked);
+        bar.scrollLeft=left;
+        bar.querySelectorAll(".dc-sport").forEach(b=>b.onclick=()=>{
+          picked=DiscoverSports.toggle(picked, b.getAttribute("data-sport")||"");
+          apply();
+        });
+        if(focusSport!=null){
+          bar.querySelectorAll(".dc-sport").forEach(el=>{
+            if((el.getAttribute("data-sport")||"")===focusSport) el.focus();
+          });
+        }
+        chipSig=sig;
+      };
+      apply=()=>{
+        syncChips();
         const q=(($("dc-q")||{}).value||"").trim().toLowerCase();
         const sort=(($("dc-sort")||{}).value)||"net";
         let out=list.slice();
         if(q) out=out.filter(t=>String(t.display_name||t.guild_id||"").toLowerCase().includes(q));
+        if(window.DiscoverSports) out=out.filter(t=>DiscoverSports.matches(t, picked));
         out.sort((a,b)=>{
           if(sort==="strike") return Number(b.strike||0)-Number(a.strike||0);
           if(sort==="volume") return Number(b.settled||0)-Number(a.settled||0);
@@ -5702,14 +5770,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       }};
       ensureExt().then(function(){
         if(!(STATE.ops===true&&!STATE.viewAs)) return;
-        if(!client||!client.isConnected) return;
-        if(window.TBConnectors&&typeof TBConnectors.mount==="function") TBConnectors.mount(client, ctx);
-      });
-      loadConnectorPanel().then(function(ok){
-        if(!(STATE.ops===true&&!STATE.viewAs)) return;
+        if(client&&client.isConnected&&window.TBConnectors&&typeof TBConnectors.mount==="function") TBConnectors.mount(client, ctx);
         if(!extra||!extra.isConnected) return;
-        if(ok&&window.TBConnectorPanel&&typeof TBConnectorPanel.mount==="function") TBConnectorPanel.mount(extra, ctx);
-        else extra.innerHTML='<div class="empty">Connectors aren\'t available right now.</div>';
+        if(window.TBConnectorPanel&&typeof TBConnectorPanel.mount==="function") TBConnectorPanel.mount(extra, ctx);
+        else extra.innerHTML="";
       });
       return;
     }

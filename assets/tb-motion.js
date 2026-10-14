@@ -399,7 +399,7 @@
   }
   function isHorizontalScroller(t, getCS) {
     while (t && t.nodeType === 1) {
-      if (t.classList && (t.classList.contains("tabs") || t.classList.contains("hr-strip") || t.classList.contains("apex-seg"))) return true;
+      if (t.classList && (t.classList.contains("tabs") || t.classList.contains("hr-strip") || t.classList.contains("apex-seg") || t.classList.contains("dc-sports"))) return true;
       try {
         var cs = getCS(t);
         var ox = cs.overflowX;

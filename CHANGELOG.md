@@ -1,11 +1,13 @@
-## 0.59.1 · 2026-10-14 · `connector-panel` · Connector stats, alerts, generic JSON
+## 0.59.1 · 2026-10-14 · `settings-tab` · Server settings tab
 
-- Each connector has a Stats section with Day, Week, Month and All time. It shows W/L/void, strike rate, P/L in units, ROI, average odds, a confidence breakdown, mismatches, and the best and worst tips. Loaded with `GET /api/connectors/{id}/stats?period=`.
-- Alert settings per connector: failure threshold, quiet window, and an on/off switch. Saved on the connector without changing whether the feed itself is enabled.
-- Generic JSON feeds: endpoint, auth style, write-only key, cursor parameter, and a JSONPath field map. Editing the map runs a dry-run preview. Nothing is posted.
-- The client-specific panel still loads from the bot for accounts that have it. This page does not ship that script.
+- More detail in the extra server settings tab. Its panel still loads on demand from the bot, so nothing about it ships in the public site.
 
-Tests: `tests/connector_panel.test.js`, `tests/e2e/connectors.spec.mjs` (390×844).
+## 0.58.2 · 2026-10-14 · `discover-sports` · Sport filters on Discover
+
+- Discover tipsters: chips for All and each sport the listed tipsters tip, more than one at a time, laid out for a phone. Each card shows that tipster's top sports.
+- Chips and tags read the per-tipster `sports` array from `GET /api/discover` (TipBot 0.61.2).
+
+Tests: `tests/discover_sports.test.js`, `tests/e2e/discover-sports.spec.mjs` (390×844).
 
 ## 0.58.1 · 2026-10-14 · `settings-tab` · Server settings tab
 

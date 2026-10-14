@@ -1,6 +1,10 @@
 ## 0.59.1
 
-Connected feeds can show results for the day, week, month and all time, plus failure alerts. A generic JSON feed can map its own fields and preview a dry run.
+Small improvements to server settings.
+
+## 0.58.2
+
+Discover filters tipsters by sport. Pick more than one. Cards show the sports they tip most.
 
 ## 0.58.1
 

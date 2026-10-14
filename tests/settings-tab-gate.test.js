@@ -14,5 +14,7 @@ test("the extra settings tab is gated and loads its panel on demand", () => {
   assert.equal(fs.existsSync(path.join(__dirname, "..", "assets", "connectors.js")), false);
   const start = html.indexOf('if(tab==="connectors")');
   const block = html.slice(start, start + 1800);
-  assert.ok(block.indexOf("return;") < block.indexOf("loadConnectorPanel()"));
+  assert.ok(block.indexOf("return;") < block.indexOf("ensureExt()"));
+  assert.doesNotMatch(html, /loadConnectorPanel|connector-panel/);
+  assert.equal(fs.existsSync(path.join(__dirname, "..", "assets", "connector-panel.js")), false);
 });
