@@ -68,7 +68,11 @@ test("routes match the connector contract", () => {
   assert.equal(p.events, "/api/connectors/id%202/events");
   assert.equal(p.stream, "/api/connectors/id%202/events/stream");
   assert.equal(C.pathsFor("g", "c1", "ev/1").events, "/api/connectors/c1/events?after=ev%2F1");
+  assert.equal(C.pathsFor("g", "c1", { limit: 100 }).events, "/api/connectors/c1/events?limit=100");
+  assert.equal(C.pathsFor("g", "c1", { before: "ev/1", limit: 100 }).events, "/api/connectors/c1/events?before=ev%2F1&limit=100");
+  assert.equal(C.pathsFor("g", "c1", { after: "ev/1", limit: 100 }).events, "/api/connectors/c1/events?after=ev%2F1&limit=100");
   assert.equal(C.POLL_MS, 3000);
+  assert.equal(C.PAGE_LIMIT, 100);
 });
 
 test("test preview keeps the count and only the first three mapped tips", () => {
@@ -159,12 +163,90 @@ test("a received tip formats as a terminal line in UTC when no Sydney clock is l
   assert.equal(C.bucketOf("LOST"), "results");
   assert.equal(C.bucketOf("SCRATCHED"), "results");
   assert.equal(C.bucketOf("ERR"), "errors");
+  assert.equal(C.bucketOf("GRADED"), "graded");
+  assert.equal(C.bucketOf("MISMATCH"), "graded");
   assert.equal(C.bucketOf("POLL"), "");
   assert.equal(C.toneOf("RECV"), "ok");
   assert.equal(C.toneOf("SKIP"), "warn");
   assert.equal(C.toneOf("LOST"), "bad");
   assert.equal(C.toneOf("POLL"), "dim");
   assert.equal(C.formatLine({ type: "error", at: "2026-10-14T18:21:10Z", message: "upstream 502" }), "18:21:10 ERR upstream 502");
+  assert.equal(C.clockOf("2020-01-02T03:04:05Z"), "2 Jan 03:04:05");
+  assert.equal(
+    C.formatLine({
+      type: "graded",
+      at: "2026-10-14T18:21:11Z",
+      status: "won",
+      profit_units: 4.5,
+      tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } },
+    }),
+    "18:21:11 GRADED WON +4.5u Randwick R4 #5 Splendid Win by TipBot"
+  );
+  assert.equal(
+    C.formatLine({
+      type: "graded",
+      at: "2026-10-14T18:21:12Z",
+      status: "lost",
+      profit_units: -1,
+      tip: { event: "Randwick R4", selection: { number: 8, name: "Slow Bolt" } },
+    }),
+    "18:21:12 GRADED LOST -1u Randwick R4 #8 Slow Bolt by TipBot"
+  );
+  assert.equal(
+    C.formatLine({
+      type: "graded",
+      at: "2026-10-14T18:21:13Z",
+      status: "scratched",
+      profit_units: 0,
+      tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } },
+    }),
+    "18:21:13 GRADED SCRATCHED 0u Randwick R4 #5 Splendid Win by TipBot"
+  );
+  assert.equal(
+    C.formatLine({
+      type: "mismatch",
+      at: "2026-10-14T18:21:14Z",
+      client_result: "lost",
+      our_result: "won",
+      client_units: -1,
+      profit_units: 4.5,
+      tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } },
+    }),
+    "18:21:14 MISMATCH Randwick R4 #5 Splendid Win client LOST -1u ours WON +4.5u"
+  );
+  const gradedOnce = C.normalizeEvent({
+    type: "mismatch",
+    at: "2026-10-14T18:21:14Z",
+    client_result: "lost",
+    our_result: "won",
+    client_units: -1,
+    profit_units: 4.5,
+    tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } },
+  });
+  assert.match(C.formatLine(gradedOnce), /client LOST -1u ours WON \+4\.5u/);
+  assert.equal(C.toneOf("GRADED", { status: "won" }), "ok");
+  assert.equal(C.toneOf("GRADED", { status: "lost" }), "bad");
+  assert.equal(C.toneOf("GRADED", { status: "scratched" }), "warn");
+  assert.equal(C.toneOf("MISMATCH"), "warn");
+});
+
+test("a line from another Sydney day includes the date", () => {
+  const prev = global.TBTime;
+  global.TBTime = {
+    parts: function (v) {
+      if (v instanceof Date) return { year: 2026, month: 10, day: 15, hour: 9, minute: 0, second: 0 };
+      return { year: 2026, month: 10, day: 14, hour: 18, minute: 21, second: 4 };
+    },
+  };
+  try {
+    assert.equal(C.clockOf("2026-10-13T07:21:04Z"), "14 Oct 18:21:04");
+    assert.equal(
+      C.formatLine(Object.assign({}, recv, { at: "2026-10-13T07:21:04Z" })),
+      "14 Oct 18:21:04 RECV Randwick R4 #5 Splendid Win @4.20 BetDeluxe 4.5u [3/4 HIGH]"
+    );
+  } finally {
+    global.TBTime = prev;
+  }
 });
 
 test("the live log parses a stream, dedupes, and filters", () => {
@@ -192,6 +274,14 @@ test("the live log parses a stream, dedupes, and filters", () => {
   assert.equal(capped.events[0].id, "a1");
   assert.equal(capped.events[399].id, "new");
   assert.equal(C.mergeEvents(capped.events, [{ id: "new", type: "error", message: "x" }]).added, 0);
+  const older = C.mergeEvents(
+    [{ id: "b", type: "posted", at: "2026-10-14T00:00:02Z" }],
+    [{ id: "a", type: "tip_received", at: "2020-01-02T03:04:05Z", tip: { event: "Flemington R1" } }],
+    "prepend"
+  );
+  assert.equal(older.added, 1);
+  assert.equal(older.events[0].id, "a");
+  assert.equal(older.events[1].id, "b");
 
   const all = C.boardsHtml([{ id: "c1", tipster_label: "HorsePicks AI" }], { c1: { events: body, filter: "all", follow: true } });
   assert.match(all, /data-tag="RECV"/);
@@ -201,6 +291,7 @@ test("the live log parses a stream, dedupes, and filters", () => {
   assert.match(all, />All</);
   assert.match(all, />Tips</);
   assert.match(all, />Results</);
+  assert.match(all, />Graded</);
   assert.match(all, />Errors</);
   assert.match(all, /cx-log-jump" hidden/);
   const tips = C.boardsHtml([{ id: "c1" }], { c1: { events: body, filter: "tips", follow: false } });

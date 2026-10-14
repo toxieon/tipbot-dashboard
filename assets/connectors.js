@@ -6,12 +6,15 @@
      POST   /api/connectors/{id}/test                 fetch + first 3 mapped tips, posts nothing
      POST   /api/connectors/{id}/dry-run              embed preview, posts nothing
      POST   /api/connectors/{id}/toggle               { guild_id, enabled }
-     GET    /api/connectors/{id}/events?after=        events since the last id
-     GET    /api/connectors/{id}/events/stream        text/event-stream, when the bot offers it
+     GET    /api/connectors/{id}/events?limit=100          recent history, on open
+     GET    /api/connectors/{id}/events?after=&limit=  newer lines
+     GET    /api/connectors/{id}/events?before=&limit= older lines when scrolled up
+     GET    /api/connectors/{id}/events/stream         text/event-stream, when the bot offers it
    The API key is write-only: it is sent only when someone types one, and it is
    never copied back into the form. A new connector stays paused until Enable.
-   Each saved connector keeps a live log. A stream is used when the response is
-   text/event-stream; otherwise the log polls /events every 3 seconds.
+   Each saved connector keeps a live log. Opening it loads recent history, then
+   follows a stream when the response is text/event-stream. Otherwise it polls
+   for newer lines every 3 seconds. Scrolling up loads older lines.
 */
 (function (root) {
   "use strict";
@@ -20,8 +23,10 @@
   var DEFAULT_LABEL = "HorsePicks AI";
   var ALONGSIDE = "alongside";
   var POLL_MS = 3000;
+  var PAGE_LIMIT = 100;
   var LOG_CAP = 400;
   var STICK_PX = 28;
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   function esc(v) {
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
@@ -31,10 +36,20 @@
 
   function enc(v) { return encodeURIComponent(v == null ? "" : String(v)); }
 
+  function eventsQuery(q) {
+    var query = {};
+    if (q && typeof q === "object") query = q;
+    else if (q) query = { after: q };
+    var parts = [];
+    if (query.before) parts.push("before=" + enc(query.before));
+    else if (query.after) parts.push("after=" + enc(query.after));
+    if (query.limit) parts.push("limit=" + enc(query.limit));
+    return parts.length ? ("?" + parts.join("&")) : "";
+  }
+
   function pathsFor(gid, id, after) {
     var g = enc(gid);
-    var events = "/api/connectors/" + enc(id) + "/events";
-    if (after) events += "?after=" + enc(after);
+    var events = "/api/connectors/" + enc(id) + "/events" + eventsQuery(after);
     return {
       list: "/api/connectors?guild_id=" + g,
       save: "/api/connectors?guild_id=" + g,
@@ -288,20 +303,35 @@
     return (n < 10 ? "0" : "") + n;
   }
 
-  function clockOf(at) {
+  function clockParts(at) {
     var value = at == null || at === "" ? new Date() : at;
     var TB = root.TBTime;
     if (TB && typeof TB.parts === "function") {
       try {
         var p = TB.parts(value);
-        if (p && Number.isFinite(p.hour)) return pad2(p.hour) + ":" + pad2(p.minute) + ":" + pad2(p.second);
+        var now = TB.parts(new Date());
+        if (p && Number.isFinite(p.hour)) {
+          var same = !!(now && now.year === p.year && now.month === p.month && now.day === p.day);
+          return { hour: p.hour, minute: p.minute, second: p.second, day: p.day, month: p.month, today: same };
+        }
       } catch (e) {}
     }
     var ms = value instanceof Date ? value.getTime() : Date.parse(String(value));
     if (!Number.isFinite(ms) && typeof value === "number") ms = value > 1e12 ? value : value * 1000;
-    if (!Number.isFinite(ms)) return "--:--:--";
+    if (!Number.isFinite(ms)) return null;
     var d = new Date(ms);
-    return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes()) + ":" + pad2(d.getUTCSeconds());
+    var n = new Date();
+    var today = d.getUTCFullYear() === n.getUTCFullYear() && d.getUTCMonth() === n.getUTCMonth() && d.getUTCDate() === n.getUTCDate();
+    return { hour: d.getUTCHours(), minute: d.getUTCMinutes(), second: d.getUTCSeconds(), day: d.getUTCDate(), month: d.getUTCMonth() + 1, today: today };
+  }
+
+  function clockOf(at) {
+    var p = clockParts(at);
+    if (!p) return "--:--:--";
+    var time = pad2(p.hour) + ":" + pad2(p.minute) + ":" + pad2(p.second);
+    if (p.today) return time;
+    var month = MONTHS[(Number(p.month) || 1) - 1] || "";
+    return String(p.day) + " " + month + " " + time;
   }
 
   function oddsText(v) {
@@ -348,8 +378,44 @@
     if (type === "skip") return "skipped";
     if (type === "err") return "error";
     if (type === "status") return "status_update";
-    if (type === "poll" || type === "tip_received" || type === "posted" || type === "status_update" || type === "skipped" || type === "error") return type;
+    if (type === "grade") return "graded";
+    if (type === "poll" || type === "tip_received" || type === "posted" || type === "status_update" || type === "skipped" || type === "error" || type === "graded" || type === "mismatch") return type;
     return "";
+  }
+
+  function definedOf(obj, keys) {
+    if (!obj || typeof obj !== "object") return undefined;
+    for (var i = 0; i < keys.length; i++) {
+      if (obj[keys[i]] != null && obj[keys[i]] !== "") return obj[keys[i]];
+    }
+    return undefined;
+  }
+
+  function readSide(raw, names, unitNames) {
+    var outcome = "";
+    var units;
+    for (var i = 0; i < names.length; i++) {
+      var v = raw[names[i]];
+      if (v && typeof v === "object") {
+        outcome = v.outcome || v.status || v.result || "";
+        units = definedOf(v, ["profit_units", "units"]);
+        break;
+      }
+      if (v != null && v !== "") { outcome = v; break; }
+    }
+    if (units === undefined) units = definedOf(raw, unitNames);
+    return { outcome: outcome ? String(outcome) : "", units: units === undefined ? null : units };
+  }
+
+  function unitsOf(raw) {
+    var units = definedOf(raw, ["profit_units", "units"]);
+    var tip = raw && raw.tip;
+    if (units === undefined && tip && typeof tip === "object") {
+      units = definedOf(tip, ["profit_units", "units"]);
+      if (units === undefined && tip.result) units = definedOf(tip.result, ["profit_units", "units"]);
+    }
+    if (units === undefined && raw && raw.result) units = definedOf(raw.result, ["profit_units", "units"]);
+    return units === undefined ? null : units;
   }
 
   function normalizeEvent(raw) {
@@ -364,6 +430,10 @@
       status = tip.status || tip.outcome || "";
       if (!status && tip.result && typeof tip.result === "object") status = tip.result.outcome || "";
     }
+    var clientSide = readSide(raw, ["client_result", "client_outcome", "client", "theirs"], ["client_profit_units", "client_units", "clientUnits"]);
+    var ourSide = readSide(raw, ["our_result", "our_outcome", "ours", "tipbot_result"], ["our_profit_units", "profit_units", "ourUnits", "units"]);
+    if (clientSide.units == null && raw.clientUnits != null && raw.clientUnits !== "") clientSide.units = raw.clientUnits;
+    if (ourSide.units == null && raw.ourUnits != null && raw.ourUnits !== "") ourSide.units = raw.ourUnits;
     return {
       id: id,
       type: type,
@@ -372,11 +442,26 @@
       status: status ? String(status) : "",
       message: raw.message || raw.error || raw.reason ? String(raw.message || raw.error || raw.reason) : "",
       count: raw.count != null ? raw.count : null,
+      units: unitsOf(raw),
+      client: clientSide.outcome,
+      clientUnits: clientSide.units,
+      ours: ourSide.outcome,
+      ourUnits: ourSide.units,
     };
   }
 
   function outcomeOf(ev) {
     return String(ev && ev.status || "").toLowerCase();
+  }
+
+  function outcomeLabel(s) {
+    s = String(s || "").toLowerCase();
+    if (!s) return "";
+    if (s.indexOf("scratch") !== -1 || s === "void" || s === "voided") return "SCRATCHED";
+    if (s === "won" || s === "win" || s === "winner") return "WON";
+    if (s === "lost" || s === "loss" || s === "lose" || s === "loser") return "LOST";
+    if (s === "placed" || s === "place") return "PLACED";
+    return String(s).toUpperCase();
   }
 
   function tagOf(ev) {
@@ -386,6 +471,8 @@
     if (ev.type === "skipped") return "SKIP";
     if (ev.type === "error") return "ERR";
     if (ev.type === "poll") return "POLL";
+    if (ev.type === "graded") return "GRADED";
+    if (ev.type === "mismatch") return "MISMATCH";
     if (ev.type === "status_update") {
       var s = outcomeOf(ev);
       if (s.indexOf("scratch") !== -1 || s === "void" || s === "voided") return "SCRATCHED";
@@ -400,15 +487,49 @@
   function bucketOf(tag) {
     if (tag === "RECV" || tag === "POSTED" || tag === "SKIP") return "tips";
     if (tag === "SCRATCHED" || tag === "WON" || tag === "LOST" || tag === "PLACED") return "results";
+    if (tag === "GRADED" || tag === "MISMATCH") return "graded";
     if (tag === "ERR") return "errors";
     return "";
   }
 
-  function toneOf(tag) {
+  function toneOf(tag, ev) {
+    if (tag === "GRADED") {
+      var label = outcomeLabel(ev && ev.status);
+      if (label === "WON") return "ok";
+      if (label === "LOST") return "bad";
+      return "warn";
+    }
+    if (tag === "MISMATCH") return "warn";
     if (tag === "RECV" || tag === "POSTED" || tag === "WON") return "ok";
     if (tag === "SKIP" || tag === "SCRATCHED" || tag === "PLACED") return "warn";
     if (tag === "LOST" || tag === "ERR") return "bad";
     return "dim";
+  }
+
+  function unitsText(v) {
+    if (v == null || v === "") return "";
+    var s = String(v).trim();
+    if (/u$/i.test(s)) s = s.slice(0, -1).trim();
+    var n = Number(s);
+    if (!Number.isFinite(n)) return /u$/i.test(String(v).trim()) ? String(v).trim() : (String(v).trim() + "u");
+    var rounded = Math.round(n * 100) / 100;
+    var text = String(rounded);
+    if (rounded > 0) return "+" + text + "u";
+    return text + "u";
+  }
+
+  function tipIdentity(ev) {
+    var tip = ev && ev.tip;
+    if (typeof tip === "string") return tip;
+    if (!tip || typeof tip !== "object") return "";
+    return [tip.event || tip.event_name || "", selectionBoard(tip.selection || tip.runner)].filter(Boolean).join(" ");
+  }
+
+  function sideText(name, outcome, units) {
+    var label = outcomeLabel(outcome);
+    var unitsLabel = unitsText(units);
+    if (!label && !unitsLabel) return "";
+    return name + " " + [label, unitsLabel].filter(Boolean).join(" ");
   }
 
   function detailText(ev) {
@@ -418,6 +539,22 @@
       return ev.message ? String(ev.message) : "";
     }
     if (ev.type === "error") return ev.message ? String(ev.message) : "";
+    if (ev.type === "graded") {
+      return [
+        outcomeLabel(ev.status),
+        unitsText(ev.units),
+        tipIdentity(ev),
+        "by TipBot",
+      ].filter(Boolean).join(" ");
+    }
+    if (ev.type === "mismatch") {
+      var oursUnits = ev.ourUnits != null ? ev.ourUnits : ev.units;
+      return [
+        tipIdentity(ev),
+        sideText("client", ev.client, ev.clientUnits),
+        sideText("ours", ev.ours, oursUnits),
+      ].filter(Boolean).join(" ");
+    }
     var tip = ev.tip;
     var line = "";
     if (typeof tip === "string") line = tip;
@@ -453,7 +590,8 @@
     return "fp:" + ev.type + "|" + (ev.at || "") + "|" + (ev.status || "") + "|" + (ev.message || "") + "|" + tip;
   }
 
-  function mergeEvents(prev, next) {
+  function mergeEvents(prev, next, where) {
+    var older = where === "prepend";
     var out = [];
     var seen = {};
     var added = 0;
@@ -466,9 +604,14 @@
       out.push(ev);
       if (countAdd) added += 1;
     }
-    (prev || []).forEach(function (e) { push(e, false); });
-    (next || []).forEach(function (e) { push(e, true); });
-    if (out.length > LOG_CAP) out = out.slice(out.length - LOG_CAP);
+    if (older) {
+      (next || []).forEach(function (e) { push(e, true); });
+      (prev || []).forEach(function (e) { push(e, false); });
+    } else {
+      (prev || []).forEach(function (e) { push(e, false); });
+      (next || []).forEach(function (e) { push(e, true); });
+    }
+    if (out.length > LOG_CAP) out = older ? out.slice(0, LOG_CAP) : out.slice(out.length - LOG_CAP);
     return { events: out, added: added };
   }
 
@@ -533,7 +676,7 @@
       return passesFilter(ev, filter);
     }).map(function (ev) {
       var tag = tagOf(ev);
-      return '<div class="cx-line cx-' + toneOf(tag) + '" data-tag="' + tag + '">' + esc(formatLine(ev)) + "</div>";
+      return '<div class="cx-line cx-' + toneOf(tag, ev) + '" data-tag="' + tag + '">' + esc(formatLine(ev)) + "</div>";
     }).join("");
   }
 
@@ -572,6 +715,7 @@
       + chipBtn("all", "All", filter === "all")
       + chipBtn("tips", "Tips", filter === "tips")
       + chipBtn("results", "Results", filter === "results")
+      + chipBtn("graded", "Graded", filter === "graded")
       + chipBtn("errors", "Errors", filter === "errors")
       + "</div>"
       + '<div class="cx-log" role="log" aria-label="Connector live log" tabindex="0">' + linesHtml(log) + cursorHtml() + "</div>"
@@ -621,8 +765,8 @@
       "#cx-root .cx-msg{display:block;font-size:var(--t-foot);margin-top:8px;min-height:1.2em}",
       "#cx-root .cx-board{position:relative;margin-top:14px;border:1px solid #1c3a28;border-radius:var(--r-md);background:#0c1210;color:#d7ffe4;min-width:0;max-width:100%}",
       "#cx-root .cx-board-hd{display:flex;align-items:center;padding:8px 10px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#8fbfa2}",
-      "#cx-root .cx-chips{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;max-width:100%;min-width:0}",
-      "#cx-root .cx-chip{flex:none;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid #244433;background:transparent;color:#b7d7c4;font:inherit;font-size:13px;font-weight:650}",
+      "#cx-root .cx-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;max-width:100%;min-width:0}",
+      "#cx-root .cx-chip{flex:1 1 calc(33.33% - 6px);min-width:0;min-height:44px;padding:0 8px;border-radius:999px;border:1px solid #244433;background:transparent;color:#b7d7c4;font:inherit;font-size:13px;font-weight:650}",
       "#cx-root .cx-chip.on{background:#143224;color:#7dffb2;border-color:#2eaf62}",
       "#cx-root .cx-log{height:168px;max-width:100%;overflow:auto;padding:4px 10px 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;white-space:pre-wrap;scrollbar-color:#244433 #0c1210}",
       "#cx-root .cx-line{overflow-wrap:anywhere;word-break:break-word}",
@@ -840,7 +984,7 @@
 
     function ensureLog(id) {
       id = String(id);
-      if (!state.logs[id]) state.logs[id] = { events: [], filter: "all", follow: true, cursor: "", scrollTop: 0 };
+      if (!state.logs[id]) state.logs[id] = { events: [], filter: "all", follow: true, cursor: "", scrollTop: 0, exhausted: false, loadingOlder: false };
       return state.logs[id];
     }
 
@@ -861,9 +1005,21 @@
       var logEl = board.querySelector(".cx-log");
       var jump = board.querySelector(".cx-log-jump");
       if (logEl) {
+        var pin = log.pin;
+        var prevH = log._prevHeight;
+        var prevTop = log._prevTop;
+        log.pin = "";
         log._paint = true;
         logEl.innerHTML = linesHtml(log) + cursorHtml();
-        logEl.scrollTop = log.follow !== false ? logEl.scrollHeight : (log.scrollTop || 0);
+        if (pin === "prepend") {
+          var delta = logEl.scrollHeight - (prevH || 0);
+          logEl.scrollTop = (prevTop || 0) + (delta > 0 ? delta : 0);
+        } else if (log.follow !== false) {
+          logEl.scrollTop = logEl.scrollHeight;
+        } else {
+          logEl.scrollTop = log.scrollTop || 0;
+        }
+        log.scrollTop = logEl.scrollTop;
         log._paint = false;
       }
       if (jump) jump.hidden = log.follow !== false;
@@ -890,6 +1046,7 @@
               log.scrollTop = logEl.scrollTop;
               log.follow = stickToEnd(logEl);
               if (jump) jump.hidden = log.follow !== false;
+              if (logEl.scrollTop <= STICK_PX && !log.follow) loadOlder(id);
             };
             log._paint = true;
             logEl.scrollTop = log.follow !== false ? logEl.scrollHeight : (log.scrollTop || 0);
@@ -929,16 +1086,75 @@
       }
     }
 
-    function ingest(id, incoming) {
-      if (!incoming || !incoming.length || stopped) return;
+    function oldestId(log) {
+      var events = (log && log.events) || [];
+      for (var i = 0; i < events.length; i++) {
+        if (events[i].id) return events[i].id;
+      }
+      return "";
+    }
+
+    function ingest(id, incoming, where) {
+      if (!incoming || !incoming.length || stopped) return false;
       var log = ensureLog(id);
-      var merged = mergeEvents(log.events, incoming);
-      if (!merged.added) return;
+      var board = boardEl(id);
+      var logEl = board && board.querySelector(".cx-log");
+      if (where === "prepend" && logEl) {
+        log.pin = "prepend";
+        log._prevHeight = logEl.scrollHeight;
+        log._prevTop = logEl.scrollTop;
+      }
+      var merged = mergeEvents(log.events, incoming, where);
+      if (!merged.added) return false;
       log.events = merged.events;
       for (var i = log.events.length - 1; i >= 0; i--) {
         if (log.events[i].id) { log.cursor = log.events[i].id; break; }
       }
       renderBoard(id);
+      return true;
+    }
+
+    async function pull(feed, query, where) {
+      if (!feed || feed.stopped || stopped) return null;
+      if (!stillOpen()) { teardown(); return null; }
+      try {
+        var r = await ctx.api(pathsFor(state.gid, feed.id, query).events, { retries: 1, timeoutMs: 8000 });
+        if (feed.stopped || stopped) return null;
+        if (r && r.status === 401) {
+          teardown();
+          if (ctx.onUnauth) ctx.onUnauth();
+          return null;
+        }
+        if (r && r.ok) {
+          var body = await readBody(r);
+          var incoming = eventsFrom(body);
+          if (!feed.stopped && !stopped) ingest(feed.id, incoming, where);
+          return incoming;
+        }
+      } catch (e) {
+        if (e && e.unauth) {
+          teardown();
+          if (ctx.onUnauth) ctx.onUnauth();
+        }
+      }
+      return null;
+    }
+
+    async function loadOlder(id) {
+      var feed = feeds[id];
+      var log = state.logs[id];
+      if (!feed || feed.stopped || stopped || !log || log.loadingOlder || log.exhausted) return;
+      var before = oldestId(log);
+      if (!before) return;
+      log.loadingOlder = true;
+      var size = log.events.length;
+      try {
+        var incoming = await pull(feed, { before: before, limit: PAGE_LIMIT }, "prepend");
+        if (feed.stopped || stopped || incoming == null) return;
+        if (log.events.length === size || incoming.length < PAGE_LIMIT) log.exhausted = true;
+      } finally {
+        log.loadingOlder = false;
+      }
     }
 
     function stopFeed(id) {
@@ -963,35 +1179,17 @@
         try { feed.abort.abort(); } catch (e) {}
         feed.abort = null;
       }
-      pollOnce(feed);
+      schedule(feed, POLL_MS);
     }
 
     async function pollOnce(feed) {
       if (feed.stopped || stopped) return;
       feed.mode = "poll";
       feed.timer = null;
-      if (!stillOpen()) { teardown(); return; }
       var log = state.logs[feed.id];
-      var after = log && log.cursor ? log.cursor : "";
-      try {
-        var r = await ctx.api(pathsFor(state.gid, feed.id, after).events, { retries: 1, timeoutMs: 8000 });
-        if (feed.stopped || stopped) return;
-        if (r && r.status === 401) {
-          teardown();
-          if (ctx.onUnauth) ctx.onUnauth();
-          return;
-        }
-        if (r && r.ok) {
-          var body = await readBody(r);
-          if (!feed.stopped && !stopped) ingest(feed.id, eventsFrom(body));
-        }
-      } catch (e) {
-        if (e && e.unauth) {
-          teardown();
-          if (ctx.onUnauth) ctx.onUnauth();
-          return;
-        }
-      }
+      var query = { limit: PAGE_LIMIT };
+      if (log && log.cursor) query.after = log.cursor;
+      await pull(feed, query, "append");
       if (!feed.stopped && !stopped && feed.mode === "poll") schedule(feed, POLL_MS);
     }
 
@@ -1070,7 +1268,9 @@
         if (!feeds[id]) {
           var feed = { id: id, stopped: false, timer: null, abort: null, mode: "" };
           feeds[id] = feed;
-          tryStream(feed);
+          pull(feed, { limit: PAGE_LIMIT }, "append").then(function () {
+            if (!feed.stopped && !stopped) tryStream(feed);
+          });
         }
       });
       Object.keys(feeds).forEach(function (id) {
@@ -1323,6 +1523,7 @@
     keyNote: keyNote,
     tipLine: tipLine,
     POLL_MS: POLL_MS,
+    PAGE_LIMIT: PAGE_LIMIT,
     formatLine: formatLine,
     clockOf: clockOf,
     tagOf: tagOf,

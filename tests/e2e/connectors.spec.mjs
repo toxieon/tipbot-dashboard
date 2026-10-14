@@ -83,6 +83,13 @@ test.describe("connectors settings", () => {
     { id: "s3", type: "status_update", at: "2026-10-14T07:21:08Z", status: "lost", tip: { event: "Randwick R4", selection: { number: 8, name: "Slow Bolt" } } },
     { id: "k1", type: "skipped", at: "2026-10-14T07:21:09Z", message: "past", tip: { event: "Randwick R4", selection: { number: 1, name: "Old News" } } },
     { id: "e1", type: "error", at: "2026-10-14T07:21:10Z", message: "upstream 502" },
+    { id: "g1", type: "graded", at: "2026-10-14T07:21:11Z", status: "won", profit_units: 4.5, tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } } },
+    { id: "g2", type: "graded", at: "2026-10-14T07:21:12Z", status: "lost", profit_units: -1, tip: { event: "Randwick R4", selection: { number: 8, name: "Slow Bolt" } } },
+    { id: "g3", type: "graded", at: "2026-10-14T07:21:13Z", status: "scratched", profit_units: 0, tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } } },
+    { id: "m1", type: "mismatch", at: "2026-10-14T07:21:14Z", client_result: "lost", our_result: "won", client_units: -1, profit_units: 4.5, tip: { event: "Randwick R4", selection: { number: 5, name: "Splendid Win" } } },
+  ];
+  const olderEvents = [
+    { id: "old1", type: "tip_received", at: "2026-10-13T07:21:04Z", tip: { event: "Flemington R1", selection: { number: 2, name: "Early Bird" }, market: "Win", odds: 3.1, bookie: "TAB", stake_units: 1 } },
   ];
 
   async function install(page, { ops, stream } = {}) {
@@ -171,7 +178,13 @@ test.describe("connectors settings", () => {
         await route.fulfill({ status: 404, contentType: "application/json", headers: cors, body: "{}" });
         return;
       } else if (parsed.pathname === "/api/connectors/c1/events") {
-        payload = { ok: true, events: parsed.searchParams.get("after") ? [] : liveEvents };
+        const before = parsed.searchParams.get("before");
+        const after = parsed.searchParams.get("after");
+        let events = [];
+        if (before === "p1") events = olderEvents;
+        else if (before || after) events = [];
+        else if (stream !== "sse") events = liveEvents;
+        payload = { ok: true, events };
       }
       await route.fulfill({ status, contentType: "application/json", headers: cors, body: JSON.stringify(payload) });
     });
@@ -317,15 +330,23 @@ test.describe("connectors settings", () => {
     await expect(page.locator('.cx-line[data-tag="LOST"]')).toContainText("LOST");
     await expect(page.locator('.cx-line[data-tag="SKIP"]')).toContainText("SKIP");
     await expect(page.locator('.cx-line[data-tag="ERR"]')).toContainText("ERR upstream 502");
+    await expect(page.locator('.cx-line[data-tag="GRADED"]').first()).toContainText("GRADED WON +4.5u Randwick R4 #5 Splendid Win by TipBot");
+    await expect(page.locator('.cx-line[data-tag="GRADED"]').nth(1)).toContainText("GRADED LOST -1u");
+    await expect(page.locator('.cx-line[data-tag="GRADED"]').nth(2)).toContainText("GRADED SCRATCHED 0u");
+    await expect(page.locator('.cx-line.cx-ok[data-tag="GRADED"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line.cx-bad[data-tag="GRADED"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line.cx-warn[data-tag="GRADED"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="MISMATCH"]')).toContainText("MISMATCH Randwick R4 #5 Splendid Win client LOST -1u ours WON +4.5u");
+    await expect(page.locator('.cx-line.cx-warn[data-tag="MISMATCH"]')).toHaveCount(1);
     await expect(page.locator(".cx-cursor")).toHaveCount(1);
     const paths = bag.calls.map((c) => c.path);
     const streamAt = paths.indexOf("/api/connectors/c1/events/stream");
     const eventsAt = paths.indexOf("/api/connectors/c1/events");
-    expect(streamAt).toBeGreaterThanOrEqual(0);
-    expect(eventsAt).toBeGreaterThan(streamAt);
+    expect(streamAt).toBeGreaterThan(eventsAt);
+    expect(eventsAt).toBeGreaterThanOrEqual(0);
     const polled = bag.calls.find((c) => c.path === "/api/connectors/c1/events");
     expect(polled.method).toBe("GET");
-    expect(polled.search).toBe("");
+    expect(polled.search).toBe("?limit=100");
 
     const chip = await page.locator('.cx-chip[data-filter="errors"]').boundingBox();
     expect(chip.height).toBeGreaterThanOrEqual(44);
@@ -338,6 +359,12 @@ test.describe("connectors settings", () => {
     await page.locator(".cx-board").screenshot({ path: path.join(SHOTS, "connectors_live_390.png") });
 
     await page.locator(".cx-log").evaluate((el) => { el.scrollTop = 0; });
+    await expect(page.locator(".cx-log")).toContainText("13 Oct 18:21:04 RECV Flemington R1 #2 Early Bird");
+    const older = bag.calls.find((c) => c.path === "/api/connectors/c1/events" && c.search.includes("before="));
+    expect(older.search).toContain("before=p1");
+    expect(older.search).toContain("limit=100");
+    const held = await page.locator(".cx-log").evaluate((el) => el.scrollTop);
+    expect(held).toBeGreaterThan(0);
     await expect(page.locator(".cx-log-jump")).toBeVisible();
     await page.locator(".cx-log-jump").click();
     await expect(page.locator(".cx-log-jump")).toBeHidden();
@@ -354,12 +381,19 @@ test.describe("connectors settings", () => {
     await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(0);
     await expect(page.locator('.cx-line[data-tag="ERR"]')).toHaveCount(0);
     await page.locator('.cx-chip[data-filter="tips"]').click();
-    await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(2);
     await expect(page.locator('.cx-line[data-tag="POSTED"]')).toHaveCount(1);
     await expect(page.locator('.cx-line[data-tag="SKIP"]')).toHaveCount(1);
     await expect(page.locator('.cx-line[data-tag="ERR"]')).toHaveCount(0);
     await expect(page.locator('.cx-line[data-tag="WON"]')).toHaveCount(0);
     await expect(page.locator('.cx-line[data-tag="POLL"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="GRADED"]')).toHaveCount(0);
+    await page.locator('.cx-chip[data-filter="graded"]').click();
+    await expect(page.locator('.cx-line[data-tag="GRADED"]')).toHaveCount(3);
+    await expect(page.locator('.cx-line[data-tag="MISMATCH"]')).toHaveCount(1);
+    await expect(page.locator('.cx-line[data-tag="RECV"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="WON"]')).toHaveCount(0);
+    await expect(page.locator('.cx-line[data-tag="ERR"]')).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 
@@ -370,7 +404,10 @@ test.describe("connectors settings", () => {
     await page.locator("#stab-connectors").click();
     await expect(page.locator('.cx-line[data-tag="RECV"]')).toContainText("Splendid Win @4.20");
     expect(bag.calls.some((c) => c.path === "/api/connectors/c1/events/stream")).toBe(true);
-    expect(bag.calls.some((c) => c.path === "/api/connectors/c1/events")).toBe(false);
+    const history = bag.calls.filter((c) => c.path === "/api/connectors/c1/events");
+    expect(history.length).toBeGreaterThan(0);
+    expect(history[0].search).toContain("limit=100");
+    expect(history.some((c) => c.search.includes("after="))).toBe(false);
     expect(errors).toEqual([]);
   });
 });

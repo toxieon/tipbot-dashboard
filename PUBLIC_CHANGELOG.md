@@ -1,6 +1,6 @@
 ## 0.58.1
 
-Server settings can attach an external tip source. Owner only, and it stays paused until it's turned on. A live log under each source shows tips and results as they arrive.
+Server settings can attach an external tip source. Owner only, and it stays paused until it's turned on. A live log under each source shows tips, results and grades as they arrive.
 
 ## 0.57.8
 

@@ -4,6 +4,8 @@
 - The form covers source type, endpoint, a write-only key, target channel, tipster label, poll interval, post mode, skip-past-events, and enabled. Test connection and Dry run preview post nothing. A new connector stays paused until Enable.
 - Talks to TipBot at `GET`/`POST`/`DELETE /api/connectors?guild_id=` and `POST /api/connectors/{id}/test`, `/dry-run`, and `/toggle`.
 - Each saved connector has a live log: monospace lines for tips, results and errors, with filters. It follows a live stream when the bot offers one, and otherwise checks for new lines every 3 seconds.
+- Log times are Sydney time, and a line from another day includes the date. Opening the log loads recent history. Scrolling up loads older lines.
+- Graded lines show TipBot's WON, LOST or SCRATCHED result with the unit change. A mismatch line appears when the source's own result disagrees. A Graded filter shows those lines.
 
 Tests: `tests/connectors.test.js`, `tests/e2e/connectors.spec.mjs` (390×844).
 
