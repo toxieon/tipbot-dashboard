@@ -7,7 +7,7 @@ const vm = require("node:vm");
 
 globalThis.TBTime = require("../assets/tbtime.js");
 globalThis.TBSports = require("../assets/sport-marks.js");
-globalThis.SvgCharts = require("../assets/svg-charts.js");
+globalThis.TBCharts = require("../assets/tb-charts.js");
 globalThis.ServerView = require("../assets/server-view.js");
 const S = require("../assets/stats.js");
 

@@ -28,9 +28,9 @@
   }
   function chartsApi(){
     var g=typeof globalThis!=="undefined"?globalThis:{};
-    if(g.SvgCharts && typeof g.SvgCharts.areaChart==="function") return g.SvgCharts;
+    if(g.TBCharts && typeof g.TBCharts.areaChart==="function") return g.TBCharts;
     if(typeof require==="function"){
-      try{ return require("./svg-charts.js"); }catch(e){}
+      try{ return require("./tb-charts.js"); }catch(e){}
     }
     return null;
   }
@@ -508,10 +508,6 @@
     out.push([last, points[last].label||""]);
     return out;
   }
-  function yFmtUnits(v){
-    var r=round1(v);
-    return (r>0?"+":"")+r.toFixed(r%1?1:0).replace(/\.0$/,"") ;
-  }
   function statsHtml(detail, opts){
     opts=opts||{};
     var m=cardModel(detail, opts);
@@ -546,17 +542,17 @@
     if(C && series.points.length>=2){
       var ys=series.points.map(function(p){ return p.y; });
       line=C.areaChart({
-        data:ys, w:640, h:220, id:"svu", smooth:0.65, padL:48,
+        data:ys, h:220,
         xLabels:xLabels(series.points),
-        yFmt:function(v){ return yFmtUnits(v); },
+        pointLabels:series.points.map(function(p){ return p.label||""; }),
+        unit:"u", signed:true, colorMode:"end",
         aria:"Units over time, ending "+m.unitsText
       });
     }
     var bar="";
     if(C && bars.length){
       bar=C.barChart({
-        bars:bars, w:520, h:220, padL:48,
-        yFmt:function(v){ return yFmtUnits(v); },
+        bars:bars, h:220, unit:"u", signed:true, filter:"month",
         aria:"Monthly profit and loss"
       });
     }
@@ -582,7 +578,7 @@
     var html='<div class="sv-split">';
     if(books){
       var C=chartsApi();
-      var svg=C?C.donut({slices:books.slices, center:String(books.total), sub:"bets", aria:"Bets by bookie, "+books.total+" bets"}):"";
+      var svg=C?C.donut({slices:books.slices, center:String(books.total), sub:"bets", filter:"bookie", aria:"Bets by bookie, "+books.total+" bets"}):"";
       html+='<section class="sv-panel" aria-label="Bets by bookie"><div class="sv-ph"><h2>Bets by bookie</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"
         +'<div class="sv-donut-row">'+svg+'<div class="sv-legend">'
         +books.slices.map(function(s){ return legendRow(s, "bookie", active); }).join("")
@@ -590,7 +586,7 @@
     }
     if(sports){
       var C2=chartsApi();
-      var svg2=C2?C2.donut({slices:sports.slices, center:String(sports.total), sub:"bets", aria:"Bets by sport, "+sports.total+" bets"}):"";
+      var svg2=C2?C2.donut({slices:sports.slices, center:String(sports.total), sub:"bets", filter:"sport", aria:"Bets by sport, "+sports.total+" bets"}):"";
       html+='<section class="sv-panel" aria-label="Bets by sport"><div class="sv-ph"><h2>Bets by sport</h2>'+(period?'<span class="sv-ph-s">'+esc(period)+"</span>":"")+"</div>"
         +'<div class="sv-donut-row">'+svg2+'<div class="sv-legend">'
         +sports.slices.map(function(s){ return legendRow(s, "sport", active); }).join("")
@@ -617,123 +613,6 @@
     if(kind==="month") return monthLabel(key, true);
     return String(key||"");
   }
-  function nearestIndex(n, len){
-    if(!(len>1)) return 0;
-    var i=Math.round(n*(len-1));
-    if(i<0) return 0;
-    if(i>len-1) return len-1;
-    return i;
-  }
-  function chartTip(el, text, x, y){
-    if(!el) return;
-    var tip=el.querySelector(".sv-chart-tip");
-    if(!tip){
-      tip=document.createElement("div");
-      tip.className="sv-chart-tip";
-      tip.setAttribute("role","tooltip");
-      el.appendChild(tip);
-    }
-    tip.textContent=text;
-    tip.hidden=false;
-    tip.style.left=Math.round(x)+"px";
-    tip.style.top=Math.round(y)+"px";
-  }
-  function hideChartTip(el){
-    if(!el) return;
-    var tip=el.querySelector(".sv-chart-tip");
-    if(tip) tip.hidden=true;
-  }
-  function bindUnitsChart(wrap, series){
-    if(!wrap || !series || !series.points || series.points.length<2) return;
-    var svg=wrap.querySelector("svg");
-    if(!svg) return;
-    var pts=series.points;
-    var padL=48, w=640, h=220, padT=12, padB=26, padR=12;
-    var data=pts.map(function(p){ return p.y; });
-    var lo=Math.min.apply(null, data.concat([0]));
-    var hi=Math.max.apply(null, data.concat([0]));
-    if(!(hi>lo)){ lo-=1; hi+=1; }
-    var pad=(hi-lo)*0.08;
-    lo-=pad; hi+=pad;
-    function X(i){ return padL+(w-padL-padR)*i/(data.length-1); }
-    function Y(v){ return padT+(h-padT-padB)*(1-(v-lo)/(hi-lo)); }
-    var cross=svg.querySelector(".sv-crosshair");
-    if(!cross){
-      cross=document.createElementNS("http://www.w3.org/2000/svg","g");
-      cross.setAttribute("class","sv-crosshair");
-      cross.setAttribute("aria-hidden","true");
-      cross.innerHTML='<line class="sv-cross-v" y1="'+padT+'" y2="'+(h-padB)+'" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/><circle class="sv-cross-dot" r="4" fill="var(--accent)" stroke="var(--card)" stroke-width="1.5"/>';
-      svg.appendChild(cross);
-    }
-    var vLine=cross.querySelector(".sv-cross-v");
-    var dot=cross.querySelector(".sv-cross-dot");
-    function showAt(i, clientX, clientY){
-      var p=pts[i];
-      if(!p) return;
-      var cx=X(i), cy=Y(p.y);
-      vLine.setAttribute("x1", r1(cx)); vLine.setAttribute("x2", r1(cx));
-      dot.setAttribute("cx", r1(cx)); dot.setAttribute("cy", r1(cy));
-      cross.style.opacity="1";
-      var label=(p.label||"")+(p.ms?(" · "+pointLabel(p.ms)):"");
-      var tipTxt=fmtUnits(p.y)+(label?(" · "+label):"");
-      var rect=wrap.getBoundingClientRect();
-      chartTip(wrap, tipTxt, clientX-rect.left, clientY-rect.top-36);
-    }
-    function hide(){
-      cross.style.opacity="0";
-      hideChartTip(wrap);
-    }
-    function pick(ev){
-      var hit=svg.querySelector(".sv-chart-hit");
-      if(!hit) return;
-      var box=hit.getBoundingClientRect();
-      var n=(ev.clientX-box.left)/Math.max(1, box.width);
-      showAt(nearestIndex(n, data.length), ev.clientX, ev.clientY);
-    }
-    svg.onpointermove=function(ev){
-      if(ev.pointerType==="mouse") pick(ev);
-      else if(wrap.hasPointerCapture&&wrap.hasPointerCapture(ev.pointerId)) pick(ev);
-    };
-    svg.onpointerdown=function(ev){
-      if(ev.pointerType!=="mouse"&&wrap.setPointerCapture) wrap.setPointerCapture(ev.pointerId);
-      pick(ev);
-    };
-    svg.onpointerup=function(ev){
-      if(ev.pointerType!=="mouse"&&wrap.releasePointerCapture) try{ wrap.releasePointerCapture(ev.pointerId); }catch(_){}
-    };
-    svg.onpointerleave=hide;
-    wrap.onmouseleave=hide;
-  }
-  function bindMonthlyChart(wrap, bars, onFilter){
-    if(!wrap || !bars || !bars.length) return;
-    var meta={};
-    bars.forEach(function(b){ meta[b.key]=b; });
-    function tipText(b){
-      var wr=b.winRate!=null?(" · "+fmtPct(b.winRate, false)+" win rate"):"";
-      return (b.label||b.key)+": "+fmtUnits(b.value)+" · "+(b.bets||0)+" bets"+wr;
-    }
-    wrap.querySelectorAll(".sv-bar").forEach(function(rect){
-      rect.style.cursor="pointer";
-      var key=rect.getAttribute("data-sv-month")||"";
-      var b=meta[key];
-      if(!b) return;
-      rect.onmouseenter=function(ev){
-        var box=wrap.getBoundingClientRect();
-        chartTip(wrap, tipText(b), ev.clientX-box.left, ev.clientY-box.top-32);
-      };
-      rect.onmousemove=function(ev){
-        var box=wrap.getBoundingClientRect();
-        chartTip(wrap, tipText(b), ev.clientX-box.left, ev.clientY-box.top-32);
-      };
-      rect.onmouseleave=function(){ hideChartTip(wrap); };
-      rect.onclick=function(){
-        if(typeof onFilter==="function") onFilter({kind:"month", key:key, label:filterLabel("month", key)});
-      };
-      rect.onkeydown=function(ev){
-        if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); rect.click(); }
-      };
-    });
-  }
   function bindLegend(mount, onFilter, active){
     mount.querySelectorAll(".sv-legend-row").forEach(function(row){
       var kind=row.getAttribute("data-sv-kind")||"";
@@ -747,20 +626,6 @@
         if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); row.click(); }
       };
     });
-    mount.querySelectorAll(".sv-donut-slice").forEach(function(path){
-      var key=path.getAttribute("data-sv-slice")||"";
-      var panel=path.closest(".sv-panel");
-      var kind=panel && /sport/i.test(panel.getAttribute("aria-label")||"")?"sport":"bookie";
-      path.style.cursor="pointer";
-      path.onclick=function(){
-        if(typeof onFilter!=="function") return;
-        if(active && active.kind===kind && active.key===key) onFilter(null);
-        else onFilter({kind:kind, key:key, label:filterLabel(kind, key)});
-      };
-      path.onkeydown=function(ev){
-        if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); path.click(); }
-      };
-    });
   }
   function bindInteractions(mount, detail, opts, handlers){
     if(!mount || !handlers) return;
@@ -768,8 +633,20 @@
     handlers=handlers||{};
     var onFilter=handlers.onFilter;
     var active=opts.filter||null;
-    bindUnitsChart(mount.querySelector('[data-sv-chart="units"]'), unitsSeries(detail));
-    bindMonthlyChart(mount.querySelector('[data-sv-chart="monthly"]'), monthlyBars(detail), onFilter);
+    if(root.TBCharts && typeof root.TBCharts.attach==="function"){
+      root.TBCharts.attach(mount, {
+        onBar:function(bar){
+          if(typeof onFilter!=="function" || !bar) return;
+          onFilter({kind:"month", key:String(bar.key), label:filterLabel("month", bar.key)});
+        },
+        onSlice:function(name, kind){
+          if(typeof onFilter!=="function") return;
+          if(active && active.kind===kind && active.key===name) onFilter(null);
+          else onFilter({kind:kind, key:name, label:filterLabel(kind, name)});
+        }
+      });
+    }
+    if(root.TBCharts && typeof root.TBCharts.mountAll==="function") root.TBCharts.mountAll(mount);
     bindLegend(mount, onFilter, active);
     mount.querySelectorAll(".sv-filter-clear").forEach(function(btn){
       btn.onclick=function(ev){ ev.preventDefault(); if(typeof handlers.onClear==="function") handlers.onClear(); };

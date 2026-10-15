@@ -114,24 +114,14 @@
     var labels = chartLabels(stats.rounds || []);
     if (narrow && labels.length > 3) labels = [labels[0], labels[Math.floor(labels.length / 2)], labels[labels.length - 1]];
     host.innerHTML = TipdashSite.areaChart({
-      w: w,
-      h: narrow ? 176 : 248,
+      h: narrow ? 176 : 220,
       data: series,
-      padL: narrow ? 36 : 46,
-      padR: 12,
-      padT: 12,
-      padB: 28,
-      yTicks: scale.ticks,
       yMax: scale.yMax,
       yMin: scale.yMin,
-      yFmt: function (v) { return v + "u"; },
       xLabels: labels,
-      fontSize: narrow ? 13 : 12,
-      id: "units-fill",
-      label: "Units over time, ending at " + TipsterStats.formatUnits(stats.units, 1),
-      smooth: 0.65,
-      strokeW: narrow ? 2.2 : 2.6
+      label: "Units over time, ending at " + TipsterStats.formatUnits(stats.units, 1)
     });
+    if (window.TBCharts && typeof TBCharts.mountAll === "function") TBCharts.mountAll(host);
   }
 
   function render(data) {

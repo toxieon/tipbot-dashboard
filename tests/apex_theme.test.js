@@ -168,6 +168,8 @@ test("a positive profit sparkline rises left to right", () => {
   assert.ok(bank[0] > bank[bank.length - 1], "a positive bankroll ends above where it started");
   const js = read("assets/theme-apex.js");
   assert.match(js, /svgLine\("apex-mini", \[0, st\.profit\]/);
+  assert.match(js, /TBCharts\.shell/);
+  assert.match(js, /kind:\s*"spark"/);
   assert.match(js, /var running = profits\.length \? \[0, sum\] : \[\]/);
 });
 
