@@ -91,7 +91,7 @@
     return TBSlipOcr.recognizeImage(Tesseract, file, slipBase());
   }
 
-  async function loadFixtureGames() {
+  async function loadAflFixtures() {
     try {
       var res = await prefetchBuilderData();
       var fx = res[2];
@@ -103,6 +103,22 @@
       }
     }
     return [];
+  }
+
+  async function fetchEspnJson(url) {
+    var r = await fetch(url, { mode: "cors", cache: "no-store" });
+    if (!r.ok) throw new Error("scoreboard " + r.status);
+    return r.json();
+  }
+
+  // AFL uses /api/fixtures. NBA, NBL, WNBA and NFL use the same public scoreboard
+  // the builder already reads, for the slip date and the day either side of it.
+  async function loadFixtureGames(sport, when, eventName) {
+    await ensureSlipOcr();
+    return TBSlipOcr.loadSportFixtures(sport, when, eventName, {
+      loadAfl: loadAflFixtures,
+      fetchJson: fetchEspnJson,
+    });
   }
 
   function escAttr(s) {
@@ -191,7 +207,8 @@
       var ocr = await runOcr(file);
       SLIP.ocrText = ocr.text || "";
       SLIP.parsed = TBSlipOcr.parseSlipLines(ocr);
-      SLIP.fixtures = await loadFixtureGames();
+      SLIP.fixtureSport = SLIP.parsed.sport || "";
+      SLIP.fixtures = await loadFixtureGames(SLIP.parsed.sport, SLIP.parsed.start_local || SLIP.parsed.date_time, SLIP.parsed.event);
       SLIP.parsedLegs = TBSlipOcr.attachFixtureMatches(SLIP.parsed.legs || [], SLIP.fixtures);
       SLIP.parsed = Object.assign({}, SLIP.parsed, { legs: SLIP.parsedLegs });
       SLIP.draft = TBSlipOcr.slipToTipDraft(SLIP.parsed);
@@ -439,7 +456,10 @@
     }
     if (err) err.textContent = "";
     await ensureSlipOcr();
-    if (!SLIP.fixtures.length) SLIP.fixtures = await loadFixtureGames();
+    if (SLIP.fixtureSport !== (reviewed.sport || "") || !SLIP.fixtures.length) {
+      SLIP.fixtures = await loadFixtureGames(reviewed.sport, reviewed.date_time, reviewed.game_name);
+      SLIP.fixtureSport = reviewed.sport || "";
+    }
     var matchedLegs = TBSlipOcr.attachFixtureMatches(reviewed.legs, SLIP.fixtures);
     var tip = TBSlipOcr.slipToTipDraft({
       bet_type: reviewed.bet_type,
@@ -448,9 +468,13 @@
       date_time: reviewed.date_time,
       sport: reviewed.sport,
       bookie: TBSlipOcr.detectBookie(SLIP.ocrText || reviewed.bookmaker),
+      start_local: (SLIP.parsed && SLIP.parsed.start_local) || "",
       legs: matchedLegs,
     });
     tip.bookmaker = reviewed.bookmaker || tip.bookmaker;
+    var editedWhen = TBSlipOcr.parseSlipDate(reviewed.date_time);
+    if (editedWhen.local) tip.game_start = editedWhen.local;
+    else if (!tip.game_start && SLIP.parsed && SLIP.parsed.start_local) tip.game_start = SLIP.parsed.start_local;
     var gid = SLIP.guildId;
     var name = SLIP.serverName;
     if (!BUILD || String(BUILD.guildId) !== String(gid)) {
@@ -468,20 +492,20 @@
         autoLines: false,
       };
     }
-    BUILD.legs = (tip.legs || []).slice();
     BUILD.image = SLIP.imageData || null;
-    BUILD.custom = false;
-    BUILD.espn = false;
-    BUILD._importGameName = tip.game_name || reviewed.game_name || "";
     var primary = resolvePrimaryGame(matchedLegs);
-    BUILD.game = primary;
-    if (!primary && TBSlipOcr.uniqueEvents(matchedLegs).length === 1 && !matchedLegs.some(function (l) {
-      return l.game_id;
-    })) {
-      BUILD.custom = true;
-      BUILD.customEvent = matchedLegs[0] && matchedLegs[0].event ? matchedLegs[0].event : reviewed.game_name;
-      BUILD.customSport = reviewed.sport || "AFL";
-    }
+    var state = TBSlipOcr.builderStateForSlip(tip, primary, { parsedLegs: matchedLegs });
+    BUILD.legs = state.legs;
+    BUILD.custom = state.custom;
+    BUILD.espn = state.espn;
+    BUILD.espnLeague = state.espnLeague || "";
+    BUILD.espnEvent = state.espnEvent;
+    BUILD.game = state.game;
+    BUILD.customEvent = state.customEvent || "";
+    BUILD.customSport = state.customSport || "";
+    BUILD.customStartDay = state.customStartDay || "";
+    BUILD._importGameName = tip.game_name || reviewed.game_name || "";
+    BUILD._importGameStart = (state.espn || state.custom) ? (state.game_start || "") : "";
     panel("builder");
     renderTray();
     renderConfirm();
@@ -520,6 +544,7 @@
     SLIP.parsed = null;
     SLIP.parsedLegs = [];
     SLIP.fixtures = [];
+    SLIP.fixtureSport = "";
     SLIP.ocrText = "";
     await TD.load("builder");
     await ensureSlipOcr();

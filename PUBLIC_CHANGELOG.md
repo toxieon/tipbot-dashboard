@@ -1,3 +1,7 @@
+## 0.60.4
+
+Importing a bet slip from a screenshot now matches NBA, WNBA, NBL and NFL games, and reads Today and Tomorrow as the start time.
+
 ## 0.60.3
 
 Record charts (units, monthly profit, bookie and sport splits, sparklines) are easier to read on a phone. Profit is green, a loss is red, and a tap shows the number.
