@@ -870,7 +870,16 @@
     s = String(s || "");
     return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
   }
+  /** Over/Under plus a numeric line. A missing piece must not be invented. */
+  function propComplete(leg) {
+    var side = String(leg && leg.side || "").toLowerCase();
+    if (side !== "over" && side !== "under") return false;
+    if (leg.line == null || leg.line === "") return false;
+    var n = Number(leg.line);
+    return isFinite(n);
+  }
   /** Builder leg. Recognised props, head-to-head, line and total stay structured.
+   *  A recognised prop with no line or side stays custom so the tip is not rejected.
    *  A leg is custom only when none of those match. Racing stays a free-text leg. */
   function legToBuilderLeg(leg) {
     leg = leg || {};
@@ -886,20 +895,28 @@
     var mkt = String(leg.market || leg.stat || "");
     var who = leg.team || leg.selection || leg.player || "";
     var matched = false;
+    var incompleteProp = false;
+    var side = String(leg.side || "").toLowerCase() === "under" ? "Under" : (String(leg.side || "").toLowerCase() === "over" ? "Over" : "");
 
     if (leg.player && BASKETBALL_PROP_KEYS[leg.stat] && sport !== "NFL" && sport !== "AFL" && sport !== "AFLW") {
-      out.player = leg.player; out.stat = leg.stat; out.prop = BASKETBALL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
-      out.line = leg.line; out.side = leg.side || "Over";
       if (!league) league = espnLeagueForSport(sport);
-      matched = true;
+      if (propComplete(leg)) {
+        out.player = leg.player; out.stat = leg.stat; out.prop = BASKETBALL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
+        out.line = Number(leg.line); out.side = side;
+        matched = true;
+      } else incompleteProp = true;
     } else if (leg.player && NFL_PROP_KEYS[leg.stat] && sport !== "AFL" && sport !== "AFLW" && sport !== "NBA" && sport !== "WNBA" && sport !== "NBL") {
-      out.player = leg.player; out.stat = leg.stat; out.prop = NFL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
-      out.line = leg.line; out.side = leg.side || "Over";
       if (!league) league = "nfl";
-      matched = true;
-    } else if ((sport === "AFL" || sport === "AFLW") && leg.player && AFL_STATS[leg.stat] && leg.line != null) {
-      out.player = leg.player; out.stat = leg.stat; out.line = leg.line; out.side = leg.side || "Over";
-      matched = true;
+      if (propComplete(leg)) {
+        out.player = leg.player; out.stat = leg.stat; out.prop = NFL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
+        out.line = Number(leg.line); out.side = side;
+        matched = true;
+      } else incompleteProp = true;
+    } else if ((sport === "AFL" || sport === "AFLW") && leg.player && AFL_STATS[leg.stat]) {
+      if (propComplete(leg)) {
+        out.player = leg.player; out.stat = leg.stat; out.line = Number(leg.line); out.side = side;
+        matched = true;
+      } else incompleteProp = true;
     } else if (/head\s*to\s*head|^h2h$|match\s*betting|money\s*line|^moneyline$|^to\s*win$|^win$|win\s*-?\s*draw\s*-?\s*win|match\s*result|^1x2$/i.test(mkt) && who) {
       out.kind = "team";
       out.market = /win\s*-?\s*draw|match\s*result|^1x2$/i.test(mkt) ? "Win-Draw-Win" : "Head to Head";
@@ -919,11 +936,14 @@
       matched = out.line != null || !!out.side;
     }
 
-    if (league && matched) out.league = league;
+    if (league && (matched || incompleteProp)) out.league = league;
     if (!matched) {
       out.custom = true;
-      if (leg.player && leg.stat) {
-        out.player = leg.player; out.stat = leg.stat; out.line = leg.line; out.side = leg.side || "Over";
+      // A recognised prop with no line or side stays free text. Player and stat
+      // are left off so it is not queued as a prop.
+      if (!incompleteProp && leg.player && leg.stat) {
+        out.player = leg.player; out.stat = leg.stat; out.line = leg.line;
+        if (side) out.side = side;
       }
     }
     return out;

@@ -272,6 +272,50 @@ test("NFL and WNBA scoreboards match the game and send the event id", async () =
   assert.equal(wnbaState.legs[1].espn_event_id, "401772001");
 });
 
+test("a recognised prop missing its line or side stays custom on the matched game", () => {
+  const noLine = Ocr.legToBuilderLeg({
+    player: "Rhyne Howard", stat: "Points", side: "Over", sport: "WNBA",
+    game_id: "401772001", espn_event_id: "401772001",
+  });
+  assert.equal(noLine.custom, true);
+  assert.equal(noLine.prop, undefined);
+  assert.equal(noLine.prop_key, undefined);
+  assert.equal(noLine.player, undefined);
+  assert.equal(noLine.stat, undefined);
+  assert.equal(noLine.espn_event_id, "401772001");
+  assert.equal(noLine.game_id, "401772001");
+  assert.equal(noLine.league, "wnba");
+  assert.match(noLine.desc, /Rhyne Howard/);
+
+  const noSide = Ocr.legToBuilderLeg({
+    player: "Sam Darnold", stat: "Passing Yards", line: 150, sport: "NFL",
+    game_id: "401872995", espn_event_id: "401872995",
+  });
+  assert.equal(noSide.custom, true);
+  assert.equal(noSide.prop, undefined);
+  assert.equal(noSide.side, undefined);
+  assert.equal(noSide.espn_event_id, "401872995");
+  assert.equal(noSide.league, "nfl");
+
+  const neither = Ocr.legToBuilderLeg({
+    player: "Emanuel Wilson", stat: "Anytime TD", sport: "NFL",
+    espn_event_id: "401872995", game_id: "401872995",
+  });
+  assert.equal(neither.custom, true);
+  assert.equal(neither.prop, undefined);
+  assert.equal(neither.espn_event_id, "401872995");
+
+  const ready = Ocr.legToBuilderLeg({
+    player: "Rhyne Howard", stat: "Points", line: 15, side: "Over", sport: "WNBA",
+    espn_event_id: "401772001", game_id: "401772001",
+  });
+  assert.equal(ready.custom, undefined);
+  assert.equal(ready.prop, "points");
+  assert.equal(ready.line, 15);
+  assert.equal(ready.side, "Over");
+  assert.equal(ready.espn_event_id, "401772001");
+});
+
 test("screenshot import loads fixtures for the detected sport", () => {
   const ui = fs.readFileSync(path.join(root, "assets/slip-ocr-ui.js"), "utf8");
   const builder = fs.readFileSync(path.join(root, "assets/builder.js"), "utf8");

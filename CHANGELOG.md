@@ -1,7 +1,7 @@
 ## 0.60.4 · 2026-10-15 · `slip-espn` · Screenshot import links basketball and NFL
 
 - Import from screenshot loads fixtures for the sport on the slip. NBA, NBL, WNBA and NFL games match the scoreboard (slip date, and the day either side) instead of falling through to a custom game. A matched game sends `league`, `espn_event_id` and the kickoff time.
-- Player props for those leagues (points, rebounds, assists, threes, PRA, steals, blocks, NFL yards and touchdowns, anytime TD), plus head to head, line and total, are real legs. A leg is custom only when nothing matches.
+- Player props for those leagues (points, rebounds, assists, threes, PRA, steals, blocks, NFL yards and touchdowns, anytime TD), plus head to head, line and total, are real legs. A recognised prop with no line or side stays custom on that game, so the tip is not rejected. Anything else is custom only when nothing matches.
 - "Today", "Tomorrow" and "Tonight" are the date line, not an extra leg, and that start time is sent with the tip.
 
 Tests: `tests/slip_ocr.test.js`.
