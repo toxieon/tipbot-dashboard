@@ -1,6 +1,6 @@
 /* Home Stats screen: ROI, units, streaks and breakdowns from the tips
- * the dashboard already loads. No new endpoints. Hand-written SVG via SvgCharts
- * when present, with a local polyline fallback. window.TBDashStats + CommonJS.
+ * the dashboard already loads. No new endpoints. Lines and bars via TBCharts
+ * (uPlot and ECharts). window.TBDashStats + CommonJS.
  */
 (function (root) {
   "use strict";
@@ -35,9 +35,9 @@
   }
   function chartsApi() {
     var g = typeof globalThis !== "undefined" ? globalThis : {};
-    if (g.SvgCharts && typeof g.SvgCharts.areaChart === "function") return g.SvgCharts;
+    if (g.TBCharts && typeof g.TBCharts.areaChart === "function") return g.TBCharts;
     if (typeof require === "function") {
-      try { return require("./svg-charts.js"); } catch (e) {}
+      try { return require("./tb-charts.js"); } catch (e) {}
     }
     return null;
   }
@@ -49,12 +49,6 @@
     }
     return null;
   }
-  function reducedMotion() {
-    var g = typeof globalThis !== "undefined" ? globalThis : {};
-    if (g.TBMotion && typeof g.TBMotion.reduced === "function") return !!g.TBMotion.reduced();
-    try { return !!(g.matchMedia && g.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; }
-  }
-
   function isHistoricalImport(tip) {
     var SV = serverView();
     if (SV && typeof SV.isHistoricalImport === "function") return SV.isHistoricalImport(tip);
@@ -345,57 +339,28 @@
     var word = st.currentType === "L" ? (st.currentN === 1 ? "loss" : "losses") : (st.currentN === 1 ? "win" : "wins");
     return st.currentN + " " + word;
   }
-  function fallbackLine(data) {
-    if (!data || data.length < 2) return "";
-    var w = 100, h = 42, minY = 0, maxY = 0, i;
-    for (i = 0; i < data.length; i++) {
-      if (data[i].y < minY) minY = data[i].y;
-      if (data[i].y > maxY) maxY = data[i].y;
-    }
-    if (minY === maxY) { minY -= 1; maxY += 1; }
-    var pts = [];
-    for (i = 0; i < data.length; i++) {
-      var px = (i / (data.length - 1)) * w;
-      var py = h - ((data[i].y - minY) / (maxY - minY)) * h;
-      pts.push(px.toFixed(1) + "," + py.toFixed(1));
-    }
-    var zeroY = h - ((0 - minY) / (maxY - minY)) * h;
-    return '<svg class="ds-svg" viewBox="0 0 100 42" width="100%" height="100%" preserveAspectRatio="none" role="img" aria-label="Cumulative units">'
-      + '<line x1="0" y1="' + zeroY.toFixed(1) + '" x2="100" y2="' + zeroY.toFixed(1) + '" stroke="var(--line)" stroke-width="0.4"/>'
-      + '<polyline points="' + pts.join(" ") + '" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'
-      + "</svg>";
-  }
   function lineChart(points) {
     var C = chartsApi();
     var ys = (points || []).map(function (p) { return p.y; });
+    var labels = (points || []).map(function (p) { return p.label || p.x || ""; });
     if (C && ys.length >= 2) {
       return C.areaChart({
-        data: ys, w: 640, h: 200, id: "dsu", smooth: reducedMotion() ? 0 : 0.65, padL: 44,
-        yFmt: function (v) { var r = round1(v); return (r > 0 ? "+" : "") + r.toFixed(r % 1 ? 1 : 0).replace(/\.0$/, ""); },
+        data: ys, h: 200, unit: "u", signed: true, colorMode: "end",
+        pointLabels: labels,
         aria: "Cumulative units"
       });
     }
-    return fallbackLine(points);
+    return "";
   }
   function monthChart(bars) {
     var C = chartsApi();
     if (C && bars && bars.length) {
       return C.barChart({
-        bars: bars, w: 640, h: 200, padL: 44,
-        yFmt: function (v) { var r = round1(v); return (r > 0 ? "+" : "") + r.toFixed(r % 1 ? 1 : 0).replace(/\.0$/, ""); },
+        bars: bars, h: 200, unit: "u", signed: true,
         aria: "Monthly profit"
       });
     }
-    if (!bars || !bars.length) return "";
-    var maxMag = 1;
-    bars.forEach(function (b) { var m = Math.abs(b.value); if (m > maxMag) maxMag = m; });
-    var html = '<div class="ds-bars" role="img" aria-label="Monthly profit">';
-    bars.forEach(function (b) {
-      var h = Math.max(4, Math.round(Math.abs(b.value) / maxMag * 100));
-      var cls = b.value >= 0 ? "pos" : "neg";
-      html += '<div class="ds-bar" title="' + esc(b.label) + " " + fmtUnits(b.value) + '"><i class="' + cls + '" style="height:' + h + '%"></i><span>' + esc(b.label) + "</span></div>";
-    });
-    return html + "</div>";
+    return "";
   }
   function horsesBtn() {
     return '<button type="button" class="ds-horses" id="ds-horses">Horses</button>';
@@ -520,7 +485,7 @@
       ".ds-v{font-weight:800;font-size:var(--t-h2);line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}" +
       ".ds-s{color:var(--faint);font-size:var(--t-foot);margin-top:4px}" +
       ".ds-chart{width:100%;min-width:0;overflow:hidden}" +
-      ".ds-chart .sv-svg,.ds-chart .ds-svg{display:block;width:100%;height:auto;max-width:100%}" +
+      ".ds-chart .tb-chart{min-height:180px}" +
       ".ds-list{display:flex;flex-direction:column;gap:8px;min-width:0}" +
       ".ds-row{display:flex;align-items:center;gap:8px;min-width:0}" +
       ".ds-mark{width:1.5em;text-align:center;flex:none}" +
@@ -531,12 +496,6 @@
       ".ds-empty{color:var(--muted);font-size:var(--t-sub);padding:8px 0}" +
       ".ds-empty-lg{text-align:center;padding:28px 12px}" +
       ".ds-empty-sub{color:var(--faint);font-size:var(--t-foot)}" +
-      ".ds-bars{display:flex;align-items:flex-end;gap:6px;height:120px;min-width:0;padding-bottom:18px;border-bottom:1px solid var(--line)}" +
-      ".ds-bar{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative}" +
-      ".ds-bar i{display:block;width:100%;border-radius:3px 3px 0 0}" +
-      ".ds-bar i.pos{background:var(--win)}" +
-      ".ds-bar i.neg{background:var(--loss)}" +
-      ".ds-bar span{position:absolute;bottom:-16px;font-size:var(--t-cap);color:var(--muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}" +
       ".ds-note{grid-column:1/-1;color:var(--muted);font-size:var(--t-foot);margin:0 0 14px}" +
       ".ds-sk{background:rgba(255,255,255,.06);border-radius:8px}" +
       ".home-stats-tile .sname{display:flex;align-items:center;gap:8px}" +
@@ -545,7 +504,7 @@
       "@media(max-width:700px){.ds-horses{width:100%}}" +
       "@media(max-width:700px){.ds-hero,.ds-split{grid-template-columns:1fr}.ds-grid{grid-template-columns:1fr 1fr}.ds-grid .ds-kpi:last-child{grid-column:1/-1}}" +
       "@media(min-width:900px){.ds-page{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 16px;align-items:start}.ds-page>.back,.ds-page>.dhead,.ds-page>.ds-win,.ds-page>.ds-hero,.ds-page>.ds-empty-lg{grid-column:1/-1}.ds-page>.ds-grid{grid-column:1/-1}.ds-page>.ds-split{grid-column:1/-1}}" +
-      "@media(prefers-reduced-motion:reduce){.ds-win-btn{transition:none}.ds-chart .sv-line{transition:none}}");
+      "@media(prefers-reduced-motion:reduce){.ds-win-btn{transition:none}.tb-chart .u-cursor-pt{transition:none}}");
   }
   function injectCss() {
     var doc = root.document;
@@ -581,6 +540,7 @@
     ropts.capped = cappedPacks(packs);
     el.innerHTML = render(stats, ropts);
     bind(el, stats, opts);
+    if (root.TBCharts && typeof root.TBCharts.mountAll === "function") root.TBCharts.mountAll(el);
     return stats;
   }
 
