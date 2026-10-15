@@ -12,8 +12,9 @@
 
   var LOW_CONF = 70;            // tesseract line confidence below this is flagged
   var RESPONSIBLE_RE = /think\.|is this a bet|deposit\s*limit|gamble\s*responsibly|set\s*a\s*limit|want\s*to\s*place/i;
-  var DATE_RE = /^(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|^(?:mon|tue|wed|thu|fri|sat|sun)\b[ ,]|^\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+  var DATE_RE = /^(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|^(?:mon|tue|wed|thu|fri|sat|sun)\b[ ,]|^\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|^(?:today|tomorrow|tonight)\b/i;
   var DATE_PARTS_RE = /^(mon|tue|wed|thu|fri|sat|sun)[a-z]*,?\s+(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})[:.](\d{2})/i;
+  var REL_DATE_RE = /^(today|tomorrow|tonight)\b(?:[,\s]+(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?)?(?:[,\s]+(\d{1,2})[:.](\d{2}))?/i;
   var BET_RE = /\b(same\s*game\s*multi|sgm|multi(?:\s*bet)?|single)\b\s*@\s*([\d.,]+)/i;
   var BET_WORD_RE = /^(same\s*game\s*multi|sgm|multi(?:\s*bet)?|single)\b/i;
   var TITLE_AT_RE = /^(.+?)\s*@\s*(\d+(?:[.,]\d+)?)\s*$/;
@@ -36,6 +37,9 @@
     { stat: "Rebounds", re: /^rebounds?$/i, sport: "BASKETBALL" },
     { stat: "Assists", re: /^assists?$/i, sport: "BASKETBALL" },
     { stat: "Threes Made", re: /^(threes?(\s*made)?|3\s*pointers?(\s*made)?)$/i, sport: "BASKETBALL" },
+    { stat: "Steals", re: /^steals?$/i, sport: "BASKETBALL" },
+    { stat: "Blocks", re: /^blocks?$/i, sport: "BASKETBALL" },
+    { stat: "Points + Rebounds + Assists", re: /^(pra|points\s*\+\s*rebounds\s*\+\s*assists|pts\s*\+\s*reb\s*\+\s*ast)$/i, sport: "BASKETBALL" },
     { stat: "Passing Yards", re: /^pass(ing)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
     { stat: "Rushing Yards", re: /^rush(ing)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
     { stat: "Receiving Yards", re: /^rec(eiving)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
@@ -54,12 +58,15 @@
     ["Rushing TDs", "rushing touchdowns"], ["Rushing TDs", "rushing tds"], ["Receiving TDs", "receiving touchdowns"],
     ["Receiving TDs", "receiving tds"], ["Completions", "completions"], ["Interceptions", "interceptions"],
     ["Disposals", "disposals"], ["Goals", "goals"], ["Marks", "marks"], ["Tackles", "tackles"],
-    ["Points", "points"], ["Rebounds", "rebounds"], ["Assists", "assists"]
+    ["Points", "points"], ["Rebounds", "rebounds"], ["Assists", "assists"],
+    ["Threes Made", "threes"], ["Steals", "steals"], ["Blocks", "blocks"]
   ];
   var H2H_MARKETS = [
     { re: /^(head\s*to\s*head|h2h|match\s*betting|money\s*line|moneyline|to\s*win)$/i, market: "Head to Head" },
     { re: /^(win\s*-?\s*draw\s*-?\s*win|match\s*result|1x2|full\s*time\s*result)$/i, market: "Win-Draw-Win" }
   ];
+  var LINE_MARKET_RE = /^(?:alt(?:ernate)?\s+)?(?:line|spread|point\s*spread|handicap)\b/i;
+  var TOTAL_MARKET_RE = /^(?:alt(?:ernate)?\s+)?(?:total(?:\s*points|\s*score)?|game\s*total)\b/i;
   var RACE_MARKETS = /^(win|place|each\s*way|win\s*&\s*place|top\s*\d)$/i;
 
   // Team names for sport detection (clubs only; nothing slip-specific).
@@ -76,6 +83,9 @@
     NBA: ["hawks", "celtics", "nets", "hornets", "bulls", "cavaliers", "mavericks", "nuggets", "pistons", "warriors",
       "rockets", "pacers", "clippers", "lakers", "grizzlies", "heat", "bucks", "timberwolves", "pelicans", "knicks",
       "thunder", "magic", "76ers", "suns", "trail blazers", "kings", "spurs", "raptors", "jazz", "wizards"],
+    NBL: ["36ers", "adelaide 36ers", "bullets", "brisbane bullets", "taipans", "cairns taipans", "illawarra hawks",
+      "melbourne united", "breakers", "new zealand breakers", "wildcats", "perth wildcats", "phoenix",
+      "south east melbourne", "sydney kings", "jackjumpers", "tasmania jackjumpers"],
     Soccer: ["arsenal", "aston villa", "bournemouth", "brentford", "brighton", "burnley", "chelsea", "crystal palace",
       "everton", "fulham", "leeds", "liverpool", "manchester city", "man city", "manchester united", "man utd",
       "newcastle", "nottingham forest", "sunderland", "tottenham", "west ham", "wolves", "wolverhampton"]
@@ -205,8 +215,51 @@
     var sep = m[2] === "@" ? "@" : "v";
     return squash(m[1]) + " " + sep + " " + squash(m[3]);
   }
-  /** "Friday, 16 Oct 19:15" -> { display: "Fri 16 Oct 19:15", local: "2026-10-16T19:15", ok } */
+  function nearestYear(mon, day, now) {
+    var y0 = now.getUTCFullYear(), best = y0, bestDiff = Infinity;
+    [y0 - 1, y0, y0 + 1].forEach(function (y) {
+      var diff = Math.abs(Date.UTC(y, mon, day) - now.getTime());
+      if (diff < bestDiff) { best = y; bestDiff = diff; }
+    });
+    return best;
+  }
+  function slipDateParts(year, mon, day, hh, mm) {
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    var dow = new Date(Date.UTC(year, mon, day)).getUTCDay();
+    var dname = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dow];
+    var mname = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mon];
+    var timeOk = hh != null && mm != null && hh < 24 && mm < 60;
+    var dateOk = day >= 1 && day <= 31 && mon >= 0 && mon <= 11;
+    var ok = dateOk && timeOk;
+    return {
+      display: dname + " " + day + " " + mname + (timeOk ? " " + pad(hh) + ":" + pad(mm) : ""),
+      local: ok ? year + "-" + pad(mon + 1) + "-" + pad(day) + "T" + pad(hh) + ":" + pad(mm) : "",
+      ok: ok
+    };
+  }
+  /** "Today"/"Tomorrow"/"Tonight", with or without "16 Oct 11:16". */
+  function parseRelativeSlipDate(m, nowMs) {
+    var word = m[1].toLowerCase();
+    var now = new Date(nowMs != null ? nowMs : Date.now());
+    var day = m[2] ? parseInt(m[2], 10) : null;
+    var mon = m[3] ? MONTHS[m[3].toLowerCase()] : null;
+    var hh = m[4] != null && m[4] !== "" ? parseInt(m[4], 10) : null;
+    var mm = m[5] != null && m[5] !== "" ? parseInt(m[5], 10) : null;
+    var year;
+    if (day != null && mon != null) year = nearestYear(mon, day, now);
+    else {
+      var base = new Date(now.getTime());
+      if (word === "tomorrow") base.setUTCDate(base.getUTCDate() + 1);
+      year = base.getUTCFullYear();
+      mon = base.getUTCMonth();
+      day = base.getUTCDate();
+    }
+    return slipDateParts(year, mon, day, hh, mm);
+  }
+  /** "Friday, 16 Oct 19:15" or "Tomorrow 16 Oct 11:16" -> { display, local, ok } */
   function parseSlipDate(t, nowMs) {
+    var rel = String(t || "").match(REL_DATE_RE);
+    if (rel) return parseRelativeSlipDate(rel, nowMs);
     var m = String(t || "").match(DATE_PARTS_RE);
     if (!m) return { display: squash(t), local: "", ok: false };
     var dow = DOW[m[1].toLowerCase()], day = parseInt(m[2], 10), mon = MONTHS[m[3].toLowerCase()];
@@ -267,7 +320,11 @@
   // ── Sport detection ───────────────────────────────────────────────────────
   function teamHits(text, sport) {
     var s = " " + low(text).replace(/[^a-z0-9 ]/g, " ") + " ";
-    return TEAMS[sport].filter(function (t) { return s.indexOf(" " + t + " ") >= 0; }).length;
+    return (TEAMS[sport] || []).filter(function (t) { return s.indexOf(" " + t + " ") >= 0; }).length;
+  }
+  function multiWordTeamHits(text, sport) {
+    var s = " " + low(text).replace(/[^a-z0-9 ]/g, " ") + " ";
+    return (TEAMS[sport] || []).filter(function (t) { return t.indexOf(" ") >= 0 && s.indexOf(" " + t + " ") >= 0; }).length;
   }
   function detectSport(eventName, legs) {
     legs = legs || [];
@@ -275,15 +332,18 @@
     var blob = ev + " " + legs.map(function (l) { return (l.selection || "") + " " + (l.market || "") + " " + (l.event || ""); }).join(" ");
     if (RACE_EVENT_RE.test(ev) || legs.some(function (l) { return l.kind === "racing"; })) return "Racing";
     if (/\bnrl\b/i.test(blob)) return "NRL";
+    if (/\bnbl\b/i.test(blob)) return "NBL";
     if (/\(w\)/i.test(ev || blob) || /\baflw\b/i.test(blob)) return "AFLW";
     if (/\bafl\b/i.test(blob)) return "AFL";
     var statSports = legs.map(function (l) { return l.stat_sport; }).filter(Boolean);
     if (legs.some(function (l) { return l.market === "Win-Draw-Win"; })) return "Soccer";
     var scores = {};
-    ["AFL", "NFL", "WNBA", "NBA", "Soccer"].forEach(function (k) { scores[k] = teamHits(ev, k); });
+    ["AFL", "NFL", "WNBA", "NBA", "NBL", "Soccer"].forEach(function (k) { scores[k] = teamHits(ev, k); });
     if (statSports.indexOf("NFL") >= 0) scores.NFL += 3;
     if (statSports.indexOf("AFL") >= 0) scores.AFL += 3;
-    if (statSports.indexOf("BASKETBALL") >= 0) { scores.WNBA += 1; scores.NBA += 1; }
+    if (statSports.indexOf("BASKETBALL") >= 0) { scores.WNBA += 1; scores.NBA += 1; scores.NBL += 1; }
+    // A full NBL club name ("Sydney Kings", "Illawarra Hawks") beats a shared nickname.
+    if (multiWordTeamHits(ev, "NBL")) scores.NBL += 2;
     var best = "", bestN = 0, tie = false;
     Object.keys(scores).forEach(function (k) {
       if (scores[k] > bestN) { best = k; bestN = scores[k]; tie = false; } else if (scores[k] === bestN && bestN > 0) tie = true;
@@ -312,6 +372,29 @@
       if (H2H_MARKETS[i].re.test(s)) {
         leg.kind = "team"; leg.team = t; leg.market = H2H_MARKETS[i].market; leg.stat = H2H_MARKETS[i].market; return leg;
       }
+    }
+    // "Win" on a team (not "2. Royal Press" / Win) is head to head.
+    if (/^win$/i.test(s) && !RUNNER_RE.test(rt)) {
+      leg.kind = "team"; leg.team = t; leg.market = "Head to Head"; leg.stat = "Head to Head"; return leg;
+    }
+    if (LINE_MARKET_RE.test(s)) {
+      var signed = t.match(/^(.+?)\s+([+-]\d+(?:\.\d+)?)$/);
+      var subLine = s.match(/([+-]\d+(?:\.\d+)?)/);
+      leg.kind = "team"; leg.market = "Line"; leg.stat = "Line";
+      leg.team = signed ? squash(signed[1]) : t;
+      leg.selection = leg.team;
+      leg.line = signed ? parseFloat(signed[2]) : (subLine ? parseFloat(subLine[1]) : null);
+      if (leg.line == null) leg.flags.push({ field: "line", reason: "No line found" });
+      return leg;
+    }
+    if (TOTAL_MARKET_RE.test(s)) {
+      var tot = t.match(/^(over|under)\s+(\d+(?:\.\d+)?)/i) || s.match(/\b(over|under)\s+(\d+(?:\.\d+)?)/i);
+      leg.kind = "total"; leg.market = "Total"; leg.stat = "Total"; leg.selection = t;
+      if (tot) {
+        leg.side = tot[1].charAt(0).toUpperCase() + tot[1].slice(1).toLowerCase();
+        leg.line = parseFloat(tot[2]);
+      } else leg.flags.push({ field: "line", reason: "No line found" });
+      return leg;
     }
     if (/^any\s*time\s*(touchdown|td)\s*(scorer)?$/i.test(s) || /^anytime\s*(touchdown|td)/i.test(s)) {
       leg.kind = "player"; leg.player = t; leg.stat = "Anytime TD"; leg.stat_sport = "NFL";
@@ -361,6 +444,8 @@
     var s = squash(t);
     if (RACE_MARKETS.test(s)) return true;
     if (H2H_MARKETS.some(function (h) { return h.re.test(s); })) return true;
+    if (/^win$/i.test(s)) return true;
+    if (LINE_MARKET_RE.test(s) || TOTAL_MARKET_RE.test(s)) return true;
     if (/^any\s*time\s*(touchdown|td)/i.test(s) || /^anytime\s*(touchdown|td)/i.test(s)) return true;
     if (/^(?:to\s+(?:score|get|have|record)\s+)?\d+(?:\.\d+)?\s*\+\s*[A-Za-z]/i.test(s)) return true;
     if (/^(over|under)\s*\(?\+?\d/i.test(s)) return true;
@@ -459,11 +544,17 @@
             if (dt) k++;
             continue;
           }
-          curEvent = ln; curDate = null; continue;
+          // A date that heads the slip ("Tomorrow 16 Oct 11:16" then the game) stays with the event.
+          var keepDate = (legs.length === 0 && !pendingTitle) ? curDate : null;
+          curEvent = ln;
+          curDate = keepDate;
+          continue;
         }
         if (isDateLine(ln.text)) { curDate = ln; continue; }
         if (slip.leg_count == null && ln.text.length < 20 && /\b\d{1,2}\s*legs?\s*$/i.test(ln.text)) { slip.leg_count = parseInt(ln.text.match(/(\d{1,2})\s*legs?\s*$/i)[1], 10); continue; }
-        if (isSubLine(ln.text)) {
+        // "Over 220.5" / "Total Points": the over line is the selection, not a player-prop subtitle.
+        var totalTitle = /^(over|under)\s+\(?\+?\d+(?:\.\d+)?\)?\s*$/i.test(ln.text) && body[k + 1] && TOTAL_MARKET_RE.test(body[k + 1].text);
+        if (isSubLine(ln.text) && !totalTitle) {
           if (pendingTitle) { attach(legFromPair(pendingTitle, ln)); pendingTitle = null; }
           else { var orphan = legFromPair({ text: "", conf: ln.conf }, ln); orphan.flags.push({ field: "selection", reason: "Selection missing" }); attach(orphan); }
         } else {
@@ -634,6 +725,12 @@
     return String((g && g.comp) || "AFL").trim();
   }
 
+  function sideMatch(fixtureSide, slipSide) {
+    if (!fixtureSide || !slipSide) return false;
+    if (fixtureSide === slipSide) return true;
+    if (fixtureSide.indexOf(slipSide) >= 0 || slipSide.indexOf(fixtureSide) >= 0) return true;
+    return false;
+  }
   function teamsMatchEvent(game, eventName) {
     var teams = splitEventTeams(eventName);
     if (!teams.home || !teams.away) return false;
@@ -641,12 +738,9 @@
     var at = normTeamToken(teams.away);
     var gh = normTeamToken(fixtureTeamName(game.hteam));
     var ga = normTeamToken(fixtureTeamName(game.ateam));
-    if (gh === ht && ga === at) return true;
-    if (gh.indexOf(ht) >= 0 && ga.indexOf(at) >= 0) return true;
     var htBare = ht.replace(/\bw\b/g, "").trim();
     var atBare = at.replace(/\bw\b/g, "").trim();
-    if (gh.indexOf(htBare) >= 0 && ga.indexOf(atBare) >= 0) return true;
-    return false;
+    return (sideMatch(gh, ht) && sideMatch(ga, at)) || (sideMatch(gh, htBare) && sideMatch(ga, atBare));
   }
 
   function fixtureGameId(g) {
@@ -687,6 +781,9 @@
         copy.game_id = copy.fixture_id;
         copy.sport = fixtureComp(hit);
         copy.matched_event = fixtureEventLabel(hit);
+        if (hit.espn_event_id) copy.espn_event_id = String(hit.espn_event_id);
+        if (hit.league) copy.league = hit.league;
+        if (hit.date) copy.game_start = hit.date;
       }
       return copy;
     });
@@ -720,6 +817,8 @@
       sport: sport || detectSport(gameName, parsedLegs),
       bookmaker: bookmakerName(slip.bookie),
       date_time: slip.date_time || "",
+      start_local: slip.start_local || "",
+      game_start: slip.game_start || slip.start_local || "",
       legs: legs,
       parsed_legs: parsedLegs,
       bookie: slip.bookie || "unknown",
@@ -740,7 +839,13 @@
   var NFL_PROP_KEYS = { "Passing Yards": "passing_yards", "Rushing Yards": "rushing_yards", "Receiving Yards": "receiving_yards",
     "Receptions": "receptions", "Passing TDs": "passing_tds", "Rushing TDs": "rushing_tds", "Receiving TDs": "receiving_tds",
     "Completions": "completions", "Interceptions": "interceptions", "Anytime TD": "anytime_td" };
+  var BASKETBALL_PROP_KEYS = {
+    "Points": "points", "Rebounds": "rebounds", "Assists": "assists", "Threes Made": "threes_made", "Threes": "threes_made",
+    "Steals": "steals", "Blocks": "blocks", "Points + Rebounds + Assists": "pra", "PRA": "pra"
+  };
   var AFL_STATS = { Disposals: 1, Goals: 1, Marks: 1, Tackles: 1, Kicks: 1, Handballs: 1, "Fantasy Points": 1 };
+  var ESPN_PATH = { nfl: "football/nfl", nba: "basketball/nba", wnba: "basketball/wnba", nbl: "basketball/nbl" };
+  var ESPN_SITE = "https://site.api.espn.com/apis/site/v2/sports";
   /** Human description of a structured leg ("Megan Fitzsimon 15+ Disposals"). */
   function legDescription(leg) {
     leg = leg || {};
@@ -756,30 +861,238 @@
     var sel = String(leg.selection || "").trim(), mkt = String(leg.market || "").trim();
     return sel && mkt ? sel + " \u2014 " + mkt : sel || mkt;
   }
-  /** Builder leg. AFL/AFLW player props and H2H become structured legs; everything else is a
-   *  custom leg whose desc carries the structured reading (player, stat, line, side). */
+  function espnLeagueForSport(sport) {
+    var s = String(sport || "").toLowerCase();
+    if (s === "nfl" || s === "nba" || s === "wnba" || s === "nbl") return s;
+    return "";
+  }
+  function wordCap(s) {
+    s = String(s || "");
+    return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+  }
+  /** Over/Under plus a numeric line. A missing piece must not be invented. */
+  function propComplete(leg) {
+    var side = String(leg && leg.side || "").toLowerCase();
+    if (side !== "over" && side !== "under") return false;
+    if (leg.line == null || leg.line === "") return false;
+    var n = Number(leg.line);
+    return isFinite(n);
+  }
+  /** Builder leg. Recognised props, head-to-head, line and total stay structured.
+   *  A recognised prop with no line or side stays custom so the tip is not rejected.
+   *  A leg is custom only when none of those match. Racing stays a free-text leg. */
   function legToBuilderLeg(leg) {
     leg = leg || {};
-    var out = { custom: true, desc: legDescription(leg) };
+    var out = { desc: legDescription(leg) };
     if (leg.game_id) out.game_id = String(leg.game_id);
+    if (leg.espn_event_id) out.espn_event_id = String(leg.espn_event_id);
     if (leg.event) out.game = leg.event;
     if (leg.odds > 1) out.odds = leg.odds;
-    var afl = leg.sport === "AFL" || leg.sport === "AFLW";
-    var mkt = String(leg.market || "");
-    if (/head\s*to\s*head/i.test(mkt) || leg.market === "Head to Head") {
-      out.market = "Head to Head";
-      out.player = leg.team || leg.selection;
+    if (leg.kind === "racing") { out.custom = true; return out; }
+
+    var sport = String(leg.sport || "").toUpperCase();
+    var league = leg.league || espnLeagueForSport(sport);
+    var mkt = String(leg.market || leg.stat || "");
+    var who = leg.team || leg.selection || leg.player || "";
+    var matched = false;
+    var incompleteProp = false;
+    var side = String(leg.side || "").toLowerCase() === "under" ? "Under" : (String(leg.side || "").toLowerCase() === "over" ? "Over" : "");
+
+    if (leg.player && BASKETBALL_PROP_KEYS[leg.stat] && sport !== "NFL" && sport !== "AFL" && sport !== "AFLW") {
+      if (!league) league = espnLeagueForSport(sport);
+      if (propComplete(leg)) {
+        out.player = leg.player; out.stat = leg.stat; out.prop = BASKETBALL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
+        out.line = Number(leg.line); out.side = side;
+        matched = true;
+      } else incompleteProp = true;
+    } else if (leg.player && NFL_PROP_KEYS[leg.stat] && sport !== "AFL" && sport !== "AFLW" && sport !== "NBA" && sport !== "WNBA" && sport !== "NBL") {
+      if (!league) league = "nfl";
+      if (propComplete(leg)) {
+        out.player = leg.player; out.stat = leg.stat; out.prop = NFL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
+        out.line = Number(leg.line); out.side = side;
+        matched = true;
+      } else incompleteProp = true;
+    } else if ((sport === "AFL" || sport === "AFLW") && leg.player && AFL_STATS[leg.stat]) {
+      if (propComplete(leg)) {
+        out.player = leg.player; out.stat = leg.stat; out.line = Number(leg.line); out.side = side;
+        matched = true;
+      } else incompleteProp = true;
+    } else if (/head\s*to\s*head|^h2h$|match\s*betting|money\s*line|^moneyline$|^to\s*win$|^win$|win\s*-?\s*draw\s*-?\s*win|match\s*result|^1x2$/i.test(mkt) && who) {
+      out.kind = "team";
+      out.market = /win\s*-?\s*draw|match\s*result|^1x2$/i.test(mkt) ? "Win-Draw-Win" : "Head to Head";
+      out.team = who;
+      matched = true;
+    } else if (LINE_MARKET_RE.test(mkt) || leg.market === "Line" || leg.kind === "line") {
+      var signed = String(leg.selection || leg.team || "").match(/^(.+?)\s+([+-]\d+(?:\.\d+)?)$/);
+      out.kind = "team"; out.market = "Line";
+      out.team = signed ? squash(signed[1]) : (leg.team || leg.selection || "");
+      out.line = leg.line != null ? leg.line : (signed ? parseFloat(signed[2]) : null);
+      matched = !!(out.team || out.line != null);
+    } else if (TOTAL_MARKET_RE.test(mkt) || leg.market === "Total" || leg.kind === "total") {
+      var tot = String(leg.selection || leg.desc || "").match(/\b(over|under)\s+(\d+(?:\.\d+)?)/i);
+      out.kind = "total"; out.market = "Total";
+      out.side = leg.side || (tot ? wordCap(tot[1]) : "");
+      out.line = leg.line != null ? leg.line : (tot ? parseFloat(tot[2]) : null);
+      matched = out.line != null || !!out.side;
     }
-    if (afl && leg.player && AFL_STATS[leg.stat] && leg.line != null) {
-      out.player = leg.player; out.stat = leg.stat; out.line = leg.line; out.side = leg.side || "Over";
-      delete out.custom;
-    } else if (leg.sport === "NFL" && leg.player && NFL_PROP_KEYS[leg.stat]) {
-      out.player = leg.player; out.stat = leg.stat; out.prop = NFL_PROP_KEYS[leg.stat];
-      out.line = leg.line; out.side = leg.side || "Over"; out.league = "nfl";
-    } else if (leg.player && leg.stat) {
-      out.player = leg.player; out.stat = leg.stat; out.line = leg.line; out.side = leg.side || "Over";
+
+    if (league && (matched || incompleteProp)) out.league = league;
+    if (!matched) {
+      out.custom = true;
+      // A recognised prop with no line or side stays free text. Player and stat
+      // are left off so it is not queued as a prop.
+      if (!incompleteProp && leg.player && leg.stat) {
+        out.player = leg.player; out.stat = leg.stat; out.line = leg.line;
+        if (side) out.side = side;
+      }
     }
     return out;
+  }
+
+  function ymdFromWhen(when) {
+    var s = String(when || "");
+    var iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (iso) return iso[1];
+    var parsed = parseSlipDate(s);
+    return parsed.local ? parsed.local.slice(0, 10) : "";
+  }
+  function datesAround(ymd) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return [""];
+    var d = new Date(ymd + "T12:00:00Z");
+    return [-1, 0, 1].map(function (n) {
+      var x = new Date(d.getTime());
+      x.setUTCDate(x.getUTCDate() + n);
+      return x.toISOString().slice(0, 10).replace(/-/g, "");
+    });
+  }
+  function espnScoreboardUrl(league, yyyymmdd) {
+    var path = ESPN_PATH[String(league || "").toLowerCase()];
+    if (!path) return "";
+    var q = "limit=100";
+    if (yyyymmdd) q += "&dates=" + yyyymmdd;
+    return ESPN_SITE + "/" + path + "/scoreboard?" + q;
+  }
+  function espnLeaguesToLoad(sport, eventName) {
+    var one = espnLeagueForSport(sport);
+    if (one) return [one];
+    var s = String(sport || "").toUpperCase();
+    if (s === "AFL" || s === "AFLW" || s === "NRL" || s === "SOCCER" || s === "RACING") return [];
+    var scored = [];
+    ["NFL", "NBA", "WNBA", "NBL"].forEach(function (k) {
+      var n = teamHits(eventName || "", k);
+      if (n > 0) scored.push({ league: espnLeagueForSport(k), n: n });
+    });
+    if (!scored.length) return [];
+    var top = scored.reduce(function (m, row) { return row.n > m ? row.n : m; }, 0);
+    return scored.filter(function (row) { return row.n === top; }).map(function (row) { return row.league; });
+  }
+  function eventsFromScoreboard(data, league) {
+    var lg = String(league || "").toLowerCase();
+    return ((data && data.events) || []).map(function (e) {
+      var comp = (e && e.competitions && e.competitions[0]) || {};
+      var comps = comp.competitors || [];
+      var awayC = null, homeC = null;
+      comps.forEach(function (c) {
+        if (c && c.homeAway === "away") awayC = c;
+        if (c && c.homeAway === "home") homeC = c;
+      });
+      if (!awayC) awayC = comps[1] || comps[0] || {};
+      if (!homeC) homeC = comps[0] || {};
+      var awayName = (awayC.team && (awayC.team.displayName || awayC.team.name)) || "";
+      var homeName = (homeC.team && (homeC.team.displayName || homeC.team.name)) || "";
+      var id = e && e.id != null ? String(e.id) : "";
+      return {
+        id: id,
+        espn_event_id: id,
+        game_id: id,
+        comp: lg.toUpperCase(),
+        league: lg,
+        date: (e && e.date) || "",
+        game_name: awayName && homeName ? awayName + " @ " + homeName : ((e && e.name) || ""),
+        hteam: { name: homeName },
+        ateam: { name: awayName }
+      };
+    }).filter(function (g) { return g.id; });
+  }
+  async function loadEspnFixtures(leagues, when, fetchJson) {
+    if (!fetchJson) return [];
+    var dates = datesAround(ymdFromWhen(when));
+    var seen = {};
+    var out = [];
+    for (var i = 0; i < leagues.length; i++) {
+      for (var d = 0; d < dates.length; d++) {
+        var url = espnScoreboardUrl(leagues[i], dates[d]);
+        if (!url) continue;
+        try {
+          var data = await fetchJson(url);
+          eventsFromScoreboard(data, leagues[i]).forEach(function (g) {
+            if (seen[g.id]) return;
+            seen[g.id] = true;
+            out.push(g);
+          });
+        } catch (err) { /* this date missed; queue still sends the slip time */ }
+      }
+    }
+    return out;
+  }
+  /** AFL fixture list, or the ESPN scoreboard for NBA/NBL/WNBA/NFL around the slip date. */
+  async function loadSportFixtures(sport, when, eventName, deps) {
+    if (eventName && typeof eventName === "object" && !deps) { deps = eventName; eventName = ""; }
+    deps = deps || {};
+    var leagues = espnLeaguesToLoad(sport, eventName || "");
+    var games = [];
+    if (!espnLeagueForSport(sport) && deps.loadAfl) {
+      var afl = await deps.loadAfl();
+      if (afl && afl.length) games = games.concat(afl);
+    }
+    if (leagues.length) games = games.concat(await loadEspnFixtures(leagues, when, deps.fetchJson));
+    return games;
+  }
+  /** BUILD fields for a reviewed slip. A unique ESPN game is not a custom tip. */
+  function builderStateForSlip(tip, primaryGame, opts) {
+    tip = tip || {};
+    opts = opts || {};
+    var legs = (tip.legs || []).map(function (l) { return Object.assign({}, l); });
+    var slipStart = (primaryGame && primaryGame.date) || tip.game_start || tip.start_local || "";
+    var state = {
+      custom: false, espn: false, espnLeague: "", espnEvent: null, game: primaryGame || null,
+      customEvent: "", customSport: "", customStartDay: "", game_start: slipStart, legs: legs
+    };
+    var eid = primaryGame && (primaryGame.espn_event_id || (primaryGame.league && primaryGame.id));
+    if (primaryGame && eid) {
+      var id = String(primaryGame.espn_event_id || primaryGame.id);
+      var league = primaryGame.league || espnLeagueForSport(primaryGame.comp || tip.sport);
+      if (league && id) {
+        state.espn = true;
+        state.espnLeague = league;
+        state.game = null;
+        state.game_start = primaryGame.date || slipStart;
+        state.espnEvent = {
+          id: id,
+          date: state.game_start,
+          name: primaryGame.game_name || tip.game_name || "",
+          away: primaryGame.ateam || null,
+          home: primaryGame.hteam || null
+        };
+        state.legs = legs.map(function (l) {
+          l.espn_event_id = id;
+          l.game_id = id;
+          if (!l.league) l.league = league;
+          return l;
+        });
+        return state;
+      }
+    }
+    if (primaryGame) return state;
+    var events = uniqueEvents(opts.parsedLegs || []);
+    var anyId = legs.some(function (l) { return l && (l.game_id || l.espn_event_id); });
+    if (events.length <= 1 && !anyId) {
+      state.custom = true;
+      state.customEvent = events[0] || tip.game_name || "";
+      state.customSport = tip.sport || "";
+      state.customStartDay = String(slipStart || "").slice(0, 10);
+    }
+    return state;
   }
 
   /** "A v B" -> home A, away B. "A @ B" (US style) -> away A, home B. */
@@ -825,6 +1138,14 @@
     matchEventToFixture: matchEventToFixture,
     attachFixtureMatches: attachFixtureMatches,
     teamsMatchEvent: teamsMatchEvent,
+    espnLeagueForSport: espnLeagueForSport,
+    espnScoreboardUrl: espnScoreboardUrl,
+    espnLeaguesToLoad: espnLeaguesToLoad,
+    eventsFromScoreboard: eventsFromScoreboard,
+    loadSportFixtures: loadSportFixtures,
+    builderStateForSlip: builderStateForSlip,
+    datesAround: datesAround,
+    ymdFromWhen: ymdFromWhen,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = API;
