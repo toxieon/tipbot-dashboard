@@ -348,6 +348,10 @@ test.describe("game view for a follower", () => {
       return live && !live.hidden && /Z\. Quill/.test(text) && /Midfield Mick/.test(text) && /Tag Team Tess/.test(text);
     }, { timeout: 30000 });
     await expect(page.locator("#flive-play")).toHaveCount(0);
+    await expect(page.locator("#flive .fl-card.pending .fl-st").first()).toHaveText("Upcoming");
+    await expect(page.locator("#flive .fl-card.pending .fl-bar")).toHaveCount(0);
+    await expect(page.locator("#flive .fl-prog")).toHaveCount(0);
+    await expect(page.locator("#flive")).not.toContainText("Now");
     await expect(page.locator("#flive")).not.toContainText("Example data");
     await expect(page.locator("#flive")).not.toContainText("Sydney v Brisbane");
     await expect(page.locator("#flive-switch button")).toHaveCount(2);

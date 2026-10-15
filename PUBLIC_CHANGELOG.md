@@ -1,6 +1,6 @@
 ## 0.63.1
 
-The ground stays put while you scroll your bets. Game view opens your own upcoming and live slips on that ground. The sample live demo is only for the platform owner.
+The ground stays put while you scroll your bets. Game view opens your own upcoming and live slips on that ground. Before the game starts, those bets say Upcoming. The sample live demo is only for the platform owner.
 
 ## 0.62.1
 

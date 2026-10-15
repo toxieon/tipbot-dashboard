@@ -38,10 +38,36 @@
     return "pending";
   }
 
-  function statusLabel(status) {
+  function statusLabel(status, upcoming) {
     if (status === "hit") return "Hit";
     if (status === "miss") return "Missed";
+    if (upcoming) return "Upcoming";
     return "Live";
+  }
+
+  function gameStartMs(game) {
+    if (!game) return null;
+    var v = game.starts_at != null ? game.starts_at
+      : (game.start_time != null ? game.start_time
+      : (game.game_start != null ? game.game_start
+      : (game.kickoff != null ? game.kickoff : game.commence_time)));
+    if (v == null || v === "") return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
+    var n = Date.parse(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function gameNotStarted(game, now) {
+    game = game || {};
+    if (game.concluded === true || game.concluded === 1 || game.concluded === "1") return false;
+    var phase = String(game.phase_label || "").replace(/\s+/g, " ").trim().toLowerCase();
+    if (phase === "final" || phase === "full time" || phase === "ft") return false;
+    var start = gameStartMs(game);
+    var clock = now == null ? Date.now() : now;
+    if (start != null && start > clock) return true;
+    if (phase === "upcoming") return true;
+    if (game.live === true) return false;
+    return true;
   }
 
   function progressPct(current, line) {
@@ -139,31 +165,35 @@
   function summaryText(payload) {
     var c = counts(payload);
     if (!c.legs) return "";
-    return c.legs + " leg" + (c.legs === 1 ? "" : "s") + " · " + c.live + " live";
+    var word = gameNotStarted(payload && payload.game) ? "upcoming" : "live";
+    return c.legs + " leg" + (c.legs === 1 ? "" : "s") + " · " + c.live + " " + word;
   }
 
-  function cardHtml(leg) {
+  function cardHtml(leg, game) {
     var st = statusOf(leg && leg.status);
+    var upcoming = st === "pending" && gameNotStarted(game);
     var pct = progressPct(leg && leg.current, leg && leg.line);
     var odds = fmtOdds(leg && leg.odds);
     var nowLabel = st === "pending" ? "Now" : "Final";
     var cur = fmtCount(leg && leg.current);
     var line = fmtCount(leg && leg.line);
     var id = leg && leg.id != null ? String(leg.id) : "";
+    var track = upcoming ? ""
+      : '<div class="fl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
+      + esc(String(Math.round(pct))) + '" aria-label="' + esc((leg && leg.player || "Selection") + " " + cur + " of " + line) + '">'
+      + '<i style="width:' + pct.toFixed(1) + '%"></i></div>'
+      + '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(cur) + "/" + esc(line) + "</b></div>";
     return '<article class="fl-card ' + st + '" data-leg="' + esc(id) + '" data-status="' + st + '">'
-      + '<div class="fl-top"><span class="fl-st">' + statusLabel(st) + "</span>"
+      + '<div class="fl-top"><span class="fl-st">' + statusLabel(st, upcoming) + "</span>"
       + (odds ? '<span class="fl-odds">' + esc(odds) + "</span>" : "<span></span>")
       + "</div>"
       + '<div class="fl-leg">' + esc(leg && leg.player || "Selection")
       + "<small>" + esc(leg && leg.line_label || "") + "</small></div>"
-      + '<div class="fl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
-      + esc(String(Math.round(pct))) + '" aria-label="' + esc((leg && leg.player || "Selection") + " " + cur + " of " + line) + '">'
-      + '<i style="width:' + pct.toFixed(1) + '%"></i></div>'
-      + '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(cur) + "/" + esc(line) + "</b></div>"
+      + track
       + "</article>";
   }
 
-  function tipsterHtml(group) {
+  function tipsterHtml(group, game) {
     var name = (group && group.name) || "Tipster";
     var n = (group && group.legs && group.legs.length) || 0;
     var ini = initials(name);
@@ -173,7 +203,7 @@
       av += '<img src="' + esc(group.avatar) + '" alt="" data-ini="' + esc(ini) + '" onerror="this.remove()">';
     }
     av += "</div>";
-    var cards = (group.legs || []).map(cardHtml).join("");
+    var cards = (group.legs || []).map(function (leg) { return cardHtml(leg, game); }).join("");
     return '<section class="fl-group"><header class="fl-tip">' + av
       + "<b>" + esc(name) + '</b><span class="fl-rule" aria-hidden="true"></span><em>'
       + n + " leg" + (n === 1 ? "" : "s") + "</em></header>"
@@ -182,8 +212,9 @@
 
   function render(payload) {
     var groups = (payload && payload.tipsters) || [];
+    var game = payload && payload.game;
     if (!groups.length) return '<div class="empty">No bets on this game yet.</div>';
-    return groups.map(tipsterHtml).join("");
+    return groups.map(function (group) { return tipsterHtml(group, game); }).join("");
   }
 
   function scoreHtml(game) {
@@ -627,6 +658,7 @@
     esc: esc,
     statusOf: statusOf,
     statusLabel: statusLabel,
+    gameNotStarted: gameNotStarted,
     progressPct: progressPct,
     fmtOdds: fmtOdds,
     initials: initials,

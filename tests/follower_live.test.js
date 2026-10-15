@@ -51,6 +51,50 @@ test("pending, hit and miss cards match the approved states", () => {
   assert.match(score, /MCG/);
 });
 
+test("an upcoming game shows unsettled legs as Upcoming, with no bar and no Now", () => {
+  const payload = {
+    game: {
+      game_name: "North Melbourne v Carlton",
+      live: false,
+      concluded: false,
+      phase_label: "Upcoming",
+      starts_at: "2099-01-01T05:00:00Z",
+      venue: "Ikon Park",
+      home: {name: "North Melbourne", score: null},
+      away: {name: "Carlton", score: null}
+    },
+    tipsters: [{
+      name: "Midfield Mick",
+      legs: [
+        {id: "a", player: "Z. Quill", line_label: "25+ disposals", odds: 2.1, current: 0, line: 25, status: "pending"},
+        {id: "b", player: "R. Okonbo", line_label: "2+ goals", odds: 3.4, current: 2, line: 2, status: "hit"}
+      ]
+    }]
+  };
+  const out = FL.render(payload);
+  assert.equal(FL.gameNotStarted(payload.game, Date.parse("2026-10-15T00:00:00Z")), true);
+  assert.match(out, /fl-card pending/);
+  assert.match(out, />Upcoming</);
+  assert.doesNotMatch(out, /Live/);
+  assert.doesNotMatch(out, /Now/);
+  const pending = out.slice(out.indexOf("fl-card pending"), out.indexOf("fl-card hit"));
+  assert.doesNotMatch(pending, /fl-bar/);
+  assert.doesNotMatch(pending, /fl-prog/);
+  assert.match(out, /fl-card hit/);
+  assert.match(out, />Hit</);
+  assert.match(out, />Final</);
+  const future = {
+    game: {live: true, concluded: false, starts_at: "2099-06-01T00:00:00Z", home: {name: "A"}, away: {name: "B"}},
+    tipsters: [{name: "Tess", legs: [{id: "1", player: "A Player", line_label: "10+ disposals", odds: 1.5, current: 0, line: 10, status: "pending"}]}]
+  };
+  const later = FL.render(future);
+  assert.match(later, />Upcoming</);
+  assert.doesNotMatch(later, /Live/);
+  assert.doesNotMatch(later, /Now/);
+  assert.doesNotMatch(later, /fl-bar/);
+  assert.equal(FL.summaryText(payload), "2 legs · 1 upcoming");
+});
+
 test("two tipsters stay in separate groups and a narrow grid is one column in CSS", () => {
   const payload = {
     tipsters: [

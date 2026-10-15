@@ -2,7 +2,7 @@
 
 - The ground, scoreboard, Back and LIVE badge stay fixed while the bet list scrolls underneath, including on an iPhone home-screen app. The list clears the bottom tabs.
 - Live demo (the sample game at #/demo/game) is only on screen for the platform owner, the same check as the other owner controls. Anyone else who opens that link lands on their server page.
-- Game view, in the same spot, opens that ground for everyone with their own upcoming and live slips. Bets stay grouped by tipster. Several games show the next one plus a switcher. None yet keeps the ground and a short empty note.
+- Game view, in the same spot, opens that ground for everyone with their own upcoming and live slips. Bets stay grouped by tipster. Several games show the next one plus a switcher. None yet keeps the ground and a short empty note. Before the bounce, an unsettled leg says Upcoming, in the same purple, with no bar and no Now line.
 
 Tests: `tests/follower_live.test.js`, `tests/e2e/follower-live.spec.mjs`.
 
