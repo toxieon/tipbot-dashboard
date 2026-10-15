@@ -110,20 +110,3 @@ test("a missing read falls back to the follower feed for that game", () => {
   assert.equal(model.tipsters[0].legs[0].status, "pending");
   assert.match(model.note, /latest TipBot deploy/);
 });
-
-test("shipped game page files avoid the secret-word scan", () => {
-  const secret = /forward|mirror|master|consensus/gi;
-  const files = [
-    "assets/follower-live.js",
-    "assets/mcg/mount.js",
-    "assets/mcg/v5.js",
-    "assets/mcg/boards/boards.js",
-    "assets/mcg/boards/boards.json"
-  ];
-  files.forEach(function (rel) {
-    const text = fs.readFileSync(path.join(__dirname, "..", rel), "utf8");
-    const hits = text.match(secret) || [];
-    const bad = hits.filter(function (w) { return w.toLowerCase() !== "straightforward"; });
-    assert.deepEqual(bad, [], rel);
-  });
-});

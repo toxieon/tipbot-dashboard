@@ -1,5 +1,5 @@
 // Perimeter LED boards: oval ribbon just inside the boundary, CanvasTexture slides from boards.json.
-import * as T from '../../vendor/three/three.module.js';
+import * as T from '../../vendor/three/three.module.min.js';
 // back faces sample the emissive map with u flipped, so text reads correctly from both sides
 export function ledTwoSided(m){m.onBeforeCompile=sh=>{sh.uniforms.ledOff={get value(){return m.emissiveMap?m.emissiveMap.offset.x:0;}};sh.fragmentShader='uniform float ledOff;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
  '#ifdef USE_EMISSIVEMAP\n vec2 eUv=vEmissiveMapUv; if(!gl_FrontFacing) eUv.x=2.0*ledOff-eUv.x;\n totalEmissiveRadiance*=texture2D(emissiveMap,eUv).rgb;\n#endif');};m.customProgramCacheKey=()=>'led2s2';return m;}

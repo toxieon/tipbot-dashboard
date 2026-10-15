@@ -1,6 +1,6 @@
 /* Broadcast view of the existing ground model and its sponsor boards.
    Loaded only when a follower opens a game. No studio changes. */
-import * as T from "../vendor/three/three.module.js";
+import * as T from "../vendor/three/three.module.min.js";
 import { GLTFLoader } from "../vendor/three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "../vendor/three/addons/libs/meshopt_decoder.module.js";
 import { addBoards } from "./boards/boards.js";

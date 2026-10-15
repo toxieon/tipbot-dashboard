@@ -1,5 +1,5 @@
 // Ground scene: stands, light banks, markings, and goal posts.
-import * as T from '../vendor/three/three.module.js';
+import * as T from '../vendor/three/three.module.min.js';
 export const RX=86.5, RZ=74;
 const mip=t=>{t.colorSpace=T.SRGBColorSpace;t.generateMipmaps=true;t.minFilter=T.LinearMipmapLinearFilter;t.anisotropy=8;return t;};
 
