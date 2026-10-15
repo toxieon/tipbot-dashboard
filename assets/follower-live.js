@@ -250,6 +250,184 @@
     };
   }
 
+  function splitSides(name) {
+    var raw = String(name || "").trim();
+    var parts = raw.split(/\s+(?:vs|v)\s+/i);
+    if (parts.length >= 2) return {home: parts[0].trim(), away: parts.slice(1).join(" v ").trim()};
+    return {home: raw, away: ""};
+  }
+
+  function slipResult(tip) {
+    return String((tip && (tip.result || tip.follow_result || tip.tip_result)) || "").trim().toLowerCase();
+  }
+
+  function slipStatus(tip) {
+    return String((tip && (tip.tip_status || tip.status)) || "").trim().toLowerCase();
+  }
+
+  function slipSettled(tip) {
+    if (!tip) return true;
+    var result = slipResult(tip);
+    var status = slipStatus(tip);
+    if (result === "win" || result === "won" || result === "loss" || result === "lost" || result === "miss" || result === "push" || result === "void") return true;
+    if (status === "settled" || status === "won" || status === "lost" || status === "win" || status === "loss" || status === "void" || status === "push") return true;
+    if (tip.settled === true || tip.settled === 1) return true;
+    if (tip.settled_at) return true;
+    return false;
+  }
+
+  function slipOpen(tip) {
+    return !slipSettled(tip);
+  }
+
+  function slipConcluded(tip) {
+    if (!tip) return false;
+    if (tip.concluded === true || tip.game_concluded === true) return true;
+    var phase = tip.phase && typeof tip.phase === "object" ? tip.phase : {};
+    return isFullTime({
+      concluded: tip.concluded || tip.game_concluded,
+      phase: phase,
+      phase_key: tip.phase_key || tip.game_phase_key || phase.key,
+      phase_label: tip.phase_label || tip.game_phase || phase.label || ""
+    });
+  }
+
+  function slipLive(tip) {
+    if (!tip || slipConcluded(tip)) return false;
+    if (tip.live === true || tip.game_live === true) return true;
+    var phase = tip.phase && typeof tip.phase === "object" ? tip.phase : null;
+    var label = phase ? String(phase.label || phase.key || "") : String(tip.phase_label || tip.game_phase || tip.phase || "");
+    if (!label || label === "[object Object]") return false;
+    if (/full\s*time|^final$|^ft$/i.test(label)) return false;
+    return /q[1-4]|live|quarter|half/i.test(label);
+  }
+
+  function slipStart(tip) {
+    var v = tip && (tip.starts_at || tip.start_time || tip.game_start || tip.kickoff || tip.commence_time);
+    if (v == null || v === "") return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
+    var n = Date.parse(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function payloadFromTips(game) {
+    var sides = splitSides(game.game_name);
+    var by = {};
+    var order = [];
+    (game.tips || []).forEach(function (t) {
+      var key = String(t.tipster_id || t.created_by || t.user_id || t.tipster_name || t.tipster || "you");
+      if (!by[key]) {
+        by[key] = {
+          user_id: key,
+          name: t.tipster_name || t.tipster || "Your tips",
+          avatar: t.tipster_avatar || t.avatar || "",
+          color: t.color || "",
+          legs: []
+        };
+        order.push(key);
+      }
+      by[key].legs.push(legFromTip(t));
+    });
+    return {
+      ok: true,
+      game: {
+        game_name: game.game_name,
+        live: !!game.live,
+        concluded: false,
+        phase_label: game.live ? "Live" : "Upcoming",
+        venue: game.venue || "",
+        home: {name: sides.home, score: null},
+        away: {name: sides.away, score: null}
+      },
+      tipsters: order.map(function (k) { return by[k]; })
+    };
+  }
+
+  function gamesFromFeeds(packs) {
+    var byGame = {};
+    var order = [];
+    (packs || []).forEach(function (pack) {
+      if (!pack || pack.preview) return;
+      var gid = pack.guild_id != null ? String(pack.guild_id) : "";
+      (pack.feed || []).forEach(function (tip) {
+        if (!slipOpen(tip) || slipConcluded(tip)) return;
+        var name = String(tip.game_name || "").replace(/\s+/g, " ").trim();
+        if (!name) return;
+        var key = norm(name);
+        if (!byGame[key]) {
+          byGame[key] = {key: key, game_name: name, guild_ids: [], live: false, start: null, venue: "", tips: []};
+          order.push(key);
+        }
+        var g = byGame[key];
+        if (gid && g.guild_ids.indexOf(gid) < 0) g.guild_ids.push(gid);
+        if (slipLive(tip)) g.live = true;
+        var st = slipStart(tip);
+        if (st != null && (g.start == null || st < g.start)) g.start = st;
+        if (!g.venue && tip.venue) g.venue = String(tip.venue);
+        g.tips.push(tip);
+      });
+    });
+    var games = order.map(function (k) { return byGame[k]; });
+    games.sort(function (a, b) {
+      if (!!a.live !== !!b.live) return a.live ? -1 : 1;
+      var as = a.start == null ? Infinity : a.start;
+      var bs = b.start == null ? Infinity : b.start;
+      if (as !== bs) return as - bs;
+      return String(a.game_name).localeCompare(String(b.game_name));
+    });
+    return games.map(function (g) {
+      return {
+        key: g.key,
+        game_name: g.game_name,
+        guild_ids: g.guild_ids,
+        live: !!g.live,
+        start: g.start,
+        payload: payloadFromTips(g)
+      };
+    });
+  }
+
+  function mergeGamePayload(fallback, reads) {
+    var tipsters = [];
+    var game = fallback && fallback.game;
+    (reads || []).forEach(function (data) {
+      if (!data) return;
+      if (data.game) game = data.game;
+      (data.tipsters || []).forEach(function (t) {
+        if (t) tipsters.push(t);
+      });
+    });
+    if (!tipsters.length) {
+      if (game && fallback) return {ok: true, game: game, tipsters: fallback.tipsters || [], note: fallback.note};
+      return fallback;
+    }
+    return {ok: true, game: game || (fallback && fallback.game) || {}, tipsters: tipsters};
+  }
+
+  function switcherHtml(games, activeKey) {
+    if (!games || games.length < 2) return "";
+    return games.map(function (g) {
+      var on = g.key === activeKey;
+      return '<button type="button" role="tab" data-key="' + esc(g.key) + '" aria-selected="' + (on ? "true" : "false") + '"' + (on ? ' class="on"' : "") + ">" + esc(g.game_name) + "</button>";
+    }).join("");
+  }
+
+  function emptyBoardGame() {
+    return {
+      game_name: "",
+      live: false,
+      concluded: false,
+      phase_label: "No game on",
+      venue: "Follow a tip to see it here",
+      home: {name: "", score: ""},
+      away: {name: "", score: ""}
+    };
+  }
+
+  function emptyStateHtml() {
+    return '<div class="empty fl-empty"><b>Nothing coming up</b><span>When you follow a tip for an upcoming or live game, your bets show up here.</span></div>';
+  }
+
   function isFullTime(game) {
     if (!game) return false;
     if (game.concluded === true || game.concluded === 1 || game.concluded === "1") return true;
@@ -463,6 +641,12 @@
     fallbackFromFeed: fallbackFromFeed,
     liveNowGames: liveNowGames,
     liveNowHtml: liveNowHtml,
+    gamesFromFeeds: gamesFromFeeds,
+    mergeGamePayload: mergeGamePayload,
+    switcherHtml: switcherHtml,
+    emptyBoardGame: emptyBoardGame,
+    emptyStateHtml: emptyStateHtml,
+    slipOpen: slipOpen,
     demoPayload: demoPayload,
     createDemo: createDemo
   };

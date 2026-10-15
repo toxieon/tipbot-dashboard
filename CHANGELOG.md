@@ -1,3 +1,11 @@
+## 0.63.1 · 2026-10-15 · `game-view` · Pinned ground, owner demo, real game view
+
+- The ground, scoreboard, Back and LIVE badge stay fixed while the bet list scrolls underneath, including on an iPhone home-screen app. The list clears the bottom tabs.
+- Live demo (the sample game at #/demo/game) is only on screen for the platform owner, the same check as the other owner controls. Anyone else who opens that link lands on their server page.
+- Game view, in the same spot, opens that ground for everyone with their own upcoming and live slips. Bets stay grouped by tipster. Several games show the next one plus a switcher. None yet keeps the ground and a short empty note.
+
+Tests: `tests/follower_live.test.js`, `tests/e2e/follower-live.spec.mjs`.
+
 ## 0.62.1 · 2026-10-15 · `live-game` · Follower live game matches the ground drawing
 
 - The live game page is the night MCG with its sponsor boards, then bet cards under each tipster (name and avatar) in two columns, one column under 340px. Pending is purple, a win is green, a loss is red, each with a bar toward the line.

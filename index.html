@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.62.1" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.62.1" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.62.1" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.62.1">
+<link rel="icon" href="./assets/favicon.ico?v=0.63.1" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.63.1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.63.1" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.63.1">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.62.1"></script>
+<script src="./assets/tbtime.js?v=0.63.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -227,9 +227,20 @@
   .back{color:var(--muted);cursor:pointer;font-size:var(--t-callout);display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;min-height:44px;box-sizing:border-box}.back:hover{color:var(--txt)}
   button.flive-open{appearance:none;background:none;border:0;padding:0;margin:0;font:inherit;font-weight:700;color:inherit;text-align:left;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
   button.flive-open:hover{color:var(--accent)}
-  #flive{min-width:0;max-width:720px;margin:0 auto;display:flex;flex-direction:column;min-height:calc(100dvh - 16px)}
+  #flive{min-width:0;max-width:720px;margin:0 auto;display:flex;flex-direction:column;min-height:0}
+  #flive:not([hidden]){position:fixed;z-index:30;top:0;right:0;bottom:0;left:0;max-width:none;margin:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+  html:has(#flive:not([hidden])),body:has(#flive:not([hidden])){overflow:hidden;height:100%;overscroll-behavior:none}
   body:has(#flive:not([hidden])) .top{display:none}
-  body:has(#flive:not([hidden])) .wrap{padding-top:0;padding-bottom:max(12px, env(safe-area-inset-bottom, 0px))}
+  .fl-pin{flex:none;width:100%;max-width:720px;margin:0 auto;min-width:0}
+  .fl-scroll{flex:1 1 auto;min-height:0;width:100%;max-width:720px;margin:0 auto;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:flex;flex-direction:column;padding:0 16px}
+  @media (max-width:899px){
+    html[data-theme="apex"] #flive:not([hidden]) .fl-scroll{padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px))}
+    html[data-theme="apex"][data-apex-tabs="off"] #flive:not([hidden]) .fl-scroll{padding-bottom:max(16px, env(safe-area-inset-bottom, 0px))}
+  }
+  @media (min-width:900px){
+    html[data-theme="apex"] #flive:not([hidden]){left:92px}
+    #flive:not([hidden]) .fl-scroll{padding-bottom:max(24px, env(safe-area-inset-bottom, 0px))}
+  }
   .live-now-wrap{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
   .live-now-wrap[hidden]{display:none}
   .live-now{appearance:none;width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;min-height:58px;padding:14px 16px;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--loss) 75%,transparent);background:color-mix(in srgb,var(--loss) 18%,var(--card));color:var(--txt);font:inherit;font-weight:700;font-size:var(--t-body);line-height:1.3;text-align:left;cursor:pointer}
@@ -237,7 +248,7 @@
   .live-now i{flex:none;width:10px;height:10px;border-radius:99px;background:var(--loss);box-shadow:0 0 0 0 color-mix(in srgb,var(--loss) 55%,transparent);animation:live-now-pulse 1.4s ease-out infinite}
   @keyframes live-now-pulse{70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
   @media (prefers-reduced-motion:reduce){.live-now i{animation:none}}
-  .fl-hero{position:relative;height:312px;border-radius:18px;overflow:hidden;background:#070b14;margin:0 0 2px;isolation:isolate}
+  .fl-hero{position:relative;height:300px;border-radius:0 0 22px 22px;overflow:hidden;background:#070b14;margin:0;isolation:isolate}
   .fl-mcg{position:absolute;inset:0}
   .fl-mcg-fallback,.fl-mcg canvas,.fl-mcg-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
   .fl-mcg canvas,.fl-mcg-canvas{z-index:1;-webkit-transform:translateZ(0);transform:translateZ(0)}
@@ -278,9 +289,16 @@
   .fl-prog{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-foot);color:var(--muted);margin-top:-2px}.fl-prog b{color:var(--txt);font-weight:750}
   .fl-example{display:flex;justify-content:flex-end;margin-top:auto;padding:10px 2px 4px}
   .fl-example span{border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted);font-size:var(--t-foot)}
+  .fl-switch{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 2px;scrollbar-width:none}
+  .fl-switch button{flex:none;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,#070b14 55%,var(--card));color:var(--txt);font:inherit;font-size:var(--t-foot);font-weight:700;cursor:pointer}
+  .fl-switch button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,var(--card))}
+  .fl-empty{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:18px 2px}
+  .fl-empty b{font-size:var(--t-body);font-weight:750;color:var(--txt)}
+  .fl-empty span{color:var(--muted);font-size:var(--t-sub);line-height:1.4}
   @media (max-width:640px){
-    .fl-hero{height:276px;margin-left:calc(-1 * max(14px, env(safe-area-inset-left, 0px)));margin-right:calc(-1 * max(14px, env(safe-area-inset-right, 0px)));border-radius:0 0 22px 22px;width:auto}
-    #flive{min-height:100dvh}
+    .fl-pin{max-width:none}
+    .fl-hero{height:248px;margin:0;border-radius:0 0 22px 22px;width:100%}
+    .fl-team b{font-size:1.85rem}
   }
   .dhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;min-width:0;max-width:100%}
   .dhead h1{margin:0;font-size:var(--t-h1);min-width:0;overflow-wrap:anywhere}
@@ -1274,13 +1292,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.62.1">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.63.1">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.62.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.63.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1291,7 +1309,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.62.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.63.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1300,7 +1318,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.62.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.63.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1321,7 +1339,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.62.1</div>
+          <div class="dd-label" id="dd-version">tipdash v0.63.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1347,30 +1365,30 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.62.1"></script>
-<script src="./assets/light-data.js?v=0.62.1"></script>
-<script src="./assets/lines.js?v=0.62.1"></script>
-<script src="./assets/racing-legs.js?v=0.62.1"></script>
-<script src="./assets/afl-guernseys.js?v=0.62.1"></script>
-<script src="./assets/compare-ui.js?v=0.62.1"></script>
-<script src="./assets/sport-keywords.js?v=0.62.1"></script>
-<script src="./assets/sport-marks.js?v=0.62.1"></script>
-<script src="./assets/discover-sports.js?v=0.62.1"></script>
-<script src="./assets/global-flags.js?v=0.62.1"></script>
-<script src="./assets/routing.js?v=0.62.1"></script>
-<script src="./assets/scheduled-tips.js?v=0.62.1"></script>
-<script src="./assets/auto-recaps.js?v=0.62.1"></script>
-<script src="./assets/emoji-picker.js?v=0.62.1"></script>
-<script src="./assets/upcoming-split.js?v=0.62.1"></script>
-<script src="./assets/espn-props.js?v=0.62.1"></script>
-<script src="./assets/tb-motion.js?v=0.62.1"></script>
-<script src="./assets/form-badges.js?v=0.62.1"></script>
-<script src="./assets/tb-charts.js?v=0.62.1"></script>
-<script src="./assets/server-view.js?v=0.62.1"></script>
-<script src="./assets/follower-live.js?v=0.62.1"></script>
-<script src="./assets/legal-md.js?v=0.62.1"></script>
-<script src="./assets/terms-gate.js?v=0.62.1"></script>
-<script src="./assets/cookie-consent.js?v=0.62.1"></script>
+<script src="./assets/req-pool.js?v=0.63.1"></script>
+<script src="./assets/light-data.js?v=0.63.1"></script>
+<script src="./assets/lines.js?v=0.63.1"></script>
+<script src="./assets/racing-legs.js?v=0.63.1"></script>
+<script src="./assets/afl-guernseys.js?v=0.63.1"></script>
+<script src="./assets/compare-ui.js?v=0.63.1"></script>
+<script src="./assets/sport-keywords.js?v=0.63.1"></script>
+<script src="./assets/sport-marks.js?v=0.63.1"></script>
+<script src="./assets/discover-sports.js?v=0.63.1"></script>
+<script src="./assets/global-flags.js?v=0.63.1"></script>
+<script src="./assets/routing.js?v=0.63.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.63.1"></script>
+<script src="./assets/auto-recaps.js?v=0.63.1"></script>
+<script src="./assets/emoji-picker.js?v=0.63.1"></script>
+<script src="./assets/upcoming-split.js?v=0.63.1"></script>
+<script src="./assets/espn-props.js?v=0.63.1"></script>
+<script src="./assets/tb-motion.js?v=0.63.1"></script>
+<script src="./assets/form-badges.js?v=0.63.1"></script>
+<script src="./assets/tb-charts.js?v=0.63.1"></script>
+<script src="./assets/server-view.js?v=0.63.1"></script>
+<script src="./assets/follower-live.js?v=0.63.1"></script>
+<script src="./assets/legal-md.js?v=0.63.1"></script>
+<script src="./assets/terms-gate.js?v=0.63.1"></script>
+<script src="./assets/cookie-consent.js?v=0.63.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1719,7 +1737,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.62.1";
+  TD.version="0.63.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1805,6 +1823,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       return loadDetail(gid), true;
     }
     if(m[0]==="demo" && m[1]==="game") return openFollowerDemo(), true;
+    if(m[0]==="game" && m.length===1) return openGameView(), true;
     if(m[0]==="upcoming") return openUpcomingHome(), true;
     if(m[0]==="stats" && m[1]==="horses") return openHorseResults(), true;
     if(m[0]==="stats") return openStats(), true;
@@ -2306,6 +2325,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     STATE.ops=true;
     paintOpsTab();
     paintOwnerSettingsEntry();
+    paintLiveDemoButtons();
     if(was) return;
     const gid=window.__tbDetailGid;
     const shown=STATE._detailShown;
@@ -2844,7 +2864,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.62.1"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.63.1"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -4846,7 +4866,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- Follower live game (#/s/<gid>/game/<name>) ---------- */
-  const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null};
+  const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null,mode:"",games:[],gameKey:""};
+  let FLIVE_DEMO_WAIT=false;
   function fliveStop(){
     if(FLIVE.timer){ clearTimeout(FLIVE.timer); FLIVE.timer=null; }
     if(FLIVE.demo){ try{ FLIVE.demo.stop(); }catch(e){} FLIVE.demo=null; }
@@ -4884,15 +4905,37 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<button type="button" id="flive-pause" aria-pressed="true">Pause</button>'
       +'<button type="button" id="flive-reset">Reset</button></div>':'';
     const example=opts.demo?'<div class="fl-example"><span>Example data</span></div>':'';
-    return '<div class="fl-hero"><div class="fl-mcg" id="flive-mcg"><img class="fl-mcg-fallback" alt="" src="./assets/mcg/fallback.png"></div><div class="fl-shade"></div>'
+    const loading=opts.own?'<div class="empty">Loading your bets…</div>':'<div class="empty">Loading your bets…</div>';
+    return '<div class="fl-pin"><div class="fl-hero"><div class="fl-mcg" id="flive-mcg"><img class="fl-mcg-fallback" alt="" src="./assets/mcg/fallback.png"></div><div class="fl-shade"></div>'
       +'<div class="fl-topbar"><button type="button" class="back fl-back" id="flive-back" aria-label="Back">'+fliveBackSvg()+'</button>'
       +'<span class="fl-live" id="flive-pill" hidden><i></i>LIVE</span></div>'
       +demo
       +'<div class="fl-score" id="flive-score"></div></div>'
+      +'<div class="fl-switch" id="flive-switch" role="tablist" hidden></div></div>'
+      +'<div class="fl-scroll" id="flive-scroll">'
       +'<div class="fl-sec"><h2>Your bets</h2><span id="flive-sum"></span></div>'
       +'<div id="flive-note" class="fl-note" hidden></div>'
-      +'<div id="flive-grid"><div class="empty">Loading your bets…</div></div>'
-      +example;
+      +'<div id="flive-grid">'+loading+'</div>'
+      +example+'</div>';
+  }
+  function fliveScrollReset(){
+    const sc=$("flive-scroll");
+    if(sc) sc.scrollTop=0;
+    try{ window.scrollTo(0,0); }catch(e){}
+  }
+  function paintLiveDemoButtons(){
+    const on=ownerSettingsAllowed();
+    ["livedemobtn","flivedemobtn"].forEach(function(id){
+      const el=$(id); if(el) el.hidden=!on;
+    });
+  }
+  function openOwnServer(){
+    const admin=visibleServers();
+    if(admin.length) return loadDetail(admin[0].guild_id);
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    if(follows.length===1) return openFollowerView(follows[0].guild_id, follows[0].display_name);
+    if(follows.length) return openFollowerAllView();
+    return enterHome();
   }
   function ensureWinFx(){
     if(window.TBMatchFx&&TBMatchFx.win) return Promise.resolve();
@@ -4950,6 +4993,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   async function fliveLoad(silent){
     if(FLIVE.demo) return;
+    if(FLIVE.mode==="own") return fliveLoadOwn(silent);
     const seq=FLIVE.seq, gid=FLIVE.gid, game=FLIVE.game;
     const grid=$("flive-grid");
     try{
@@ -4985,12 +5029,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     fliveStop();
     panel("flive");show("app");
-    FLIVE.seq++; FLIVE.gid=String(gid); FLIVE.game=game; FLIVE.name=name||""; FLIVE.seen={};
+    FLIVE.seq++; FLIVE.mode=""; FLIVE.gid=String(gid); FLIVE.game=game; FLIVE.name=name||""; FLIVE.seen={}; FLIVE.games=[]; FLIVE.gameKey="";
     $("flive").innerHTML=fliveShell();
     const back=$("flive-back");
     if(back) back.onclick=function(){ navBack(function(){ if(history.length>1) history.back(); else openFollowerView(gid,name); }); };
     const score=$("flive-score");
     if(score) score.innerHTML='<div class="fl-team"><span>'+esc(game)+'</span><b>–</b></div>';
+    fliveScrollReset();
     fliveMount();
     fliveLoad(false);
   }
@@ -5000,11 +5045,16 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(pause) pause.setAttribute("aria-pressed", playing?"false":"true");
   }
   function openFollowerDemo(){
+    if(!ownerSettingsAllowed()){
+      if(!STATE._opsReady) FLIVE_DEMO_WAIT=true;
+      return openOwnServer();
+    }
+    FLIVE_DEMO_WAIT=false;
     navNote("#/demo/game", function(){ return openFollowerDemo(); });
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     fliveStop();
     panel("flive");show("app");
-    FLIVE.seq++; FLIVE.gid=""; FLIVE.game="Northside v Bayside"; FLIVE.name="Demo"; FLIVE.seen={};
+    FLIVE.seq++; FLIVE.mode=""; FLIVE.gid=""; FLIVE.game="Northside v Bayside"; FLIVE.name="Demo"; FLIVE.seen={}; FLIVE.games=[]; FLIVE.gameKey="";
     $("flive").innerHTML=fliveShell({demo:true});
     const back=$("flive-back");
     if(back) back.onclick=function(){ navBack(function(){ if(history.length>1) history.back(); else enterHome(); }); };
@@ -5018,7 +5068,94 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(pause) pause.onclick=function(){ if(FLIVE.demo) FLIVE.demo.pause(); };
     if(reset) reset.onclick=function(){ FLIVE.seen={}; if(FLIVE.demo) FLIVE.demo.reset(); };
     FLIVE.demo.reset();
-    try{ window.scrollTo(0,0); }catch(e){}
+    fliveScrollReset();
+  }
+  function paintGameSwitch(games, key){
+    const host=$("flive-switch");
+    if(!host||!window.FollowerLive) return;
+    const html=FollowerLive.switcherHtml(games, key);
+    if(!html){ host.hidden=true; host.innerHTML=""; return; }
+    host.hidden=false;
+    host.innerHTML=html;
+    host.querySelectorAll("button").forEach(function(b){
+      b.onclick=function(){
+        const next=b.getAttribute("data-key")||"";
+        if(!next||next===FLIVE.gameKey) return;
+        FLIVE.seq++;
+        FLIVE.gameKey=next;
+        FLIVE.seen={};
+        fliveScrollReset();
+        fliveLoadOwn(true);
+      };
+    });
+  }
+  function flivePaintOwn(data, games, key){
+    if(!window.FollowerLive) return;
+    if(!data){
+      const score=$("flive-score"), sum=$("flive-sum"), pill=$("flive-pill"), grid=$("flive-grid"), note=$("flive-note");
+      if(score) score.innerHTML=FollowerLive.scoreHtml(FollowerLive.emptyBoardGame());
+      if(sum) sum.textContent="";
+      if(pill) pill.hidden=true;
+      if(note){ note.hidden=true; note.textContent=""; }
+      if(grid) grid.innerHTML=FollowerLive.emptyStateHtml();
+      paintGameSwitch([], "");
+      return;
+    }
+    flivePaint(data);
+    paintGameSwitch(games||[], key||"");
+  }
+  async function fliveLoadOwn(silent){
+    const seq=FLIVE.seq;
+    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
+    const grid=$("flive-grid");
+    if(!follows.length){ flivePaintOwn(null); return; }
+    try{
+      const packs=[];
+      await Promise.all(follows.map(async function(s){
+        const r=await api("/api/follower?guild_id="+encodeURIComponent(s.guild_id));
+        if(seq!==FLIVE.seq) return;
+        if(r.status===401) throw Object.assign(new Error("unauth"), {unauth:true});
+        if(!r.ok) return;
+        const d=await r.json();
+        if(!d||d.preview) return;
+        packs.push({guild_id:s.guild_id, name:(d.display_name||s.display_name||""), preview:false, feed:d.feed||[]});
+      }));
+      if(seq!==FLIVE.seq) return;
+      const games=FollowerLive.gamesFromFeeds(packs);
+      FLIVE.games=games;
+      if(!games.length){ flivePaintOwn(null); return; }
+      let idx=0;
+      for(let i=0;i<games.length;i++){ if(games[i].key===FLIVE.gameKey){ idx=i; break; } }
+      const chosen=games[idx];
+      FLIVE.gameKey=chosen.key;
+      const reads=[];
+      await Promise.all((chosen.guild_ids||[]).map(async function(gid){
+        const r=await api(FollowerLive.endpoint(gid, chosen.game_name));
+        if(seq!==FLIVE.seq||!r.ok) return;
+        reads.push(await r.json());
+      }));
+      if(seq!==FLIVE.seq) return;
+      flivePaintOwn(FollowerLive.mergeGamePayload(chosen.payload, reads), games, chosen.key);
+      fliveArm();
+    }catch(e){
+      if(e&&e.unauth) return renderLogin("Session expired.");
+      if(seq!==FLIVE.seq) return;
+      if(grid&&!silent) grid.innerHTML=window.FollowerLive?FollowerLive.emptyStateHtml():'<div class="empty">Couldn\'t reach the bot.</div>';
+      fliveArm();
+    }
+  }
+  function openGameView(){
+    navNote("#/game", function(){ return openGameView(); });
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    fliveStop();
+    panel("flive");show("app");
+    FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null;
+    $("flive").innerHTML=fliveShell({own:true});
+    const back=$("flive-back");
+    if(back) back.onclick=function(){ navBack(function(){ if(history.length>1) history.back(); else openOwnServer(); }); };
+    fliveScrollReset();
+    fliveMount();
+    fliveLoadOwn(false);
   }
   document.addEventListener("visibilitychange", function(){
     const p=$("flive");
@@ -5068,7 +5205,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
       +(d.trial_mode?'<div class="trial-banner" role="status">Tracking is off during this server\'s trial. Reactions aren\'t recorded yet; existing tracked bets still settle.</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
-      +'<div class="dhead">'+profTitle+'<div class="dhead-actions">'+(showBack?'':'<button type="button" class="ghost" id="flstatsbtn">Stats</button><button type="button" class="ghost" id="flracebtn">Racing</button>')+'<button type="button" class="ghost" id="flivedemobtn">Live demo</button><span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div></div>'
+      +'<div class="dhead">'+profTitle+'<div class="dhead-actions">'+(showBack?'':'<button type="button" class="ghost" id="flstatsbtn">Stats</button><button type="button" class="ghost" id="flracebtn">Racing</button>')+'<button type="button" class="ghost" id="flgameviewbtn">Game view</button><button type="button" class="ghost" id="flivedemobtn" hidden>Live demo</button><span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' · your results</span></div>'
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
       +'<div class="panel" data-sec="follower-tips" data-sec-sum="'+((d.feed||[]).length)+'"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
@@ -5076,7 +5213,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +renderCalendar(d.cal_month,d.daily_series,"","follower-calendar");
     if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
     { const stb=$("flstatsbtn"); if(stb) stb.onclick=()=>openStats(); }
-    { const fdb=$("flivedemobtn"); if(fdb) fdb.onclick=()=>openFollowerDemo(); }
+    { const fgv=$("flgameviewbtn"); if(fgv) fgv.onclick=()=>openGameView(); }
+    { const fdb=$("flivedemobtn"); if(fdb){ fdb.hidden=!ownerSettingsAllowed(); if(!fdb.hidden) fdb.onclick=()=>openFollowerDemo(); } }
     { const rb=$("flracebtn"); if(rb){ rb.hidden=!buildTipsShown(); rb.onclick=()=>{ if(buildTipsShown()) openRacingBuilder(gid,nm); }; } }
     { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
@@ -6986,7 +7124,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
       +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="livedemobtn" title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
@@ -7002,7 +7140,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent tips</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     { const stb=$("statsbtn"); if(stb) stb.onclick=()=>openStats(); }
-    { const ldb=$("livedemobtn"); if(ldb) ldb.onclick=()=>openFollowerDemo(); }
+    { const gv=$("gameviewbtn"); if(gv) gv.onclick=()=>openGameView(); }
+    { const ldb=$("livedemobtn"); if(ldb){ ldb.hidden=!ownerSettingsAllowed(); if(!ldb.hidden) ldb.onclick=()=>openFollowerDemo(); } }
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
@@ -7123,7 +7262,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.62.1');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.63.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -7982,6 +8121,12 @@ async function loadPerms(gid){
       noteOps(data);
       if(window.TBGlobalFlags) TBGlobalFlags.ingest(data);
       if(data.ops!==true) await loadSessionOps();
+      STATE._opsReady=true;
+      paintLiveDemoButtons();
+      if(FLIVE_DEMO_WAIT){
+        FLIVE_DEMO_WAIT=false;
+        if(ownerSettingsAllowed()) openFollowerDemo();
+      }
       try{
         const cfg=await configPromise;
         if(cfg&&window.TBGlobalFlags) TBGlobalFlags.ingest(cfg);
