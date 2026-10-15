@@ -1,3 +1,7 @@
+## 0.61.1
+
+Open a live or upcoming game to see only the bets you follow, with the score and how close each leg is.
+
 ## 0.60.4
 
 Importing a bet slip from a screenshot now matches NBA, WNBA, NBL and NFL games, and reads Today and Tomorrow as the start time.

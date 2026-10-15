@@ -1,3 +1,12 @@
+## 0.61.1 · 2026-10-15 · `follower-live` · Live game for the bets you follow
+
+- Opening a game from Upcoming, Live tips, or your followed bets shows only the legs you hold on that game.
+- The top of the page is the existing 3D ground with its sponsor boards.
+- Bet cards sit in two columns (one on a very narrow phone), under the tipster's name and picture. Pending is purple, a win is green, a loss is red, with a bar toward the line.
+- A leg that has just won plays the existing win animation. Back stays in the app.
+
+Tests: `tests/follower_live.test.js`.
+
 ## 0.60.4 · 2026-10-15 · `slip-espn` · Screenshot import links basketball and NFL
 
 - Import from screenshot loads fixtures for the sport on the slip. NBA, NBL, WNBA and NFL games match the scoreboard (slip date, and the day either side) instead of falling through to a custom game. A matched game sends `league`, `espn_event_id` and the kickoff time.

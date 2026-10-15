@@ -104,6 +104,7 @@ export const CONSOLE_EXEMPT_PREFIX = "assets/vendor/tesseract/";
 export const CONSOLE_EXEMPT_PREFIXES = [
   "assets/vendor/tesseract/",
   "assets/vendor/echarts/",
+  "assets/vendor/three/",
 ];
 
 export const PRICE_LINK_RE = /href\s*=\s*["']\/pricing\/["']/gi;
