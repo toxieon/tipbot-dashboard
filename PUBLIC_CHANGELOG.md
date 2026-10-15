@@ -1,3 +1,7 @@
+## 0.62.1
+
+Open Live demo to watch a sample game, with the ground up top and your bets moving underneath. When a real game is on, a LIVE NOW bar at the top of the server takes you straight to your bets.
+
 ## 0.61.1
 
 Open a live or upcoming game to see only the bets you follow, with the score and how close each leg is.

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.61.1" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.61.1" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.61.1" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.61.1">
+<link rel="icon" href="./assets/favicon.ico?v=0.62.1" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.62.1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.62.1" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.62.1">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.61.1"></script>
+<script src="./assets/tbtime.js?v=0.62.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -227,35 +227,61 @@
   .back{color:var(--muted);cursor:pointer;font-size:var(--t-callout);display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;min-height:44px;box-sizing:border-box}.back:hover{color:var(--txt)}
   button.flive-open{appearance:none;background:none;border:0;padding:0;margin:0;font:inherit;font-weight:700;color:inherit;text-align:left;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
   button.flive-open:hover{color:var(--accent)}
-  #flive{min-width:0;max-width:100%}
-  .fl-hero{position:relative;height:268px;border-radius:16px;overflow:hidden;background:#070b14;margin:0 0 4px}
-  .fl-mcg,.fl-mcg canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .fl-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 55%,transparent) 0,transparent 26%,transparent 62%,var(--bg) 100%)}
-  .fl-topbar{position:absolute;top:8px;left:10px;right:10px;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .fl-back{margin:0;padding:0 12px;border-radius:999px;background:color-mix(in srgb,var(--bg) 62%,transparent);border:1px solid var(--line)}
-  .fl-live{display:inline-flex;gap:6px;align-items:center;height:26px;padding:0 10px;border-radius:999px;background:color-mix(in srgb,var(--loss) 16%,transparent);border:1px solid color-mix(in srgb,var(--loss) 40%,transparent);color:var(--loss-ink);font-size:var(--t-foot);font-weight:700;letter-spacing:.04em}
+  #flive{min-width:0;max-width:720px;margin:0 auto;display:flex;flex-direction:column;min-height:calc(100dvh - 16px)}
+  body:has(#flive:not([hidden])) .top{display:none}
+  body:has(#flive:not([hidden])) .wrap{padding-top:0;padding-bottom:max(12px, env(safe-area-inset-bottom, 0px))}
+  .live-now-wrap{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+  .live-now-wrap[hidden]{display:none}
+  .live-now{appearance:none;width:100%;box-sizing:border-box;display:flex;align-items:center;gap:12px;min-height:58px;padding:14px 16px;border-radius:16px;border:1.5px solid color-mix(in srgb,var(--loss) 75%,transparent);background:color-mix(in srgb,var(--loss) 18%,var(--card));color:var(--txt);font:inherit;font-weight:700;font-size:var(--t-body);line-height:1.3;text-align:left;cursor:pointer}
+  .live-now b{font-weight:800;letter-spacing:.02em}
+  .live-now i{flex:none;width:10px;height:10px;border-radius:99px;background:var(--loss);box-shadow:0 0 0 0 color-mix(in srgb,var(--loss) 55%,transparent);animation:live-now-pulse 1.4s ease-out infinite}
+  @keyframes live-now-pulse{70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  @media (prefers-reduced-motion:reduce){.live-now i{animation:none}}
+  .fl-hero{position:relative;height:312px;border-radius:18px;overflow:hidden;background:#070b14;margin:0 0 2px;isolation:isolate}
+  .fl-mcg{position:absolute;inset:0}
+  .fl-mcg-fallback,.fl-mcg canvas,.fl-mcg-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+  .fl-mcg canvas,.fl-mcg-canvas{z-index:1;-webkit-transform:translateZ(0);transform:translateZ(0)}
+  .fl-mcg.is-webgl .fl-mcg-fallback{visibility:hidden}
+  .fl-shade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 42%,transparent) 0,transparent 22%,transparent 58%,var(--bg) 100%)}
+  .fl-topbar{position:absolute;top:max(10px, env(safe-area-inset-top, 0px));left:10px;right:10px;z-index:4;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .fl-back{margin:0;width:36px;height:36px;min-height:36px;padding:0;border-radius:999px;justify-content:center;background:color-mix(in srgb,#070b14 62%,transparent);border:1px solid color-mix(in srgb,var(--txt) 18%,transparent);color:var(--txt)}
+  .fl-back svg{display:block}
+  .fl-live{display:inline-flex;gap:6px;align-items:center;height:28px;padding:0 11px;border-radius:999px;background:color-mix(in srgb,var(--loss) 18%,#1a1020);border:1px solid color-mix(in srgb,var(--loss) 55%,transparent);color:var(--loss-ink,#ffb4b8);font-size:var(--t-foot);font-weight:800;letter-spacing:.08em}
   .fl-live i{width:7px;height:7px;border-radius:9px;background:var(--loss)}
-  .fl-score{position:absolute;left:16px;right:16px;bottom:10px;z-index:2;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-  .fl-team{font-size:var(--t-sub);color:var(--muted);font-weight:600;min-width:0}.fl-team b{display:block;color:var(--txt);font-size:1.625rem;font-weight:750;letter-spacing:-.02em}
-  .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:6px}.fl-clock b{color:var(--txt);font-size:var(--t-callout);display:block}
-  .fl-sec{display:flex;justify-content:space-between;align-items:baseline;padding:14px 2px 4px}.fl-sec h2{margin:0;font-size:var(--t-h3);font-weight:700}.fl-sec span{font-size:var(--t-foot);color:var(--muted)}
+  .fl-score{position:absolute;left:14px;right:14px;bottom:8px;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+  .fl-team{font-size:var(--t-sub);color:color-mix(in srgb,var(--txt) 68%,transparent);font-weight:600;min-width:0}.fl-team b{display:block;color:var(--txt);font-size:2.25rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .fl-team-r{text-align:right}
+  .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}
+  .fl-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:16px 2px 2px}.fl-sec h2{margin:0;font-size:1.35rem;font-weight:750;letter-spacing:-.02em}.fl-sec span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-note{margin:8px 0;color:var(--muted);font-size:var(--t-foot)}
-  .fl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 0 24px}
+  .fl-demo{position:absolute;z-index:4;top:calc(max(10px, env(safe-area-inset-top, 0px)) + 44px);left:50%;transform:translateX(-50%);display:flex;gap:6px;width:max-content;max-width:calc(100% - 20px)}
+  .fl-demo button{flex:none;min-height:34px;height:34px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--txt) 22%,transparent);background:color-mix(in srgb,#070b14 70%,transparent);color:var(--txt);font:inherit;font-weight:700;font-size:var(--t-foot);cursor:pointer}
+  .fl-demo button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,#070b14)}
+  .fl-group{padding:8px 0 4px}
+  .fl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 0 6px}
   @media (max-width:340px){.fl-grid{grid-template-columns:1fr}}
-  .fl-tip{grid-column:1/-1;display:flex;align-items:center;gap:9px;margin-top:6px;min-width:0}
-  .fl-av{width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:var(--t-cap);font-weight:800;color:#fff;position:relative;overflow:hidden;flex:none}
+  .fl-tip{display:flex;align-items:center;gap:10px;margin:4px 0 0;min-width:0}
+  .fl-av{width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:var(--t-cap);font-weight:800;color:#fff;position:relative;overflow:hidden;flex:none;letter-spacing:.02em}
   .fl-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .fl-tip b{font-size:var(--t-callout);font-weight:650;min-width:0}.fl-tip em{margin-left:auto;font-style:normal;font-size:var(--t-foot);color:var(--muted)}
-  .fl-card{position:relative;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:11px 12px 12px;display:flex;flex-direction:column;gap:9px;min-height:112px;min-width:0}
-  .fl-card.pending{border-color:rgba(139,108,255,.65)}.fl-card.hit{border-color:color-mix(in srgb,var(--win) 75%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--win) 10%,transparent),var(--card) 60%)}.fl-card.miss{border-color:color-mix(in srgb,var(--loss) 70%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--loss) 9%,transparent),var(--card) 60%)}
+  .fl-tip b{font-size:var(--t-callout);font-weight:700;min-width:0}
+  .fl-rule{flex:1;height:1px;background:var(--line);min-width:16px}
+  .fl-tip em{margin-left:0;font-style:normal;font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
+  .fl-card{position:relative;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:11px 12px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .fl-card.pending{border-color:rgba(139,108,255,.72)}.fl-card.hit{border-color:color-mix(in srgb,var(--win) 78%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--win) 14%,var(--card)),var(--card) 58%)}.fl-card.miss{border-color:color-mix(in srgb,var(--loss) 72%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--loss) 12%,var(--card)),var(--card) 58%)}
   .fl-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
-  .fl-st{font-size:var(--t-cap);font-weight:750;letter-spacing:.06em;text-transform:uppercase}
-  .fl-card.pending .fl-st{color:#b4a3ff}.fl-card.hit .fl-st{color:var(--win-ink)}.fl-card.miss .fl-st{color:var(--loss-ink)}
-  .fl-odds{font-size:var(--t-sub);font-weight:700;color:var(--txt);background:var(--card2);padding:2px 7px;border-radius:7px}
-  .fl-leg{font-size:var(--t-callout);font-weight:620;line-height:1.25}.fl-leg small{display:block;font-size:var(--t-cap);color:var(--muted);font-weight:500;margin-top:2px}
-  .fl-bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}.fl-bar i{display:block;height:100%;border-radius:9px}
+  .fl-st{font-size:var(--t-cap);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .fl-card.pending .fl-st{color:#c4b5fd}.fl-card.hit .fl-st{color:var(--win)}.fl-card.miss .fl-st{color:var(--loss)}
+  .fl-odds{font-size:var(--t-callout);font-weight:750;color:var(--txt);letter-spacing:-.01em}
+  .fl-leg{font-size:var(--t-callout);font-weight:700;line-height:1.2}.fl-leg small{display:block;font-size:var(--t-foot);color:var(--muted);font-weight:500;margin-top:3px}
+  .fl-bar{height:7px;border-radius:99px;background:color-mix(in srgb,var(--txt) 10%,transparent);overflow:hidden}.fl-bar i{display:block;height:100%;border-radius:99px;min-width:0}
   .fl-card.pending .fl-bar i{background:#8b6cff}.fl-card.hit .fl-bar i{background:var(--win)}.fl-card.miss .fl-bar i{background:var(--loss)}
-  .fl-prog{display:flex;justify-content:space-between;font-size:var(--t-foot);color:var(--muted);margin-top:-3px}.fl-prog b{color:var(--txt);font-weight:700}
+  .fl-prog{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-foot);color:var(--muted);margin-top:-2px}.fl-prog b{color:var(--txt);font-weight:750}
+  .fl-example{display:flex;justify-content:flex-end;margin-top:auto;padding:10px 2px 4px}
+  .fl-example span{border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted);font-size:var(--t-foot)}
+  @media (max-width:640px){
+    .fl-hero{height:276px;margin-left:calc(-1 * max(14px, env(safe-area-inset-left, 0px)));margin-right:calc(-1 * max(14px, env(safe-area-inset-right, 0px)));border-radius:0 0 22px 22px;width:auto}
+    #flive{min-height:100dvh}
+  }
   .dhead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;min-width:0;max-width:100%}
   .dhead h1{margin:0;font-size:var(--t-h1);min-width:0;overflow-wrap:anywhere}
   .dhead-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;min-width:0;max-width:100%}
@@ -1248,13 +1274,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.61.1">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.62.1">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.61.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.62.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1265,7 +1291,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.61.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.62.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1274,7 +1300,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.61.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.62.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1295,7 +1321,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.61.1</div>
+          <div class="dd-label" id="dd-version">tipdash v0.62.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1321,30 +1347,30 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.61.1"></script>
-<script src="./assets/light-data.js?v=0.61.1"></script>
-<script src="./assets/lines.js?v=0.61.1"></script>
-<script src="./assets/racing-legs.js?v=0.61.1"></script>
-<script src="./assets/afl-guernseys.js?v=0.61.1"></script>
-<script src="./assets/compare-ui.js?v=0.61.1"></script>
-<script src="./assets/sport-keywords.js?v=0.61.1"></script>
-<script src="./assets/sport-marks.js?v=0.61.1"></script>
-<script src="./assets/discover-sports.js?v=0.61.1"></script>
-<script src="./assets/global-flags.js?v=0.61.1"></script>
-<script src="./assets/routing.js?v=0.61.1"></script>
-<script src="./assets/scheduled-tips.js?v=0.61.1"></script>
-<script src="./assets/auto-recaps.js?v=0.61.1"></script>
-<script src="./assets/emoji-picker.js?v=0.61.1"></script>
-<script src="./assets/upcoming-split.js?v=0.61.1"></script>
-<script src="./assets/espn-props.js?v=0.61.1"></script>
-<script src="./assets/tb-motion.js?v=0.61.1"></script>
-<script src="./assets/form-badges.js?v=0.61.1"></script>
-<script src="./assets/tb-charts.js?v=0.61.1"></script>
-<script src="./assets/server-view.js?v=0.61.1"></script>
-<script src="./assets/follower-live.js?v=0.61.1"></script>
-<script src="./assets/legal-md.js?v=0.61.1"></script>
-<script src="./assets/terms-gate.js?v=0.61.1"></script>
-<script src="./assets/cookie-consent.js?v=0.61.1"></script>
+<script src="./assets/req-pool.js?v=0.62.1"></script>
+<script src="./assets/light-data.js?v=0.62.1"></script>
+<script src="./assets/lines.js?v=0.62.1"></script>
+<script src="./assets/racing-legs.js?v=0.62.1"></script>
+<script src="./assets/afl-guernseys.js?v=0.62.1"></script>
+<script src="./assets/compare-ui.js?v=0.62.1"></script>
+<script src="./assets/sport-keywords.js?v=0.62.1"></script>
+<script src="./assets/sport-marks.js?v=0.62.1"></script>
+<script src="./assets/discover-sports.js?v=0.62.1"></script>
+<script src="./assets/global-flags.js?v=0.62.1"></script>
+<script src="./assets/routing.js?v=0.62.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.62.1"></script>
+<script src="./assets/auto-recaps.js?v=0.62.1"></script>
+<script src="./assets/emoji-picker.js?v=0.62.1"></script>
+<script src="./assets/upcoming-split.js?v=0.62.1"></script>
+<script src="./assets/espn-props.js?v=0.62.1"></script>
+<script src="./assets/tb-motion.js?v=0.62.1"></script>
+<script src="./assets/form-badges.js?v=0.62.1"></script>
+<script src="./assets/tb-charts.js?v=0.62.1"></script>
+<script src="./assets/server-view.js?v=0.62.1"></script>
+<script src="./assets/follower-live.js?v=0.62.1"></script>
+<script src="./assets/legal-md.js?v=0.62.1"></script>
+<script src="./assets/terms-gate.js?v=0.62.1"></script>
+<script src="./assets/cookie-consent.js?v=0.62.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1693,7 +1719,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.61.1";
+  TD.version="0.62.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1778,6 +1804,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(m[2]==="follow") return openFollowerView(gid,nm), true;
       return loadDetail(gid), true;
     }
+    if(m[0]==="demo" && m[1]==="game") return openFollowerDemo(), true;
     if(m[0]==="upcoming") return openUpcomingHome(), true;
     if(m[0]==="stats" && m[1]==="horses") return openHorseResults(), true;
     if(m[0]==="stats") return openStats(), true;
@@ -2817,7 +2844,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.61.1"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.62.1"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -4819,14 +4846,21 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- Follower live game (#/s/<gid>/game/<name>) ---------- */
-  const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false};
+  const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null};
   function fliveStop(){
     if(FLIVE.timer){ clearTimeout(FLIVE.timer); FLIVE.timer=null; }
+    if(FLIVE.demo){ try{ FLIVE.demo.stop(); }catch(e){} FLIVE.demo=null; }
     const host=document.getElementById("flive-mcg");
     if(host&&host._mcg&&host._mcg.stop){ try{ host._mcg.stop(); }catch(e){} host._mcg=null; }
     FLIVE.mcg=false;
   }
-  window.FollowerLivePage={stop:fliveStop};
+  window.FollowerLivePage={
+    stop:fliveStop,
+    seek:function(t){ if(FLIVE.demo) FLIVE.demo.seek(t); },
+    play:function(){ if(FLIVE.demo) FLIVE.demo.play(); },
+    pause:function(){ if(FLIVE.demo) FLIVE.demo.pause(); },
+    reset:function(){ if(FLIVE.demo) FLIVE.demo.reset(); }
+  };
   function wireFliveOpens(root, gid){
     if(!root) return;
     root.querySelectorAll(".flive-open").forEach(function(b){
@@ -4840,14 +4874,25 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       };
     });
   }
-  function fliveShell(){
-    return '<div class="fl-hero"><div class="fl-mcg" id="flive-mcg"></div><div class="fl-shade"></div>'
-      +'<div class="fl-topbar"><button type="button" class="back fl-back" id="flive-back">← Back</button>'
+  function fliveBackSvg(){
+    return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M14.6 5.4 8 12l6.6 6.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  function fliveShell(opts){
+    opts=opts||{};
+    const demo=opts.demo?'<div class="fl-demo" id="flive-demo">'
+      +'<button type="button" id="flive-play" aria-pressed="false">Play</button>'
+      +'<button type="button" id="flive-pause" aria-pressed="true">Pause</button>'
+      +'<button type="button" id="flive-reset">Reset</button></div>':'';
+    const example=opts.demo?'<div class="fl-example"><span>Example data</span></div>':'';
+    return '<div class="fl-hero"><div class="fl-mcg" id="flive-mcg"><img class="fl-mcg-fallback" alt="" src="./assets/mcg/fallback.png"></div><div class="fl-shade"></div>'
+      +'<div class="fl-topbar"><button type="button" class="back fl-back" id="flive-back" aria-label="Back">'+fliveBackSvg()+'</button>'
       +'<span class="fl-live" id="flive-pill" hidden><i></i>LIVE</span></div>'
+      +demo
       +'<div class="fl-score" id="flive-score"></div></div>'
       +'<div class="fl-sec"><h2>Your bets</h2><span id="flive-sum"></span></div>'
       +'<div id="flive-note" class="fl-note" hidden></div>'
-      +'<div class="fl-grid" id="flive-grid"><div class="empty">Loading your bets…</div></div>';
+      +'<div id="flive-grid"><div class="empty">Loading your bets…</div></div>'
+      +example;
   }
   function ensureWinFx(){
     if(window.TBMatchFx&&TBMatchFx.win) return Promise.resolve();
@@ -4867,7 +4912,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const seq=FLIVE.seq;
     import("./assets/mcg/mount.js?v="+encodeURIComponent(TD.version)).then(function(mod){
       if(seq!==FLIVE.seq) return null;
-      return mod.mount(host);
+      return mod.mount(host, {night: true});
     }).then(function(handle){
       if(!handle) return;
       if(seq!==FLIVE.seq){ try{ handle.stop(); }catch(e){} return; }
@@ -4888,7 +4933,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       else { note.hidden=true; note.textContent=""; }
     }
     grid.innerHTML=FollowerLive.render(data);
-    if(won.length){
+    const demoPlaying=FLIVE.demo&&FLIVE.demo.playing&&FLIVE.demo.playing();
+    if(won.length && (!FLIVE.demo || demoPlaying)){
       ensureWinFx().then(function(){
         if(!window.TBMatchFx||!TBMatchFx.win) return;
         grid.querySelectorAll(".fl-card").forEach(function(el){
@@ -4903,6 +4949,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     FLIVE.timer=setTimeout(function(){ FLIVE.timer=null; fliveLoad(true); }, ms||FollowerLive.POLL_MS||30000);
   }
   async function fliveLoad(silent){
+    if(FLIVE.demo) return;
     const seq=FLIVE.seq, gid=FLIVE.gid, game=FLIVE.game;
     const grid=$("flive-grid");
     try{
@@ -4946,6 +4993,32 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(score) score.innerHTML='<div class="fl-team"><span>'+esc(game)+'</span><b>–</b></div>';
     fliveMount();
     fliveLoad(false);
+  }
+  function fliveDemoButtons(playing){
+    const play=$("flive-play"), pause=$("flive-pause");
+    if(play) play.setAttribute("aria-pressed", playing?"true":"false");
+    if(pause) pause.setAttribute("aria-pressed", playing?"false":"true");
+  }
+  function openFollowerDemo(){
+    navNote("#/demo/game", function(){ return openFollowerDemo(); });
+    clearDetailTimers();clearLiveTimer();clearGamesTimer();
+    fliveStop();
+    panel("flive");show("app");
+    FLIVE.seq++; FLIVE.gid=""; FLIVE.game="Northside v Bayside"; FLIVE.name="Demo"; FLIVE.seen={};
+    $("flive").innerHTML=fliveShell({demo:true});
+    const back=$("flive-back");
+    if(back) back.onclick=function(){ navBack(function(){ if(history.length>1) history.back(); else enterHome(); }); };
+    fliveMount();
+    FLIVE.demo=FollowerLive.createDemo(function(data, t, playing){
+      fliveDemoButtons(!!playing);
+      flivePaint(data);
+    });
+    const play=$("flive-play"), pause=$("flive-pause"), reset=$("flive-reset");
+    if(play) play.onclick=function(){ if(FLIVE.demo) FLIVE.demo.play(); };
+    if(pause) pause.onclick=function(){ if(FLIVE.demo) FLIVE.demo.pause(); };
+    if(reset) reset.onclick=function(){ FLIVE.seen={}; if(FLIVE.demo) FLIVE.demo.reset(); };
+    FLIVE.demo.reset();
+    try{ window.scrollTo(0,0); }catch(e){}
   }
   document.addEventListener("visibilitychange", function(){
     const p=$("flive");
@@ -4995,7 +5068,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
       +(d.trial_mode?'<div class="trial-banner" role="status">Tracking is off during this server\'s trial. Reactions aren\'t recorded yet; existing tracked bets still settle.</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
-      +'<div class="dhead">'+profTitle+'<div class="dhead-actions">'+(showBack?'':'<button type="button" class="ghost" id="flstatsbtn">Stats</button><button type="button" class="ghost" id="flracebtn">Racing</button>')+'<span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div></div>'
+      +'<div class="dhead">'+profTitle+'<div class="dhead-actions">'+(showBack?'':'<button type="button" class="ghost" id="flstatsbtn">Stats</button><button type="button" class="ghost" id="flracebtn">Racing</button>')+'<button type="button" class="ghost" id="flivedemobtn">Live demo</button><span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div></div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' · your results</span></div>'
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
       +'<div class="panel" data-sec="follower-tips" data-sec-sum="'+((d.feed||[]).length)+'"><h3>Your tips</h3><div id="ffeed">'+feed+'</div></div>'
@@ -5003,6 +5076,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +renderCalendar(d.cal_month,d.daily_series,"","follower-calendar");
     if(showBack){ const b=$("flbx"); if(b)b.onclick=backTo; }
     { const stb=$("flstatsbtn"); if(stb) stb.onclick=()=>openStats(); }
+    { const fdb=$("flivedemobtn"); if(fdb) fdb.onclick=()=>openFollowerDemo(); }
     { const rb=$("flracebtn"); if(rb){ rb.hidden=!buildTipsShown(); rb.onclick=()=>{ if(buildTipsShown()) openRacingBuilder(gid,nm); }; } }
     { const pe=$("fpv-exit"); if(pe)pe.onclick=()=>loadDetail(gid); }
     { const ms=$("fmonthsel"); if(ms)ms.onchange=()=>openFollowerView(gid,nm,ms.value||null); }
@@ -6633,6 +6707,22 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(g&&typeof g.preview_text==="string"&&g.preview_text&&(!q||q===g.preview_quarter||(q==="FT"&&g.preview_quarter==="Q4")||(q==="Q4"&&g.preview_quarter==="FT"))) return g.preview_text;
     return "";
   }
+  function paintLiveNow(guildId, games){
+    const host=$("live-now");
+    if(!host||!window.FollowerLive||typeof FollowerLive.liveNowHtml!=="function") return;
+    const html=FollowerLive.liveNowHtml(games||[]);
+    if(!html){ host.hidden=true; host.innerHTML=""; return; }
+    host.hidden=false;
+    host.innerHTML=html;
+    host.querySelectorAll(".live-now").forEach(function(b){
+      b.onclick=function(ev){
+        ev.preventDefault();
+        const game=b.getAttribute("data-game")||"";
+        if(!game||!guildId) return;
+        openFollowerGame(guildId, navServerName(guildId), game);
+      };
+    });
+  }
   function renderLiveTipsGames(guildId,games,note){
     const panel=$("live-tips-panel"), box=$("live-tips-box");
     if(!panel||!box)return;
@@ -6688,6 +6778,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           +'</div></div></div>';
       }).join("");
     box.innerHTML=(note?'<div class="live-tips-note" style="color:var(--faint);font-size:var(--t-foot);margin-bottom:8px">'+esc(note)+'</div>':'')+html;
+    paintLiveNow(guildId, games);
     wireFliveOpens(box,guildId);
     box.querySelectorAll(".live-toggle-prev").forEach(b=>b.onclick=()=>{
       const el=$(b.dataset.pid); if(!el)return; el.hidden=!el.hidden;
@@ -6766,7 +6857,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const data=r.data||{};
       const games=Array.isArray(data.games)?data.games:[];
       // Manual quarter pushes only — tipdash drives Q1–Q3/FT (no clock auto-send).
-      if(!games.length){ LIVE_TIPS.last=null; panel.hidden=true; box.innerHTML=''; return; }
+      if(!games.length){ LIVE_TIPS.last=null; panel.hidden=true; box.innerHTML=''; paintLiveNow(guildId, []); return; }
       LIVE_TIPS.last=games;
       renderLiveTipsGames(guildId,games);
     }catch(e){
@@ -6892,9 +6983,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button>'+accessTab+connTab+'</div>'
       +'<div id="settings-body"></div></div></div>';
     const schedNote=(typeof scheduleNoteHtml==="function")?scheduleNoteHtml(s.guild_id):"";
-    $("detail").innerHTML=(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
+    $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
+      +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="livedemobtn" title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
@@ -6910,6 +7002,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent tips</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
     { const stb=$("statsbtn"); if(stb) stb.onclick=()=>openStats(); }
+    { const ldb=$("livedemobtn"); if(ldb) ldb.onclick=()=>openFollowerDemo(); }
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
@@ -7030,7 +7123,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.61.1');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.62.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
