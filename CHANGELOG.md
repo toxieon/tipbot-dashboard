@@ -1,3 +1,10 @@
+## 0.61.1 · 2026-10-15 · `stadium` · Stadium boards widget
+
+- `assets/stadium.js` embeds the stadium. `TipStadium.mount(element, { gameId, token })` loads the scene from TipBot and reads `GET /api/games/{id}/sponsors` (sponsor images only).
+- A long `/o/` address on this site asks TipBot for the document and shows it when TipBot returns one. That document is not in this repo.
+
+Tests: `tests/stadium.test.js`.
+
 ## 0.60.2 · 2026-10-15 · `schedule-note` · Schedule warning shown once
 
 - Build → Schedule tip shows an error in the line under the button. The progress label no longer repeats that sentence.

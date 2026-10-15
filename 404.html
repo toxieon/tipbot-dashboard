@@ -11,17 +11,26 @@
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" sizes="180x180">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="stylesheet" href="/assets/site/site.css?v=0.60.2">
+<link rel="stylesheet" href="/assets/site/site.css?v=0.61.1">
 <style>
   html[data-site="tipster"] #missing-slot { display: none !important; }
   html[data-site="missing"] #tipster-slot,
   html:not([data-site="tipster"]) #tipster-slot { display: none !important; }
+  #gate-slot { display: none; }
+  html[data-site="gate"] #missing-slot,
+  html[data-site="gate"] #tipster-slot { display: none !important; }
+  html[data-site="gate"] #gate-slot { display: block; }
 </style>
 <script>
 /* GitHub Pages has no rewrites. /t/<handle> is served as this 404 with the
-   original path still in the address bar. Anything else stays a normal 404. */
+   original path still in the address bar. A long /o/ address is requested
+   from the API and shown only when that response is a document. */
 (function () {
   var path = location.pathname || "";
+  if (/\/o\/[A-Za-z0-9_-]{32,}\/?$/.test(path)) {
+    document.documentElement.dataset.site = "gate";
+    return;
+  }
   var m = path.match(/\/t\/([^/]+)\/?$/);
   var raw = "";
   if (m) {
@@ -56,17 +65,21 @@
   <div id="tipster-slot">
     <p class="loading">Loading record…</p>
   </div>
+  <section class="missing" id="gate-slot">
+    <p class="loading">Loading…</p>
+  </section>
 </main>
 <footer class="site-footer">
-  <p>© TipBot · tipdashhq.com · tipdash 0.60.2</p>
+  <p>© TipBot · tipdashhq.com · tipdash 0.61.1</p>
   <p><strong>18+ only.</strong> Gamble responsibly. If gambling is a problem for you or someone you know, call Gambling Help Online on <a href="tel:1800858858">1800 858 858</a> or visit <a href="https://www.gamblinghelponline.org.au/" rel="noopener noreferrer">gamblinghelponline.org.au</a>.</p>
   <p>Past results don’t guarantee future returns.</p>
 </footer>
-<script src="/assets/site/tipster-stats.js?v=0.60.2"></script>
-<script src="/assets/site/site.js?v=0.60.2"></script>
-<script src="/assets/site/tipster-page.js?v=0.60.2"></script>
+<script src="/assets/site/tipster-stats.js?v=0.61.1"></script>
+<script src="/assets/site/site.js?v=0.61.1"></script>
+<script src="/assets/site/tipster-page.js?v=0.61.1"></script>
 <script>
 (function () {
+  if (document.documentElement.dataset.site === "gate") return;
   var handle = document.documentElement.dataset.handle || TipsterStats.tipsterHandleFromPath(location.pathname);
   var missing = document.getElementById("missing-slot");
   var slot = document.getElementById("tipster-slot");
@@ -80,6 +93,59 @@
   var desc = document.querySelector('meta[name="description"]');
   if (desc) desc.setAttribute("content", "A TipBot verified tipster record. Example data until the public API is live.");
   TipsterPage.boot(slot, handle);
+})();
+</script>
+<script>
+/* A long /o/ path is not a file on this site. Ask TipBot for the document. */
+(function () {
+  var path = location.pathname || "";
+  var m = path.match(/\/o\/([A-Za-z0-9_-]{32,})\/?$/);
+  if (!m) return;
+  var API = "https://afl-tipster-bot.onrender.com";
+  var clean = path.replace(/\/$/, "");
+  function token() {
+    try { return localStorage.getItem("tipbot_token") || ""; } catch (e) { return ""; }
+  }
+  function setToken(value) {
+    try { localStorage.setItem("tipbot_token", value); } catch (e) {}
+  }
+  var hash = location.hash ? location.hash.slice(1) : "";
+  var fromHash = "";
+  try { fromHash = new URLSearchParams(hash).get("token") || ""; } catch (e) { fromHash = ""; }
+  if (fromHash) {
+    setToken(fromHash);
+    history.replaceState(null, "", location.pathname);
+  }
+  function showMissing() {
+    document.documentElement.dataset.site = "missing";
+    document.title = "Page not found — TipBot";
+  }
+  function goLogin() {
+    location.replace(API + "/auth/login?return_to=" + encodeURIComponent(clean));
+  }
+  function showDocument(res) {
+    var ctype = res.headers.get("content-type") || "";
+    if (!res.ok || ctype.indexOf("html") < 0) { showMissing(); return null; }
+    return res.text().then(function (html) {
+      if (!html) { showMissing(); return; }
+      document.open();
+      document.write(html);
+      document.close();
+    });
+  }
+  if (!token()) { goLogin(); return; }
+  var auth = { Authorization: "Bearer " + token(), credentials: "omit" };
+  fetch(API + "/api/me", { headers: { Authorization: auth.Authorization }, credentials: "omit" })
+    .then(function (res) {
+      if (res.status === 401) {
+        try { localStorage.removeItem("tipbot_token"); } catch (e) {}
+        goLogin();
+        return null;
+      }
+      if (!res.ok) { showMissing(); return null; }
+      return fetch(API + clean, { headers: { Authorization: "Bearer " + token() }, credentials: "omit" }).then(showDocument);
+    })
+    .catch(function () { showMissing(); });
 })();
 </script>
 </body>

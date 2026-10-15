@@ -1,3 +1,7 @@
+## 0.61.1
+
+Stadium boards can be embedded on a later live view. They show the sponsor images for that game.
+
 ## 0.60.2
 
 Scheduling a tip shows a problem once. If a player name couldn't be matched, the tip is still saved and a yellow note says so.
