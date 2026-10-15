@@ -97,6 +97,66 @@ test("the game opens in the app from Upcoming, Live tips, and followed bets", ()
   assert.doesNotMatch(live, /target="_blank"|window\.open/);
 });
 
+test("demo clock starts pending, mixes states, then settles", () => {
+  const start = FL.demoPayload(0);
+  const mid = FL.demoPayload(0.5);
+  const end = FL.demoPayload(1);
+  assert.equal(start.game.phase_label, "Q1 · 4:20");
+  assert.equal(start.game.live, true);
+  assert.equal(FL.summaryText(start), "6 legs · 6 live");
+  assert.equal(mid.game.home.score, 64);
+  assert.equal(mid.game.away.score, 58);
+  assert.equal(mid.game.phase_label, "Q3 · 12:41");
+  assert.equal(mid.game.venue, "MCG");
+  assert.equal(FL.summaryText(mid), "6 legs · 3 live");
+  const midHtml = FL.render(mid);
+  assert.match(midHtml, /MidfieldMick/);
+  assert.match(midHtml, /fl-card pending/);
+  assert.match(midHtml, /fl-card hit/);
+  assert.match(midHtml, /fl-card miss/);
+  assert.match(midHtml, /18\/25/);
+  assert.match(midHtml, /2\/2/);
+  assert.match(midHtml, /0\/1/);
+  assert.match(midHtml, /class="fl-rule"/);
+  assert.equal(end.game.concluded, true);
+  assert.equal(end.game.live, false);
+  assert.equal(end.game.phase_label, "Final");
+  assert.equal(FL.summaryText(end), "6 legs · 0 live");
+  assert.equal(FL.initials("MidfieldMick"), "MM");
+  assert.equal(FL.initials("TagTeamTess"), "TT");
+  assert.equal(FL.initials("BehindThePosts"), "BP");
+});
+
+test("demo route and live banner stay inside the app", () => {
+  assert.match(html, /m\[0\]==="demo" && m\[1\]==="game"\) return openFollowerDemo\(\), true;/);
+  assert.match(html, /function openFollowerDemo\(/);
+  assert.match(html, /id="livedemobtn"/);
+  assert.match(html, /id="flivedemobtn"/);
+  assert.match(html, /id="flive-play"/);
+  assert.match(html, /id="flive-pause"/);
+  assert.match(html, /id="flive-reset"/);
+  assert.match(html, /id="live-now"/);
+  assert.match(html, /function paintLiveNow\(/);
+  assert.doesNotMatch(html, /window\.open|target="_blank"/);
+  const rows = FL.liveNowGames([
+    {game_name: "Carlton v Hawthorn", sport: "AFLW", concluded: false, phase: {key: "Q2", label: "Q2 · 8:10"}},
+    {game_name: "Geelong v Carlton", sport: "AFL", concluded: true, phase: {label: "Full time"}},
+    {game_name: "Carlton v Hawthorn", sport: "AFLW"}
+  ]);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].sport, "AFLW");
+  const banner = FL.liveNowHtml(rows);
+  assert.match(banner, /LIVE NOW:/);
+  assert.match(banner, /Carlton v Hawthorn, tap to follow your bets/);
+  assert.match(banner, /class="live-now"/);
+  assert.doesNotMatch(banner, /target=|window\.open/);
+  const mount = fs.readFileSync(path.join(__dirname, "..", "assets", "mcg", "mount.js"), "utf8");
+  assert.match(mount, /fallback\.png/);
+  assert.match(mount, /webglcontextlost/);
+  assert.match(mount, /MeshoptDecoder\.ready/);
+  assert.equal(fs.existsSync(path.join(__dirname, "..", "assets", "mcg", "fallback.png")), true);
+});
+
 test("a missing read falls back to the follower feed for that game", () => {
   const model = FL.fallbackFromFeed({
     feed: [
