@@ -1,3 +1,10 @@
+## 0.60.2 · 2026-10-15 · `schedule-note` · Schedule warning shown once
+
+- Build → Schedule tip shows an error in the line under the button. The progress label no longer repeats that sentence.
+- TipBot 0.62.9's missed player id (`Couldn't match a player id for … — saved the name to grade later`) is a yellow note after the tip is saved, not a red error, and it is shown once.
+
+Tests: `tests/schedule_note.test.js`.
+
 ## 0.60.1 · 2026-10-14 · `menus` · Menu visibility
 
 - Marketplace and Build can be switched off for everyone; when off, their menu entries, nav button and routes hide. Flags come from `GET /api/config` or `GET /api/me` (`global_flags`); a missing value stays on.
