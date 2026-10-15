@@ -26,6 +26,24 @@ function nightNow(opts) {
   return true;
 }
 
+// The camera looks through the near floodlight. Its mast is a black pole
+// down the middle of the ground, so that tower stays off.
+function hideTowerOnLens(scene, camera) {
+  var nearest = null;
+  var nearestD = Infinity;
+  scene.traverse(function (o) {
+    if (!/^LightTower\d$/.test(o.name)) return;
+    var p = new T.Vector3();
+    o.getWorldPosition(p);
+    var d = p.distanceTo(camera.position);
+    if (d < nearestD) {
+      nearestD = d;
+      nearest = o;
+    }
+  });
+  if (nearest && nearestD < 180) nearest.visible = false;
+}
+
 function ensureFallback(host) {
   var img = host.querySelector(".fl-mcg-fallback");
   if (!img) {
@@ -188,6 +206,7 @@ export async function mount(host, opts) {
     scene.add(gltf.scene);
     try { upgradeStands(scene, night); } catch (e1) {}
     try { upgradeTowers(scene, night); } catch (e2) {}
+    try { hideTowerOnLens(scene, camera); } catch (eTower) {}
     try { addGround(scene); } catch (e3) {}
     var boards = null;
     try {
