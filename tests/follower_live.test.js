@@ -51,6 +51,50 @@ test("pending, hit and miss cards match the approved states", () => {
   assert.match(score, /MCG/);
 });
 
+test("an upcoming game shows unsettled legs as Upcoming, with no bar and no Now", () => {
+  const payload = {
+    game: {
+      game_name: "North Melbourne v Carlton",
+      live: false,
+      concluded: false,
+      phase_label: "Upcoming",
+      starts_at: "2099-01-01T05:00:00Z",
+      venue: "Ikon Park",
+      home: {name: "North Melbourne", score: null},
+      away: {name: "Carlton", score: null}
+    },
+    tipsters: [{
+      name: "Midfield Mick",
+      legs: [
+        {id: "a", player: "Z. Quill", line_label: "25+ disposals", odds: 2.1, current: 0, line: 25, status: "pending"},
+        {id: "b", player: "R. Okonbo", line_label: "2+ goals", odds: 3.4, current: 2, line: 2, status: "hit"}
+      ]
+    }]
+  };
+  const out = FL.render(payload);
+  assert.equal(FL.gameNotStarted(payload.game, Date.parse("2026-10-15T00:00:00Z")), true);
+  assert.match(out, /fl-card pending/);
+  assert.match(out, />Upcoming</);
+  assert.doesNotMatch(out, /Live/);
+  assert.doesNotMatch(out, /Now/);
+  const pending = out.slice(out.indexOf("fl-card pending"), out.indexOf("fl-card hit"));
+  assert.doesNotMatch(pending, /fl-bar/);
+  assert.doesNotMatch(pending, /fl-prog/);
+  assert.match(out, /fl-card hit/);
+  assert.match(out, />Hit</);
+  assert.match(out, />Final</);
+  const future = {
+    game: {live: true, concluded: false, starts_at: "2099-06-01T00:00:00Z", home: {name: "A"}, away: {name: "B"}},
+    tipsters: [{name: "Tess", legs: [{id: "1", player: "A Player", line_label: "10+ disposals", odds: 1.5, current: 0, line: 10, status: "pending"}]}]
+  };
+  const later = FL.render(future);
+  assert.match(later, />Upcoming</);
+  assert.doesNotMatch(later, /Live/);
+  assert.doesNotMatch(later, /Now/);
+  assert.doesNotMatch(later, /fl-bar/);
+  assert.equal(FL.summaryText(payload), "2 legs · 1 upcoming");
+});
+
 test("two tipsters stay in separate groups and a narrow grid is one column in CSS", () => {
   const payload = {
     tipsters: [
@@ -129,9 +173,16 @@ test("demo clock starts pending, mixes states, then settles", () => {
 
 test("demo route and live banner stay inside the app", () => {
   assert.match(html, /m\[0\]==="demo" && m\[1\]==="game"\) return openFollowerDemo\(\), true;/);
-  assert.match(html, /function openFollowerDemo\(/);
-  assert.match(html, /id="livedemobtn"/);
-  assert.match(html, /id="flivedemobtn"/);
+  assert.match(html, /function openFollowerDemo\(\)\{\s*if\(!ownerSettingsAllowed\(\)\)/);
+  assert.match(html, /id="livedemobtn"[^>]*hidden/);
+  assert.match(html, /id="flivedemobtn"[^>]*hidden/);
+  assert.match(html, /id="gameviewbtn"/);
+  assert.match(html, /id="flgameviewbtn"/);
+  assert.match(html, /function openGameView\(/);
+  assert.match(html, /m\[0\]==="game" && m\.length===1\) return openGameView\(\), true;/);
+  assert.match(html, /id="flive-scroll"/);
+  assert.match(html, /class="fl-pin"/);
+  assert.match(html, /#flive:not\(\[hidden\]\)\{position:fixed/);
   assert.match(html, /id="flive-play"/);
   assert.match(html, /id="flive-pause"/);
   assert.match(html, /id="flive-reset"/);
@@ -155,6 +206,48 @@ test("demo route and live banner stay inside the app", () => {
   assert.match(mount, /webglcontextlost/);
   assert.match(mount, /MeshoptDecoder\.ready/);
   assert.equal(fs.existsSync(path.join(__dirname, "..", "assets", "mcg", "fallback.png")), true);
+});
+
+test("game view keeps the next open game and groups that follower's slips", () => {
+  const packs = [{
+    guild_id: "9",
+    feed: [
+      {tip_id: "later", game_name: "Richmond v Essendon", bet_type: "A Player 10+ disposals", odds: 1.9, result: "Pending", starts_at: "2026-10-20T05:00:00Z", tipster_name: "Midfield Mick"},
+      {tip_id: "soon", game_name: "North Melbourne v Carlton", bet_type: "Z. Quill 25+ disposals", odds: 2.1, result: "Pending", starts_at: "2026-10-16T05:00:00Z", tipster_name: "Midfield Mick", tipster_id: "mick"},
+      {tip_id: "soon2", game_name: "North Melbourne v Carlton", bet_type: "R. Okonbo 2+ goals", odds: 3.4, result: "Pending", starts_at: "2026-10-16T05:00:00Z", tipster_name: "Tag Team Tess", tipster_id: "tess"},
+      {tip_id: "done", game_name: "North Melbourne v Carlton", bet_type: "settled", odds: 1.5, status: "Settled", result: "Win", tipster_name: "Tag Team Tess"},
+      {tip_id: "ft", game_name: "Sydney v Brisbane", bet_type: "full time", result: "Pending", phase_label: "Full time", tipster_name: "Midfield Mick"},
+      {tip_id: "live", game_name: "Geelong v Collingwood", bet_type: "H. Strand 20+ disposals", odds: 1.6, result: "Pending", live: true, tipster_name: "Midfield Mick"}
+    ]
+  }, {
+    preview: true,
+    guild_id: "1",
+    feed: [{tip_id: "preview", game_name: "Preview v Only", bet_type: "nope", result: "Pending", tipster_name: "Nope"}]
+  }];
+  const games = FL.gamesFromFeeds(packs);
+  assert.deepEqual(games.map((g) => g.game_name), ["Geelong v Collingwood", "North Melbourne v Carlton", "Richmond v Essendon"]);
+  assert.equal(games[0].live, true);
+  assert.equal(games[1].payload.tipsters.length, 2);
+  assert.equal(games[1].payload.tipsters[0].legs.length, 1);
+  assert.match(FL.render(games[1].payload), /Midfield Mick/);
+  assert.match(FL.render(games[1].payload), /Tag Team Tess/);
+  assert.doesNotMatch(FL.render(games[1].payload), /settled|full time|Preview/);
+  const tabs = FL.switcherHtml(games, games[1].key);
+  assert.match(tabs, /role="tab"/);
+  assert.match(tabs, /North Melbourne v Carlton/);
+  assert.match(tabs, /aria-selected="true"/);
+  assert.equal(FL.switcherHtml([games[0]], games[0].key), "");
+  assert.doesNotMatch(tabs, /target=|window\.open/);
+  const empty = FL.emptyStateHtml();
+  assert.match(empty, /Nothing coming up/);
+  assert.match(empty, /upcoming or live game/);
+  assert.match(FL.scoreHtml(FL.emptyBoardGame()), /No game on/);
+  const merged = FL.mergeGamePayload(games[1].payload, [{
+    game: {game_name: "North Melbourne v Carlton", live: true, phase_label: "Q2 · 8:10", venue: "Ikon Park", home: {name: "North Melbourne", score: 28}, away: {name: "Carlton", score: 22}},
+    tipsters: [{name: "Midfield Mick", legs: [{id: "a", player: "Z. Quill", line_label: "25+ disposals", odds: 2.1, current: 8, line: 25, status: "pending"}]}]
+  }]);
+  assert.equal(merged.game.phase_label, "Q2 · 8:10");
+  assert.equal(merged.tipsters[0].legs[0].player, "Z. Quill");
 });
 
 test("a missing read falls back to the follower feed for that game", () => {

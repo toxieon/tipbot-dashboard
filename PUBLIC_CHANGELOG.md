@@ -1,3 +1,7 @@
+## 0.63.1
+
+The ground stays put while you scroll your bets. Game view opens your own upcoming and live slips on that ground. Before the game starts, those bets say Upcoming. The sample live demo is only for the platform owner.
+
 ## 0.62.1
 
 Open Live demo to watch a sample game, with the ground up top and your bets moving underneath. When a real game is on, a LIVE NOW bar at the top of the server takes you straight to your bets.
