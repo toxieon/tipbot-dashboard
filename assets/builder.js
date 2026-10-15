@@ -1288,6 +1288,11 @@
     // 0.42.2: AFL fixture games carry their real start (Squiggle unixtime) as game_start,
     // so Upcoming Bets shows the time even when /api/upcoming can't be reached.
     else if(!BUILD.espn && !BUILD.custom){ const gs=aflGameStartIso(BUILD.game); if(gs) out.game_start=gs; }
+    // Slip import: ESPN kickoff (full ISO) or the slip's own start, including Today/Tomorrow.
+    if((BUILD.espn||BUILD.custom) && BUILD._importGameStart){
+      out.game_start=String(BUILD._importGameStart);
+      if(!out.start_date) out.start_date=String(BUILD._importGameStart).slice(0,10);
+    }
     return out;
   }
   function aflGameStartIso(g){
