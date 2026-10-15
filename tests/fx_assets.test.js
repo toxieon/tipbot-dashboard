@@ -94,11 +94,12 @@ test("public build denies labs directory", async () => {
   assert.ok(DENY_DIRS.has("labs"));
 });
 
-test("dashboard app files are not wired to fx yet", () => {
+test("the follower game reuses the win animation and nothing else from fx", () => {
   const html = read("index.html");
   const live = read("live/index.html");
-  assert.doesNotMatch(html, /assets\/fx\//);
-  assert.doesNotMatch(html, /TBMatchFx/);
+  assert.match(html, /assets\/fx\/win\.js/);
+  assert.match(html, /TBMatchFx\.win/);
+  assert.doesNotMatch(html, /assets\/fx\/(?!win\.js)/);
   assert.doesNotMatch(live, /assets\/fx\//);
   assert.doesNotMatch(read("assets/theme-apex.js"), /TBMatchFx|tbfx-goal/);
 });
