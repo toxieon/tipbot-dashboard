@@ -1238,7 +1238,7 @@
       +'<div class="field"><label>Screenshot (optional)</label><input id="f_img" type="file" accept="image/*"><div id="f_img_prev" style="margin-top:8px"></div></div>'
       +'<div class="sched-actions"><button class="btn secondary" id="batchaddbtn" type="button">Add to batch</button>'
       +'<button class="btn" id="schedbtn" type="button">Schedule tip →</button></div>'
-      +'<div id="scherr" class="err" style="margin-top:10px"></div>'
+      +'<div id="scherr" class="err" style="margin-top:10px" aria-live="polite"></div>'
       +'<div style="color:var(--faint);font-size:var(--t-foot);margin-top:10px">One-off uses delay above. Or add several tips to a batch and schedule them together (optional Trickle stagger).</div></div>';
     $("bc").onclick=()=>navBack(()=>{ if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else {renderGame();} });
     wireStakeField();
@@ -1356,7 +1356,7 @@
       +'<div><div class="title">Trickle</div><div class="thint">Stagger tips ~30s apart so followers can get on</div></div></label>'
       +'<div style="color:var(--faint);font-size:var(--t-foot);margin:12px 0 0">Off → all tips share the same delay. On → tip i posts at base delay + i×30s.</div>'
       +'<div class="sched-actions" style="margin-top:16px"><button class="btn" id="batchgo" type="button">Schedule '+n+' tips →</button></div>'
-      +'<div id="scherr" class="err" style="margin-top:10px"></div></div>';
+      +'<div id="scherr" class="err" style="margin-top:10px" aria-live="polite"></div></div>';
     $("bcb").onclick=()=>navBack(()=>{ renderBatchTray(); if(BUILD.espn && BUILD.espnEvent && TBEspnProps.hasProps(BUILD.espnLeague) && !BUILD.custom){renderEspnNflProps();} else if(BUILD.espn && BUILD.espnEvent){renderEspnBasketballPick();} else if(BUILD.espn){renderEspnGames();} else if(BUILD.custom){renderCustom();} else if(BUILD.game){renderGame();} else {openBuilder(BATCH.guildId||BUILD.guildId,BUILD.serverName);} });
     $("builder").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{
       BATCH.tips.splice(+b.dataset.rm,1);
@@ -1398,7 +1398,7 @@
       busyLabel:"Scheduling "+nTips+" tip"+(nTips===1?"":"s")+"…",
       sendingLabel:"Sending "+nTips+" tip"+(nTips===1?"":"s")+" to TipBot…",
     });
-    function setErr(msg){ if(errEl)errEl.textContent=msg||""; prog.fail(msg||""); }
+    function setErr(msg){ reportScheduleError(errEl, prog, msg); }
     function unlockBtn(){ /* SubmitProgress.fail() already unlocks */ }
     const batchRequestId=newClientRequestId();
     const guildId=BATCH.guildId||BUILD.guildId;
@@ -1438,7 +1438,7 @@
     }
     async function sequentialFallback(){
       // Trickle OFF + 404: post each tip via legacy /api/queue-tip with same delay.
-      let ok=0, lastErr="";
+      let ok=0, lastErr="", notes=[];
       for(let i=0;i<tips.length;i++){
         prog.set(10+Math.round(80*i/Math.max(1,tips.length)),
                  "Posting tip "+(i+1)+" of "+tips.length+"…");
@@ -1462,7 +1462,11 @@
             idempotent:true, retries:3,
           });
           const {j,raw}=await readBody(r);
-          if(r.ok&&j&&j.ok){ ok++; }
+          if(r.ok&&j&&j.ok){
+            ok++;
+            const w=scheduleWarnings(j);
+            if(w && !notes.some(function(n){ return n.toLowerCase()===w.toLowerCase(); })) notes.push(w);
+          }
           else{ lastErr=failMsg(r,j,raw); break; }
         }catch(e){
           if(e&&e.unauth)throw e;
@@ -1470,7 +1474,7 @@
           break;
         }
       }
-      return {ok:ok, lastErr:lastErr};
+      return {ok:ok, lastErr:lastErr, note:notes.join(" ")};
     }
     payload.client_request_id=batchRequestId;
     try{
@@ -1502,28 +1506,34 @@
                         +" couldn't be written (database busy) and "+(keep.length===1?"is":"are")
                         +" still in the tray — press Schedule again.";
               // Close the bar BEFORE re-rendering: renderBatchConfirm() rebuilds
-              // the panel, detaching #batchprog and #scherr.
-              prog.fail(note);
+              // the panel, detaching #batchprog and #scherr. The sentence stays
+              // in the error line only — the progress label does not repeat it.
+              prog.fail("");
               BATCH.tips=keep;
               renderBatchConfirm();
-              const fresh=$("scherr");
-              if(fresh) fresh.textContent=note;
+              reportScheduleError($("scherr"), null, note);
+              const warn=scheduleWarnings(j);
+              if(warn) armScheduleNote(guildId, warn);
               toast(queuedN+" of "+nTips+" scheduled — "+keep.length+" left in the tray","success");
               loadDetail(guildId);
               return;
             }
           }
           setErr("Queued "+queuedN+"/"+nTips+": "+((j.errors||[]).join("; ")||"some tips failed"));
+          const warn=scheduleWarnings(j);
+          if(warn) armScheduleNote(guildId, warn);
           loadDetail(guildId);
           return;
         }
         const n=BATCH.tips.length;
+        const warn=scheduleWarnings(j);
         prog.ok(n+" tip"+(n===1?"":"s")+" scheduled");
         clearBatch();
         BUILD.legs=[]; BUILD.image=null;
         clearMultiDraft(guildId);
         if($("tray"))$("tray").hidden=true;
         if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
+        armScheduleNote(guildId, warn);
         toast(n+" tip"+(n===1?"":"s")+" scheduled"+(trickle?" (trickle on)":""),"success");
         loadDetail(guildId);
         return;
@@ -1545,6 +1555,7 @@
           clearMultiDraft(guildId);
           if($("tray"))$("tray").hidden=true;
           if(window.NDConfirmPop)NDConfirmPop.show({label:n+" tips scheduled",color:"#2eaf62"});
+          armScheduleNote(guildId, fb.note||"");
           toast(n+" tip"+(n===1?"":"s")+" scheduled (legacy fallback)","success");
           loadDetail(guildId);
           return;
@@ -1575,6 +1586,50 @@
       img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
       img.src=url;
     });
+  }
+  // One sentence, one place. The progress bar only signals state — a blank
+  // fail() turns it red without repeating the line under the button.
+  function reportScheduleError(el, prog, msg){
+    if(el){
+      el.className="err";
+      el.textContent=msg||"";
+    }
+    if(prog) prog.fail("");
+  }
+  // TipBot 0.62.9: a missed player id is warnings[] on a successful queue.
+  // Same sentence twice (batch, or message + warnings) collapses to one.
+  function scheduleWarnings(j){
+    const buckets=[];
+    if(j&&typeof j==="object"){
+      if(Array.isArray(j.warnings)) buckets.push.apply(buckets, j.warnings);
+      else if(typeof j.warnings==="string") buckets.push(j.warnings);
+      if(typeof j.warning==="string") buckets.push(j.warning);
+    }
+    const seen=Object.create(null);
+    const out=[];
+    for(let i=0;i<buckets.length;i++){
+      let item=buckets[i];
+      if(item&&typeof item==="object") item=item.message||item.text||item.warning||"";
+      const t=String(item==null?"":item).replace(/\s+/g," ").trim();
+      if(!t) continue;
+      const key=t.toLowerCase();
+      if(seen[key]) continue;
+      seen[key]=1;
+      out.push(t);
+    }
+    return out.join(" ");
+  }
+  function armScheduleNote(guildId, text){
+    const t=String(text||"").replace(/\s+/g," ").trim();
+    if(!t||guildId==null){ window.__tbScheduleNote=null; return; }
+    window.__tbScheduleNote={gid:String(guildId), text:t, until:Date.now()+30000};
+  }
+  function scheduleNoteHtml(guildId){
+    const n=window.__tbScheduleNote;
+    if(!n||!n.text) return "";
+    if(String(n.gid)!==String(guildId)) return "";
+    if(n.until&&Date.now()>n.until){ window.__tbScheduleNote=null; return ""; }
+    return '<p class="tbwarn" id="schedulenote" role="status" style="margin:0 0 12px"><span aria-hidden="true">△</span> '+esc(n.text)+'</p>';
   }
   // TipBot 0.55.3: a handmade game is refused with this sentence.
   function scheduleRefusal(j, raw){
@@ -1631,7 +1686,7 @@
     });
     const clientRequestId=newClientRequestId();
     const tipFields=readTipForm();
-    if(tipFields.error){ $("scherr").textContent=tipFields.error; prog.fail(tipFields.error); return; }
+    if(tipFields.error){ reportScheduleError($("scherr"), prog, tipFields.error); return; }
     const payload={guild_id:BUILD.guildId,legs:tipFields.legs,odds:tipFields.odds,units:tipFields.units,bookmaker:tipFields.bookmaker,
       game_name:tipFields.game_name, sport:tipFields.sport,
       delay_minutes:parseInt($("f_delay").value||"0",10),
@@ -1654,7 +1709,12 @@
       try{ raw=await r.text(); }catch(e){ raw=""; }
       try{ j=raw?JSON.parse(raw):null; }catch(e){ j=null; }
       if(r.ok&&j&&j.ok){
+        const warn=scheduleWarnings(j);
+        // Progress label is the success line only. A soft warning (missed
+        // player id) is one yellow note on the server page, not a second copy
+        // of the same sentence and not a red error — the tip was saved.
         prog.ok("Tip scheduled");
+        armScheduleNote(BUILD.guildId, warn);
         if(window.TBRacingLegs&&(tipFields.legs||[]).some(function(l){ return l&&l.kind==="racing"; })) TBRacingLegs.setRacingPostSupported(true);
         if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
         BUILD.legs=[]; BUILD.image=null; BUILD._importGameName=""; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
@@ -1664,13 +1724,13 @@
         if(window.TBRacingLegs&&TBRacingLegs.isRacingRejection(j,raw)&&(BUILD.legs||[]).some(l=>l&&l.kind==="racing")){
           TBRacingLegs.setRacingPostSupported(false);
           const m="Racing tips are coming soon — TipBot is still updating. Your pick wasn't posted.";
-          $("scherr").textContent=m; prog.fail(m);
+          reportScheduleError($("scherr"), prog, m);
           return;
         }
         const m=blocked||(j&&(j.message||j.error))||"Couldn't schedule.";
-        $("scherr").textContent=m; prog.fail(m);
+        reportScheduleError($("scherr"), prog, m);
       }
-    }catch(e){ if(e.unauth)return renderLogin("Session expired."); $("scherr").textContent="Couldn't reach the bot."; prog.fail("Couldn't reach the bot."); }
+    }catch(e){ if(e.unauth)return renderLogin("Session expired."); reportScheduleError($("scherr"), prog, "Couldn't reach the bot."); }
   }
   function compareCacheKey(sel){
     return [sel.player, sel.stat, sel.line, sel.side, sel.game].join("|");
