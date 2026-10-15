@@ -595,7 +595,7 @@
     }
     var sport = g.sport ? '<span class="sport">' + esc(sportLabel(g.sport)) + "</span>" : "";
     var cards = g.legs.map(cardHtml).join("");
-    return '<section class="game" id="g-' + esc(g.id) + '">'
+    return '<section class="game" data-title="' + esc(g.title) + '" id="g-' + esc(g.id) + '">'
       + '<header class="ghead"><div class="teams">' + teams + "</div>"
       + '<div class="clock">' + sport + '<span class="pchip"><i class="dot" aria-hidden="true"></i>' + esc(g.clock) + "</span></div></header>"
       + '<div class="legs">' + cards + "</div></section>";

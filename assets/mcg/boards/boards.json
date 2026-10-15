@@ -1,0 +1,22 @@
+{
+  "tileMeters": 12,
+  "height": 1.4,
+  "slides": [
+    {
+      "image": "/assets/mcg/boards/tipbot-lockup.svg",
+      "duration": 6,
+      "scroll": 0.35,
+      "bg": "#0F1420"
+    },
+    {
+      "image": "/assets/mcg/boards/tipbot-wordmark.svg",
+      "duration": 5,
+      "scroll": -0.5,
+      "bg": "#0F1420"
+    }
+  ],
+  "ribbons": [
+    {"offset": 25.6, "y": 13.0, "height": 1.8},
+    {"offset": 43.6, "y": 28.0, "height": 1.8}
+  ]
+}
