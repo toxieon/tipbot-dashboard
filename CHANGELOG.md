@@ -1,3 +1,11 @@
+## 0.61.1 · 2026-10-15 · `mcg` · MCG ground and goal replay
+
+- The platform owner can open the MCG from the settings menu, inside the app. The ground is an oval with mowed stripes, the centre square, 50 m arcs, goal squares and posts, tiered stands, a southern roof, corner light towers, and a boundary LED ring that plays the sponsor rotation.
+- Painted sponsor slots and the two emblem discs stay on the new pitch.
+- A new goal in the live feed flies a football through the sticks at the scoring end. Test goal on that page plays the same shot. The ball uses a sponsor image when one is present (`ball_sponsor` on a sponsors payload, a `ball` asset, or the saved `tipdash_ball_sponsor` value) and otherwise shows the tipdash mark. A studio control for that image comes later.
+
+Tests: `tests/mcg.test.js`.
+
 ## 0.60.4 · 2026-10-15 · `slip-espn` · Screenshot import links basketball and NFL
 
 - Import from screenshot loads fixtures for the sport on the slip. NBA, NBL, WNBA and NFL games match the scoreboard (slip date, and the day either side) instead of falling through to a custom game. A matched game sends `league`, `espn_event_id` and the kickoff time.

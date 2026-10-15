@@ -548,7 +548,7 @@
     catch (e) { fn(); }
   }
   function namePages() {
-    var ids = ["overview", "detail", "builder", "upcoming", "followers", "follower", "mytips", "discover", "settings"];
+    var ids = ["overview", "detail", "builder", "upcoming", "followers", "follower", "mytips", "discover", "settings", "ground"];
     var i, el, named = false;
     for (i = 0; i < ids.length; i++) {
       el = doc.getElementById(ids[i]);

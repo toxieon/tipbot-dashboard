@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.60.4" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.60.4" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.60.4" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.60.4">
+<link rel="icon" href="./assets/favicon.ico?v=0.61.1" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.61.1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.61.1" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.61.1">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.60.4"></script>
+<script src="./assets/tbtime.js?v=0.61.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -1216,14 +1216,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     z-index:80;
   }
 }
+#ground{min-width:0;max-width:100%}
+#ground:not([hidden]){display:flex;flex-direction:column;min-height:calc(100dvh - 88px)}
+.mcg-stage{position:relative;flex:1 1 auto;min-height:280px}
+.mcg-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.mcg-bar{display:flex;gap:8px;align-items:center;padding:4px 0 8px}
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.60.4">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.61.1">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.60.4" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.61.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1234,7 +1239,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.60.4" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.61.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1243,7 +1248,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.60.4" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.61.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1252,6 +1257,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           <div class="dd-item" id="dd-marketplace" role="button" tabindex="0">Marketplace <span class="gf-badge" id="dd-marketplace-badge" hidden>Off for users</span> <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-owner-settings" role="button" tabindex="0" hidden>Owner settings <span style="color:var(--faint)">›</span></div>
+          <div class="dd-item" id="dd-ground" role="button" tabindex="0" hidden>MCG <span style="color:var(--faint)">›</span></div>
           <div id="dd-global" hidden></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
           <div id="tb-appearance"></div>
@@ -1264,7 +1270,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.60.4</div>
+          <div class="dd-label" id="dd-version">tipdash v0.61.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1283,35 +1289,36 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     <div id="builder" hidden></div>
     <div id="settings" hidden></div>
     <div id="ops" hidden></div>
+    <div id="ground" hidden></div>
     <footer class="legal-foot" aria-label="Legal"><nav class="legal-links"><a href="/terms/">Terms</a> · <a href="/privacy/">Privacy</a> · <a href="/refund/">Refunds</a> · <a href="/renewal/">Renewals</a> · <a href="/cookies/">Cookies</a> · <a href="/accessibility/">Accessibility</a> · <a href="/age/">Age Policy</a> · <a href="/content-licence/">Content Licence</a></nav><div id="terms-ver" class="terms-ver" hidden></div></footer>
   </div>
 </div>
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.60.4"></script>
-<script src="./assets/light-data.js?v=0.60.4"></script>
-<script src="./assets/lines.js?v=0.60.4"></script>
-<script src="./assets/racing-legs.js?v=0.60.4"></script>
-<script src="./assets/afl-guernseys.js?v=0.60.4"></script>
-<script src="./assets/compare-ui.js?v=0.60.4"></script>
-<script src="./assets/sport-keywords.js?v=0.60.4"></script>
-<script src="./assets/sport-marks.js?v=0.60.4"></script>
-<script src="./assets/discover-sports.js?v=0.60.4"></script>
-<script src="./assets/global-flags.js?v=0.60.4"></script>
-<script src="./assets/routing.js?v=0.60.4"></script>
-<script src="./assets/scheduled-tips.js?v=0.60.4"></script>
-<script src="./assets/auto-recaps.js?v=0.60.4"></script>
-<script src="./assets/emoji-picker.js?v=0.60.4"></script>
-<script src="./assets/upcoming-split.js?v=0.60.4"></script>
-<script src="./assets/espn-props.js?v=0.60.4"></script>
-<script src="./assets/tb-motion.js?v=0.60.4"></script>
-<script src="./assets/form-badges.js?v=0.60.4"></script>
-<script src="./assets/tb-charts.js?v=0.60.4"></script>
-<script src="./assets/server-view.js?v=0.60.4"></script>
-<script src="./assets/legal-md.js?v=0.60.4"></script>
-<script src="./assets/terms-gate.js?v=0.60.4"></script>
-<script src="./assets/cookie-consent.js?v=0.60.4"></script>
+<script src="./assets/req-pool.js?v=0.61.1"></script>
+<script src="./assets/light-data.js?v=0.61.1"></script>
+<script src="./assets/lines.js?v=0.61.1"></script>
+<script src="./assets/racing-legs.js?v=0.61.1"></script>
+<script src="./assets/afl-guernseys.js?v=0.61.1"></script>
+<script src="./assets/compare-ui.js?v=0.61.1"></script>
+<script src="./assets/sport-keywords.js?v=0.61.1"></script>
+<script src="./assets/sport-marks.js?v=0.61.1"></script>
+<script src="./assets/discover-sports.js?v=0.61.1"></script>
+<script src="./assets/global-flags.js?v=0.61.1"></script>
+<script src="./assets/routing.js?v=0.61.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.61.1"></script>
+<script src="./assets/auto-recaps.js?v=0.61.1"></script>
+<script src="./assets/emoji-picker.js?v=0.61.1"></script>
+<script src="./assets/upcoming-split.js?v=0.61.1"></script>
+<script src="./assets/espn-props.js?v=0.61.1"></script>
+<script src="./assets/tb-motion.js?v=0.61.1"></script>
+<script src="./assets/form-badges.js?v=0.61.1"></script>
+<script src="./assets/tb-charts.js?v=0.61.1"></script>
+<script src="./assets/server-view.js?v=0.61.1"></script>
+<script src="./assets/legal-md.js?v=0.61.1"></script>
+<script src="./assets/terms-gate.js?v=0.61.1"></script>
+<script src="./assets/cookie-consent.js?v=0.61.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1660,7 +1667,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.60.4";
+  TD.version="0.61.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1700,7 +1707,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","marketplace","stats","builder","upcoming","settings","ops"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome; if(p!=="stats"&&window.TBHorseResults&&typeof TBHorseResults.stop==="function")TBHorseResults.stop();};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","marketplace","stats","builder","upcoming","settings","ops","ground"])$(x).hidden=(x!==p); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome; if(p!=="stats"&&window.TBHorseResults&&typeof TBHorseResults.stop==="function")TBHorseResults.stop(); if(p!=="ground"&&window.TBMcgView&&typeof TBMcgView.stop==="function")TBMcgView.stop();};
 
   // ── Back button / swipe-back stays in the app (0.43.1) ───────────────────────────
   // Every view opener calls navNote(hash, restore). We track the browser history with our
@@ -1753,6 +1760,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(m[0]==="following") return openFollowerAllView(), true;
     if(m[0]==="settings") return openOwnerSettings(), true;
     if(m[0]==="ops") return openOps(), true;
+    if(m[0]==="ground") return openGround(), true;
     return false;
   }
   window.addEventListener("popstate", e=>{
@@ -1791,7 +1799,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     };
   }
   function swipeBackPanel(){
-    const ids=["overview","stats","detail","followers","follower","mytips","discover","marketplace","upcoming","builder","settings","ops"];
+    const ids=["overview","stats","detail","followers","follower","mytips","discover","marketplace","upcoming","builder","settings","ops","ground"];
     for(const id of ids){ const p=$(id); if(p&&!p.hidden) return p; }
     return null;
   }
@@ -2095,7 +2103,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("dropdown").hidden=!$("dropdown").hidden;
     $("gear").setAttribute("aria-expanded",String(!$("dropdown").hidden));
     $("viewas-list").hidden=true;
-    if(opening){ paintOwnerSettingsEntry(); paintMarketplaceEntry(); mountGlobalMenu(); }
+    if(opening){ paintOwnerSettingsEntry(); paintMarketplaceEntry(); mountGlobalMenu(); TD.load("mcg/gate").then(function(){ paintGroundEntry(); }).catch(function(){}); }
   };
   document.body.addEventListener("click",()=>{$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("dropdown").hidden){$("dropdown").hidden=true;$("gear").setAttribute("aria-expanded","false");$("gear").focus();}});
@@ -2108,6 +2116,51 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The rows are moved (not copied), so their ids and wiring are unchanged.
   function ownerSettingsAllowed(){ return STATE.ops===true && !STATE.viewAs; }
   function paintOwnerSettingsEntry(){ const e=$("dd-owner-settings"); if(e) e.hidden=!ownerSettingsAllowed(); }
+  function paintGroundEntry(){
+    const e=$("dd-ground");
+    if(!e) return;
+    e.hidden=!(window.TBMcgGate && TBMcgGate.allow(getToken()) && !STATE.viewAs);
+  }
+  async function openGround(){
+    $("dropdown").hidden=true;
+    $("gear").setAttribute("aria-expanded","false");
+    try{ await TD.load("mcg/gate"); }catch(e){ enterHome(); return; }
+    paintGroundEntry();
+    if(!window.TBMcgGate || !TBMcgGate.allow(getToken()) || STATE.viewAs){
+      NAV.routedInitial=true;
+      enterHome();
+      return;
+    }
+    navNote("#/ground", ()=>openGround());
+    panel("ground");
+    show("app");
+    window.scrollTo(0,0);
+    const host=$("ground");
+    host.innerHTML='<div class="back" id="ground-back">← Back</div><p class="empty">Loading the ground…</p>';
+    const wireBack=()=>{ const b=$("ground-back"); if(b) b.onclick=()=>navBack(()=>enterHome()); };
+    wireBack();
+    try{
+      await TD.load("mcg/field");
+      await TD.load("mcg/goals");
+      await TD.load("mcg/gl");
+      await TD.load("mcg/build");
+      await TD.load("mcg/scene");
+      await TD.load("mcg/view");
+    }catch(e){
+      if($("ground").hidden) return;
+      host.innerHTML='<div class="back" id="ground-back">← Back</div><p class="empty">The ground could not be loaded.</p>';
+      wireBack();
+      return;
+    }
+    if($("ground").hidden || !window.TBMcgView) return;
+    TBMcgView.open(host, {
+      api: api,
+      apiBase: API,
+      token: getToken,
+      guildId: ()=> window.__tbDetailGid || ((STATE.servers||[])[0]||{}).guild_id || "",
+      back: ()=>navBack(()=>enterHome())
+    });
+  }
   function buildTipsShown(){
     return !(window.TBGlobalFlags && typeof TBGlobalFlags.shown==="function" && !TBGlobalFlags.shown("build_tips_enabled"));
   }
@@ -2118,6 +2171,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(window.TBGlobalFlags) TBGlobalFlags.noteSession({ owner: ownerSettingsAllowed() });
     mountGlobalMenu();
     if(ownerSettingsAllowed()&&!(window.TBGlobalFlags&&TBGlobalFlags.mountSettings)) ensureExt().then(function(){ mountGlobalMenu(); });
+    paintGroundEntry();
   }
   let GF_MOUNT=null;
   function mountGlobalMenu(){
@@ -2207,6 +2261,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     TBGlobalFlags.onChange(function(){ paintGlobalChrome(); enforceHiddenRoutes(); });
   }
   { const e=$("dd-owner-settings"); if(e){ e.onclick=openOwnerSettings; e.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openOwnerSettings(); } }; } }
+  { const gnd=$("dd-ground"); if(gnd){ gnd.onclick=openGround; gnd.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openGround(); } }; } }
   { const mp=$("dd-marketplace"); if(mp){ mp.onclick=openMarketplace; mp.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMarketplace(); } }; } }
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const no=$("nav-ops"); if(no) no.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); openOps(); }; }
@@ -2783,7 +2838,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.60.4"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.61.1"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -6846,7 +6901,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.60.4');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.61.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
