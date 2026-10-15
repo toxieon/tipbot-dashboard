@@ -1,3 +1,13 @@
+## 0.62.1 · 2026-10-15 · `live-game` · Follower live game matches the ground drawing
+
+- The live game page is the night MCG with its sponsor boards, then bet cards under each tipster (name and avatar) in two columns, one column under 340px. Pending is purple, a win is green, a loss is red, each with a bar toward the line.
+- `#/demo/game` walks a sample game from the opening bounce through mixed results to the final score. Play, pause and reset sit on the ground. Owners and followers both open it from Live demo, and it stays in the app.
+- When a server has a game in progress, a full-width LIVE NOW bar at the top of that server opens the follower page for that game. One row per live game. Full time stays off the bar.
+- If WebGL cannot start (the failure on iPhone Safari), the same ground is shown as a still image.
+- AFLW uses the same page. TipBot already loads AFLW fixtures and live player stats; a small TipBot change keeps tips tagged AFLW on the live list.
+
+Tests: `tests/follower_live.test.js`, `tests/e2e/follower-live.spec.mjs`.
+
 ## 0.61.1 · 2026-10-15 · `follower-live` · Live game for the bets you follow
 
 - Opening a game from Upcoming, Live tips, or your followed bets shows only the legs you hold on that game.

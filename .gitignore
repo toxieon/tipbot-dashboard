@@ -4,6 +4,7 @@ node_modules/
 *.mp4
 *.png
 !tests/fixtures/**/*.png
+!assets/mcg/fallback.png
 *.jpg
 *.jpeg
 *.mov
