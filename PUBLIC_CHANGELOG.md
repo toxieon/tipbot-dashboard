@@ -1,3 +1,7 @@
+## 0.60.2
+
+Scheduling a tip shows a problem once. If a player name couldn't be matched, the tip is still saved and a yellow note says so.
+
 ## 0.60.1
 
 Small improvements to menus and settings.
