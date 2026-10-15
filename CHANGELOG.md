@@ -1,3 +1,11 @@
+## 0.60.3 · 2026-10-15 · `charts` · Record charts use uPlot and ECharts
+
+- Units-over-time, sparklines and the home profit line are drawn with self-hosted uPlot. Monthly P&L and the bookie/sport donuts use a modular Apache ECharts build (pie, bar, grid, tooltip, canvas only). No chart CDN.
+- Profit is green and a loss is red. Axes show units (or $ when the series is money). Tooltips follow a finger as well as a mouse. Empty series stay on the empty line. Charts below the fold wait until they are near the screen.
+- Chart code on first paint was `svg-charts.js` at 9.4 KB (3.2 KB gzip). It is now `tb-charts.js` at 24.9 KB (7.5 KB gzip). A line chart then loads uPlot, 51.1 KB (22.0 KB gzip). A bar or donut loads the ECharts build, 491.6 KB (165.0 KB gzip). Those libraries load only when a chart of that kind is about to be shown.
+
+Tests: `tests/charts.test.js`, `tests/server_view.test.js`.
+
 ## 0.60.2 · 2026-10-15 · `schedule-note` · Schedule warning shown once
 
 - Build → Schedule tip shows an error in the line under the button. The progress label no longer repeats that sentence.

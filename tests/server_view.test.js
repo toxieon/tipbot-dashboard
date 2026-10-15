@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const SV = require("../assets/server-view.js");
-const SC = require("../assets/svg-charts.js");
+const SC = require("../assets/tb-charts.js");
 
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -239,7 +239,8 @@ test("render hides the donut and the tipster list when there is nothing to show"
   assert.match(rich, /Tipsters in this server/);
   assert.match(rich, /sv-legend-row/);
   assert.match(rich, /Sportsbet/);
-  assert.match(rich, /<path /);
+  assert.match(rich, /data-tb-kind="donut"/);
+  assert.match(rich, /data-tb-lazy="1"/);
 });
 
 test("stale queued tile says Updating", () => {
@@ -247,25 +248,28 @@ test("stale queued tile says Updating", () => {
   assert.match(htmlStr, /data-sv="queued">Updating…/);
 });
 
-test("area, bar and donut are inline SVG and use theme variables", () => {
-  const area = SC.areaChart({data: [0, 2, 1, 4], xLabels: [[0, "Start"], [3, "End"]], id: "t", aria: "units"});
-  assert.match(area, /^<svg /);
-  assert.match(area, /stroke="var\(--accent\)"/);
-  assert.match(area, /<path /);
+test("area, bar and donut are lazy chart hosts", () => {
+  const area = SC.areaChart({data: [0, 2, 1, 4], xLabels: [[0, "Start"], [3, "End"]], aria: "units"});
+  assert.match(area, /data-tb-kind="line"/);
+  assert.match(area, /data-tb-lazy="1"/);
+  assert.match(area, /"Start"/);
   assert.equal(SC.areaChart({data: [1]}), "");
-  const bars = SC.barChart({bars: [{label: "Aug", value: 3}, {label: "Sep", value: -2}]});
-  assert.equal((bars.match(/<rect /g) || []).length, 2);
-  assert.match(bars, /fill="var\(--win\)"/);
-  assert.match(bars, /fill="var\(--loss\)"/);
-  const ring = SC.donut({slices: [{name: "TAB", n: 2, color: "var(--accent)"}, {name: "Neds", n: 1, color: "var(--win)"}]});
-  assert.equal((ring.match(/<path /g) || []).length, 2);
+  const bars = SC.barChart({bars: [{label: "Aug", value: 3, key: "2026-08"}, {label: "Sep", value: -2, key: "2026-09"}]});
+  assert.match(bars, /data-tb-kind="bar"/);
+  assert.match(bars, /"value":3/);
+  assert.match(bars, /"value":-2/);
+  const ring = SC.donut({slices: [{name: "TAB", n: 2, color: "var(--accent)"}, {name: "Neds", n: 1, color: "var(--win)"}], center: "3", sub: "bets"});
+  assert.match(ring, /data-tb-kind="donut"/);
   assert.match(ring, />3</);
   assert.equal(SC.donut({slices: []}), "");
+  assert.equal(SC.seriesTone([0, 4], "end"), "win");
+  assert.equal(SC.seriesTone([0, -2], "end"), "loss");
   assert.doesNotMatch(area + bars + ring, /font-family:\s*"?Inter/i);
+  assert.doesNotMatch(area + bars + ring, /cdn|unpkg|jsdelivr/i);
 });
 
 test("the server page wires the helpers and keeps the old panels", () => {
-  assert.match(html, new RegExp('<script src="\\./assets/svg-charts\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
+  assert.match(html, new RegExp('<script src="\\./assets/tb-charts\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
   assert.match(html, new RegExp('<script src="\\./assets/server-view\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
   const detail = html.slice(html.indexOf("function renderDetail"), html.indexOf("function mountScheduled"));
   assert.match(detail, /ServerView\.blocks/);

@@ -812,6 +812,20 @@
     return running;
   }
   function svgLine(cls, values, w, h) {
+    if (root.TBCharts && doc && typeof root.TBCharts.shell === "function") {
+      var holder = doc.createElement("div");
+      holder.innerHTML = root.TBCharts.shell({
+        kind: "spark",
+        data: values,
+        height: h,
+        unit: "u",
+        signed: true,
+        colorMode: "end",
+        aria: cls.indexOf("spark") !== -1 ? "Units by server" : "Server profit",
+        className: cls
+      });
+      if (holder.firstChild) return holder.firstChild;
+    }
     var svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("class", cls);
     svg.setAttribute("viewBox", "0 0 " + w + " " + h);
@@ -1016,6 +1030,7 @@
     if (lEl) lEl.textContent = String(liveN);
     paintNext(nEl);
     if (won || lost) hero.dataset.apexRecord = won + "-" + lost;
+    if (root.TBCharts && typeof root.TBCharts.mountAll === "function") root.TBCharts.mountAll(ov);
   }
   function armServerHero() {
     var detail = doc.getElementById("detail");

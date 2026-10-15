@@ -1,3 +1,7 @@
+## 0.60.3
+
+Record charts (units, monthly profit, bookie and sport splits, sparklines) are easier to read on a phone. Profit is green, a loss is red, and a tap shows the number.
+
 ## 0.60.2
 
 Scheduling a tip shows a problem once. If a player name couldn't be matched, the tip is still saved and a yellow note says so.

@@ -16,60 +16,21 @@
   }
 
   function areaChart(opts) {
-    var data = opts.data || [];
-    if (data.length < 2) return "";
-    var w = opts.w || 640;
-    var h = opts.h || 220;
-    var padL = opts.padL == null ? 44 : opts.padL;
-    var padR = opts.padR == null ? 16 : opts.padR;
-    var padT = opts.padT == null ? 14 : opts.padT;
-    var padB = opts.padB == null ? 28 : opts.padB;
-    var color = opts.color || "#5B8CFF";
-    var id = opts.id || "units";
-    var yTicks = opts.yTicks || [];
-    var min = opts.yMin != null ? opts.yMin : Math.min.apply(null, [0].concat(data, yTicks));
-    var max = opts.yMax != null ? opts.yMax : Math.max.apply(null, data.concat(yTicks));
-    if (!(max > min)) max = min + 1;
-    function X(i) { return padL + (w - padL - padR) * (i / (data.length - 1)); }
-    function Y(v) { return padT + (h - padT - padB) * (1 - (v - min) / (max - min)); }
-    var pts = data.map(function (v, i) { return [X(i), Y(v)]; });
-    var smooth = opts.smooth == null ? 0.65 : opts.smooth;
-    var line = "M" + pts[0][0].toFixed(1) + " " + pts[0][1].toFixed(1);
-    var tension = smooth / 6;
-    for (var i = 0; i < pts.length - 1; i++) {
-      var p0 = pts[i - 1] || pts[i];
-      var p1 = pts[i];
-      var p2 = pts[i + 1];
-      var p3 = pts[i + 2] || p2;
-      var c1x = p1[0] + (p2[0] - p0[0]) * tension;
-      var c1y = p1[1] + (p2[1] - p0[1]) * tension;
-      var c2x = p2[0] - (p3[0] - p1[0]) * tension;
-      var c2y = p2[1] - (p3[1] - p1[1]) * tension;
-      line += " C" + c1x.toFixed(1) + " " + c1y.toFixed(1) + " " + c2x.toFixed(1) + " " + c2y.toFixed(1) + " " + p2[0].toFixed(1) + " " + p2[1].toFixed(1);
+    opts = opts || {};
+    if (window.TBCharts && typeof TBCharts.areaChart === "function") {
+      return TBCharts.areaChart({
+        data: opts.data || [],
+        xLabels: opts.xLabels || [],
+        aria: opts.label || opts.aria || "Units over time",
+        unit: "u",
+        signed: true,
+        height: opts.h || opts.height || 220,
+        yMin: opts.yMin,
+        yMax: opts.yMax,
+        colorMode: "end"
+      });
     }
-    var area = line + " L" + X(data.length - 1).toFixed(1) + " " + Y(min).toFixed(1) + " L" + padL.toFixed(1) + " " + Y(min).toFixed(1) + " Z";
-    var font = opts.fontSize || 12;
-    var yFmt = opts.yFmt || function (v) { return String(v); };
-    var svg = '<svg class="chart" width="100%" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="' + esc(opts.label || "Units over time") + '">';
-    svg += '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + color + '" stop-opacity=".28"/><stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>';
-    yTicks.forEach(function (tick) {
-      var y = Y(tick);
-      svg += '<line x1="' + padL + '" x2="' + (w - padR) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + (tick === 0 ? "#33405e" : "#1f2740") + '" stroke-width="1"></line>';
-      svg += '<text x="' + (padL - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" fill="#8a95ad" font-size="' + font + '">' + esc(yFmt(tick)) + "</text>";
-    });
-    var labels = opts.xLabels || [];
-    labels.forEach(function (pair, k) {
-      var anchor = k === 0 ? "start" : (k === labels.length - 1 ? "end" : "middle");
-      var idx = pair[0];
-      if (idx < 0 || idx > data.length - 1) return;
-      svg += '<text x="' + X(idx).toFixed(1) + '" y="' + (h - 6) + '" text-anchor="' + anchor + '" fill="#8a95ad" font-size="' + font + '">' + esc(pair[1]) + "</text>";
-    });
-    svg += '<path d="' + area + '" fill="url(#' + id + ')"></path>';
-    svg += '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="' + (opts.strokeW || 2.4) + '" stroke-linejoin="round" stroke-linecap="round"></path>';
-    var end = pts[pts.length - 1];
-    svg += '<circle cx="' + end[0].toFixed(1) + '" cy="' + end[1].toFixed(1) + '" r="7" fill="' + color + '" opacity=".22"></circle>';
-    svg += '<circle cx="' + end[0].toFixed(1) + '" cy="' + end[1].toFixed(1) + '" r="3.6" fill="' + color + '" stroke="#0f1420" stroke-width="1.5"></circle>';
-    return svg + "</svg>";
+    return "";
   }
 
   function ensureDialogs() {
