@@ -34,13 +34,19 @@ test("each connector row shows the status and the right button", () => {
   assert.match(unset, /Not set/);
   assert.match(unset, /Generate push secret/);
   assert.match(unset, />Tips</);
+  assert.match(unset, /Connector ID/);
+  assert.match(unset, /class="ps-id">c1</);
+  assert.match(unset, /data-ps-copy-id>Copy</);
   const set = P.rowHtml({ id: "c2" }, { set: true, created_at: "2026-10-16T00:00:00Z" }, function () { return "16 Oct 2026"; });
   assert.match(set, /Set on 16 Oct 2026/);
   assert.match(set, />Rotate</);
   assert.doesNotMatch(set, /Generate push secret/);
   const modal = P.modalHtml();
   assert.match(modal, /You won't see this again/);
-  assert.match(modal, />Copy</);
+  assert.match(modal, /Connector ID/);
+  assert.match(modal, /Push secret/);
+  assert.match(modal, /data-ps-copy-id>Copy</);
+  assert.match(modal, /data-ps-copy-secret>Copy</);
   assert.doesNotMatch(modal, /value="[^"]+"/);
 });
 

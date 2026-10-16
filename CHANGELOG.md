@@ -1,6 +1,6 @@
 ## 0.63.2 · 2026-10-16 · `push-secret` · Push secret on each connector
 
-- Connector settings include a Push secret row for each connector. It shows whether one is set, and a button to generate one. Rotating asks first, because the previous secret stops working. The new secret is shown once, with a copy button.
+- Connector settings include a Push secret row for each connector. It shows the connector ID, with copy, and whether a secret is set. Generating or rotating shows the connector ID and the new secret once, each with copy. Rotating asks first, because the previous secret stops working.
 
 Tests: `tests/push_secret.test.js`.
 

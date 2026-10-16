@@ -104,6 +104,9 @@
     return '<section class="ps-row" data-ps-id="' + esc(id) + '">'
       + '<div class="ps-main"><div class="ps-k">Push secret</div>'
       + '<div class="ps-name">' + esc(name) + '</div>'
+      + '<div class="ps-idline"><span class="ps-idk">Connector ID</span>'
+      + '<code class="ps-id">' + esc(id) + '</code>'
+      + '<button type="button" class="ghost ps-copy" data-ps-copy-id>Copy</button></div>'
       + '<div class="ps-status"' + (failed ? "" : ' aria-live="polite"') + '>' + esc(status) + '</div>'
       + '<span class="ps-msg" data-ps-msg role="status"></span></div>'
       + '<button type="button" class="' + (set && !failed ? "ghost" : "btn") + ' ps-go" data-ps-go>' + esc(failed ? "Retry" : label) + '</button>'
@@ -112,12 +115,19 @@
 
   function modalHtml() {
     return '<div class="ps-modal">'
+      + '<div class="ps-field"><span class="ps-k">Connector ID</span>'
+      + '<div class="ps-pair">'
+      + '<input class="ps-secret" data-ps-cid type="text" readonly autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Connector ID" value="">'
+      + '<button type="button" class="ghost" data-ps-copy-id>Copy</button>'
+      + '</div></div>'
+      + '<div class="ps-field"><span class="ps-k">Push secret</span>'
       + '<p class="ps-warn">You won\'t see this again.</p>'
+      + '<div class="ps-pair">'
       + '<input class="ps-secret" data-ps-secret type="text" readonly autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Push secret" value="">'
-      + '<div class="ps-actions">'
-      + '<button type="button" class="btn" data-ps-copy>Copy</button>'
-      + '<button type="button" class="ghost" data-ps-done>Done</button>'
-      + '</div></div>';
+      + '<button type="button" class="btn" data-ps-copy-secret>Copy</button>'
+      + '</div></div>'
+      + '<div class="ps-actions"><button type="button" class="ghost" data-ps-done>Done</button></div>'
+      + '</div>';
   }
 
   function injectCss(doc) {
@@ -131,19 +141,27 @@
       "#ps-root .ps-row:first-child{margin-top:0}",
       "#ps-root .ps-main{flex:1;min-width:0}",
       "#ps-root .ps-k{font-weight:700;font-size:var(--t-sub);margin-bottom:4px;color:var(--txt)}",
-      "#ps-root .ps-name,#ps-root .ps-status{color:var(--faint);font-size:var(--t-foot);line-height:1.45;overflow-wrap:anywhere}",
+      "#ps-root .ps-name,#ps-root .ps-status,#ps-root .ps-idk{color:var(--faint);font-size:var(--t-foot);line-height:1.45;overflow-wrap:anywhere}",
+      "#ps-root .ps-idline{display:flex;align-items:center;gap:8px;margin-top:6px;min-width:0}",
+      "#ps-root .ps-idk{flex:none}",
+      "#ps-root .ps-id{flex:1;min-width:0;overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;color:var(--txt)}",
+      "#ps-root .ps-copy{flex:none;min-height:44px;padding:6px 12px;font-size:var(--t-foot)}",
       "#ps-root .ps-msg{display:block;min-height:0;margin-top:4px;font-size:var(--t-foot)}",
       "#ps-root .ps-msg:empty{display:none}",
       "#ps-root .ps-go{min-height:44px;flex:none}",
       "#ps-root .ps-err{color:var(--loss)}",
-      ".ps-modal .ps-warn{margin:0 0 10px;font-weight:700;font-size:var(--t-sub);line-height:1.4;color:var(--warn-ink,var(--loss-ink,var(--txt)))}",
-      ".ps-modal .ps-secret{display:block;width:100%;max-width:100%;min-height:44px;margin:0 0 12px;padding:10px 12px;border-radius:var(--r-sm,10px);border:1px solid var(--line);background:var(--card2);color:var(--txt);font:inherit;font-size:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}",
+      ".ps-modal .ps-k{display:block;font-weight:700;font-size:var(--t-sub);margin-bottom:6px;color:var(--txt)}",
+      ".ps-modal .ps-field{margin:0 0 14px;min-width:0}",
+      ".ps-modal .ps-warn{margin:0 0 8px;font-weight:700;font-size:var(--t-sub);line-height:1.4;color:var(--warn-ink,var(--loss-ink,var(--txt)))}",
+      ".ps-modal .ps-pair{display:flex;align-items:center;gap:8px;min-width:0}",
+      ".ps-modal .ps-secret{display:block;width:auto;flex:1;min-width:0;max-width:100%;min-height:44px;margin:0;padding:10px 12px;border-radius:var(--r-sm,10px);border:1px solid var(--line);background:var(--card2);color:var(--txt);font:inherit;font-size:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}",
+      ".ps-modal .ps-pair .btn,.ps-modal .ps-pair .ghost{width:auto;flex:none;min-height:44px;padding:8px 12px}",
       ".ps-modal .ps-actions{display:flex;flex-direction:column;gap:8px}",
       ".ps-modal .ps-actions .btn,.ps-modal .ps-actions .ghost{width:100%;min-height:44px}",
       ".ps-back{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));background:rgba(15,23,38,.45)}",
       ".ps-sheet{width:min(420px,100%);max-height:min(80vh,640px);overflow:auto;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:16px}",
       "@media(max-width:420px){#ps-root .ps-go{width:100%}}",
-      "@media(min-width:480px){.ps-modal .ps-actions{flex-direction:row}.ps-modal .ps-actions .btn,.ps-modal .ps-actions .ghost{width:auto;flex:1}}",
+      "@media(min-width:480px){.ps-modal .ps-actions{flex-direction:row}.ps-modal .ps-actions .ghost{width:auto;flex:1}}",
       "@media(min-width:641px){.ps-back{align-items:center}}"
     ].join("");
     (doc.head || doc.documentElement).appendChild(style);
@@ -180,30 +198,43 @@
     return { secret: String(body.secret), created_at: body.created_at || null };
   }
 
-  function showSecret(doc, secret) {
+  function copyText(text, btn, field) {
+    var value = String(text || "");
+    if (!value) return;
+    var clip = root.navigator && root.navigator.clipboard;
+    function mark(ok) {
+      if (!btn) return;
+      btn.textContent = ok ? "Copied" : "Copy";
+    }
+    function selectField() {
+      try { if (field) { field.focus(); field.select(); } } catch (e) {}
+    }
+    if (clip && typeof clip.writeText === "function") {
+      clip.writeText(value).then(function () { mark(true); }, function () { selectField(); mark(false); });
+      return;
+    }
+    selectField();
+    mark(false);
+  }
+
+  function showSecret(doc, connectorId, secret) {
     var held = String(secret || "");
+    var cid = String(connectorId || "");
     var input = null;
     function wipe() {
       held = "";
       if (input) input.value = "";
     }
-    function selectField() {
-      try { if (input) { input.focus(); input.select(); } } catch (e) {}
-    }
-    function copyHeld(btn) {
-      var text = held;
-      if (!text) return;
-      var clip = root.navigator && root.navigator.clipboard;
-      function mark(ok) {
-        if (!btn) return;
-        btn.textContent = ok ? "Copied" : "Copy";
-      }
-      if (clip && typeof clip.writeText === "function") {
-        clip.writeText(text).then(function () { mark(true); }, function () { selectField(); mark(false); });
-        return;
-      }
-      selectField();
-      mark(false);
+    function bind(scope) {
+      input = scope.querySelector("[data-ps-secret]");
+      var idInput = scope.querySelector("[data-ps-cid]");
+      if (input) input.value = held;
+      if (idInput) idInput.value = cid;
+      var copySecret = scope.querySelector("[data-ps-copy-secret]");
+      var copyId = scope.querySelector("[data-ps-copy-id]");
+      if (copySecret) copySecret.onclick = function () { copyText(held, copySecret, input); };
+      if (copyId) copyId.onclick = function () { copyText(cid, copyId, idInput); };
+      return scope.querySelector("[data-ps-done]");
     }
     var sheet = root.TBSheet;
     if (sheet && typeof sheet.open === "function") {
@@ -218,14 +249,10 @@
       var sh = sheet.open({
         label: "Push secret",
         html: modalHtml(),
-        initialFocus: "[data-ps-copy]",
+        initialFocus: "[data-ps-copy-secret]",
         onClose: finish
       });
-      input = sh.card.querySelector("[data-ps-secret]");
-      if (input) input.value = held;
-      var copyBtn = sh.card.querySelector("[data-ps-copy]");
-      var doneBtn = sh.card.querySelector("[data-ps-done]");
-      if (copyBtn) copyBtn.onclick = function () { copyHeld(copyBtn); };
+      var doneBtn = bind(sh.card);
       if (doneBtn) doneBtn.onclick = function () { finish(); sh.close({ via: "done" }); };
       var scrim = sh.el && sh.el.querySelector(".tbs-scrim");
       if (scrim) scrim.addEventListener("click", finish);
@@ -236,8 +263,6 @@
     back.className = "ps-back";
     back.innerHTML = '<div class="ps-sheet" role="dialog" aria-modal="true" aria-label="Push secret">' + modalHtml() + "</div>";
     doc.body.appendChild(back);
-    input = back.querySelector("[data-ps-secret]");
-    if (input) input.value = held;
     function close() {
       wipe();
       if (back.parentNode) back.parentNode.removeChild(back);
@@ -246,11 +271,12 @@
     function onKey(e) { if (e.key === "Escape") close(); }
     doc.addEventListener("keydown", onKey, true);
     back.addEventListener("click", function (e) { if (e.target === back) close(); });
-    var copyBtn2 = back.querySelector("[data-ps-copy]");
-    var doneBtn2 = back.querySelector("[data-ps-done]");
-    if (copyBtn2) copyBtn2.onclick = function () { copyHeld(copyBtn2); };
+    var doneBtn2 = bind(back);
     if (doneBtn2) doneBtn2.onclick = close;
-    try { if (copyBtn2) copyBtn2.focus(); } catch (e) {}
+    try {
+      var focus = back.querySelector("[data-ps-copy-secret]");
+      if (focus) focus.focus();
+    } catch (e) {}
   }
 
   function mount(el, ctx) {
@@ -279,6 +305,14 @@
       var buttons = rootEl.querySelectorAll("[data-ps-go]");
       Array.prototype.forEach.call(buttons, function (btn) {
         btn.onclick = function () { onGo(btn); };
+      });
+      var idCopies = rootEl.querySelectorAll("[data-ps-copy-id]");
+      Array.prototype.forEach.call(idCopies, function (btn) {
+        btn.onclick = function () {
+          var row = btn.closest ? btn.closest("[data-ps-id]") : null;
+          var cid = row ? row.getAttribute("data-ps-id") : "";
+          copyText(cid, btn, null);
+        };
       });
     }
 
@@ -366,7 +400,7 @@
         var secret = result.secret;
         state.status[id] = rememberStatus(created);
         paint();
-        showSecret(doc, secret);
+        showSecret(doc, id, secret);
         secret = "";
         result.secret = "";
       } catch (e) {
