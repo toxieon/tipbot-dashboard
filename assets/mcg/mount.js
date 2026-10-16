@@ -243,7 +243,7 @@ export async function mount(host, opts) {
         var z = Number(logo.z) || 0;
         var yaw = Number(logo.rot || logo.rotation || 0);
         if (!isFinite(yaw)) yaw = 0;
-        var lit = !!(logo.lit || logo.winning);
+        var lit = !!(logo.lit);
         var tex = new T.TextureLoader().load(url, function () {
           if (alive && still && renderer) renderer.render(scene, camera);
         });
