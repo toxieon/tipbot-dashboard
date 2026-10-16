@@ -35,6 +35,19 @@ test("guard reads terms and ids from CI secrets, and skips with a notice when ab
   assert.match(wf, /TIPDASH_SCAN_TERMS: \$\{\{ secrets\.TIPDASH_SCAN_TERMS \}\}/);
 });
 
+test("manual publish clones tipdashhq-site and commits dist on that history", () => {
+  const wf = fs.readFileSync(path.join(root, ".github", "workflows", "deploy-public.yml"), "utf8");
+  const publish = wf.split("- name: Publish dist")[1];
+  assert.ok(publish);
+  assert.match(publish, /github\.event_name == 'workflow_dispatch'/);
+  const guardAt = publish.indexOf("node scripts/ci-public-guard.mjs");
+  const cloneAt = publish.indexOf("git clone --branch main git@github.com:toxieon/tipdashhq-site.git");
+  const pushAt = publish.indexOf("push origin main");
+  assert.ok(guardAt >= 0 && cloneAt > guardAt && pushAt > cloneAt);
+  assert.doesNotMatch(publish, /git init/);
+  assert.doesNotMatch(publish, /--force/);
+});
+
 test("when scan ids are set, none appears in index.html or app JS", () => {
   const ids = Object.keys(process.env).filter((k) => /^TIPDASH_SCAN_ID_\d+$/.test(k)).map((k) => process.env[k]).filter(Boolean);
   if (!ids.length) return;
