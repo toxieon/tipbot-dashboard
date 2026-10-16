@@ -1,3 +1,9 @@
+## 0.64.1 · 2026-10-16 · `ground-logos` · Free ground logos light up on a win
+
+- A placed ground logo can be assigned to servers. On a follower Game view it lights up when one of those servers has a winning bet on that game.
+
+Tests: `tests/ground_logos.test.js`.
+
 ## 0.63.2 · 2026-10-16 · `push-secret` · Push secret on each connector
 
 - Connector settings include a Push secret row for each connector. It shows the connector ID, with copy, and whether a secret is set. Generating or rotating shows the connector ID and the new secret once, each with copy. Rotating asks first, because the previous secret stops working.
