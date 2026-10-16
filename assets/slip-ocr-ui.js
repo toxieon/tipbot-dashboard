@@ -497,6 +497,8 @@
     return raw;
   }
   function noteOpenLegs() {
+    /* public-omit:slip-leg-note */
+    if (typeof STATE === "undefined" || STATE.ops !== true) return;
     var box = $("slip-legs");
     if (!box || typeof api !== "function") return;
     box.querySelectorAll('.slip-leg-row[data-open="1"]').forEach(function (row) {
@@ -517,6 +519,7 @@
         }),
       }).catch(function () {});
     });
+    /* /public-omit:slip-leg-note */
   }
 
   function readReviewDraft() {
