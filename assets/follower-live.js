@@ -134,6 +134,27 @@
     return out;
   }
 
+  function logoServers(logo) {
+    var raw = logo && (logo.servers || logo.guild_ids) || [];
+    if (typeof raw === "string") {
+      try { raw = JSON.parse(raw); } catch (e) { raw = String(raw).split(","); }
+    }
+    if (!Array.isArray(raw)) return [];
+    var out = [];
+    raw.forEach(function (id) {
+      var text = String(id || "").trim();
+      if (text && out.indexOf(text) < 0) out.push(text);
+    });
+    return out;
+  }
+
+  function logoLit(logo, guildId, legs) {
+    var servers = logoServers(logo);
+    var win = (legs || []).some(function (leg) { return statusOf(leg && leg.status) === "hit"; });
+    if (servers.length) return servers.indexOf(String(guildId || "")) >= 0 && win;
+    return !!(logo && (logo.lit || logo.winning));
+  }
+
   function newlyHit(prev, legs) {
     var out = [];
     (legs || []).forEach(function (leg) {
@@ -839,6 +860,8 @@
     endpoint: endpoint,
     routeHash: routeHash,
     flatLegs: flatLegs,
+    logoServers: logoServers,
+    logoLit: logoLit,
     newlyHit: newlyHit,
     remember: remember,
     summaryText: summaryText,

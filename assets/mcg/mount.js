@@ -241,6 +241,8 @@ export async function mount(host, opts) {
         if (!(d > 0)) d = 4.7;
         var x = Number(logo.x) || 0;
         var z = Number(logo.z) || 0;
+        var yaw = Number(logo.rot || logo.rotation || 0);
+        if (!isFinite(yaw)) yaw = 0;
         var lit = !!(logo.lit || logo.winning);
         var tex = new T.TextureLoader().load(url, function () {
           if (alive && still && renderer) renderer.render(scene, camera);
@@ -249,6 +251,8 @@ export async function mount(host, opts) {
         var mat = new T.MeshBasicMaterial({map: tex, transparent: true, depthWrite: false});
         if (lit) mat.color = new T.Color(0xfff6c8);
         var mesh = new T.Mesh(new T.PlaneGeometry(w, d), mat);
+        mesh.rotation.order = "YXZ";
+        mesh.rotation.y = T.MathUtils.degToRad(-yaw);
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.set(x, lit ? 0.55 : 0.4, z);
         logoGroup.add(mesh);
@@ -257,6 +261,8 @@ export async function mount(host, opts) {
             new T.PlaneGeometry(w * 1.2, d * 1.45),
             new T.MeshBasicMaterial({color: 0xf4e04d, transparent: true, opacity: 0.5, depthWrite: false})
           );
+          glow.rotation.order = "YXZ";
+          glow.rotation.y = T.MathUtils.degToRad(-yaw);
           glow.rotation.x = -Math.PI / 2;
           glow.position.set(x, 0.32, z);
           logoGroup.add(glow);
