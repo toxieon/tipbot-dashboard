@@ -1,7 +1,7 @@
 ## 0.65.1 · 2026-10-16 · `ground-logos` · A ground logo lights up on a winning bet
 
 - A sponsor logo placed on the ground keeps its position, size, and rotation on Game view, including the still photo when the 3D ground cannot start.
-- It lights up when one of the servers assigned to that logo has a winning bet on the game.
+- It lights up when one of the servers assigned to that logo has a winning bet on the game. The light is a pulse around the logo, large enough to read on a phone.
 
 Tests: `tests/ground_logos.test.js`.
 

@@ -29,6 +29,9 @@ test("game view asks for ground logos and paints a lit mark", () => {
   assert.match(html, /logo\.lit\|\|logo\.winning/);
   assert.match(html, /fliveLogos\(handle\)/);
   assert.match(html, /if\(won\.length\) fliveLogos\(\)/);
+  assert.match(html, /fl-logo-pulse/);
+  assert.match(html, /className="fl-logo"/);
+  assert.equal(html.includes("layer.hidden=webgl"), false);
 });
 
 test("the ground mount places, rotates, and lights a logo", () => {

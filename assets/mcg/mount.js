@@ -258,15 +258,15 @@ export async function mount(host, opts) {
         logoGroup.add(mesh);
         if (lit) {
           var glow = new T.Mesh(
-            new T.PlaneGeometry(w * 1.2, d * 1.45),
-            new T.MeshBasicMaterial({color: 0xf4e04d, transparent: true, opacity: 0.5, depthWrite: false})
+            new T.PlaneGeometry(w * 1.85, d * 2.4),
+            new T.MeshBasicMaterial({color: 0xf4e04d, transparent: true, opacity: 0.9, depthWrite: false})
           );
           glow.rotation.order = "YXZ";
           glow.rotation.y = T.MathUtils.degToRad(-yaw);
           glow.rotation.x = -Math.PI / 2;
           glow.position.set(x, 0.32, z);
           logoGroup.add(glow);
-          var light = new T.PointLight(0xf4e04d, 1.6, 48);
+          var light = new T.PointLight(0xf4e04d, 6, 90);
           light.position.set(x, 8, z);
           scene.add(light);
           litLights.push(light);
