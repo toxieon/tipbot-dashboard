@@ -1,3 +1,12 @@
+## 0.64.1 · 2026-10-16 · `units-game-slip` · Units, game view, dollar stakes
+
+- A follower community opens with all-time units, green with a plus or red with a minus, and a line of cumulative units for the period in Showing. The sample live demo button is gone from that page.
+- Game view is a button on Home, on a community, on a tip card and on Upcoming. The ground is centred on a phone with no sideways scroll. Bets on a game that has not started yet stay on the list. Whenever a game is live, players run on the field.
+- Screenshot import takes a stake in dollars or units. Dollars convert with the server unit size when one is set. A leg that did not match a game, player, market or line is highlighted until it is filled in or skipped.
+- A follower community leads with the all-time units figure, with a filled line and a zero baseline. Discover and My Tips sit at the end of that page. A tip card opens Game view from one line. A game card shows the leg, the live count, and the bounce time before the game.
+
+Tests: `tests/follower_units.test.js`, `tests/follower_live.test.js`, `tests/slip_stake.test.js`.
+
 ## 0.63.2 · 2026-10-16 · `push-secret` · Push secret on each connector
 
 - Connector settings include a Push secret row for each connector. It shows the connector ID, with copy, and whether a secret is set. Generating or rotating shows the connector ID and the new secret once, each with copy. Rotating asks first, because the previous secret stops working.

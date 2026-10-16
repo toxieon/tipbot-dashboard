@@ -80,6 +80,10 @@ test("an upcoming game shows unsettled legs as Upcoming, with no bar and no Now"
   const pending = out.slice(out.indexOf("fl-card pending"), out.indexOf("fl-card hit"));
   assert.doesNotMatch(pending, /fl-bar/);
   assert.doesNotMatch(pending, /fl-prog/);
+  assert.match(pending, /Z\. Quill 25\+ disposals/);
+  assert.match(pending, /Bounce/);
+  assert.match(pending, /1 Jan/);
+  assert.match(pending, /5:00 am/);
   assert.match(out, /fl-card hit/);
   assert.match(out, />Hit</);
   assert.match(out, />Final</);
@@ -175,9 +179,11 @@ test("demo route and live banner stay inside the app", () => {
   assert.match(html, /m\[0\]==="demo" && m\[1\]==="game"\) return openFollowerDemo\(\), true;/);
   assert.match(html, /function openFollowerDemo\(\)\{\s*if\(!ownerSettingsAllowed\(\)\)/);
   assert.match(html, /id="livedemobtn"[^>]*hidden/);
-  assert.match(html, /id="flivedemobtn"[^>]*hidden/);
+  assert.doesNotMatch(html, /id="flivedemobtn"/);
   assert.match(html, /id="gameviewbtn"/);
   assert.match(html, /id="flgameviewbtn"/);
+  assert.match(html, /home-game-tile/);
+  assert.match(html, /function fliveFit\(/);
   assert.match(html, /function openGameView\(/);
   assert.match(html, /m\[0\]==="game" && m\.length===1\) return openGameView\(\), true;/);
   assert.match(html, /id="flive-scroll"/);
@@ -222,10 +228,14 @@ test("game view keeps the next open game and groups that follower's slips", () =
   }, {
     preview: true,
     guild_id: "1",
-    feed: [{tip_id: "preview", game_name: "Preview v Only", bet_type: "nope", result: "Pending", tipster_name: "Nope"}]
+    feed: [{tip_id: "preview", game_name: "Preview v Only", bet_type: "nope", result: "Pending", starts_at: "2026-10-21T05:00:00Z", tipster_name: "Nope"}]
+  }, {
+    sample: true,
+    guild_id: "2",
+    feed: [{tip_id: "sample", game_name: "Sample v Skip", bet_type: "nope", result: "Pending", tipster_name: "Nope"}]
   }];
   const games = FL.gamesFromFeeds(packs);
-  assert.deepEqual(games.map((g) => g.game_name), ["Geelong v Collingwood", "North Melbourne v Carlton", "Richmond v Essendon"]);
+  assert.deepEqual(games.map((g) => g.game_name), ["Geelong v Collingwood", "North Melbourne v Carlton", "Richmond v Essendon", "Preview v Only"]);
   assert.equal(games[0].live, true);
   assert.equal(games[1].payload.tipsters.length, 2);
   assert.equal(games[1].payload.tipsters[0].legs.length, 1);
@@ -248,6 +258,51 @@ test("game view keeps the next open game and groups that follower's slips", () =
   }]);
   assert.equal(merged.game.phase_label, "Q2 · 8:10");
   assert.equal(merged.tipsters[0].legs[0].player, "Z. Quill");
+  const named = FL.gamesFromFeeds([{
+    guild_id: "9",
+    feed: [{
+      tip_id: "n1",
+      game_name: "Geelong v Carlton",
+      bet_type: "M. Newman 15+ disposals",
+      odds: 1.8,
+      result: "Pending",
+      starts_at: "2099-06-01T09:40:00Z",
+      tipster_name: "Mick"
+    }]
+  }])[0];
+  const upcomingCard = FL.render(named.payload);
+  assert.match(upcomingCard, /M\. Newman 15\+ disposals/);
+  assert.match(upcomingCard, /Bounce/);
+  assert.doesNotMatch(upcomingCard, /fl-bar/);
+  assert.doesNotMatch(upcomingCard, /–\/–/);
+  const liveCard = FL.render(FL.mergeGamePayload(named.payload, [{
+    game: {game_name: "Geelong v Carlton", live: true, phase_label: "Q2 · 8:10", home: {name: "Geelong", score: 20}, away: {name: "Carlton", score: 18}},
+    tipsters: [{name: "Mick", legs: [{id: "n1:0", tip_id: "n1", player: "Selection", line_label: "", current: 9, line: 15, status: "pending"}]}]
+  }]));
+  assert.match(liveCard, /M\. Newman 15\+ disposals/);
+  assert.match(liveCard, /9\/15/);
+  assert.match(liveCard, /fl-bar/);
+  const tomorrow = FL.gamesFromFeeds([{
+    preview: true,
+    guild_id: "9",
+    feed: [{
+      tip_id: "tmw",
+      game_name: "Hawthorn v Melbourne",
+      bet_type: "C. Nash 20+ disposals",
+      result: "Pending",
+      status: "Pending",
+      starts_at: "2099-10-17T05:00:00Z",
+      live: false,
+      tipster_name: "Midfield Mick"
+    }]
+  }]);
+  assert.deepEqual(tomorrow.map((g) => g.game_name), ["Hawthorn v Melbourne"]);
+  assert.equal(tomorrow[0].live, false);
+  assert.equal(FL.playersShouldRun(tomorrow, tomorrow[0].payload.game, false), false);
+  assert.equal(FL.playersShouldRun([], {live: false}, true), true);
+  assert.equal(FL.playersShouldRun([{live: true, payload: {game: {live: true}}}], {live: false}, false), true);
+  assert.equal(FL.gameIsLive({live: true, phase_label: "Q2 · 8:10"}), true);
+  assert.equal(FL.gameIsLive({live: false, phase_label: "Upcoming"}), false);
 });
 
 test("a missing read falls back to the follower feed for that game", () => {

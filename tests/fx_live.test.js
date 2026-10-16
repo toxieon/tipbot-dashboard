@@ -130,9 +130,10 @@ test("race colour parsing uses runner saddlecloth colours", () => {
   assert.equal(pair[1], "#F5F7FA");
 });
 
-test("dashboard app files are not wired to live fx yet", () => {
+test("game view loads running players; the live board page does not", () => {
   const html = read("index.html");
   const live = read("live/index.html");
-  assert.doesNotMatch(html, /race-running\.js|afl-match\.js|TBLiveFx/);
+  assert.match(html, /afl-match\.js/);
+  assert.match(html, /TBLiveFx/);
   assert.doesNotMatch(live, /race-running\.js|afl-match\.js|TBLiveFx/);
 });

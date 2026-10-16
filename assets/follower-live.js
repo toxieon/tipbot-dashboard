@@ -169,26 +169,73 @@
     return c.legs + " leg" + (c.legs === 1 ? "" : "s") + " · " + c.live + " " + word;
   }
 
+  function blankName(value) {
+    var n = norm(value);
+    return !n || n === "selection" || n === "bet" || n === "leg" || n === "tip";
+  }
+
+  function looksLikeGame(value) {
+    return /\s(?:v|vs|@)\s/i.test(String(value || ""));
+  }
+
+  function bounceLabel(game) {
+    var ms = gameStartMs(game);
+    if (ms == null) return "";
+    var d = new Date(ms);
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var hour = d.getUTCHours();
+    var minute = d.getUTCMinutes();
+    var ap = hour >= 12 ? "pm" : "am";
+    var hr = hour % 12;
+    if (hr === 0) hr = 12;
+    var min = minute < 10 ? "0" + minute : String(minute);
+    return days[d.getUTCDay()] + " " + d.getUTCDate() + " " + months[d.getUTCMonth()] + " · " + hr + ":" + min + " " + ap;
+  }
+
+  function legTitle(leg, game) {
+    var player = String((leg && leg.player) || "").trim();
+    var label = String((leg && leg.line_label) || "").trim();
+    var gameName = norm(game && (game.game_name || game.name));
+    if (looksLikeGame(label) || (gameName && norm(label) === gameName) || blankName(label)) label = "";
+    if (blankName(player)) player = "";
+    if (player && label) {
+      if (norm(player).indexOf(norm(label)) >= 0) return player;
+      return (player + " " + label).trim();
+    }
+    if (player) return player;
+    if (label) return label;
+    var desc = String((leg && (leg.description || leg.selection || leg.market)) || "").trim();
+    if (desc && !blankName(desc) && !looksLikeGame(desc)) return desc;
+    return "Leg";
+  }
+
   function cardHtml(leg, game) {
     var st = statusOf(leg && leg.status);
     var upcoming = st === "pending" && gameNotStarted(game);
+    var title = legTitle(leg, game);
     var pct = progressPct(leg && leg.current, leg && leg.line);
     var odds = fmtOdds(leg && leg.odds);
     var nowLabel = st === "pending" ? "Now" : "Final";
     var cur = fmtCount(leg && leg.current);
     var line = fmtCount(leg && leg.line);
     var id = leg && leg.id != null ? String(leg.id) : "";
-    var track = upcoming ? ""
-      : '<div class="fl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
-      + esc(String(Math.round(pct))) + '" aria-label="' + esc((leg && leg.player || "Selection") + " " + cur + " of " + line) + '">'
-      + '<i style="width:' + pct.toFixed(1) + '%"></i></div>'
-      + '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(cur) + "/" + esc(line) + "</b></div>";
+    var hasProgress = num(leg && leg.line) != null || num(leg && leg.current) != null;
+    var track = "";
+    if (upcoming) {
+      var bounce = bounceLabel(game);
+      track = bounce ? '<div class="fl-bounce"><span>Bounce</span><b>' + esc(bounce) + "</b></div>" : "";
+    } else if (hasProgress) {
+      track = '<div class="fl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
+        + esc(String(Math.round(pct))) + '" aria-label="' + esc(title + " " + cur + " of " + line) + '">'
+        + '<i style="width:' + pct.toFixed(1) + '%"></i></div>'
+        + '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(cur) + "/" + esc(line) + "</b></div>";
+    }
     return '<article class="fl-card ' + st + '" data-leg="' + esc(id) + '" data-status="' + st + '">'
       + '<div class="fl-top"><span class="fl-st">' + statusLabel(st, upcoming) + "</span>"
       + (odds ? '<span class="fl-odds">' + esc(odds) + "</span>" : "<span></span>")
       + "</div>"
-      + '<div class="fl-leg">' + esc(leg && leg.player || "Selection")
-      + "<small>" + esc(leg && leg.line_label || "") + "</small></div>"
+      + '<div class="fl-leg">' + esc(title) + "</div>"
       + track
       + "</article>";
   }
@@ -233,20 +280,52 @@
       + side(away, true);
   }
 
+  function parseBet(text) {
+    var s = String(text || "").trim();
+    var m = s.match(/^(.+?)\s+(\d+(?:\.\d+)?)\+\s*(.*)$/);
+    if (!m) return {player: s, line_label: "", line: null};
+    var market = String(m[3] || "").trim();
+    var line = Number(m[2]);
+    return {
+      player: m[1].trim(),
+      line_label: market ? (m[2] + "+ " + market) : (m[2] + "+"),
+      line: Number.isFinite(line) ? line : null
+    };
+  }
+
   function legFromTip(tip) {
     var result = String((tip && (tip.result || tip.follow_result || tip.tip_result)) || "").toLowerCase();
     var st = "pending";
     if (result === "win") st = "hit";
     else if (result === "loss") st = "miss";
-    var label = (tip && (tip.bet_type || tip.display_id)) || "Bet";
+    var nested = {};
+    var list = tip && tip.legs;
+    if (Array.isArray(list) && list.length) nested = list[0] || {};
+    var parsed = parseBet(nested.description || nested.text || (tip && (tip.bet_type || tip.display_id)) || "");
+    var player = String(nested.player || nested.selection || "").trim();
+    if (blankName(player)) player = parsed.player;
+    if (blankName(player)) player = "Leg";
+    var line = num(nested.line);
+    if (line == null) line = parsed.line;
+    var market = String(nested.stat || nested.market || "").trim();
+    var lineLabel = "";
+    if (market && line != null) {
+      var side = String(nested.side || nested.ou || "").toLowerCase();
+      lineLabel = side === "under" ? ("under " + fmtCount(line) + " " + market) : (fmtCount(line) + "+ " + market);
+    } else if (parsed.line_label && !looksLikeGame(parsed.line_label)) lineLabel = parsed.line_label;
+    else if (market) lineLabel = market;
+    var current = num(nested.current);
+    if (current == null) current = num(nested.live_current);
+    if (current == null) current = num(tip && (tip.current != null ? tip.current : tip.live_current));
+    var tipId = tip && tip.tip_id != null ? tip.tip_id : player;
     return {
-      id: "tip:" + String(tip && tip.tip_id != null ? tip.tip_id : label),
+      id: "tip:" + String(tipId),
       tip_id: tip && tip.tip_id,
-      player: label,
-      line_label: (tip && tip.game_name) || "",
-      odds: tip && tip.odds,
-      current: null,
-      line: null,
+      player: player,
+      line_label: lineLabel,
+      odds: (nested && nested.odds != null) ? nested.odds : (tip && tip.odds),
+      current: current,
+      line: line,
       status: st
     };
   }
@@ -334,11 +413,42 @@
   }
 
   function slipStart(tip) {
-    var v = tip && (tip.starts_at || tip.start_time || tip.game_start || tip.kickoff || tip.commence_time);
+    var v = tip && (tip.starts_at || tip.start_time || tip.game_start || tip.kickoff || tip.commence_time || tip.date_time);
     if (v == null || v === "") return null;
     if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
     var n = Date.parse(v);
     return Number.isFinite(n) ? n : null;
+  }
+
+  function slipGameName(tip) {
+    var name = String((tip && (tip.game_name || tip.event || tip.match_name || tip.fixture)) || "").replace(/\s+/g, " ").trim();
+    if (name) return name;
+    var legs = (tip && tip.legs) || [];
+    var i;
+    var n;
+    for (i = 0; i < legs.length; i++) {
+      n = String((legs[i] && (legs[i].event || legs[i].game_name || legs[i].game)) || "").replace(/\s+/g, " ").trim();
+      if (n) return n;
+    }
+    return "";
+  }
+
+  function slipAhead(tip, now) {
+    if (slipSettled(tip)) return false;
+    var st = slipStart(tip);
+    var clock = now == null ? Date.now() : now;
+    return st != null && st > clock;
+  }
+
+  function gameIsLive(game) {
+    if (!game || isFullTime(game)) return false;
+    if (game.live === true || game.game_live === true) return true;
+    var phase = game.phase && typeof game.phase === "object" ? game.phase : {};
+    var key = String(phase.key || game.phase_key || game.phase || "").trim().toUpperCase();
+    if (key === "Q1" || key === "Q2" || key === "Q3" || key === "Q4" || key === "LIVE") return true;
+    var label = String(phase.label || game.phase_label || "");
+    if (!label || /full\s*time|^final$|^ft$|^upcoming$/i.test(label)) return false;
+    return /q[1-4]|quarter|\blive\b/i.test(label);
   }
 
   function payloadFromTips(game) {
@@ -366,6 +476,7 @@
         live: !!game.live,
         concluded: false,
         phase_label: game.live ? "Live" : "Upcoming",
+        starts_at: game.start || null,
         venue: game.venue || "",
         home: {name: sides.home, score: null},
         away: {name: sides.away, score: null}
@@ -378,11 +489,12 @@
     var byGame = {};
     var order = [];
     (packs || []).forEach(function (pack) {
-      if (!pack || pack.preview) return;
+      if (!pack || pack.sample) return;
       var gid = pack.guild_id != null ? String(pack.guild_id) : "";
       (pack.feed || []).forEach(function (tip) {
-        if (!slipOpen(tip) || slipConcluded(tip)) return;
-        var name = String(tip.game_name || "").replace(/\s+/g, " ").trim();
+        if (!slipOpen(tip)) return;
+        if (slipConcluded(tip) && !slipAhead(tip)) return;
+        var name = slipGameName(tip);
         if (!name) return;
         var key = norm(name);
         if (!byGame[key]) {
@@ -418,6 +530,32 @@
     });
   }
 
+  function feedLegIndex(payload) {
+    var map = {};
+    flatLegs(payload).forEach(function (leg) {
+      var id = leg && leg.tip_id != null ? String(leg.tip_id) : "";
+      if (!id && leg && leg.id && String(leg.id).indexOf("tip:") === 0) id = String(leg.id).slice(4);
+      if (id && !map[id]) map[id] = leg;
+    });
+    return map;
+  }
+
+  function fillFromFeed(leg, feed) {
+    if (!leg || !feed) return leg;
+    var id = leg.tip_id != null ? String(leg.tip_id) : "";
+    if (!id && leg.id && String(leg.id).indexOf("tip:") === 0) id = String(leg.id).slice(4);
+    if (!id && leg.id && String(leg.id).indexOf(":") > 0) id = String(leg.id).split(":")[0];
+    var src = id && feed[id];
+    if (!src) return leg;
+    var next = Object.assign({}, leg);
+    if (blankName(next.player) && !blankName(src.player)) next.player = src.player;
+    var label = String(next.line_label || "");
+    if ((!label || looksLikeGame(label) || blankName(label)) && src.line_label && !looksLikeGame(src.line_label)) next.line_label = src.line_label;
+    if (next.line == null && src.line != null) next.line = src.line;
+    if (next.current == null && src.current != null) next.current = src.current;
+    return next;
+  }
+
   function mergeGamePayload(fallback, reads) {
     var tipsters = [];
     var game = fallback && fallback.game;
@@ -428,10 +566,19 @@
         if (t) tipsters.push(t);
       });
     });
+    if (game && !game.live && fallback && fallback.game && gameStartMs(game) == null && gameStartMs(fallback.game) != null) {
+      game = Object.assign({}, game, {starts_at: fallback.game.starts_at});
+    }
     if (!tipsters.length) {
       if (game && fallback) return {ok: true, game: game, tipsters: fallback.tipsters || [], note: fallback.note};
       return fallback;
     }
+    var feed = feedLegIndex(fallback);
+    tipsters = tipsters.map(function (group) {
+      return Object.assign({}, group, {
+        legs: (group.legs || []).map(function (leg) { return fillFromFeed(leg, feed); })
+      });
+    });
     return {ok: true, game: game || (fallback && fallback.game) || {}, tipsters: tipsters};
   }
 
@@ -457,6 +604,33 @@
 
   function emptyStateHtml() {
     return '<div class="empty fl-empty"><b>Nothing coming up</b><span>When you follow a tip for an upcoming or live game, your bets show up here.</span></div>';
+  }
+
+  function playersShouldRun(games, game, anyLive) {
+    if (anyLive) return true;
+    if (gameIsLive(game)) return true;
+    var i;
+    var row;
+    for (i = 0; i < (games || []).length; i++) {
+      row = games[i];
+      if (!row) continue;
+      if (row.live || gameIsLive(row) || gameIsLive(row.payload && row.payload.game)) return true;
+    }
+    return false;
+  }
+
+  function upcomingNames(feed) {
+    var seen = {};
+    var out = [];
+    (feed || []).forEach(function (tip) {
+      if (!slipOpen(tip)) return;
+      if (slipConcluded(tip) && !slipAhead(tip)) return;
+      var name = slipGameName(tip);
+      if (!name || seen[norm(name)]) return;
+      seen[norm(name)] = true;
+      out.push(name);
+    });
+    return out;
   }
 
   function isFullTime(game) {
@@ -679,6 +853,11 @@
     emptyBoardGame: emptyBoardGame,
     emptyStateHtml: emptyStateHtml,
     slipOpen: slipOpen,
+    slipGameName: slipGameName,
+    slipAhead: slipAhead,
+    gameIsLive: gameIsLive,
+    playersShouldRun: playersShouldRun,
+    upcomingNames: upcomingNames,
     demoPayload: demoPayload,
     createDemo: createDemo
   };
