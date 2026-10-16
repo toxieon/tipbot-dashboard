@@ -3,6 +3,7 @@ name: Deploy public site
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -17,10 +18,14 @@ jobs:
       - name: Build public site
         run: node scripts/build-public.mjs
       - name: Publish dist
+        if: github.event_name == 'workflow_dispatch'
         env:
           PUBLIC_SITE_DEPLOY_KEY: ${{ secrets.PUBLIC_SITE_DEPLOY_KEY }}
+          TIPDASH_SCAN_ID_1: ${{ secrets.TIPDASH_SCAN_ID_1 }}
+          TIPDASH_SCAN_TERMS: ${{ secrets.TIPDASH_SCAN_TERMS }}
         run: |
           set -euo pipefail
+          node scripts/ci-public-guard.mjs
           test -n "$PUBLIC_SITE_DEPLOY_KEY"
           mkdir -p ~/.ssh
           printf '%s\n' "$PUBLIC_SITE_DEPLOY_KEY" > ~/.ssh/tipdash_deploy_key
@@ -34,4 +39,4 @@ jobs:
           git add -A
           git commit -m "Publish tipdash $(cat ../VERSION)"
           git remote add origin git@github.com:toxieon/tipdashhq-site.git
-          git push --force origin main
+          git push origin main
