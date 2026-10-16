@@ -1,3 +1,9 @@
+## 0.63.2 · 2026-10-16 · `push-secret` · Push secret on each connector
+
+- Connector settings include a Push secret row for each connector. It shows whether one is set, and a button to generate one. Rotating asks first, because the previous secret stops working. The new secret is shown once, with a copy button.
+
+Tests: `tests/push_secret.test.js`.
+
 ## 0.63.1 · 2026-10-15 · `game-view` · Pinned ground, owner demo, real game view
 
 - The ground, scoreboard, Back and LIVE badge stay fixed while the bet list scrolls underneath, including on an iPhone home-screen app. The list clears the bottom tabs.
