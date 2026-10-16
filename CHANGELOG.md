@@ -1,3 +1,10 @@
+## 0.64.3 · 2026-10-16 · `ground-logos` · A ground logo lights up on a winning bet
+
+- A sponsor logo placed on the ground keeps its position, size, and rotation on Game view, including the still photo when the 3D ground cannot start.
+- It lights up when one of the servers assigned to that logo has a winning bet on the game. The logo stays the size and place it was given on the field, with a small pulse around it.
+
+Tests: `tests/ground_logos.test.js`.
+
 ## 0.64.2 · 2026-10-16 · `slip-note` · Slip notes stay off the public site
 
 - A hand-filled or skipped slip leg is sent on only after /api/me says this session may use owner tools.
