@@ -204,6 +204,71 @@ export async function mount(host, opts) {
       return {stop: function () {}, fallback: true};
     }
     scene.add(gltf.scene);
+    var logoGroup = new T.Group();
+    scene.add(logoGroup);
+    var litLights = [];
+    function clearLogos() {
+      while (logoGroup.children.length) {
+        var ch = logoGroup.children.pop();
+        if (ch.geometry) ch.geometry.dispose();
+        if (ch.material) {
+          if (ch.material.map) ch.material.map.dispose();
+          ch.material.dispose();
+        }
+      }
+      litLights.forEach(function (light) { scene.remove(light); });
+      litLights = [];
+    }
+    function setLogos(logos) {
+      clearLogos();
+      (logos || []).forEach(function (logo) {
+        var url = logo && (logo.url || logo.src || logo.image);
+        if (!url) return;
+        var w = Number(logo.w || logo.width_m || 14);
+        var d = Number(logo.d || logo.depth_m || logo.h || 4.7);
+        if (!(w > 0)) w = 14;
+        if (!(d > 0)) d = 4.7;
+        var x = Number(logo.x) || 0;
+        var z = Number(logo.z) || 0;
+        var yaw = Number(logo.rot || logo.rotation || 0);
+        if (!isFinite(yaw)) yaw = 0;
+        var lit = !!(logo.lit || logo.winning);
+        var tex = new T.TextureLoader().load(url, function () {
+          if (alive && still && renderer) renderer.render(scene, camera);
+        });
+        if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+        var mat = new T.MeshBasicMaterial({
+          map: tex, transparent: true, depthWrite: false,
+          polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
+        });
+        if (lit) mat.color = new T.Color(0xfff6c8);
+        var mesh = new T.Mesh(new T.PlaneGeometry(w, d), mat);
+        mesh.rotation.order = "YXZ";
+        mesh.rotation.y = T.MathUtils.degToRad(-yaw);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(x, 0.62, z);
+        mesh.renderOrder = 3;
+        logoGroup.add(mesh);
+        if (lit) {
+          var glowMat = new T.MeshBasicMaterial({
+            color: 0xf4e04d, transparent: true, opacity: 0.72,
+            depthWrite: false, depthTest: false
+          });
+          var glow = new T.Mesh(new T.PlaneGeometry(w * 1.85, d * 2.4), glowMat);
+          glow.rotation.order = "YXZ";
+          glow.rotation.y = T.MathUtils.degToRad(-yaw);
+          glow.rotation.x = -Math.PI / 2;
+          glow.position.set(x, 0.5, z);
+          glow.renderOrder = 2;
+          logoGroup.add(glow);
+          var light = new T.PointLight(0xf4e04d, 2.2, 70);
+          light.position.set(x, 10, z);
+          scene.add(light);
+          litLights.push(light);
+        }
+      });
+      if (alive && renderer) renderer.render(scene, camera);
+    }
     try { upgradeStands(scene, night); } catch (e1) {}
     try { upgradeTowers(scene, night); } catch (e2) {}
     try { hideTowerOnLens(scene, camera); } catch (eTower) {}
@@ -253,6 +318,8 @@ export async function mount(host, opts) {
 
     return {
       fallback: false,
+      resize: resize,
+      setLogos: setLogos,
       stop: function () {
         alive = false;
         if (raf) cancelAnimationFrame(raf);

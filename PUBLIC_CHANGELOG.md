@@ -1,3 +1,7 @@
+## 0.64.1
+
+A sponsor logo on the ground lights up during Game view when one of its servers has a winning bet.
+
 ## 0.63.2
 
 Internal improvements.
