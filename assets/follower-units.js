@@ -84,11 +84,10 @@
     var n = num(profit);
     if (n == null) n = 0;
     n = round2(n);
-    var abs = Math.abs(n);
-    var body = Math.abs(abs - Math.round(abs)) < 1e-9 ? String(Math.round(abs)) : abs.toFixed(1);
+    var body = Math.abs(n).toFixed(2) + "u";
     if (n > 0) return {text: "+" + body, cls: "pos"};
     if (n < 0) return {text: "-" + body, cls: "neg"};
-    return {text: "0", cls: "zero"};
+    return {text: "0.00u", cls: "zero"};
   }
 
   function heroHtml(profit) {
@@ -102,8 +101,10 @@
   function chartSvg(points) {
     var pts = points && points.length ? points : [{y: 0}];
     var w = 360;
-    var h = 120;
-    var pad = 8;
+    var h = 156;
+    var padX = 12;
+    var padT = 16;
+    var padB = 28;
     var min = 0;
     var max = 0;
     var i;
@@ -117,21 +118,53 @@
     }
     function x(i) {
       if (pts.length === 1) return w / 2;
-      return pad + (i / (pts.length - 1)) * (w - pad * 2);
+      return padX + (i / (pts.length - 1)) * (w - padX * 2);
     }
     function y(v) {
-      return pad + (1 - (v - min) / (max - min)) * (h - pad * 2);
+      return padT + (1 - (v - min) / (max - min)) * (h - padT - padB);
+    }
+    var coords = [];
+    for (i = 0; i < pts.length; i++) {
+      coords.push({x: x(i), y: y(pts[i].y), v: pts[i].y});
+    }
+    var zero = y(0);
+    var fills = "";
+    for (i = 0; i < coords.length - 1; i++) {
+      var a = coords[i];
+      var b = coords[i + 1];
+      var parts = [];
+      if ((a.v >= 0 && b.v >= 0) || (a.v <= 0 && b.v <= 0)) parts.push([a, b]);
+      else {
+        var t = (0 - a.v) / (b.v - a.v);
+        var mid = {x: a.x + (b.x - a.x) * t, y: zero, v: 0};
+        parts.push([a, mid], [mid, b]);
+      }
+      var p;
+      for (p = 0; p < parts.length; p++) {
+        var seg = parts[p];
+        var up = seg[0].v + seg[1].v >= 0;
+        fills += '<path d="M' + seg[0].x.toFixed(1) + " " + seg[0].y.toFixed(1)
+          + " L" + seg[1].x.toFixed(1) + " " + seg[1].y.toFixed(1)
+          + " L" + seg[1].x.toFixed(1) + " " + zero.toFixed(1)
+          + " L" + seg[0].x.toFixed(1) + " " + zero.toFixed(1)
+          + ' Z" fill="' + (up ? "var(--win)" : "var(--loss)") + '" fill-opacity="0.22"/>';
+      }
     }
     var d = "";
-    for (i = 0; i < pts.length; i++) {
-      d += (i ? "L" : "M") + x(i).toFixed(1) + " " + y(pts[i].y).toFixed(1) + " ";
+    for (i = 0; i < coords.length; i++) {
+      d += (i ? "L" : "M") + coords[i].x.toFixed(1) + " " + coords[i].y.toFixed(1) + " ";
     }
+    var first = pts[0].y;
     var last = pts[pts.length - 1].y;
     var stroke = last > 0 ? "var(--win)" : last < 0 ? "var(--loss)" : "var(--muted)";
-    var zero = y(0);
+    var start = coords[0];
+    var end = coords[coords.length - 1];
     return '<svg class="fl-units-chart" viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="Cumulative units">'
-      + '<line x1="' + pad + '" y1="' + zero.toFixed(1) + '" x2="' + (w - pad) + '" y2="' + zero.toFixed(1) + '" stroke="var(--line)" stroke-width="1"/>'
-      + '<path d="' + d.trim() + '" fill="none" stroke="' + stroke + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<line class="fl-units-zero" x1="' + padX + '" y1="' + zero.toFixed(1) + '" x2="' + (w - padX) + '" y2="' + zero.toFixed(1) + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>'
+      + fills
+      + '<path d="' + d.trim() + '" fill="none" stroke="' + stroke + '" stroke-width="2.75" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<text class="fl-units-label" x="' + start.x.toFixed(1) + '" y="' + (h - 8) + '" text-anchor="start" fill="var(--muted)">' + esc(heroText(first).text) + "</text>"
+      + '<text class="fl-units-label" x="' + end.x.toFixed(1) + '" y="' + (h - 8) + '" text-anchor="end" fill="' + stroke + '">' + esc(heroText(last).text) + "</text>"
       + "</svg>";
   }
 

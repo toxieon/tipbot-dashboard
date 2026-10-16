@@ -224,15 +224,18 @@
   .mini{display:flex;gap:18px;flex-wrap:wrap}.mini .m{display:flex;flex-direction:column}
   .mini .mv{font-weight:700;font-size:var(--t-h3)}.mini .ml{color:var(--faint);font-size:var(--t-cap);text-transform:uppercase}
   .pos{color:var(--win)}.neg{color:var(--loss)}
-  .fl-units-hero{margin:2px 0 6px}
-  .fl-units-hero .k{margin:0;color:var(--muted);font-size:var(--t-foot);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
-  .fl-units-num{margin:2px 0 0;font-size:3.4rem;font-weight:800;letter-spacing:-.04em;line-height:.95;font-variant-numeric:tabular-nums}
+  .fl-units-hero{margin:0 0 2px}
+  .fl-units-hero .k{margin:0;color:var(--muted);font-size:var(--t-cap);letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+  .fl-units-num{margin:1px 0 0;font-size:clamp(4.4rem,22vw,5.6rem);font-weight:800;letter-spacing:-.06em;line-height:.86;font-variant-numeric:tabular-nums}
   .fl-units-num.zero{color:var(--muted)}
-  .fl-units-chart-wrap{margin:0 0 14px}
-  .fl-units-chart{display:block;width:100%;height:120px;max-width:100%}
+  .fl-units-chart-wrap{margin:0 0 16px}
+  .fl-units-chart{display:block;width:100%;height:156px;max-width:100%}
+  .fl-units-label{font-size:var(--t-foot);font-weight:700;font-family:inherit}
   .home-game-tile{margin:0 0 8px;max-width:100%;box-sizing:border-box;text-align:left;font:inherit;color:inherit;width:100%}
   .game-view-cta{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;min-height:52px;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--accent) 16%,var(--card));color:var(--txt);font:inherit;font-weight:800;font-size:var(--t-body);cursor:pointer;text-align:left}
   .game-view-cta span{color:var(--muted);font-weight:600;font-size:var(--t-foot)}
+  button.flive-open.game-view-pill{display:inline-flex;align-items:center;justify-content:center;width:auto;max-width:100%;min-height:34px;height:auto;margin:8px 0 4px;padding:6px 12px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 55%,var(--line));background:color-mix(in srgb,var(--accent) 18%,var(--card));color:var(--txt);font-weight:800;font-size:var(--t-foot);line-height:1.1;white-space:nowrap;text-align:center}
+  button.flive-open.game-view-pill:hover{color:var(--txt)}
   .fl-up-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
   .fl-up-row:last-child{border-bottom:0}
   .bet-game-cta{margin-top:8px}
@@ -306,7 +309,7 @@
   .fl-leg{font-size:var(--t-callout);font-weight:700;line-height:1.2}.fl-leg small{display:block;font-size:var(--t-foot);color:var(--muted);font-weight:500;margin-top:3px}
   .fl-bar{height:7px;border-radius:99px;background:color-mix(in srgb,var(--txt) 10%,transparent);overflow:hidden}.fl-bar i{display:block;height:100%;border-radius:99px;min-width:0}
   .fl-card.pending .fl-bar i{background:#8b6cff}.fl-card.hit .fl-bar i{background:var(--win)}.fl-card.miss .fl-bar i{background:var(--loss)}
-  .fl-prog{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-foot);color:var(--muted);margin-top:-2px}.fl-prog b{color:var(--txt);font-weight:750}
+  .fl-prog,.fl-bounce{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-foot);color:var(--muted);margin-top:-2px}.fl-prog b,.fl-bounce b{color:var(--txt);font-weight:750}
   .fl-example{display:flex;justify-content:flex-end;margin-top:auto;padding:10px 2px 4px}
   .fl-example span{border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted);font-size:var(--t-foot)}
   .fl-switch{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 2px;scrollbar-width:none}
@@ -854,6 +857,10 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
   position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:80;
   display:flex;flex-direction:column;gap:10px;align-items:stretch;
   width:min(268px,calc(100% - 32px));
+}
+.tb-promo-wrap.tb-promo-dock{
+  position:static;right:auto;bottom:auto;z-index:1;
+  width:100%;max-width:100%;margin:18px 0 8px;
 }
 .tb-promo-slot{position:relative;width:100%;will-change:transform,opacity,max-height}
 .tb-promo-chip{
@@ -3358,7 +3365,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       :('<span class="betcard-bookie"><span class="bk-name" style="color:var(--faint)">No bookie</span></span>');
     const hideGame=!!opts.hideGame;
     const gameCta=(!hideGame && t.game_name)
-      ? '<button type="button" class="game-view-cta bet-game-cta flive-open" data-game="'+esc(t.game_name)+'">Game view <span>open this game</span></button>'
+      ? '<button type="button" class="game-view-pill flive-open" data-game="'+esc(t.game_name)+'">Game view →</button>'
       : "";
     const title=hideGame
       ? ''
@@ -4904,7 +4911,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       ?'<button type="button" class="g flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'">'+esc(gname)+'</button>'
       :'<div class="g">'+esc(t.bet_type||t.display_id||"Bet")+'</div>';
     const gview=gname
-      ?'<button type="button" class="game-view-cta flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'">Game view <span>open this game</span></button>'
+      ?'<button type="button" class="game-view-pill flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'">Game view →</button>'
       :"";
     return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+gview+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
@@ -5424,9 +5431,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("follower").innerHTML=(showBack?'<div class="back" id="flbx">← '+(preview?"Back to server":"All communities")+'</div>':'')
       +(d.trial_mode?'<div class="trial-banner" role="status">Tracking is off during this server\'s trial. Reactions aren\'t recorded yet; existing tracked bets still settle.</div>':'')
       +(preview?'<div class="viewas" style="margin-bottom:16px"><div>👁 Previewing the <b>follower view</b> — this is what a follower of '+esc(nm)+' sees.</div><span class="link" id="fpv-exit">Exit preview</span></div>':'')
+      +unitsBlock
       +'<div class="dhead">'+profTitle+'<div class="dhead-actions">'+(showBack?'':'<button type="button" class="ghost" id="flstatsbtn">Stats</button><button type="button" class="ghost" id="flracebtn">Racing</button>')+'<span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div></div>'
       +'<button type="button" class="game-view-cta" id="flgameviewbtn">Game view <span>open the ground</span></button>'
-      +unitsBlock
       +'<div class="fl-showing" style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' · your results</span></div>'
       +followerUpcomingHtml(d.feed||[])
       +'<div class="stats-wrap" id="stats-wrap"><button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true"><div class="st-sum" id="stats-sum"><span>Profit <b class="'+((st.profit_units||0)>=0?"pos":"neg")+'">'+esc(u(st.profit_units||0))+'</b></span><span>ROI <b class="'+((st.roi||0)>=0?"pos":"neg")+'">'+esc(String(st.roi||0))+'%</b></span><span>Pending <b>'+esc(String(st.pending||0))+'</b></span></div><span class="st-caret">▾</span></button><div class="tiles">'+tiles+'</div></div>'
@@ -5543,10 +5550,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const allTime=rememberAllTime("all", curMonth, st.profit_units||0);
     const unitsBlock=followerUnitsBlock(d.feed||[], curMonth, allTime!=null?allTime:(curMonth?0:(st.profit_units||0)));
     $("follower").innerHTML='<div class="back" id="flbx">← Home</div>'
+      +unitsBlock
       +'<div class="dhead"><h1 style="margin:0">'+esc(nm)+'</h1><span style="font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;background:var(--card2);color:var(--accent);border:1px solid var(--line);padding:3px 9px;border-radius:999px">FOLLOWER</span></div>'
       +'<button type="button" class="game-view-cta" id="flallgamebtn">Game view <span>open the ground</span></button>'
       +'<div style="color:var(--muted);font-size:var(--t-sub);margin:4px 0 12px">Combined · '+(d.communityCount||0)+' communities</div>'
-      +unitsBlock
       +failNote
       +'<div class="fl-showing" style="display:flex;align-items:center;gap:10px;margin:6px 0 16px;flex-wrap:wrap"><span style="color:var(--muted);font-size:var(--t-sub)">Showing</span>'+monthSel+'<span style="color:var(--faint);font-size:var(--t-foot)">'+period+' · your results</span></div>'
       +followerUpcomingHtml(d.feed||[])
@@ -5605,7 +5612,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const hideTips=promoChipHidden("tb_promo_mytips_hide");
     if(hideDisc && hideTips) return;
     const wrap=document.createElement("div");
-    wrap.id="tb-promo-wrap"; wrap.className="tb-promo-wrap";
+    wrap.id="tb-promo-wrap"; wrap.className="tb-promo-wrap tb-promo-dock";
     let html="";
     if(!hideDisc){
       html+='<div class="tb-promo-slot" id="tb-discover-slot">'
@@ -5632,7 +5639,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'</span></button></div>';
     }
     wrap.innerHTML=html;
-    document.body.appendChild(wrap);
+    const host=$("follower");
+    if(!host) return;
+    host.appendChild(wrap);
     const disc=$("tb-discover-chip"); if(disc) disc.onclick=()=>openDiscover(gid,nm);
     const tips=$("tb-promo-chip"); if(tips) tips.onclick=()=>openMyTips(gid,nm);
     wrap.querySelectorAll(".tb-promo-x").forEach(btn=>btn.onclick=(e)=>{
@@ -6743,7 +6752,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       html+='<div class="game-group" id="'+cid+'"'+(sport?' data-sport="'+esc(sport)+'"':"")+'>'
         +'<div class="game-group-hd"><div style="min-width:0"><div class="gtitle"><button type="button" class="flive-open" data-game="'+esc(game)+'">'+esc(game)+'</button></div>'
         +'<div class="gsub">'+sportBit+list.length+" bet"+(list.length>1?"s":"")+(mode==="finished"?" · confirm tips":" · always shown")+'</div>'
-        +(mode==="finished"?"":'<button type="button" class="game-view-cta flive-open" data-game="'+esc(game)+'">Game view <span>open this game</span></button>')
+        +(mode==="finished"?"":'<button type="button" class="game-view-pill flive-open" data-game="'+esc(game)+'">Game view →</button>')
         +'</div>'
         +'<div class="gright">'+right+'</div></div>'
         +'<div class="game-group-bd">'+list.map(t=>{

@@ -80,6 +80,10 @@ test("an upcoming game shows unsettled legs as Upcoming, with no bar and no Now"
   const pending = out.slice(out.indexOf("fl-card pending"), out.indexOf("fl-card hit"));
   assert.doesNotMatch(pending, /fl-bar/);
   assert.doesNotMatch(pending, /fl-prog/);
+  assert.match(pending, /Z\. Quill 25\+ disposals/);
+  assert.match(pending, /Bounce/);
+  assert.match(pending, /1 Jan/);
+  assert.match(pending, /5:00 am/);
   assert.match(out, /fl-card hit/);
   assert.match(out, />Hit</);
   assert.match(out, />Final</);
@@ -254,6 +258,30 @@ test("game view keeps the next open game and groups that follower's slips", () =
   }]);
   assert.equal(merged.game.phase_label, "Q2 · 8:10");
   assert.equal(merged.tipsters[0].legs[0].player, "Z. Quill");
+  const named = FL.gamesFromFeeds([{
+    guild_id: "9",
+    feed: [{
+      tip_id: "n1",
+      game_name: "Geelong v Carlton",
+      bet_type: "M. Newman 15+ disposals",
+      odds: 1.8,
+      result: "Pending",
+      starts_at: "2099-06-01T09:40:00Z",
+      tipster_name: "Mick"
+    }]
+  }])[0];
+  const upcomingCard = FL.render(named.payload);
+  assert.match(upcomingCard, /M\. Newman 15\+ disposals/);
+  assert.match(upcomingCard, /Bounce/);
+  assert.doesNotMatch(upcomingCard, /fl-bar/);
+  assert.doesNotMatch(upcomingCard, /–\/–/);
+  const liveCard = FL.render(FL.mergeGamePayload(named.payload, [{
+    game: {game_name: "Geelong v Carlton", live: true, phase_label: "Q2 · 8:10", home: {name: "Geelong", score: 20}, away: {name: "Carlton", score: 18}},
+    tipsters: [{name: "Mick", legs: [{id: "n1:0", tip_id: "n1", player: "Selection", line_label: "", current: 9, line: 15, status: "pending"}]}]
+  }]));
+  assert.match(liveCard, /M\. Newman 15\+ disposals/);
+  assert.match(liveCard, /9\/15/);
+  assert.match(liveCard, /fl-bar/);
   const tomorrow = FL.gamesFromFeeds([{
     preview: true,
     guild_id: "9",
