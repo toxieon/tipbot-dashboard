@@ -45,6 +45,8 @@ export const ASSET_DENY = new Set([
   "assets/ext.js",
   "assets/owner-tools.js",
   "assets/owner-presence.js",
+  "assets/owner-server.js",
+  "assets/connector-push.js",
 ]);
 
 // Phrases that must not appear in the public copy. The secret-word scan above
@@ -66,6 +68,17 @@ export const OWNER_PHRASES = [
   "/api/owner/tipsheet",
   "Odds API markets",
   "Australia-only sign-ups",
+  "push-secret",
+  "Push secret",
+  "/push-secret/",
+  "connector-push",
+  "connector",
+  "Connectors",
+  "ConnectorPanel",
+  "/api/connectors",
+  "data-cx-client",
+  "data-cx-extra",
+  "data-cx-push",
 ];
 
 export const DENY_FILES = new Set([
