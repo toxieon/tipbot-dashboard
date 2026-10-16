@@ -1,3 +1,10 @@
+## 0.64.2 · 2026-10-16 · `slip-note` · Slip notes stay off the public site
+
+- A hand-filled or skipped slip leg is sent on only after /api/me says this session may use owner tools.
+- The public site build removes that request, so the published pages never post it.
+
+Tests: `tests/slip_stake.test.js`, `tests/public_build.test.js`.
+
 ## 0.64.1 · 2026-10-16 · `units-game-slip` · Units, game view, dollar stakes
 
 - A follower community opens with all-time units, green with a plus or red with a minus, and a line of cumulative units for the period in Showing. The sample live demo button is gone from that page.

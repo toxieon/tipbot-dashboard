@@ -26,6 +26,8 @@ test("a leg without a matched field stays open until it is filled or skipped", (
   assert.match(ui, /slip-leg-unmatched/);
   assert.match(ui, /stakeUnitsValue/);
   assert.match(ui, /\/api\/slip\/leg-note/);
+  assert.match(ui, /STATE\.ops !== true/);
+  assert.match(ui, /public-omit:slip-leg-note/);
   assert.match(ui, /data-mode="dollars"/);
   assert.match(ui, /Match each highlighted leg, or skip matching/);
   const unitSize = html.slice(html.indexOf("function guildUnitSize"), html.indexOf("function dollarsToUnits"));

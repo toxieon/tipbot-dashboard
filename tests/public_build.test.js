@@ -192,6 +192,23 @@ function extractFn(src, name) {
   throw new Error("unclosed " + name);
 }
 
+test("the public build drops the slip leg note request", async () => {
+  const { build, scanTree, scanText } = await modP;
+  const distDir = publicDist();
+  try {
+    const result = build({ root, dist: distDir });
+    const shipped = fs.readFileSync(path.join(result.dist, "assets/slip-ocr-ui.js"), "utf8");
+    assert.match(shipped, /function noteOpenLegs\(/);
+    assert.doesNotMatch(shipped, /leg-note/);
+    assert.doesNotMatch(shipped, /public-omit/);
+    assert.equal(scanTree(result.dist).length, 0);
+    const leak = scanText("assets/slip-ocr-ui.js", 'api("/api/slip/leg-note", {method:"POST"});\n');
+    assert.ok(leak.some((p) => p.kind === "owner-tool" && p.match === "/api/slip/leg-note"));
+  } finally {
+    fs.rmSync(distDir, { recursive: true, force: true });
+  }
+});
+
 test("custom games controls stay out of the public copy", async () => {
   const { build, scanTree } = await modP;
   const distDir = publicDist();

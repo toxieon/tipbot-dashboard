@@ -79,6 +79,7 @@ export const OWNER_PHRASES = [
   "data-cx-client",
   "data-cx-extra",
   "data-cx-push",
+  "/api/slip/leg-note",
 ];
 
 export const DENY_FILES = new Set([
@@ -244,6 +245,27 @@ export function formatProblems(problems) {
   return problems.map((p) => p.rel + ":" + p.line + ": " + p.kind + ": " + p.match).join("\n");
 }
 
+// The private source keeps an owner-only request inside this pair. The public
+// copy deletes the pair and everything between it, then the owner-phrase scan
+// refuses the path if a block is left behind.
+const PUBLIC_OMIT_RE = /\/\* public-omit:slip-leg-note \*\/[\s\S]*?\/\* \/public-omit:slip-leg-note \*\//g;
+
+export function stripPublicOmits(text) {
+  return String(text).replace(PUBLIC_OMIT_RE, "");
+}
+
+function copyShipped(abs, dest) {
+  const buf = fs.readFileSync(abs);
+  if (buf.includes(0)) {
+    fs.writeFileSync(dest, buf);
+    return;
+  }
+  const text = buf.toString("utf8");
+  const stripped = stripPublicOmits(text);
+  if (stripped === text) fs.writeFileSync(dest, buf);
+  else fs.writeFileSync(dest, stripped);
+}
+
 export function build(opts = {}) {
   const srcRoot = opts.root || root;
   const dist = opts.dist || path.join(srcRoot, "dist");
@@ -254,7 +276,7 @@ export function build(opts = {}) {
     const rel = path.relative(srcRoot, abs);
     const dest = path.join(dist, rel);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(abs, dest);
+    copyShipped(abs, dest);
   }
   const problems = scanTree(dist);
   if (problems.length) {
