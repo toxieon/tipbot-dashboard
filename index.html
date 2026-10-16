@@ -2387,6 +2387,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(window.TBOwner) return Promise.resolve(true);
     return loadExtPanel();
   }
+  function loadOwnerServer(){
+    if(!(STATE.ops===true && !STATE.viewAs)) return Promise.resolve(false);
+    if(window.TBOwnerServer) return Promise.resolve(true);
+    return TD.load("owner-server").then(function(){ return !!window.TBOwnerServer; }, function(){ return false; });
+  }
   function openOps(){
     if(STATE.ops!==true){
       if(window.TBOwner&&TBOwner.clearOps) TBOwner.clearOps();
@@ -6251,14 +6256,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       // (the panel close was missing, so later panels nested inside the calendar).
       +'<div class="panel-body">'+head+cells+'</div>'+legend+'</div></div>';
   }
-  function mountPushSecrets(el, ctx){
-    if(!el || !(STATE.ops===true && !STATE.viewAs)) return;
-    TD.load("connector-push").then(function(){
-      if(!el.isConnected || !(STATE.ops===true && !STATE.viewAs)) return;
-      if(window.TBPushSecret && typeof TBPushSecret.mount==="function") TBPushSecret.mount(el, ctx);
-      else el.innerHTML="";
-    }).catch(function(){ if(el.isConnected) el.innerHTML=""; });
-  }
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
     if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div><div id="sport-routing-box"></div>'; loadRouting(gid);
@@ -6274,27 +6271,6 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         if(window.TBOwnerAccess&&typeof TBOwnerAccess.mount==="function"){
           TBOwnerAccess.mount(box,{call:api,gid:gid,allowed:ownerSettingsAllowed,confirm:tbConfirm,onUnauth:function(){ renderLogin("Session expired."); },when:function(ts){ try{ return TBTime.fmt(ts,{day:"numeric",month:"short",year:"numeric"}); }catch(e){ return ""; } }});
         }else box.innerHTML="";
-      });
-      return;
-    }
-    if(tab==="connectors"){
-      if(!(STATE.ops===true&&!STATE.viewAs)){ body.innerHTML=""; return; }
-      body.innerHTML='<div data-cx-client></div><div data-cx-push></div><div data-cx-extra><div class="empty">Loading…</div></div>';
-      var client=body.querySelector("[data-cx-client]");
-      var push=body.querySelector("[data-cx-push]");
-      var extra=body.querySelector("[data-cx-extra]");
-      var ctx={api:api,gid:gid,onUnauth:function(){ renderLogin("Session expired."); },confirm:tbConfirm,when:fmtDate,fetchRaw:function(path,opts){
-        opts=opts||{};
-        var headers=Object.assign({Authorization:"Bearer "+getToken()}, opts.headers||{});
-        return fetch(API+path,{method:opts.method||"GET",headers:headers,credentials:"include",cache:"no-store",signal:opts.signal});
-      }};
-      ensureExt().then(function(){
-        if(!(STATE.ops===true&&!STATE.viewAs)) return;
-        if(client&&client.isConnected&&window.TBConnectors&&typeof TBConnectors.mount==="function") TBConnectors.mount(client, ctx);
-        if(push&&push.isConnected) mountPushSecrets(push, ctx);
-        if(!extra||!extra.isConnected) return;
-        if(window.TBConnectorPanel&&typeof TBConnectorPanel.mount==="function") TBConnectorPanel.mount(extra, ctx);
-        else extra.innerHTML="";
       });
       return;
     }
@@ -7124,11 +7100,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const monthSel='<label class="sv-period-k" for="monthsel">Showing</label><select id="monthsel" aria-label="Stats period" style="background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;font:inherit;cursor:pointer"><option value="">Lifetime</option>'+months.map(m=>'<option value="'+m+'"'+(m===curMonth?' selected':'')+'>'+fmtMonth(m)+'</option>').join("")+'</select>';
     const adminPanel=(isAdmin && window.TBOwner && typeof TBOwner.adminHtml==="function")?TBOwner.adminHtml(s, sw):"";
     const accessTab=isAdmin?'<button class="tab" id="stab-access">Access</button>':'';
-    const connTab=isAdmin?'<button class="tab" id="stab-connectors">Connectors</button>':'';
     const settingsPanel='<div class="panel" id="settings-panel" data-sec="settings">'
       +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="false"><h3 style="margin:0">Settings</h3><span class="panel-caret">▸</span></div>'
       +'<div class="panel-body"><div class="tabs" style="margin-bottom:14px">'
-      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button>'+accessTab+connTab+'</div>'
+      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button>'+accessTab+'</div>'
       +'<div id="settings-body"></div></div></div>';
     const schedNote=(typeof scheduleNoteHtml==="function")?scheduleNoteHtml(s.guild_id):"";
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
@@ -7187,10 +7162,24 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     wireTipRows($("recent-box"),s.guild_id);
     // Lazy: Recent Results (previous tips) hydrate legs/odds/live over the network only once opened.
     TDSec.onFirstOpen($("recent-panel"), ()=>hydrateTipCards($("recent-box"),s.guild_id,tips.settled));
-    function setTab(t){ if(t==="access" && !(STATE.ops===true&&!STATE.viewAs)) t="general"; ["general","channels","perms","access","connectors"].forEach(function(name){ const b=$("stab-"+name); if(b) b.classList.toggle("active", t===name); }); renderSettingsTab(s.guild_id,t,s); }
+    function setTab(t){ if(t==="access" && !(STATE.ops===true&&!STATE.viewAs)) t="general"; ["general","channels","perms","access"].forEach(function(name){ const b=$("stab-"+name); if(b) b.classList.toggle("active", t===name); }); renderSettingsTab(s.guild_id,t,s); }
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
     { const ab=$("stab-access"); if(ab) ab.onclick=()=>setTab("access"); }
-    { const cx=$("stab-connectors"); if(cx) cx.onclick=()=>setTab("connectors"); }
+    if(isAdmin) loadOwnerServer().then(function(){
+      if(!(STATE.ops===true&&!STATE.viewAs)) return;
+      const detail=$("detail");
+      if(!detail||!detail.isConnected||!(window.TBOwnerServer&&typeof TBOwnerServer.attach==="function")) return;
+      TBOwnerServer.attach({
+        detail:detail, owner:true, gid:s.guild_id, api:api,
+        onUnauth:function(){ renderLogin("Session expired."); },
+        confirm:tbConfirm, when:fmtDate,
+        fetchRaw:function(path,opts){
+          opts=opts||{};
+          const headers=Object.assign({Authorization:"Bearer "+getToken()}, opts.headers||{});
+          return fetch(API+path,{method:opts.method||"GET",headers:headers,credentials:"include",cache:"no-store",signal:opts.signal});
+        }
+      });
+    });
     // Lazy: Settings tab content (may fetch auto-push / channels / perms) renders on first open.
     TDSec.onFirstOpen($("settings-panel"), ()=>setTab("general"));
     // Upcoming Bets + Finished games + Live tips stay EAGER: Upcoming feeds the Finished

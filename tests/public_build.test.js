@@ -53,6 +53,8 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     "assets/admin.js",
     "assets/ext.js",
     "assets/owner-tools.js",
+    "assets/owner-server.js",
+    "assets/connector-push.js",
     "tests/public_build.test.js",
     "GPT/index.html",
     "labs/fx/index.html",
@@ -136,6 +138,15 @@ test("scanner keeps only the explicit allow-list and fails closed otherwise", as
 
   writeTree(dir, { "leak.js": 'fetch("/api/owner/import-tips");\n' });
   assert.ok(scanTree(dir).some((p) => p.kind === "owner-tool" && p.match === "/api/owner/import-tips"));
+
+  writeTree(dir, { "leak.js": 'TD.load("connector-push");\n' });
+  assert.ok(scanTree(dir).some((p) => p.kind === "owner-tool" && p.match === "connector-push"));
+
+  writeTree(dir, { "leak.js": 'var label = "Push secret";\n' });
+  assert.ok(scanTree(dir).some((p) => p.kind === "owner-tool" && p.match === "Push secret"));
+
+  writeTree(dir, { "leak.js": 'if(tab==="connectors"){}\n' });
+  assert.ok(scanTree(dir).some((p) => p.kind === "owner-tool" && p.match === "connector"));
 
   fs.rmSync(dir, { recursive: true, force: true });
 });

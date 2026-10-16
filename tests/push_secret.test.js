@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const src = fs.readFileSync(path.join(root, "assets", "connector-push.js"), "utf8");
+const shell = fs.readFileSync(path.join(root, "assets", "owner-server.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const P = require(path.join(root, "assets", "connector-push.js"));
 
@@ -88,22 +89,34 @@ test("the secret is not stored or logged, and the sheet stays in the page", () =
   assert.doesNotMatch(src, /localStorage|sessionStorage/);
   assert.doesNotMatch(src, /console\.(?:log|debug|info|warn|error|trace)\s*\(/);
   assert.doesNotMatch(src, /window\.open|target\s*=\s*["']_blank["']/);
-  assert.doesNotMatch(src, /forward|mirror|master|consensus|horsepicks|brandon/i);
+  assert.doesNotMatch(src, /forward|mirror|master|consensus/i);
+  assert.doesNotMatch(shell, /forward|mirror|master|consensus/i);
   assert.match(P.modalHtml(), /You won't see this again/);
   assert.match(src, /data-ps-secret/);
   assert.match(src, /input\.value = ""/);
 });
 
-test("the row is mounted only from the owner connectors tab", () => {
-  const start = html.indexOf('if(tab==="connectors")');
-  const block = html.slice(start, start + 1800);
+test("owner source has no private scan terms", async () => {
+  const raw = process.env.TIPDASH_SCAN_TERMS;
+  if (!raw) return;
+  const { parseTerms, findHits } = await import("../scripts/ci-public-guard.mjs");
+  const files = ["assets/connector-push.js", "assets/owner-server.js", "index.html", "PUBLIC_CHANGELOG.md"].map((rel) => path.join(root, rel));
+  assert.deepEqual(findHits(files, parseTerms(raw)), []);
+});
+
+test("the row is mounted only from the owner connectors shell", () => {
+  const start = shell.indexOf("function renderConnectors");
+  const block = shell.slice(start, start + 1800);
   assert.ok(block.indexOf("return;") < block.indexOf("ensureExt()"));
   assert.match(block, /data-cx-push/);
-  assert.match(block, /mountPushSecrets\(push, ctx\)/);
-  assert.match(html, /function mountPushSecrets\(el, ctx\)\{/);
+  assert.match(shell, /mountPushSecrets\(push, ctx\)/);
+  assert.match(shell, /TD\.load\("connector-push"\)/);
+  assert.match(shell, /ctx\.owner !== true/);
+  assert.match(html, /TD\.load\("owner-server"\)/);
   assert.match(html, /STATE\.ops===true && !STATE\.viewAs/);
-  assert.match(html, /TD\.load\("connector-push"\)/);
+  assert.doesNotMatch(html, /connector|Connectors|data-cx-|push-secret|Push secret|connector-push/i);
   assert.doesNotMatch(html, /<script[^>]+connector-push\.js/);
+  assert.doesNotMatch(html, /<script[^>]+owner-server\.js/);
   assert.doesNotMatch(html, /assets\/connectors\.js/);
   assert.doesNotMatch(html, /loadConnectorPanel|connector-panel/);
 });

@@ -1,6 +1,6 @@
 ## 0.63.2
 
-Connector settings can generate a push secret. The connector ID and the secret are each shown with copy. The secret is shown once.
+Internal improvements.
 
 ## 0.63.1
 
