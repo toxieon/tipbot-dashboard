@@ -1,6 +1,6 @@
 ## 0.65.1
 
-A sponsor logo on the ground lights up during Game view when one of its servers has a winning bet. The logo pulses so the win is easy to see.
+A sponsor logo on the ground lights up during Game view when one of its servers has a winning bet. It stays the size it was placed, and a small ring pulses around it.
 
 ## 0.64.2
 

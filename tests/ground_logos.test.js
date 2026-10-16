@@ -30,8 +30,11 @@ test("game view asks for ground logos and paints a lit mark", () => {
   assert.match(html, /fliveLogos\(handle\)/);
   assert.match(html, /if\(won\.length\) fliveLogos\(\)/);
   assert.match(html, /fl-logo-pulse/);
+  assert.match(html, /scale\(1\.1\)/);
   assert.match(html, /className="fl-logo"/);
+  assert.match(html, /w\*2\*fit/);
   assert.equal(html.includes("layer.hidden=webgl"), false);
+  assert.equal(html.includes("Math.max(36"), false);
 });
 
 test("the ground mount places, rotates, and lights a logo", () => {
