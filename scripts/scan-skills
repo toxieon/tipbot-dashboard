@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""Scan a local skill or rule folder with NVIDIA SkillSpector before adding it.
+
+Static checks only. The language-model stage is not started, and outbound
+connections are refused so supply-chain lookups stay on the bundled offline
+list. Install the scanner first (the site build does not install or run it):
+
+    pip install -r requirements-dev.txt
+    python scripts/scan-skills path/to/skill-or-rules
+    python scripts/scan-skills path/to/skills --recursive
+
+SkillSpector 2.12.0, Apache-2.0. A score above 50 exits 1. Do not add a folder
+whose recommendation is DO_NOT_INSTALL.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import socket
+import sys
+from pathlib import Path
+
+_REFUSAL = "scan-skills does not make network calls"
+_LLM_ENV = (
+    "NVIDIA_INFERENCE_KEY",
+    "NVIDIA_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "AZURE_OPENAI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GEMINI_API_KEY",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_SESSION_TOKEN",
+    "SKILLSPECTOR_PROVIDER",
+    "SKILLSPECTOR_MODEL",
+)
+
+
+def _refuse_network() -> None:
+    """Refuse internet sockets before SkillSpector is imported."""
+
+    def refuse_connect(self, address):
+        if getattr(self, "family", None) in (socket.AF_INET, socket.AF_INET6):
+            raise OSError(101, _REFUSAL)
+        return _connect(self, address)
+
+    def refuse_connect_ex(self, address):
+        if getattr(self, "family", None) in (socket.AF_INET, socket.AF_INET6):
+            return 101
+        return _connect_ex(self, address)
+
+    def refuse_getaddrinfo(host, *args, **kwargs):
+        raise OSError(101, _REFUSAL)
+
+    def refuse_create_connection(*args, **kwargs):
+        raise OSError(101, _REFUSAL)
+
+    _connect = socket.socket.connect
+    _connect_ex = socket.socket.connect_ex
+    socket.socket.connect = refuse_connect
+    socket.socket.connect_ex = refuse_connect_ex
+    socket.getaddrinfo = refuse_getaddrinfo
+    socket.create_connection = refuse_create_connection
+
+
+def _reject_remote(raw: str) -> str:
+    text = raw.strip()
+    if "://" in text or text.startswith("git@"):
+        raise SystemExit("scan-skills reads a local path only. Refusing a remote path.")
+    return text
+
+
+def _local_target(raw: str) -> Path:
+    path = Path(_reject_remote(raw)).expanduser()
+    if not path.exists():
+        raise SystemExit(f"No such path: {path}")
+    if path.is_dir() or path.suffix.lower() in {".md", ".mdc"}:
+        return path.resolve()
+    raise SystemExit("Pass a skill or rule folder, or a markdown rule file.")
+
+
+def _report_path(raw: str) -> Path:
+    path = Path(_reject_remote(raw)).expanduser().resolve()
+    if path.exists() and path.is_dir():
+        raise SystemExit("Report path is a directory.")
+    return path
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Scan a local skill or rule folder with SkillSpector. "
+            "The language-model stage stays off and the scan does not use the network."
+        )
+    )
+    parser.add_argument("path", help="Local skill folder, rules folder, or markdown rule file")
+    parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        help="Scan each immediate child folder that contains SKILL.md",
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=("terminal", "json", "markdown", "sarif"),
+        default="terminal",
+        help="Report format (default: terminal)",
+    )
+    parser.add_argument("-o", "--output", help="Write the report to this local file")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parser().parse_args(argv)
+    target = _local_target(args.path)
+    output = _report_path(args.output) if args.output else None
+
+    os.environ["SKILLSPECTOR_OSV_TIMEOUT"] = "0"
+    os.environ.setdefault("SKILLSPECTOR_LOG_LEVEL", "WARNING")
+    for key in _LLM_ENV:
+        os.environ.pop(key, None)
+    _refuse_network()
+
+    try:
+        from skillspector.cli import app
+    except ImportError:
+        raise SystemExit(
+            "SkillSpector is not installed. From the repo root:\n"
+            "  pip install -r requirements-dev.txt"
+        )
+
+    scan_argv = [
+        "skillspector",
+        "scan",
+        str(target),
+        "--no-llm",
+        "--format",
+        args.format,
+    ]
+    if args.recursive:
+        scan_argv.append("--recursive")
+    if output is not None:
+        scan_argv.extend(["--output", str(output)])
+    sys.argv = scan_argv
+    app()
+
+
+if __name__ == "__main__":
+    main()

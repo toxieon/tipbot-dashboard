@@ -1,0 +1,4 @@
+# Dev-only. The site build does not install this file.
+# NVIDIA SkillSpector 2.12.0 (Apache-2.0), commit 182a4753f15a7512de6291a8961c078cb090ee73.
+# scripts/scan-skills runs it with the language-model stage off and no network calls.
+skillspector @ git+https://github.com/NVIDIA/SkillSpector.git@182a4753f15a7512de6291a8961c078cb090ee73
