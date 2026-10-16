@@ -334,11 +334,42 @@
   }
 
   function slipStart(tip) {
-    var v = tip && (tip.starts_at || tip.start_time || tip.game_start || tip.kickoff || tip.commence_time);
+    var v = tip && (tip.starts_at || tip.start_time || tip.game_start || tip.kickoff || tip.commence_time || tip.date_time);
     if (v == null || v === "") return null;
     if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
     var n = Date.parse(v);
     return Number.isFinite(n) ? n : null;
+  }
+
+  function slipGameName(tip) {
+    var name = String((tip && (tip.game_name || tip.event || tip.match_name || tip.fixture)) || "").replace(/\s+/g, " ").trim();
+    if (name) return name;
+    var legs = (tip && tip.legs) || [];
+    var i;
+    var n;
+    for (i = 0; i < legs.length; i++) {
+      n = String((legs[i] && (legs[i].event || legs[i].game_name || legs[i].game)) || "").replace(/\s+/g, " ").trim();
+      if (n) return n;
+    }
+    return "";
+  }
+
+  function slipAhead(tip, now) {
+    if (slipSettled(tip)) return false;
+    var st = slipStart(tip);
+    var clock = now == null ? Date.now() : now;
+    return st != null && st > clock;
+  }
+
+  function gameIsLive(game) {
+    if (!game || isFullTime(game)) return false;
+    if (game.live === true || game.game_live === true) return true;
+    var phase = game.phase && typeof game.phase === "object" ? game.phase : {};
+    var key = String(phase.key || game.phase_key || game.phase || "").trim().toUpperCase();
+    if (key === "Q1" || key === "Q2" || key === "Q3" || key === "Q4" || key === "LIVE") return true;
+    var label = String(phase.label || game.phase_label || "");
+    if (!label || /full\s*time|^final$|^ft$|^upcoming$/i.test(label)) return false;
+    return /q[1-4]|quarter|\blive\b/i.test(label);
   }
 
   function payloadFromTips(game) {
@@ -378,11 +409,12 @@
     var byGame = {};
     var order = [];
     (packs || []).forEach(function (pack) {
-      if (!pack || pack.preview) return;
+      if (!pack || pack.sample) return;
       var gid = pack.guild_id != null ? String(pack.guild_id) : "";
       (pack.feed || []).forEach(function (tip) {
-        if (!slipOpen(tip) || slipConcluded(tip)) return;
-        var name = String(tip.game_name || "").replace(/\s+/g, " ").trim();
+        if (!slipOpen(tip)) return;
+        if (slipConcluded(tip) && !slipAhead(tip)) return;
+        var name = slipGameName(tip);
         if (!name) return;
         var key = norm(name);
         if (!byGame[key]) {
@@ -457,6 +489,33 @@
 
   function emptyStateHtml() {
     return '<div class="empty fl-empty"><b>Nothing coming up</b><span>When you follow a tip for an upcoming or live game, your bets show up here.</span></div>';
+  }
+
+  function playersShouldRun(games, game, anyLive) {
+    if (anyLive) return true;
+    if (gameIsLive(game)) return true;
+    var i;
+    var row;
+    for (i = 0; i < (games || []).length; i++) {
+      row = games[i];
+      if (!row) continue;
+      if (row.live || gameIsLive(row) || gameIsLive(row.payload && row.payload.game)) return true;
+    }
+    return false;
+  }
+
+  function upcomingNames(feed) {
+    var seen = {};
+    var out = [];
+    (feed || []).forEach(function (tip) {
+      if (!slipOpen(tip)) return;
+      if (slipConcluded(tip) && !slipAhead(tip)) return;
+      var name = slipGameName(tip);
+      if (!name || seen[norm(name)]) return;
+      seen[norm(name)] = true;
+      out.push(name);
+    });
+    return out;
   }
 
   function isFullTime(game) {
@@ -679,6 +738,11 @@
     emptyBoardGame: emptyBoardGame,
     emptyStateHtml: emptyStateHtml,
     slipOpen: slipOpen,
+    slipGameName: slipGameName,
+    slipAhead: slipAhead,
+    gameIsLive: gameIsLive,
+    playersShouldRun: playersShouldRun,
+    upcomingNames: upcomingNames,
     demoPayload: demoPayload,
     createDemo: createDemo
   };

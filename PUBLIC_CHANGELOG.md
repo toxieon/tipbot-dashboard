@@ -1,3 +1,7 @@
+## 0.64.1
+
+The community page leads with all-time units and a line of how they added up. Game view is one tap away, stays centred, and lists bets before the game starts. Players run on the field while a game is live. A screenshot stake can be dollars or units, and a leg that did not match can be filled in or skipped.
+
 ## 0.63.2
 
 Internal improvements.

@@ -246,6 +246,16 @@
     return out;
   }
   function flagStyle(on) { return on ? ";outline:2px solid var(--warn, #e0a100);outline-offset:1px" : ""; }
+  function legSnapshot(leg) {
+    leg = leg || {};
+    return {
+      event: leg.event || "",
+      selection: leg.player || leg.team || leg.selection || "",
+      market: leg.stat || leg.market || "",
+      line: leg.line != null ? leg.line : null,
+      game_id: leg.game_id || "",
+    };
+  }
   function legRowHtml(leg, idx) {
     leg = leg || {};
     var who = leg.player || leg.team || leg.selection || "";
@@ -257,8 +267,11 @@
     var side = leg.side || "";
     var whoFlag = ff.selection || ff.player || ff.team;
     var statFlag = ff.market || ff.stat;
+    var linked = window.TBSlipOcr && TBSlipOcr.legAutoLinked ? TBSlipOcr.legAutoLinked(leg) : true;
+    var open = !linked;
     return (
-      '<div class="paste-card slip-leg-row" data-i="' + idx + '" data-kind="' + escAttr(leg.kind || "") + '" style="margin-top:10px">' +
+      '<div class="paste-card slip-leg-row' + (open ? " slip-leg-unmatched" : "") + '" data-i="' + idx + '" data-kind="' + escAttr(leg.kind || "") + '" data-open="' + (open ? "1" : "0") + '" data-raw="' + escAttr(JSON.stringify(legSnapshot(leg))) + '" style="margin-top:10px">' +
+      (open ? '<div class="slip-leg-need">This leg needs a game, player, market and line, or skip matching.</div>' : "") +
       (reasons.length
         ? '<div class="slip-leg-flags" style="color:var(--warn, #e0a100);font-size:var(--t-foot);margin-bottom:6px">⚠ ' + esc(reasons.join(" · ")) + "</div>"
         : "") +
@@ -277,8 +290,34 @@
       ["", "Over", "Under"].map(function (o) { return '<option value="' + o + '"' + (o === side ? " selected" : "") + ">" + (o || "—") + "</option>"; }).join("") +
       "</select>" +
       '<input class="slip-leg-odds" data-i="' + idx + '" type="number" step="0.01" placeholder="Leg odds" aria-label="Leg odds" value="' + esc(leg.odds != null ? String(leg.odds) : "") + '" style="width:92px">' +
-      "</div></div>"
+      "</div>" +
+      (open ? '<div style="margin-top:8px"><button type="button" class="ghost sm slip-leg-skip">Skip matching</button></div>' : "") +
+      "</div>"
     );
+  }
+  function rowToLeg(row) {
+    var q = function (c) { var el = row.querySelector(c); return el && el.value != null ? String(el.value).trim() : ""; };
+    var line = parseFloat(q(".slip-leg-line"));
+    return {
+      kind: row.getAttribute("data-kind") || "",
+      event: q(".slip-leg-event"),
+      game_id: q(".slip-leg-gid"),
+      selection: q(".slip-leg-sel"),
+      player: q(".slip-leg-sel"),
+      market: q(".slip-leg-mkt"),
+      stat: q(".slip-leg-mkt"),
+      line: isFinite(line) ? line : null,
+      flags: [],
+    };
+  }
+  function refreshLegMatch(row) {
+    if (!row) return;
+    if (row.getAttribute("data-skipped") === "1" || row.getAttribute("data-open") !== "1") {
+      row.classList.remove("slip-leg-unmatched");
+      return;
+    }
+    var linked = window.TBSlipOcr && TBSlipOcr.legAutoLinked && TBSlipOcr.legAutoLinked(rowToLeg(row));
+    row.classList.toggle("slip-leg-unmatched", !linked);
   }
 
   function wireLegFixturePickers() {
@@ -360,9 +399,7 @@
       '<div class="field"><label>Bookmaker</label><input id="slip-book" value="' +
       esc(d.bookmaker || "") +
       '"></div>' +
-      '<div class="field"><label>Stake (units)</label><input id="slip-stake" type="number" step="0.5" placeholder="Not on the slip — enter it" value="' +
-      esc(SLIP.parsed && SLIP.parsed.stake != null ? String(SLIP.parsed.stake) : "") +
-      '" style="' + flagStyle(!(SLIP.parsed && SLIP.parsed.stake != null)).slice(1) + '"></div>' +
+      stakeFieldHtml() +
       '<h3 style="margin:18px 0 8px">' +
       esc(String(legs.length)) +
       " leg" +
@@ -380,6 +417,106 @@
     $("slip-retry").onclick = renderPickScreen;
     $("slip-apply").onclick = applyToBuilder;
     wireLegFixturePickers();
+    wireStakeField();
+    wireLegMatch();
+  }
+  function stakeFieldHtml() {
+    var dollars = SLIP.parsed && SLIP.parsed.stake_dollars;
+    var mode = SLIP.stakeMode || (dollars > 0 ? "dollars" : "units");
+    SLIP.stakeMode = mode;
+    var us = typeof guildUnitSize === "function" ? guildUnitSize(SLIP.guildId) : 0;
+    var shown = mode === "dollars" && dollars > 0 ? String(dollars) : (SLIP.parsed && SLIP.parsed.stake != null ? String(SLIP.parsed.stake) : "");
+    var hint = mode === "dollars"
+      ? (us > 0 ? "Dollars convert with your unit size of $" + us + "." : "No unit size yet, so dollars stay as dollars until one is set. Switch to units to enter a stake.")
+      : "Enter units, or switch to dollars.";
+    return '<div class="field"><label>Stake</label>' +
+      '<div class="stake-toggle" role="group" aria-label="Stake in dollars or units">' +
+      '<button type="button" class="ghost slip-stake-mode' + (mode === "dollars" ? " on" : "") + '" data-mode="dollars">$</button>' +
+      '<button type="button" class="ghost slip-stake-mode' + (mode === "units" ? " on" : "") + '" data-mode="units">Units</button></div>' +
+      '<input id="slip-stake" type="number" step="0.5" inputmode="decimal" placeholder="' + (mode === "dollars" ? "Dollars" : "Units") + '" value="' + esc(shown) + '">' +
+      '<div id="slip-stake-hint" style="color:var(--faint);font-size:var(--t-foot);margin-top:6px">' + esc(hint) + "</div>" +
+      '<div id="slip-stake-prev" style="color:var(--muted);font-size:var(--t-foot);margin-top:4px"></div></div>';
+  }
+  function paintStakePreview() {
+    var prev = $("slip-stake-prev");
+    if (!prev) return;
+    var raw = parseFloat(($("slip-stake") || {}).value);
+    if (SLIP.stakeMode !== "dollars" || !(raw > 0)) { prev.textContent = ""; return; }
+    var us = typeof guildUnitSize === "function" ? guildUnitSize(SLIP.guildId) : 0;
+    if (!(us > 0) || typeof dollarsToUnits !== "function") { prev.textContent = ""; return; }
+    var units = dollarsToUnits(raw, us);
+    prev.textContent = units > 0 ? ("= " + units + " units") : "";
+  }
+  function wireStakeField() {
+    document.querySelectorAll(".slip-stake-mode").forEach(function (b) {
+      b.onclick = function () {
+        SLIP.stakeMode = b.getAttribute("data-mode") || "units";
+        var input = $("slip-stake");
+        var keep = input ? input.value : "";
+        var wrap = b.parentNode && b.parentNode.parentNode;
+        if (!wrap) return;
+        var parsed = SLIP.parsed || {};
+        if (SLIP.stakeMode === "dollars") parsed.stake_dollars = parseFloat(keep) > 0 ? parseFloat(keep) : parsed.stake_dollars;
+        else parsed.stake = parseFloat(keep) > 0 ? parseFloat(keep) : parsed.stake;
+        SLIP.parsed = parsed;
+        wrap.outerHTML = stakeFieldHtml();
+        wireStakeField();
+      };
+    });
+    var input = $("slip-stake");
+    if (input) input.oninput = paintStakePreview;
+    paintStakePreview();
+  }
+  function wireLegMatch() {
+    var box = $("slip-legs");
+    if (!box) return;
+    box.querySelectorAll(".slip-leg-row").forEach(function (row) {
+      row.querySelectorAll("input,select").forEach(function (el) {
+        var prev = el.oninput;
+        el.addEventListener("input", function () { refreshLegMatch(row); });
+        el.addEventListener("change", function () { refreshLegMatch(row); if (prev) prev(); });
+      });
+      var skip = row.querySelector(".slip-leg-skip");
+      if (skip) skip.onclick = function () {
+        row.setAttribute("data-skipped", "1");
+        row.classList.remove("slip-leg-unmatched");
+        skip.disabled = true;
+        skip.textContent = "Skipped";
+      };
+    });
+  }
+  function stakeUnitsValue() {
+    var raw = parseFloat(($("slip-stake") || {}).value);
+    if (!(raw > 0)) return null;
+    if ((SLIP.stakeMode || "units") === "dollars") {
+      var us = typeof guildUnitSize === "function" ? guildUnitSize(SLIP.guildId) : 0;
+      if (!(us > 0) || typeof dollarsToUnits !== "function") return null;
+      var units = dollarsToUnits(raw, us);
+      return units > 0 ? units : null;
+    }
+    return raw;
+  }
+  function noteOpenLegs() {
+    var box = $("slip-legs");
+    if (!box || typeof api !== "function") return;
+    box.querySelectorAll('.slip-leg-row[data-open="1"]').forEach(function (row) {
+      var skipped = row.getAttribute("data-skipped") === "1";
+      if (!skipped && row.classList.contains("slip-leg-unmatched")) return;
+      var raw = {};
+      try { raw = JSON.parse(row.getAttribute("data-raw") || "{}"); } catch (e) { raw = {}; }
+      var entered = skipped ? null : rowToLeg(row);
+      api("/api/slip/leg-note", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          guild_id: SLIP.guildId,
+          image_b64: SLIP.imageData || "",
+          raw: raw,
+          skipped: skipped,
+          entered: entered,
+        }),
+      }).catch(function () {});
+    });
   }
 
   function readReviewDraft() {
@@ -390,6 +527,7 @@
         var q = function (c) { var el = row.querySelector(c); return el && el.value != null ? String(el.value).trim() : ""; };
         var sportEl = row.querySelector(".slip-leg-sport");
         var kind = row.getAttribute("data-kind") || "";
+        var skipped = row.getAttribute("data-skipped") === "1";
         var event = q(".slip-leg-event");
         var who = q(".slip-leg-sel"), stat = q(".slip-leg-mkt");
         var line = parseFloat(q(".slip-leg-line")), lo = parseFloat(q(".slip-leg-odds"));
@@ -403,6 +541,7 @@
           odds: isFinite(lo) && lo > 1 ? lo : null,
           event: event,
           game_id: q(".slip-leg-gid"),
+          skipped: skipped,
         };
         if (kind === "team") leg.team = who;
         else if (kind !== "racing" && leg.line != null) leg.player = who;
@@ -425,7 +564,11 @@
       date_time: (($("slip-when") || {}).value || "").trim(),
       sport: (($("slip-sport") || {}).value || "").trim(),
       bookmaker: (($("slip-book") || {}).value || "").trim(),
-      stake: parseFloat(($("slip-stake") || {}).value) > 0 ? parseFloat(($("slip-stake") || {}).value) : null,
+      stake: stakeUnitsValue(),
+      stake_mode: SLIP.stakeMode || "units",
+      stake_dollars: (SLIP.stakeMode === "dollars" && parseFloat(($("slip-stake") || {}).value) > 0)
+        ? parseFloat(($("slip-stake") || {}).value)
+        : null,
       legs: legs,
     };
   }
@@ -448,13 +591,21 @@
       if (err) err.textContent = "Odds must be greater than 1.";
       return;
     }
-    if (!reviewed.legs.length || reviewed.legs.some(function (l) {
+    var legsBox = $("slip-legs");
+    if (legsBox && legsBox.querySelector(".slip-leg-unmatched")) {
+      if (err) err.textContent = "Match each highlighted leg, or skip matching.";
+      return;
+    }
+    var active = reviewed.legs.filter(function (l) { return !l.skipped; });
+    if (!active.length || active.some(function (l) {
       return !l.selection && !l.market;
     })) {
       if (err) err.textContent = "Each leg needs a selection or market.";
       return;
     }
     if (err) err.textContent = "";
+    noteOpenLegs();
+    reviewed.legs = reviewed.legs.filter(function (l) { return !l.skipped; });
     await ensureSlipOcr();
     if (SLIP.fixtureSport !== (reviewed.sport || "") || !SLIP.fixtures.length) {
       SLIP.fixtures = await loadFixtureGames(reviewed.sport, reviewed.date_time, reviewed.game_name);
@@ -546,6 +697,7 @@
     SLIP.fixtures = [];
     SLIP.fixtureSport = "";
     SLIP.ocrText = "";
+    SLIP.stakeMode = "";
     await TD.load("builder");
     await ensureSlipOcr();
     renderPickScreen();
