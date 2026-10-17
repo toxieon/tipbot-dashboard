@@ -47,6 +47,7 @@ export const ASSET_DENY = new Set([
   "assets/owner-presence.js",
   "assets/owner-server.js",
   "assets/connector-push.js",
+  "assets/connector-post.js",
 ]);
 
 // Phrases that must not appear in the public copy. The secret-word scan above
@@ -79,6 +80,9 @@ export const OWNER_PHRASES = [
   "data-cx-client",
   "data-cx-extra",
   "data-cx-push",
+  "data-cx-post",
+  "connector-post",
+  "Post settings",
   "/api/slip/leg-note",
 ];
 
