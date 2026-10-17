@@ -10,58 +10,51 @@ const shell = fs.readFileSync(path.join(root, "assets", "owner-server.js"), "utf
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const P = require(path.join(root, "assets", "connector-post.js"));
 
-const QUIET = {
-  bookmaker: "Ladbrokes",
-  show: {
-    odds: true, bookie: false, track: true, form: false, confidence: false,
-    units: true, silks: true, race_link: true, sport: false, bet_type: false,
-    status: false, game: false, follow: false, tip_id: false
-  }
-};
+const QUIET = { post_bookmaker: "Ladbrokes", post_style: "quiet" };
 
-test("the quiet preview keeps the runner, odds, units, silks and the race link", () => {
+test("the quiet preview is the compact racing post", () => {
   const model = P.previewModel(QUIET);
   const names = model.fields.map((field) => field[0]);
-  assert.equal(model.title, "RACING PLAY");
-  assert.ok(names.includes("Odds"));
-  assert.ok(names.includes("Units"));
-  assert.ok(names.includes("Race"));
-  assert.ok(names.includes("Legs"));
+  assert.equal(model.title, "\uD83C\uDFC7 R4 Flemington");
+  assert.match(model.description, /#7 Fast Fleet/);
+  assert.match(model.description, /\$4\.50 \(Ladbrokes\)/);
+  assert.match(model.description, /1u \u00b7 Pending/);
+  assert.match(model.description, /https:\/\/www\.ladbrokes\.com\.au\/racing\/flemington\//);
+  assert.equal(model.button, "Bet on Ladbrokes");
+  assert.equal(model.image, true);
   assert.equal(names.includes("Sport"), false);
   assert.equal(names.includes("Bookmaker"), false);
   assert.equal(names.includes("Status"), false);
   assert.equal(names.includes("Game"), false);
   assert.equal(names.includes("Type"), false);
-  assert.equal(model.description, "");
-  assert.equal(model.footer, "");
-  assert.equal(model.image, true);
-  const legs = model.fields.find((field) => field[0] === "Legs")[1];
-  assert.match(legs, /R4 Flemington · 3:15pm · #7 Fast Fleet/);
-  assert.doesNotMatch(legs, /Win|3\/4 models/);
-  const race = model.fields.find((field) => field[0] === "Race")[1];
-  assert.match(race, /^https:\/\/www\.ladbrokes\.com\.au\/racing\/flemington\//);
-  const page = P.previewHtml(QUIET, "");
-  assert.match(page, /cp-card-wait/);
-  assert.doesNotMatch(page, /Sportsbet/);
+  const page = P.previewHtml(QUIET);
+  assert.match(page, /Silk card/);
+  assert.match(page, /Quiet|cp-btn/);
 });
 
-test("a bookmaker override replaces the feed bookie in the preview", () => {
-  const model = P.previewModel({ bookmaker: "Ladbrokes", show: Object.assign({}, QUIET.show, { bookie: true }) });
-  const book = model.fields.find((field) => field[0] === "Bookmaker")[1];
-  assert.equal(book, "Ladbrokes");
+test("full is stored as post_style standard and previews the full post", () => {
+  assert.equal(P.styleCode("Full"), "standard");
+  assert.equal(P.styleCode("quiet"), "quiet");
+  const body = P.saveBody({ post_bookmaker: "TAB", post_style: "full" });
+  assert.deepEqual(body, { post_bookmaker: "TAB", post_style: "standard" });
+  const model = P.previewModel({ post_bookmaker: "Sportsbet", post_style: "standard" });
+  const names = model.fields.map((field) => field[0]);
+  assert.equal(model.title, "RACING PLAY");
+  assert.ok(names.includes("Sport"));
+  assert.ok(names.includes("Type"));
+  assert.ok(names.includes("Odds"));
+  assert.ok(names.includes("Units"));
+  assert.equal(model.fields.find((field) => field[0] === "Bookmaker")[1], "Sportsbet");
+  assert.equal(model.image, false);
+  assert.equal(model.button, "");
 });
 
-test("confidence and notes appear only when those toggles are on", () => {
-  const on = P.previewModel({
-    bookmaker: "",
-    show: Object.assign({}, QUIET.show, { confidence: true, form: true, tip_id: true })
-  });
-  assert.match(on.description, /Soft ground/);
-  assert.match(on.description, /3\/4 models · High/);
-  assert.match(on.fields.find((field) => field[0] === "Legs")[1], /3\/4 models · High/);
-  assert.equal(on.footer, "Tip ID: preview");
-  const feed = P.previewModel({ bookmaker: "", show: Object.assign({}, QUIET.show, { bookie: true }) });
-  assert.equal(feed.fields.find((field) => field[0] === "Bookmaker")[1], "Sportsbet");
+test("a missing bookmaker reads as Ladbrokes", () => {
+  assert.equal(P.bookOf({}), "Ladbrokes");
+  assert.equal(P.saveBody({}).post_bookmaker, "Ladbrokes");
+  assert.equal(P.saveBody({}).post_style, "quiet");
+  assert.ok(P.BOOKS.includes("Ladbrokes"));
+  assert.ok(P.BOOKS.includes("bet365"));
 });
 
 test("the section is mounted only from the owner connectors shell", async () => {
@@ -77,5 +70,10 @@ test("the section is mounted only from the owner connectors shell", async () => 
   assert.doesNotMatch(html, /<script[^>]+connector-post\.js/);
   assert.doesNotMatch(src, /console\.(?:log|debug|info|warn|error|trace)\s*\(/);
   assert.doesNotMatch(src, /forward|mirror|master|consensus/i);
-  assert.equal(P.TOGGLES.length, 14);
+  assert.doesNotMatch(src, /post-settings/);
+  assert.match(src, /post_bookmaker/);
+  assert.match(src, /post_style/);
+  assert.match(src, /\/api\/connectors\//);
+  assert.match(src, />Quiet</);
+  assert.match(src, />Full</);
 });
