@@ -54,10 +54,20 @@ test("sponsor files stay cached and the scene revalidates", () => {
   assert.match(html, /rel="preload" as="fetch" href="\.\/assets\/mcg\/mcg\.glb" crossorigin/);
   assert.match(html, /function warmGround\(/);
   assert.match(html, /groundFetch\("\/api\/ground\/scene\?game=", "no-cache"\)/);
-  assert.match(html, /groundFetch\(g\.url, "force-cache"\)/);
-  assert.match(html, /groundFetch\(b\.url, "force-cache"\)/);
-  assert.match(html, /groundFetch\(d\.ball\.url, "force-cache"\)/);
+  assert.match(html, /function keep\(url\)/);
+  assert.match(html, /groundFetch\(url, "force-cache"\)/);
+  assert.match(html, /rememberGroundScene\(d\)/);
   assert.match(html, /cache:cacheMode\|\|"force-cache"/);
+  assert.match(html, /performance\.mark\("flive-open"\)/);
+  assert.match(html, /performance\.mark\("flive-ground"\)/);
+  assert.match(html, /performance\.measure\("flive-ground-paint", "flive-open", "flive-ground"\)/);
+  assert.match(html, /\.fl-mcg canvas,\.fl-mcg-canvas\{z-index:1;visibility:hidden/);
+  const own = html.slice(html.indexOf("function openGameView"), html.indexOf("async function fliveProbeLive"));
+  assert.match(own, /fliveBeginGround\(\)/);
+  assert.match(own, /fliveWatchStadium\(\)/);
+  assert.match(own, /fliveMount\(\);\n    fliveLoadOwn\(false\)/);
+  const loadOwn = html.slice(html.indexOf("async function fliveLoadOwn"), html.indexOf("function openGameView"));
+  assert.doesNotMatch(loadOwn, /fliveMount\(|fliveSponsors\(|fliveBeginGround\(/);
   const blob = html.slice(html.indexOf("function fliveBlob"), html.indexOf("function fliveSponsors"));
   assert.match(blob, /groundFetch\(url, "force-cache"\)/);
   assert.doesNotMatch(blob, /\bapi\(/);
@@ -83,7 +93,23 @@ test("a tilt stands the far edge up and the photo quad is perspective", async ()
   const farW = Math.hypot(quad[1].x - quad[0].x, quad[1].y - quad[0].y);
   const nearW = Math.hypot(quad[2].x - quad[3].x, quad[2].y - quad[3].y);
   assert.ok(quad[0].y < quad[3].y);
-  assert.ok(Math.abs(farW - nearW) > 0.5);
+  assert.ok(farW / nearW < 0.82, "40° far edge is foreshortened, ratio " + (farW / nearW));
+  function ratio(angle) {
+    const q = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: angle}, 780, 552);
+    const fw = Math.hypot(q[1].x - q[0].x, q[1].y - q[0].y);
+    const nw = Math.hypot(q[2].x - q[3].x, q[2].y - q[3].y);
+    assert.ok(q[0].y < q[3].y);
+    return fw / nw;
+  }
+  const r0 = ratio(0);
+  const r45 = ratio(45);
+  const r70 = ratio(70);
+  const r80 = ratio(80);
+  assert.ok(r0 > 0.94 && r0 < 0.98);
+  assert.ok(r45 < 0.78, "45° keystone " + r45);
+  assert.ok(r70 < r45, "70° is stronger than 45°");
+  assert.ok(r80 < r70, "80° is stronger than 70°");
+  assert.ok(r80 < 0.6, "80° keystone " + r80);
   const clamped = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 99}, 780, 552);
   const cap = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 80}, 780, 552);
   assert.deepEqual(clamped, cap);
