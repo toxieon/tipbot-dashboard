@@ -1,3 +1,10 @@
+## 0.66.3 · 2026-10-17 · `logo-keystone` · Ground logos show a real tilt, and the ground paints first
+
+- A ground logo at an angle stands up toward the Game view camera. The near edge stays on the turf and the far edge rises, shorter than the near edge, so the picture is a real keystone. Angle 0 is unchanged. The still photo uses that same quad.
+- Game view draws the stadium, the ground and any cached sponsor logos as soon as it opens. The bet list fills in afterwards and does not hold the ground back. `flive-open` and `flive-ground` marks time that paint.
+
+Tests: `tests/ground_logos.test.js`.
+
 ## 0.66.2 · 2026-10-17 · `sponsor-angle` · Ground logos tilt, and the game ground is cached
 
 - A ground logo has an angle. Zero leaves it flat on the turf. A larger angle tips the face up toward the broadcast camera, like a board standing up off the turf. The still photo uses that same tilted quad.
