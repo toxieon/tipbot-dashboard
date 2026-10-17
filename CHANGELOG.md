@@ -2,6 +2,7 @@
 
 - Connector setup has a Post settings section: toggles for the lines on a posted tip, a bookmaker choice, and a live preview of the post.
 - That section loads from an owner-only script. The public site build leaves it out.
+- Grading confirms the result updates in the tips channel.
 
 Tests: `tests/post_settings.test.js`.
 

@@ -4508,7 +4508,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(useGod && !(window.TBOwner&&typeof TBOwner.settlePath==="function")) return;
     if(!useGod && GQ.available!==false) return instantGrade(gid, tipId, result, box);
     if(!(await tbConfirm({title:useGod?TBOwner.gradeTitle(result):("Grade as "+result+"?"),
-      message:"Followers will be notified and it will post to bet-results.", confirmLabel:useGod?TBOwner.gradeConfirm(result):("Grade "+result),
+      message:"Followers will be notified in the tips channel.", confirmLabel:useGod?TBOwner.gradeConfirm(result):("Grade "+result),
       destructive:result==="Loss"}))) return;
     if(box)box.querySelectorAll(".gradebtn").forEach(b=>b.disabled=true);
     // Snapshot tip fields from the card before the DOM moves.
