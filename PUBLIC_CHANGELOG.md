@@ -1,3 +1,27 @@
+## 0.66.1
+
+Sponsors now show on the ground, the boundary boards and the ball in Game view. When a linked server lands a bet, fireworks go off over that sponsor's logo with the units won.
+
+## 0.65.2
+
+Admin tools load reliably.
+
+## 0.65.1
+
+Internal improvements.
+
+## 0.64.3
+
+A sponsor logo on the ground lights up during Game view when one of its servers has a winning bet. It stays the size it was placed, and a small ring pulses around it.
+
+## 0.64.2
+
+Internal improvements.
+
+## 0.64.1
+
+The community page leads with all-time units and a filled line of how they added up. Game view is one tap away, stays centred, and lists each leg with its live count or the bounce time. Players run on the field while a game is live. A screenshot stake can be dollars or units, and a leg that did not match can be filled in or skipped.
+
 ## 0.63.2
 
 Internal improvements.

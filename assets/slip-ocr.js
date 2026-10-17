@@ -603,9 +603,51 @@
     if (slip.bet_type === "Same Game Multi" && evs.length > 1) flag(flags, "event", "Same game multi shows more than one game");
     if (slip.leg_count != null && slip.leg_count !== slip.legs.length) flag(flags, "legs", "Slip says " + slip.leg_count + " legs but " + slip.legs.length + " were read");
     if (slip.leg_count == null) slip.leg_count = slip.legs.length;
-    flag(flags, "stake", "Stake isn't on the slip \u2014 enter it");
+    var dollars = readStake(lines, rawText);
+    if (dollars > 0) {
+      slip.stake_dollars = dollars;
+      slip.stake_mode = "dollars";
+    } else {
+      slip.stake_dollars = null;
+      slip.stake_mode = "units";
+      flag(flags, "stake", "Stake isn't on the slip \u2014 enter it");
+    }
     slip.game_groups = groupLegsByEvent(slip.legs);
     return slip;
+  }
+
+  function readStake(lines, rawText) {
+    var sources = (lines || []).map(function (l) {
+      if (l == null) return "";
+      if (typeof l === "string") return l;
+      return String(l.text || "");
+    });
+    sources.push(String(rawText || ""));
+    var i, text, m;
+    for (i = 0; i < sources.length; i++) {
+      text = sources[i];
+      m = text.match(/(?:stake|staked|bet\s*amount|wager)\s*[:\-]?\s*\$\s*(\d+(?:\.\d{1,2})?)/i);
+      if (m) return num(m[1]);
+      m = text.match(/\$\s*(\d+(?:\.\d{1,2})?)/);
+      if (m && /stake|staked|wager|bet\s*amount/i.test(text)) return num(m[1]);
+    }
+    return null;
+  }
+
+  function legHasFlag(leg, field) {
+    return ((leg && leg.flags) || []).some(function (f) { return f && f.field === field; });
+  }
+
+  function legAutoLinked(leg) {
+    if (!leg) return false;
+    var game = !!String(leg.game_id || "").trim() || (!!String(leg.event || "").trim() && !legHasFlag(leg, "event"));
+    var who = String(leg.player || leg.selection || leg.team || "").trim();
+    var player = !!who && !legHasFlag(leg, "selection") && !legHasFlag(leg, "player") && !legHasFlag(leg, "team");
+    var marketName = String(leg.market || leg.stat || "").trim();
+    var market = !!marketName && !legHasFlag(leg, "market") && !legHasFlag(leg, "stat");
+    var lineApplies = leg.kind === "player" || legHasFlag(leg, "line") || (leg.line != null && leg.line !== "");
+    var line = !lineApplies || (leg.line != null && leg.line !== "" && !legHasFlag(leg, "line"));
+    return !!(game && player && market && line);
   }
 
   function parseSlipText(text, opts) { return parseSlipLines(String(text || ""), opts); }
@@ -1137,6 +1179,8 @@
     fixtureComp: fixtureComp,
     matchEventToFixture: matchEventToFixture,
     attachFixtureMatches: attachFixtureMatches,
+    readStake: readStake,
+    legAutoLinked: legAutoLinked,
     teamsMatchEvent: teamsMatchEvent,
     espnLeagueForSport: espnLeagueForSport,
     espnScoreboardUrl: espnScoreboardUrl,
