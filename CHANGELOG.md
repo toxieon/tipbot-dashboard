@@ -1,3 +1,9 @@
+## 0.65.2 · 2026-10-17 · `admin-tools` · Admin tools load reliably
+
+- Admin tools load reliably.
+
+Tests: `tests/split.test.js`, `tests/public_build.test.js`.
+
 ## 0.65.1 · 2026-10-17 · `post-settings` · Post settings on a connector
 
 - Connector setup has a Post settings section: toggles for the lines on a posted tip, a bookmaker choice, and a live preview of the post.

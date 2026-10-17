@@ -50,6 +50,7 @@ test("the lazy files compile and aren't referenced by any <script src>", () => {
     assert.doesNotThrow(() => new vm.Script(src, {filename: name + ".js"}), name);
     assert.doesNotMatch(src, /^\s*["']use strict["']/, name + " must stay sloppy like index.html");
     assert.match(src, new RegExp("TD\\.loaded\\." + name + "=true;\\s*$"), name + " marks itself loaded last");
+    if (name === "admin") assert.match(src, /window\.TD\.loaded\["admin"\] = true;/);
     assert.doesNotMatch(HTML, new RegExp("<script[^>]+" + name + "\\.js"), "first load must not fetch " + name + ".js");
   }
 });
@@ -119,6 +120,15 @@ test("a placeholder loads its file once, then the real function replaces it and 
   assert.deepEqual(JSON.parse(JSON.stringify(ctx.calls)), [["42", "Tip2"], ["43", "X"]]);
   await ctx.openCustom();
   assert.equal(ctx.appended.length, 1, "loaded files aren't fetched again");
+});
+
+test("a paste tool that already ran is not fetched again", async () => {
+  const ctx = loaderContext({});
+  const stub = ctx.pasteSheetPreview;
+  ctx.pasteSheetPreview = function (guildId) { return "ready " + guildId; };
+  ctx.TD.loaded.admin = true;
+  assert.equal(await stub.call(null, "42"), "ready 42");
+  assert.deepEqual(ctx.appended, []);
 });
 
 test("a failed load shows a toast, can be retried, and never loops", async () => {

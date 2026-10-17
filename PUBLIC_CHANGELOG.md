@@ -1,3 +1,7 @@
+## 0.65.2
+
+Admin tools load reliably.
+
 ## 0.65.1
 
 Internal improvements.
