@@ -1,10 +1,14 @@
+## 0.66.2
+
+A sponsor logo on the ground can stand up toward the camera. Game view opens with the ground and those logos already loaded.
+
 ## 0.66.1
 
 Sponsors now show on the ground, the boundary boards and the ball in Game view. When a linked server lands a bet, fireworks go off over that sponsor's logo with the units won.
 
 ## 0.65.2
 
-Admin tools load reliably.
+Dashboard loads more reliably.
 
 ## 0.65.1
 
