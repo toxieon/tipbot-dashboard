@@ -1,0 +1,130 @@
+
+  function sectionHtml(c, settings) {
+    var id = String(c && c.id != null ? c.id : "");
+    var show = showOf(settings);
+    var books = booksOf(settings);
+    var current = String((settings && settings.bookmaker) || "");
+    var html = '<section class="cp-sec" data-cp-id="' + esc(id) + '">';
+    html += '<div class="cp-head"><div class="cp-title-row">Post settings</div><div class="cp-name">' + esc(labelOf(c)) + "</div></div>";
+    html += '<label class="cp-book">Bookmaker<select data-cp-book>';
+    html += '<option value="">Use the feed\'s bookie</option>';
+    books.forEach(function (name) {
+      html += '<option value="' + esc(name) + '"' + (name === current ? " selected" : "") + ">" + esc(name) + "</option>";
+    });
+    html += "</select></label>";
+    html += '<div class="cp-toggles">';
+    TOGGLES.forEach(function (pair) {
+      html += '<label class="cp-toggle"><input type="checkbox" data-cp-key="' + esc(pair[0]) + '"' + (show[pair[0]] ? " checked" : "") + "><span>" + esc(pair[1]) + "</span></label>";
+    });
+    html += "</div>";
+    html += '<div class="cp-preview" data-cp-preview>' + previewHtml(settings, "") + "</div>";
+    html += '<div class="cp-actions"><button type="button" class="btn" data-cp-save>Save</button><span class="cp-msg" data-cp-msg role="status"></span></div>';
+    html += "</section>";
+    return html;
+  }
+
+  function readSettings(section, base) {
+    var show = showOf(base);
+    var boxes = section.querySelectorAll("[data-cp-key]");
+    Array.prototype.forEach.call(boxes, function (box) {
+      show[box.getAttribute("data-cp-key")] = !!box.checked;
+    });
+    var book = section.querySelector("[data-cp-book]");
+    return {
+      bookmaker: book ? book.value : "",
+      show: show,
+      bookmakers: booksOf(base)
+    };
+  }
+
+  function injectCss(doc) {
+    if (!doc || !doc.getElementById || doc.getElementById("cp-css")) return;
+    var style = doc.createElement("style");
+    style.id = "cp-css";
+    style.textContent = [
+      "#cp-root{min-width:0;max-width:100%}",
+      "#cp-root *{box-sizing:border-box}",
+      "#cp-root .cp-sec{margin-top:16px;padding-top:14px;border-top:1px solid var(--line,#3f4147);min-width:0}",
+      "#cp-root .cp-sec:first-child{margin-top:0;padding-top:0;border-top:0}",
+      "#cp-root .cp-title-row{font-weight:700;font-size:var(--t-sub,14px);color:var(--txt,#eee)}",
+      "#cp-root .cp-name{color:var(--faint,#9aa);font-size:var(--t-foot,12px);margin-top:2px}",
+      "#cp-root .cp-book{display:flex;flex-direction:column;gap:6px;margin:12px 0;font-size:13px;color:var(--muted,#a8acb2)}",
+      "#cp-root select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line,#3f4147);background:var(--card2,#232428);color:var(--txt,#eee);padding:8px 10px;font:inherit}",
+      "#cp-root .cp-toggles{display:grid;grid-template-columns:1fr;gap:8px}",
+      "#cp-root .cp-toggle{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 0;color:var(--txt,#eee);font-size:14px}",
+      "#cp-root .cp-toggle input{width:22px;height:22px;flex:none}",
+      "#cp-root .cp-preview{margin-top:12px}",
+      "#cp-root .cp-discord{background:#313338;border-radius:12px;padding:10px}",
+      "#cp-root .cp-embed{display:flex;background:#2b2d31;border-radius:8px;overflow:hidden}",
+      "#cp-root .cp-bar{width:4px;background:#f0b232;flex:none}",
+      "#cp-root .cp-body{padding:10px 12px;min-width:0;flex:1}",
+      "#cp-root .cp-title{font-weight:700;color:#f2f3f5;font-size:15px}",
+      "#cp-root .cp-desc{margin-top:6px;color:#dbdee1;font-size:13px;white-space:pre-wrap}",
+      "#cp-root .cp-fields{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:8px}",
+      "#cp-root .cp-field{min-width:42%}",
+      "#cp-root .cp-wide{flex-basis:100%}",
+      "#cp-root .cp-fk{color:#b5bac1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.02em}",
+      "#cp-root .cp-v{color:#f2f3f5;font-size:13px;overflow-wrap:anywhere}",
+      "#cp-root .cp-card{display:block;width:100%;margin-top:8px;border-radius:8px}",
+      "#cp-root .cp-card-wait{height:72px;background:#232428;color:#b5bac1;display:flex;align-items:center;justify-content:center;font-size:12px}",
+      "#cp-root .cp-foot{margin-top:8px;color:#949ba4;font-size:11px}",
+      "#cp-root .cp-actions{display:flex;align-items:center;gap:10px;margin-top:12px}",
+      "#cp-root .cp-actions .btn{min-height:44px}",
+      "#cp-root .cp-msg{font-size:12px;color:var(--faint,#9aa)}",
+      "#cp-root .cp-msg.cp-err{color:var(--loss,#e55)}",
+      "@media(min-width:480px){#cp-root .cp-toggles{grid-template-columns:1fr 1fr}}"
+    ].join("");
+    (doc.head || doc.documentElement).appendChild(style);
+  }
+
+  async function readJson(res) {
+    try { return await res.json(); } catch (e) { return {}; }
+  }
+
+  function unauth(res, err, ctx) {
+    if ((res && res.status === 401) || (err && err.unauth)) {
+      if (ctx && typeof ctx.onUnauth === "function") ctx.onUnauth();
+      return true;
+    }
+    return false;
+  }
+
+  function mount(el, ctx) {
+    if (!el) return;
+    ctx = ctx || {};
+    var doc = el.ownerDocument || root.document;
+    if (!doc) return;
+    injectCss(doc);
+    var stopped = false;
+    var gen = 0;
+    var state = { list: [], settings: {}, images: {} };
+    var timers = {};
+
+    function alive() { return !stopped && el.isConnected !== false; }
+
+    function paint() {
+      if (!alive()) return;
+      var html = '<div id="cp-root">';
+      if (!state.list.length) html += '<div class="empty">No connectors yet.</div>';
+      state.list.forEach(function (c) {
+        if (!c || c.id == null || c.id === "") return;
+        html += sectionHtml(c, state.settings[String(c.id)] || { show: {}, bookmaker: "" });
+      });
+      html += "</div>";
+      el.innerHTML = html;
+      bind();
+    }
+
+    function sectionEl(id) {
+      var want = String(id);
+      var nodes = el.querySelectorAll("[data-cp-id]");
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].getAttribute("data-cp-id") === want) return nodes[i];
+      }
+      return null;
+    }
+
+    function paintPreview(id) {
+      var section = sectionEl(id);
+      if (!section) return;
+      var slot = section.querySelector("[data-cp-preview]");
