@@ -1,3 +1,7 @@
+## 0.66.3
+
+A sponsor logo on the ground stands up toward the camera, with the near edge on the turf and the far edge shorter. Game view shows the ground and those logos straight away. Your bets load in underneath.
+
 ## 0.66.2
 
 A sponsor logo on the ground can stand up toward the camera. Game view opens with the ground and those logos already loaded.

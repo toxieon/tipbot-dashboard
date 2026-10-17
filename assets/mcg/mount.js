@@ -91,6 +91,25 @@ function corners(logo) {
     out.push(q);
   }
   if (minY) for (i = 0; i < 4; i++) out[i].y -= minY;
+  // This camera sits ~220 m back, so a rigid board turned to face it is almost
+  // a rectangle (at 70° the far edge is even slightly wider). Shorten each
+  // corner toward the camera axis in proportion to how far it has risen.
+  // The near edge stays full width on the turf. The far edge is narrower, and
+  // the broadcast projection is then a real keystone. Same taper belongs in
+  // TipBot ground_logo.js corners() so the studio footprint matches.
+  var rise = 0;
+  for (i = 0; i < 4; i++) if (out[i].y > rise) rise = out[i].y;
+  var taper = (clampAngle(logo.angle) / 80) * 0.5;
+  if (rise && taper) {
+    for (i = 0; i < 4; i++) {
+      var k = taper * (out[i].y / rise);
+      var side = ax * (out[i].x - cx) + az * (out[i].z - cz);
+      var along = tx * (out[i].x - cx) + tz * (out[i].z - cz);
+      side *= (1 - k);
+      out[i].x = cx + side * ax + along * tx;
+      out[i].z = cz + side * az + along * tz;
+    }
+  }
   return out;
 }
 
@@ -159,13 +178,31 @@ export function cssMatrix(w, h, dest) {
   ].join(",") + ")";
 }
 
-// Angle 0 is the old flat pose. A tilt rotates around the camera-facing ground
-// axis, then lifts so the near edge stays at y.
+// Angle 0 is the old flat pose. A tilt uses the same corners as the photo quad:
+// near edge on the turf, far edge raised and narrower toward the camera.
+// PlaneGeometry vertex order is top-left, top-right, bottom-left, bottom-right.
 export function placeLogo(mesh, logo, y) {
+  var pts = corners(logo);
+  var pos = mesh.geometry && mesh.geometry.attributes && mesh.geometry.attributes.position;
+  var order = [0, 1, 3, 2];
+  if (pos && pos.count === 4) {
+    var i;
+    for (i = 0; i < 4; i++) {
+      var p = pts[order[i]];
+      pos.setXYZ(i, p.x, p.y + y, p.z);
+    }
+    pos.needsUpdate = true;
+    mesh.geometry.computeBoundingSphere();
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.set(0, 0, 0);
+    mesh.quaternion.identity();
+    mesh.scale.set(1, 1, 1);
+    mesh.frustumCulled = false;
+    mesh.updateMatrix();
+    return;
+  }
   var yaw = T.MathUtils.degToRad(-(Number(logo.rot || logo.rotation) || 0));
-  var angle = Number(logo.angle);
-  if (!isFinite(angle)) angle = 0;
-  angle = Math.max(0, Math.min(80, angle));
+  var angle = clampAngle(logo.angle);
   var x = Number(logo.x) || 0;
   var z = Number(logo.z) || 0;
   mesh.rotation.order = "YXZ";
@@ -179,12 +216,11 @@ export function placeLogo(mesh, logo, y) {
     T.MathUtils.degToRad(angle)
   ));
   mesh.updateMatrixWorld(true);
-  var pos = mesh.geometry.attributes.position;
+  var attr = mesh.geometry.attributes.position;
   var v = new T.Vector3();
   var minY = Infinity;
-  var i;
-  for (i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+  for (i = 0; i < attr.count; i++) {
+    v.fromBufferAttribute(attr, i).applyMatrix4(mesh.matrixWorld);
     if (v.y < minY) minY = v.y;
   }
   mesh.position.y += y - minY;
@@ -476,6 +512,7 @@ export async function mount(host, opts) {
           new T.PlaneGeometry(w * 1.5, d * 2.2),
           new T.MeshBasicMaterial({map: glowTexture(), color: 0xffe27a, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending})
         );
+        placeLogo(glow, {x: x, z: z, w: w * 1.5, d: d * 2.2, rot: logo.rot || logo.rotation, angle: logo.angle}, 0.4);
         glow.quaternion.copy(mesh.quaternion);
         glow.position.copy(mesh.position);
         glow.position.y -= 0.06;
