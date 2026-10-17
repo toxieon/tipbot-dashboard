@@ -1,3 +1,13 @@
+## 0.66.1 · 2026-10-17 · `sponsor-studio` · Sponsors on the ground, boards and ball, with fireworks on a win
+
+- Game view reads one sponsor feed for the game (`/api/ground/scene?game=`): ground logos, LED banners and the ball skin from the new sponsor studio. The flat logo overlay that sat on a second 400 × 220 grid is gone; logos are drawn once, in 3D, at the metres set in the studio.
+- When a bet from a server linked to a logo lands, fireworks burst over that logo and a +units hologram rises from it. Hits are checked every 10 seconds and whenever a leg on the page wins. Several at once play 1.5 seconds apart. Hits from before the page opened don't replay. With reduced motion the label shows in place, no sparks.
+- Sponsor banners replace the house slides on the boundary ring and stand ribbons, each for its own seconds. With no live banners the house slides play.
+- The match ball carries the sponsor's ball skin when one is set for the game.
+- Without WebGL, logos sit on the still photo by projecting their metres through the same broadcast camera, and a hit shows as a rising label.
+
+Tests: `tests/ground_logos.test.js`.
+
 ## 0.65.2 · 2026-10-17 · `admin-tools` · Admin tools load reliably
 
 - Admin tools load reliably.

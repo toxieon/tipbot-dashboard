@@ -217,7 +217,19 @@
     };
   }
 
+  // A sponsor's ball skin (TBLiveFx.ballSkin, an image URL) rides on a slightly larger ball.
   function ballSvg(bx, by) {
+    var skin = root.TBLiveFx && root.TBLiveFx.ballSkin;
+    if (skin && /^(blob:|data:image\/|https:\/\/|\/)/.test(String(skin))) {
+      var safe = String(skin).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      return (
+        '<g transform="translate(' + bx.toFixed(1) + " " + by.toFixed(1) + ') rotate(-18)">' +
+        '<ellipse rx="7.4" ry="4.6" fill="#B3261E" stroke="#6E1712" stroke-width=".7"/>' +
+        '<image href="' + safe + '" x="-5.4" y="-3.1" width="10.8" height="6.2" preserveAspectRatio="xMidYMid meet"/>' +
+        '<ellipse rx="7.4" ry="4.6" fill="none" stroke="rgba(255,255,255,.18)" stroke-width=".5"/>' +
+        "</g>"
+      );
+    }
     return (
       '<ellipse cx="' +
       bx.toFixed(1) +

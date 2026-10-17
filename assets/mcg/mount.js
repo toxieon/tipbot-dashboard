@@ -8,6 +8,26 @@ import { addBoards } from "./boards/boards.js";
 import { upgradeStands, upgradeTowers, addGround } from "./v5.js";
 
 var FALLBACK_URL = new URL("./fallback.png", import.meta.url).href;
+// The broadcast camera. The still photo is a render from this same camera.
+var CAM = {fov: 36, pos: [0, 110, 200], look: [0, 0, 0]};
+var PHOTO = {w: 780, h: 552};
+
+// Where a ground point (metres) lands on the still photo shown with object-fit: cover
+// in a host of hostW x hostH pixels. Same camera as the 3D view, so logos line up.
+export function projectGround(x, z, hostW, hostH) {
+  var cam = new T.PerspectiveCamera(CAM.fov, PHOTO.w / PHOTO.h, 0.1, 3000);
+  cam.position.set(CAM.pos[0], CAM.pos[1], CAM.pos[2]);
+  cam.lookAt(CAM.look[0], CAM.look[1], CAM.look[2]);
+  cam.updateMatrixWorld();
+  var v = new T.Vector3(Number(x) || 0, 0.4, Number(z) || 0).project(cam);
+  var px = (v.x + 1) / 2 * PHOTO.w, py = (1 - v.y) / 2 * PHOTO.h;
+  var scale = Math.max(hostW / PHOTO.w, hostH / PHOTO.h);
+  return {
+    x: (hostW - PHOTO.w * scale) / 2 + px * scale,
+    y: (hostH - PHOTO.h * scale) / 2 + py * scale,
+    scale: scale
+  };
+}
 
 function reducedMotion() {
   try {
@@ -201,9 +221,9 @@ export async function mount(host, opts) {
     fill.position.set(-80, 40, -60);
     scene.add(fill);
 
-    var camera = new T.PerspectiveCamera((opts.fov || 36), box.w / box.h, 0.1, 3000);
-    var cam = opts.cam || [0, 110, 200];
-    var look = opts.look || [0, 0, 0];
+    var camera = new T.PerspectiveCamera((opts.fov || CAM.fov), box.w / box.h, 0.1, 3000);
+    var cam = opts.cam || CAM.pos;
+    var look = opts.look || CAM.look;
     camera.position.set(cam[0], cam[1], cam[2]);
     camera.lookAt(look[0], look[1], look[2]);
 
@@ -217,22 +237,68 @@ export async function mount(host, opts) {
     scene.add(gltf.scene);
     var logoGroup = new T.Group();
     scene.add(logoGroup);
+    var fxGroup = new T.Group();
+    scene.add(fxGroup);
+    var logoById = {};
     var litLights = [];
+    var effects = [];
+    function disposeMesh(ch) {
+      if (ch.geometry) ch.geometry.dispose();
+      if (ch.material) {
+        if (ch.material.map) ch.material.map.dispose();
+        ch.material.dispose();
+      }
+    }
     function clearLogos() {
       while (logoGroup.children.length) {
         var ch = logoGroup.children.pop();
-        if (ch.geometry) ch.geometry.dispose();
-        if (ch.material) {
-          if (ch.material.map) ch.material.map.dispose();
-          ch.material.dispose();
-        }
+        if (ch.material && ch.material.map === glowTex) ch.material.map = null;
+        disposeMesh(ch);
       }
       litLights.forEach(function (light) { scene.remove(light); });
       litLights = [];
+      logoById = {};
+    }
+    var glowTex = null;
+    // A soft oval of light. Shared by every logo, so it is drawn once.
+    function glowTexture() {
+      if (glowTex) return glowTex;
+      var cv = document.createElement("canvas");
+      cv.width = 256; cv.height = 128;
+      var g = cv.getContext("2d");
+      var grad = g.createRadialGradient(128, 64, 4, 128, 64, 64);
+      grad.addColorStop(0, "rgba(255,255,255,1)");
+      grad.addColorStop(0.55, "rgba(255,255,255,0.45)");
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      g.setTransform(2, 0, 0, 1, -128, 0);
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 256, 128);
+      glowTex = new T.CanvasTexture(cv);
+      return glowTex;
+    }
+    var sparkTex = null;
+    function sparkTexture() {
+      if (sparkTex) return sparkTex;
+      var cv = document.createElement("canvas");
+      cv.width = 64; cv.height = 64;
+      var g = cv.getContext("2d");
+      var grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, "rgba(255,255,255,1)");
+      grad.addColorStop(0.3, "rgba(255,255,255,0.85)");
+      grad.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 64, 64);
+      sparkTex = new T.CanvasTexture(cv);
+      return sparkTex;
+    }
+    function flat(mesh, yaw) {
+      mesh.rotation.order = "YXZ";
+      mesh.rotation.y = T.MathUtils.degToRad(-yaw);
+      mesh.rotation.x = -Math.PI / 2;
     }
     function setLogos(logos) {
       clearLogos();
-      (logos || []).forEach(function (logo) {
+      (logos || []).forEach(function (logo, i) {
         var url = logo && (logo.url || logo.src || logo.image);
         if (!url) return;
         var w = Number(logo.w || logo.width_m || 14);
@@ -243,36 +309,130 @@ export async function mount(host, opts) {
         var z = Number(logo.z) || 0;
         var yaw = Number(logo.rot || logo.rotation || 0);
         if (!isFinite(yaw)) yaw = 0;
-        var lit = !!(logo.lit);
         var tex = new T.TextureLoader().load(url, function () {
           if (alive && still && renderer) renderer.render(scene, camera);
         });
         if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+        tex.anisotropy = 8;
         var mat = new T.MeshBasicMaterial({map: tex, transparent: true, depthWrite: false});
-        if (lit) mat.color = new T.Color(0xfff6c8);
         var mesh = new T.Mesh(new T.PlaneGeometry(w, d), mat);
-        mesh.rotation.order = "YXZ";
-        mesh.rotation.y = T.MathUtils.degToRad(-yaw);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.set(x, lit ? 0.55 : 0.4, z);
+        flat(mesh, yaw);
+        mesh.position.set(x, 0.4, z);
         logoGroup.add(mesh);
-        if (lit) {
-          var glow = new T.Mesh(
-            new T.PlaneGeometry(w * 1.15, d * 1.2),
-            new T.MeshBasicMaterial({color: 0xf4e04d, transparent: true, opacity: 0.28, depthWrite: false})
-          );
-          glow.rotation.order = "YXZ";
-          glow.rotation.y = T.MathUtils.degToRad(-yaw);
-          glow.rotation.x = -Math.PI / 2;
-          glow.position.set(x, 0.32, z);
-          logoGroup.add(glow);
-          var light = new T.PointLight(0xf4e04d, 0.8, 18);
-          light.position.set(x, 8, z);
-          scene.add(light);
-          litLights.push(light);
-        }
+        var glow = new T.Mesh(
+          new T.PlaneGeometry(w * 1.5, d * 2.2),
+          new T.MeshBasicMaterial({map: glowTexture(), color: 0xffe27a, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending})
+        );
+        flat(glow, yaw);
+        glow.position.set(x, 0.34, z);
+        logoGroup.add(glow);
+        var key = String(logo.id || logo.asset_id || i);
+        logoById[key] = {x: x, z: z, w: w, d: d, mat: mat, glow: glow};
       });
       if (alive && renderer) renderer.render(scene, camera);
+    }
+
+    // ---- celebration: fireworks over the logo and a rising +units hologram
+    var PALETTE = [0xffd54a, 0xffffff, 0xff8a3d, 0x7dd3fc, 0xf472b6, 0x86efac];
+    function burst(x, y, z, delay) {
+      var n = 120;
+      var pos = new Float32Array(n * 3), col = new Float32Array(n * 3), vel = [];
+      var base = new T.Color(PALETTE[(Math.random() * PALETTE.length) | 0]);
+      var accent = new T.Color(PALETTE[(Math.random() * PALETTE.length) | 0]);
+      for (var i = 0; i < n; i++) {
+        pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+        var th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), sp = 9 + Math.random() * 7;
+        vel.push([Math.sin(ph) * Math.cos(th) * sp, Math.cos(ph) * sp * 0.8 + 2, Math.sin(ph) * Math.sin(th) * sp]);
+        var c = i % 3 ? base : accent;
+        col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+      }
+      var geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.BufferAttribute(pos, 3));
+      geo.setAttribute("color", new T.BufferAttribute(col, 3));
+      var mat = new T.PointsMaterial({size: 3.2, map: sparkTexture(), vertexColors: true, transparent: true, opacity: 0,
+        depthWrite: false, blending: T.AdditiveBlending, sizeAttenuation: true});
+      var pts = new T.Points(geo, mat);
+      fxGroup.add(pts);
+      effects.push({kind: "burst", obj: pts, vel: vel, age: -delay, life: 1.9});
+    }
+    function labelSprite(text) {
+      var cv = document.createElement("canvas");
+      cv.width = 512; cv.height = 160;
+      var g = cv.getContext("2d");
+      g.font = "700 104px 'Instrument Sans', Geist, system-ui, sans-serif";
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.shadowColor = "rgba(110,220,255,0.95)"; g.shadowBlur = 28;
+      g.fillStyle = "#e9fbff";
+      g.fillText(text, 256, 84);
+      g.shadowBlur = 0;
+      var tex = new T.CanvasTexture(cv);
+      if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+      var sp = new T.Sprite(new T.SpriteMaterial({map: tex, transparent: true, depthWrite: false, depthTest: false, opacity: 0}));
+      sp.scale.set(26, 8.1, 1);
+      return sp;
+    }
+    function celebrate(id, label) {
+      var logo = logoById[String(id)];
+      if (!logo || !alive || !renderer) return false;
+      var text = String(label || "").slice(0, 12) || "WIN";
+      var sprite = labelSprite(text);
+      sprite.position.set(logo.x, 8, logo.z);
+      fxGroup.add(sprite);
+      effects.push({kind: "label", obj: sprite, age: 0, life: 3.2, y0: 8});
+      effects.push({kind: "pulse", logo: logo, age: 0, life: 2.6});
+      if (still) {
+        sprite.material.opacity = 1;
+        sprite.position.y = 14;
+        logo.glow.material.opacity = 0.35;
+        renderer.render(scene, camera);
+        setTimeout(function () {
+          if (!alive || !renderer) return;
+          fxGroup.remove(sprite); disposeMesh(sprite);
+          effects = [];
+          logo.glow.material.opacity = 0;
+          renderer.render(scene, camera);
+        }, 3000);
+        return true;
+      }
+      var top = 20 + Math.min(logo.w, 20) * 0.3;
+      burst(logo.x, top, logo.z, 0);
+      burst(logo.x - logo.w * 0.45, top + 4, logo.z - 3, 0.35);
+      burst(logo.x + logo.w * 0.45, top + 2, logo.z + 2, 0.7);
+      return true;
+    }
+    function stepEffects(dt) {
+      if (!effects.length) return;
+      effects = effects.filter(function (e) {
+        e.age += dt;
+        var t = e.age / e.life;
+        if (e.kind === "burst") {
+          if (e.age < 0) return true;
+          var arr = e.obj.geometry.attributes.position.array;
+          for (var i = 0; i < e.vel.length; i++) {
+            var v = e.vel[i];
+            v[1] -= 9 * dt;
+            v[0] *= 0.985; v[2] *= 0.985;
+            arr[i * 3] += v[0] * dt; arr[i * 3 + 1] += v[1] * dt; arr[i * 3 + 2] += v[2] * dt;
+          }
+          e.obj.geometry.attributes.position.needsUpdate = true;
+          e.obj.material.opacity = t < 0.08 ? 1 : Math.max(0, 1 - (t - 0.08) / 0.92);
+        } else if (e.kind === "label") {
+          e.obj.position.y = e.y0 + Math.min(1, t) * 16;
+          e.obj.material.opacity = t < 0.12 ? t / 0.12 : Math.max(0, 1 - Math.max(0, t - 0.65) / 0.35);
+        } else if (e.kind === "pulse") {
+          e.logo.glow.material.opacity = 0.75 * Math.abs(Math.sin(e.age * 5)) * (1 - t);
+        }
+        if (t >= 1) {
+          if (e.obj) {
+            fxGroup.remove(e.obj);
+            if (e.obj.material && e.obj.material.map === sparkTex) e.obj.material.map = null;
+            disposeMesh(e.obj);
+          }
+          if (e.kind === "pulse") e.logo.glow.material.opacity = 0;
+          return false;
+        }
+        return true;
+      });
     }
     try { upgradeStands(scene, night); } catch (e1) {}
     try { upgradeTowers(scene, night); } catch (e2) {}
@@ -295,6 +455,7 @@ export async function mount(host, opts) {
       var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
       last = now;
       if (!still && boards) boards.update(dt);
+      if (!still) stepEffects(dt);
       renderer.render(scene, camera);
       if (!still) raf = requestAnimationFrame(draw);
     }
@@ -325,6 +486,11 @@ export async function mount(host, opts) {
       fallback: false,
       resize: resize,
       setLogos: setLogos,
+      celebrate: celebrate,
+      setBoards: function (slides) {
+        if (!boards || !boards.setSlides) return Promise.resolve();
+        return boards.setSlides(slides).then(function () { if (alive && renderer) renderer.render(scene, camera); });
+      },
       stop: function () {
         alive = false;
         if (raf) cancelAnimationFrame(raf);
