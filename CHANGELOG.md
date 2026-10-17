@@ -1,3 +1,10 @@
+## 0.65.1 · 2026-10-17 · `post-settings` · Post settings on a connector
+
+- Connector setup has a Post settings section: toggles for the lines on a posted tip, a bookmaker choice, and a live preview of the post.
+- That section loads from an owner-only script. The public site build leaves it out.
+
+Tests: `tests/post_settings.test.js`.
+
 ## 0.64.3 · 2026-10-16 · `ground-logos` · A ground logo lights up on a winning bet
 
 - A sponsor logo placed on the ground keeps its position, size, and rotation on Game view, including the still photo when the 3D ground cannot start.

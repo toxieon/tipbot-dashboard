@@ -10,6 +10,7 @@ test("the connectors shell is owner-only and stays out of the public page", asyn
   const shell = fs.readFileSync(path.join(__dirname, "..", "assets", "owner-server.js"), "utf8");
   assert.equal(ASSET_DENY.has("assets/owner-server.js"), true);
   assert.equal(ASSET_DENY.has("assets/connector-push.js"), true);
+  assert.equal(ASSET_DENY.has("assets/connector-post.js"), true);
   assert.match(shell, /#stab-connectors/);
   assert.match(shell, /btn\.id = "stab-connectors"/);
   assert.match(shell, /Connectors/);
