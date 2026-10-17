@@ -297,4 +297,5 @@
       if(msg){ msg.style.color="#f0857f"; msg.textContent="Couldn't reach TipBot."; }
     }
   }
+  if (typeof window !== "undefined" && window.TD && window.TD.loaded) window.TD.loaded["admin"] = true;
   TD.loaded.admin=true;
