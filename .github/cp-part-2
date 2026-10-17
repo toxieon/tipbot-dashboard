@@ -1,0 +1,117 @@
+      if (!slot) return;
+      slot.innerHTML = previewHtml(state.settings[id], state.images[id] || "");
+    }
+
+    function scheduleImage(id) {
+      if (timers[id]) clearTimeout(timers[id]);
+      var settings = state.settings[id];
+      if (!settings || !showOf(settings).silks) {
+        state.images[id] = "";
+        return;
+      }
+      timers[id] = setTimeout(function () { loadImage(id); }, 200);
+    }
+
+    async function loadImage(id) {
+      if (!ctx.api) return;
+      try {
+        var res = await ctx.api(previewPath(id, ctx.gid), {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ bookmaker: state.settings[id].bookmaker, show: state.settings[id].show })
+        });
+        if (!alive()) return;
+        if (unauth(res, null, ctx)) return;
+        var body = await readJson(res);
+        if (body && body.image) state.images[id] = String(body.image);
+        paintPreview(id);
+      } catch (e) {
+        unauth(null, e, ctx);
+      }
+    }
+
+    function onChange(id) {
+      var section = sectionEl(id);
+      if (!section) return;
+      state.settings[id] = readSettings(section, state.settings[id]);
+      paintPreview(id);
+      scheduleImage(id);
+    }
+
+    async function onSave(id) {
+      var section = sectionEl(id);
+      if (!section || !ctx.api) return;
+      var msg = section.querySelector("[data-cp-msg]");
+      state.settings[id] = readSettings(section, state.settings[id]);
+      if (msg) { msg.textContent = "Saving…"; msg.classList.remove("cp-err"); }
+      try {
+        var res = await ctx.api(settingsPath(id, ctx.gid), {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ bookmaker: state.settings[id].bookmaker, show: state.settings[id].show })
+        });
+        if (unauth(res, null, ctx)) return;
+        var body = await readJson(res);
+        if (!res || !res.ok || body.ok === false || !body.post_settings) {
+          if (msg) { msg.textContent = "Could not save"; msg.classList.add("cp-err"); }
+          return;
+        }
+        state.settings[id] = body.post_settings;
+        if (msg) msg.textContent = "Saved";
+        paintPreview(id);
+      } catch (e) {
+        if (unauth(null, e, ctx)) return;
+        if (msg) { msg.textContent = "Could not save"; msg.classList.add("cp-err"); }
+      }
+    }
+
+    function bind() {
+      var sections = el.querySelectorAll("[data-cp-id]");
+      Array.prototype.forEach.call(sections, function (section) {
+        var id = section.getAttribute("data-cp-id");
+        section.addEventListener("change", function () { onChange(id); });
+        var save = section.querySelector("[data-cp-save]");
+        if (save) save.onclick = function () { onSave(id); };
+      });
+      state.list.forEach(function (c) {
+        if (c && c.id != null) scheduleImage(String(c.id));
+      });
+    }
+
+    async function load() {
+      var token = ++gen;
+      el.innerHTML = '<div id="cp-root"><div class="empty">Loading…</div></div>';
+      if (!ctx.api) { paint(); return; }
+      try {
+        var res = await ctx.api(listPath(ctx.gid));
+        if (!alive() || token !== gen) return;
+        if (unauth(res, null, ctx)) return;
+        var body = await readJson(res);
+        var list = body && Array.isArray(body.connectors) ? body.connectors : [];
+        state.list = list.filter(Boolean);
+        state.settings = {};
+        state.list.forEach(function (c) {
+          state.settings[String(c.id)] = c.post_settings || { show: {}, bookmaker: "", bookmakers: FALLBACK_BOOKS };
+        });
+        if (alive() && token === gen) paint();
+      } catch (e) {
+        if (unauth(null, e, ctx)) return;
+        if (alive() && token === gen) el.innerHTML = '<div id="cp-root"><div class="empty">Could not load post settings.</div></div>';
+      }
+    }
+
+    load();
+    return function stop() { stopped = true; Object.keys(timers).forEach(function (id) { clearTimeout(timers[id]); }); };
+  }
+
+  var API = {
+    mount: mount,
+    previewModel: previewModel,
+    previewHtml: previewHtml,
+    TOGGLES: TOGGLES,
+    SAMPLE: SAMPLE
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  root.TBConnectorPost = API;
+  if (root.TD && root.TD.loaded) root.TD.loaded["connector-post"] = true;
+})(typeof window !== "undefined" ? window : globalThis);
