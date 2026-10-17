@@ -25,19 +25,104 @@ test("game view reads one sponsor scene and polls hits for that game", () => {
 test("the flat 400 x 220 logo overlay is gone", () => {
   assert.doesNotMatch(html, /fliveLogoLayer|fliveMarkLit|fl-logo-layer|\/api\/ground\/logos/);
   assert.doesNotMatch(html, /x\/84\)\*168/);
-  assert.match(html, /mod\.projectGround\(g\.x, g\.z, W, H\)/);
+  assert.doesNotMatch(html, /translate\(-50%,-50%\) rotate/);
+  assert.match(html, /mod\.screenQuad\(g, W, H\)/);
+  assert.match(html, /mod\.cssMatrix\(100, 100, quad\)/);
+  assert.match(html, /transformOrigin="0 0"/);
 });
 
 test("the 3D mount celebrates a logo and takes sponsor banners", () => {
   assert.match(mount, /export function projectGround/);
+  assert.match(mount, /export function screenQuad/);
+  assert.match(mount, /export function cssMatrix/);
+  assert.match(mount, /export function placeLogo/);
   assert.match(mount, /function celebrate\(id, label\)/);
   assert.match(mount, /celebrate: celebrate/);
   assert.match(mount, /setBoards: function/);
   assert.match(mount, /T\.AdditiveBlending/);
   assert.match(mount, /if \(still\)/);
-  assert.match(mount, /rotation\.y = T\.MathUtils\.degToRad\(-yaw\)/);
+  assert.match(mount, /placeLogo\(mesh, logo, 0\.4\)/);
+  assert.match(mount, /glow\.quaternion\.copy\(mesh\.quaternion\)/);
+  assert.match(mount, /glow\.position\.y -= 0\.06/);
+  assert.doesNotMatch(mount, /rotation\.y = T\.MathUtils\.degToRad\(-yaw\)/);
   assert.match(boards, /async function setSlides/);
   assert.match(afl, /TBLiveFx\.ballSkin/);
+});
+
+test("sponsor files stay cached and the scene revalidates", () => {
+  assert.match(html, /rel="preload" as="image" href="\.\/assets\/mcg\/fallback\.png"/);
+  assert.match(html, /rel="preload" as="fetch" href="\.\/assets\/mcg\/mcg\.glb" crossorigin/);
+  assert.match(html, /function warmGround\(/);
+  assert.match(html, /groundFetch\("\/api\/ground\/scene\?game=", "no-cache"\)/);
+  assert.match(html, /groundFetch\(g\.url, "force-cache"\)/);
+  assert.match(html, /groundFetch\(b\.url, "force-cache"\)/);
+  assert.match(html, /groundFetch\(d\.ball\.url, "force-cache"\)/);
+  assert.match(html, /cache:cacheMode\|\|"force-cache"/);
+  const blob = html.slice(html.indexOf("function fliveBlob"), html.indexOf("function fliveSponsors"));
+  assert.match(blob, /groundFetch\(url, "force-cache"\)/);
+  assert.doesNotMatch(blob, /\bapi\(/);
+  assert.doesNotMatch(html, /api\("\/api\/ground\/scene/);
+  assert.match(html, /api\("\/api\/ground\/hits\?game=/);
+  const loadAt = html.indexOf("async function load()");
+  const boot = html.slice(loadAt, html.indexOf("function saveThemePrefs", loadAt));
+  assert.match(boot, /warmTipBot\(\);\n    warmGround\(\);/);
+  const early = html.slice(html.lastIndexOf("if(getToken())"), html.lastIndexOf("if(getToken())") + 80);
+  assert.match(early, /warmTipBot\(\); warmGround\(\)/);
+  const ping = html.slice(html.indexOf("softPingLifecycle"), html.indexOf("function getToken"));
+  assert.match(ping, /warmTipBot\(\)/);
+  assert.doesNotMatch(ping, /warmGround/);
+});
+
+test("a tilt stands the far edge up and the photo quad is perspective", async () => {
+  const mod = await import("../assets/mcg/mount.js");
+  const T = await import("../assets/vendor/three/three.module.min.js");
+  const flat = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 0}, 780, 552);
+  const missing = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0}, 780, 552);
+  assert.deepEqual(missing, flat);
+  const quad = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 40}, 780, 552);
+  const farW = Math.hypot(quad[1].x - quad[0].x, quad[1].y - quad[0].y);
+  const nearW = Math.hypot(quad[2].x - quad[3].x, quad[2].y - quad[3].y);
+  assert.ok(quad[0].y < quad[3].y);
+  assert.ok(Math.abs(farW - nearW) > 0.5);
+  const clamped = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 99}, 780, 552);
+  const cap = mod.screenQuad({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 80}, 780, 552);
+  assert.deepEqual(clamped, cap);
+  const css = mod.cssMatrix(100, 100, quad);
+  assert.match(css, /^matrix3d\(/);
+  const nums = css.slice(9, -1).split(",").map(Number);
+  assert.ok(Math.abs(nums[3]) + Math.abs(nums[7]) > 1e-6);
+  function apply(u, v) {
+    const x = nums[0] * u + nums[4] * v + nums[12];
+    const y = nums[1] * u + nums[5] * v + nums[13];
+    const w = nums[3] * u + nums[7] * v + nums[15];
+    return {x: x / w, y: y / w};
+  }
+  const back = [apply(0, 0), apply(100, 0), apply(100, 100), apply(0, 100)];
+  for (let i = 0; i < 4; i++) {
+    assert.ok(Math.hypot(back[i].x - quad[i].x, back[i].y - quad[i].y) < 0.02);
+  }
+
+  function worldYs(logo) {
+    const mesh = new T.Mesh(new T.PlaneGeometry(logo.w, logo.d));
+    mod.placeLogo(mesh, logo, 0.4);
+    mesh.updateMatrixWorld(true);
+    const pos = mesh.geometry.attributes.position;
+    const v = new T.Vector3();
+    const out = [];
+    for (let i = 0; i < pos.count; i++) {
+      out.push(v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).clone());
+    }
+    return out;
+  }
+  const flatPts = worldYs({x: 12, z: -4, w: 14, d: 10, rot: 20});
+  for (const p of flatPts) assert.ok(Math.abs(p.y - 0.4) < 1e-6);
+  const up = worldYs({x: 0, z: 0, w: 14, d: 10, rot: 0, angle: 40});
+  const far = up.filter((p) => p.z < 0);
+  const near = up.filter((p) => p.z > 0);
+  assert.equal(far.length, 2);
+  assert.equal(near.length, 2);
+  assert.ok(far.every((p) => p.y > 1));
+  assert.ok(near.every((p) => Math.abs(p.y - 0.4) < 1e-4));
 });
 
 test("a ball skin only accepts image URLs and escapes them", () => {
