@@ -8,9 +8,9 @@
 
 Tests: `tests/ground_logos.test.js`.
 
-## 0.65.2 · 2026-10-17 · `admin-tools` · Admin tools load reliably
+## 0.65.2 · 2026-10-17 · `admin-tools` · Dashboard loads more reliably
 
-- Admin tools load reliably.
+- Dashboard loads more reliably.
 
 Tests: `tests/split.test.js`, `tests/public_build.test.js`.
 

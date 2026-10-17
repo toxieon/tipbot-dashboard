@@ -4,7 +4,7 @@ Sponsors now show on the ground, the boundary boards and the ball in Game view. 
 
 ## 0.65.2
 
-Admin tools load reliably.
+Dashboard loads more reliably.
 
 ## 0.65.1
 
