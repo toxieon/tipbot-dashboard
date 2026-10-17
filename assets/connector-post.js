@@ -70,9 +70,9 @@
         title: "\uD83C\uDFC7 " + SAMPLE.race + " " + SAMPLE.track,
         description: [
           "#" + SAMPLE.number + " " + SAMPLE.runner + " \u2014 " + SAMPLE.betType + " @ $" + SAMPLE.odds + " (" + book + ")",
-          bet + " " + SAMPLE.link,
           SAMPLE.units + "u \u00b7 Pending"
         ].join("\n"),
+        link: {text: bet, url: SAMPLE.link},
         fields: [],
         image: true,
         footer: "Tip ID " + SAMPLE.tipId,
@@ -103,6 +103,7 @@
     var html = '<div class="cp-discord"><div class="cp-embed"><div class="cp-bar"></div><div class="cp-body">';
     html += '<div class="cp-title">' + esc(model.title) + "</div>";
     if (model.description) html += '<div class="cp-desc">' + esc(model.description) + "</div>";
+    if (model.link) html += '<div class="cp-link"><a href="' + esc(model.link.url) + '" target="_blank" rel="noopener noreferrer">' + esc(model.link.text) + "</a></div>";
     if (model.fields.length) {
       html += '<div class="cp-fields">';
       model.fields.forEach(function (field) {
@@ -193,6 +194,8 @@
       "#cp-root .cp-v{color:#f2f3f5;font-size:13px;overflow-wrap:anywhere}",
       "#cp-root .cp-card{display:block;width:100%;margin-top:8px;border-radius:8px}",
       "#cp-root .cp-card-wait{height:72px;background:#232428;color:#b5bac1;display:flex;align-items:center;justify-content:center;font-size:12px}",
+      "#cp-root .cp-link{margin-top:4px;font-size:13px;font-weight:700}",
+      "#cp-root .cp-link a{color:#00a8fc;text-decoration:none}",
       "#cp-root .cp-btn{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:8px;background:#4e5058;color:#fff;font-size:13px}",
       "#cp-root .cp-foot{margin-top:8px;color:#949ba4;font-size:11px}",
       "#cp-root .cp-actions{display:flex;align-items:center;gap:10px;margin-top:12px}",

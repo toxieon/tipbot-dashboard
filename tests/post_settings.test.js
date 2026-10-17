@@ -19,7 +19,12 @@ test("the quiet preview is the compact racing post", () => {
   assert.match(model.description, /#7 Fast Fleet/);
   assert.match(model.description, /\$4\.50 \(Ladbrokes\)/);
   assert.match(model.description, /1u \u00b7 Pending/);
-  assert.match(model.description, /https:\/\/www\.ladbrokes\.com\.au\/racing\/flemington\//);
+  assert.doesNotMatch(model.description, /https?:\/\//);
+  assert.equal(model.link.text, "Bet on Ladbrokes \u2192");
+  assert.match(model.link.url, /^https:\/\/www\.ladbrokes\.com\.au\/racing\/flemington\//);
+  const html = P.previewHtml({post_bookmaker: "Ladbrokes", post_style: "quiet"});
+  assert.match(html, /<a [^>]*>Bet on Ladbrokes \u2192<\/a>/);
+  assert.doesNotMatch(html, />https?:\/\//);
   assert.equal(model.button, "Bet on Ladbrokes");
   assert.equal(model.image, true);
   assert.equal(names.includes("Sport"), false);
