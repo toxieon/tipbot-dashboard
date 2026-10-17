@@ -1,3 +1,10 @@
+## 0.66.2 · 2026-10-17 · `sponsor-angle` · Ground logos tilt, and the game ground is cached
+
+- A ground logo has an angle. Zero leaves it flat on the turf. A larger angle tips the face up toward the broadcast camera, like a board standing up off the turf. The still photo uses that same tilted quad.
+- Game view loads the ground picture, the ground model and the sponsor scene as the dashboard opens, and keeps the logo files in the browser cache. A layout change uses a new file address.
+
+Tests: `tests/ground_logos.test.js`.
+
 ## 0.66.1 · 2026-10-17 · `sponsor-studio` · Sponsors on the ground, boards and ball, with fireworks on a win
 
 - Game view reads one sponsor feed for the game (`/api/ground/scene?game=`): ground logos, LED banners and the ball skin from the new sponsor studio. The flat logo overlay that sat on a second 400 × 220 grid is gone; logos are drawn once, in 3D, at the metres set in the studio.

@@ -29,6 +29,167 @@ export function projectGround(x, z, hostW, hostH) {
   };
 }
 
+// One pose for a ground logo. Angle 0 leaves it flat on the turf. A larger
+// angle rotates it around the ground axis that faces the broadcast camera,
+// then lifts it so the near edge stays on the turf and the far edge rises.
+var CLEARANCE = 0.4;
+
+function clampAngle(value) {
+  var angle = Number(value);
+  if (!isFinite(angle)) angle = 0;
+  return Math.max(0, Math.min(80, angle));
+}
+function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+function cross(a, b) {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function norm(a) {
+  var n = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / n, a[1] / n, a[2] / n];
+}
+
+// Four corners in field metres, image order: top-left, top-right, bottom-right, bottom-left.
+// y is up. Angle 0 keeps every corner on y = 0, in the same place as a flat logo.
+function corners(logo) {
+  var x = Number(logo.x) || 0, z = Number(logo.z) || 0;
+  var w = Number(logo.w) || 0, d = Number(logo.d) || 0;
+  var yaw = (Number(logo.rot || logo.rotation) || 0) * Math.PI / 180;
+  var angle = clampAngle(logo.angle) * Math.PI / 180;
+  var c = Math.cos(yaw), s = Math.sin(yaw);
+  var gx = [-w / 2, w / 2, w / 2, -w / 2];
+  var gy = [d / 2, d / 2, -d / 2, -d / 2];
+  var pts = [];
+  var i;
+  for (i = 0; i < 4; i++) {
+    pts.push({
+      x: x + gx[i] * c + gy[i] * s,
+      y: 0,
+      z: z + gx[i] * s - gy[i] * c
+    });
+  }
+  if (!angle) return pts;
+  var cx = 0, cz = 0;
+  for (i = 0; i < 4; i++) { cx += pts[i].x; cz += pts[i].z; }
+  cx /= 4; cz /= 4;
+  var dx = CAM.pos[0] - cx, dz = CAM.pos[2] - cz;
+  var len = Math.hypot(dx, dz) || 1;
+  var tx = dx / len, tz = dz / len;
+  var ax = tz, az = -tx;
+  var cos = Math.cos(angle), sin = Math.sin(angle);
+  var minY = Infinity;
+  var out = [];
+  for (i = 0; i < 4; i++) {
+    var px = pts[i].x - cx, pz = pts[i].z - cz;
+    var ad = ax * px + az * pz;
+    var q = {
+      x: px * cos + ax * ad * (1 - cos) + cx,
+      y: (az * px - ax * pz) * sin,
+      z: pz * cos + az * ad * (1 - cos) + cz
+    };
+    if (q.y < minY) minY = q.y;
+    out.push(q);
+  }
+  if (minY) for (i = 0; i < 4; i++) out[i].y -= minY;
+  return out;
+}
+
+// Broadcast-camera projection of one world point onto a host of hostW x hostH.
+// Same framing as the still photo: vertical fov 36°, photo 780×552, object-fit cover.
+function project(x, y, z, hostW, hostH) {
+  var eye = CAM.pos, target = CAM.look;
+  var zaxis = norm(sub(eye, target));
+  var xaxis = norm(cross([0, 1, 0], zaxis));
+  var yaxis = cross(zaxis, xaxis);
+  var p = [x - eye[0], y - eye[1], z - eye[2]];
+  var cx = dot(xaxis, p), cy = dot(yaxis, p), cz = dot(zaxis, p);
+  var f = 1 / Math.tan((CAM.fov * Math.PI / 180) / 2);
+  var aspect = PHOTO.w / PHOTO.h;
+  var ndcX = (f / aspect) * cx / -cz;
+  var ndcY = f * cy / -cz;
+  var px = (ndcX + 1) / 2 * PHOTO.w, py = (1 - ndcY) / 2 * PHOTO.h;
+  var scale = Math.max(hostW / PHOTO.w, hostH / PHOTO.h);
+  return {
+    x: (hostW - PHOTO.w * scale) / 2 + px * scale,
+    y: (hostH - PHOTO.h * scale) / 2 + py * scale
+  };
+}
+
+// Screen quad of the tilted logo. y includes the same 0.4 m ground clearance
+// the flat logos already use, so angle 0 matches the old projection.
+export function screenQuad(logo, hostW, hostH) {
+  return corners(logo).map(function (p) {
+    return project(p.x, p.y + CLEARANCE, p.z, hostW, hostH);
+  });
+}
+
+// Map a w×h image onto the screen quad with a real perspective transform.
+export function cssMatrix(w, h, dest) {
+  var src = [[0, 0], [w, 0], [w, h], [0, h]];
+  var A = [], b = [];
+  var i;
+  for (i = 0; i < 4; i++) {
+    var u = src[i][0], v = src[i][1], x = dest[i].x, y = dest[i].y;
+    A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]);
+    b.push(x);
+    A.push([0, 0, 0, u, v, 1, -u * y, -v * y]);
+    b.push(y);
+  }
+  var n = 8;
+  var M = A.map(function (row, ri) { return row.concat([b[ri]]); });
+  var col, r, c, pivot, swap, div, f;
+  for (col = 0; col < n; col++) {
+    pivot = col;
+    for (r = col + 1; r < n; r++) if (Math.abs(M[r][col]) > Math.abs(M[pivot][col])) pivot = r;
+    swap = M[col]; M[col] = M[pivot]; M[pivot] = swap;
+    div = M[col][col] || 1e-12;
+    for (c = col; c <= n; c++) M[col][c] /= div;
+    for (r = 0; r < n; r++) {
+      if (r === col) continue;
+      f = M[r][col];
+      for (c = col; c <= n; c++) M[r][c] -= f * M[col][c];
+    }
+  }
+  var m = M.map(function (row) { return row[n]; });
+  return "matrix3d(" + [
+    m[0], m[3], 0, m[6],
+    m[1], m[4], 0, m[7],
+    0, 0, 1, 0,
+    m[2], m[5], 0, 1
+  ].join(",") + ")";
+}
+
+// Angle 0 is the old flat pose. A tilt rotates around the camera-facing ground
+// axis, then lifts so the near edge stays at y.
+export function placeLogo(mesh, logo, y) {
+  var yaw = T.MathUtils.degToRad(-(Number(logo.rot || logo.rotation) || 0));
+  var angle = Number(logo.angle);
+  if (!isFinite(angle)) angle = 0;
+  angle = Math.max(0, Math.min(80, angle));
+  var x = Number(logo.x) || 0;
+  var z = Number(logo.z) || 0;
+  mesh.rotation.order = "YXZ";
+  mesh.rotation.set(-Math.PI / 2, yaw, 0);
+  mesh.position.set(x, y, z);
+  if (!angle) return;
+  var dx = -x, dz = 200 - z;
+  var len = Math.hypot(dx, dz) || 1;
+  mesh.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(
+    new T.Vector3(dz / len, 0, -dx / len),
+    T.MathUtils.degToRad(angle)
+  ));
+  mesh.updateMatrixWorld(true);
+  var pos = mesh.geometry.attributes.position;
+  var v = new T.Vector3();
+  var minY = Infinity;
+  var i;
+  for (i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+    if (v.y < minY) minY = v.y;
+  }
+  mesh.position.y += y - minY;
+}
+
 function reducedMotion() {
   try {
     return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -291,11 +452,6 @@ export async function mount(host, opts) {
       sparkTex = new T.CanvasTexture(cv);
       return sparkTex;
     }
-    function flat(mesh, yaw) {
-      mesh.rotation.order = "YXZ";
-      mesh.rotation.y = T.MathUtils.degToRad(-yaw);
-      mesh.rotation.x = -Math.PI / 2;
-    }
     function setLogos(logos) {
       clearLogos();
       (logos || []).forEach(function (logo, i) {
@@ -307,8 +463,6 @@ export async function mount(host, opts) {
         if (!(d > 0)) d = 4.7;
         var x = Number(logo.x) || 0;
         var z = Number(logo.z) || 0;
-        var yaw = Number(logo.rot || logo.rotation || 0);
-        if (!isFinite(yaw)) yaw = 0;
         var tex = new T.TextureLoader().load(url, function () {
           if (alive && still && renderer) renderer.render(scene, camera);
         });
@@ -316,15 +470,15 @@ export async function mount(host, opts) {
         tex.anisotropy = 8;
         var mat = new T.MeshBasicMaterial({map: tex, transparent: true, depthWrite: false});
         var mesh = new T.Mesh(new T.PlaneGeometry(w, d), mat);
-        flat(mesh, yaw);
-        mesh.position.set(x, 0.4, z);
+        placeLogo(mesh, logo, 0.4);
         logoGroup.add(mesh);
         var glow = new T.Mesh(
           new T.PlaneGeometry(w * 1.5, d * 2.2),
           new T.MeshBasicMaterial({map: glowTexture(), color: 0xffe27a, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending})
         );
-        flat(glow, yaw);
-        glow.position.set(x, 0.34, z);
+        glow.quaternion.copy(mesh.quaternion);
+        glow.position.copy(mesh.position);
+        glow.position.y -= 0.06;
         logoGroup.add(glow);
         var key = String(logo.id || logo.asset_id || i);
         logoById[key] = {x: x, z: z, w: w, d: d, mat: mat, glow: glow};
