@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.65.2" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.65.2" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.65.2" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.65.2">
+<link rel="icon" href="./assets/favicon.ico?v=0.66.1" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.66.1" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.1" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.66.1">
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.65.2"></script>
+<script src="./assets/tbtime.js?v=0.66.1"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -273,13 +273,12 @@
   @media (prefers-reduced-motion:reduce){.live-now i{animation:none}}
   .fl-hero{position:relative;height:300px;border-radius:0 0 22px 22px;overflow:hidden;background:#070b14;margin:0;isolation:isolate}
   .fl-mcg{position:absolute;inset:0}
-  .fl-logo-layer{position:absolute;inset:0;z-index:1;pointer-events:none}
-  .fl-logo-layer .fl-logo{position:absolute;display:block;transform:translate(-50%,-50%)}
-  .fl-logo-layer .fl-logo img{display:block;width:100%;height:100%;object-fit:contain}
-  .fl-logo-layer .fl-logo.is-lit::after{content:"";position:absolute;inset:-3px;border-radius:6px;border:1.5px solid #f4e04d;box-shadow:0 0 5px 1px rgba(244,224,77,.8);animation:fl-logo-pulse 1.4s ease-in-out infinite}
-  .fl-logo-layer .fl-logo.is-lit img{filter:drop-shadow(0 0 2px #fff6c8) drop-shadow(0 0 4px rgba(244,224,77,.85))}
-  @keyframes fl-logo-pulse{0%,100%{opacity:.75;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
-  @media (prefers-reduced-motion:reduce){.fl-logo-layer .fl-logo.is-lit::after{animation:none;opacity:1}}
+  .fl-photo-logos{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+  .fl-photo-logo{position:absolute;display:block;object-fit:fill}
+  .fl-photo-hit{position:absolute;z-index:2;transform:translate(-50%,-100%);font:700 20px/1 "Instrument Sans",Geist,sans-serif;color:#e9fbff;text-shadow:0 0 10px rgba(110,220,255,.95);white-space:nowrap;animation:fl-hit-rise 3s ease-out forwards}
+  @keyframes fl-hit-rise{0%{opacity:0;margin-top:0}12%{opacity:1}70%{opacity:1}100%{opacity:0;margin-top:-48px}}
+  @keyframes fl-hit-fade{0%,80%{opacity:1}100%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.fl-photo-hit{animation:fl-hit-fade 3s linear forwards}}
   .fl-mcg-fallback,.fl-mcg canvas,.fl-mcg-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
   .fl-mcg canvas,.fl-mcg-canvas{z-index:1;-webkit-transform:translateZ(0);transform:translateZ(0)}
   .fl-mcg.is-webgl .fl-mcg-fallback{visibility:hidden}
@@ -1326,13 +1325,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.65.2">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.1">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.65.2" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1343,7 +1342,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.65.2" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.1" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1352,7 +1351,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.65.2" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.1" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1373,7 +1372,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.65.2</div>
+          <div class="dd-label" id="dd-version">tipdash v0.66.1</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1399,31 +1398,31 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.65.2"></script>
-<script src="./assets/light-data.js?v=0.65.2"></script>
-<script src="./assets/lines.js?v=0.65.2"></script>
-<script src="./assets/racing-legs.js?v=0.65.2"></script>
-<script src="./assets/afl-guernseys.js?v=0.65.2"></script>
-<script src="./assets/compare-ui.js?v=0.65.2"></script>
-<script src="./assets/sport-keywords.js?v=0.65.2"></script>
-<script src="./assets/sport-marks.js?v=0.65.2"></script>
-<script src="./assets/discover-sports.js?v=0.65.2"></script>
-<script src="./assets/global-flags.js?v=0.65.2"></script>
-<script src="./assets/routing.js?v=0.65.2"></script>
-<script src="./assets/scheduled-tips.js?v=0.65.2"></script>
-<script src="./assets/auto-recaps.js?v=0.65.2"></script>
-<script src="./assets/emoji-picker.js?v=0.65.2"></script>
-<script src="./assets/upcoming-split.js?v=0.65.2"></script>
-<script src="./assets/espn-props.js?v=0.65.2"></script>
-<script src="./assets/tb-motion.js?v=0.65.2"></script>
-<script src="./assets/form-badges.js?v=0.65.2"></script>
-<script src="./assets/tb-charts.js?v=0.65.2"></script>
-<script src="./assets/server-view.js?v=0.65.2"></script>
-<script src="./assets/follower-live.js?v=0.65.2"></script>
-<script src="./assets/follower-units.js?v=0.65.2"></script>
-<script src="./assets/legal-md.js?v=0.65.2"></script>
-<script src="./assets/terms-gate.js?v=0.65.2"></script>
-<script src="./assets/cookie-consent.js?v=0.65.2"></script>
+<script src="./assets/req-pool.js?v=0.66.1"></script>
+<script src="./assets/light-data.js?v=0.66.1"></script>
+<script src="./assets/lines.js?v=0.66.1"></script>
+<script src="./assets/racing-legs.js?v=0.66.1"></script>
+<script src="./assets/afl-guernseys.js?v=0.66.1"></script>
+<script src="./assets/compare-ui.js?v=0.66.1"></script>
+<script src="./assets/sport-keywords.js?v=0.66.1"></script>
+<script src="./assets/sport-marks.js?v=0.66.1"></script>
+<script src="./assets/discover-sports.js?v=0.66.1"></script>
+<script src="./assets/global-flags.js?v=0.66.1"></script>
+<script src="./assets/routing.js?v=0.66.1"></script>
+<script src="./assets/scheduled-tips.js?v=0.66.1"></script>
+<script src="./assets/auto-recaps.js?v=0.66.1"></script>
+<script src="./assets/emoji-picker.js?v=0.66.1"></script>
+<script src="./assets/upcoming-split.js?v=0.66.1"></script>
+<script src="./assets/espn-props.js?v=0.66.1"></script>
+<script src="./assets/tb-motion.js?v=0.66.1"></script>
+<script src="./assets/form-badges.js?v=0.66.1"></script>
+<script src="./assets/tb-charts.js?v=0.66.1"></script>
+<script src="./assets/server-view.js?v=0.66.1"></script>
+<script src="./assets/follower-live.js?v=0.66.1"></script>
+<script src="./assets/follower-units.js?v=0.66.1"></script>
+<script src="./assets/legal-md.js?v=0.66.1"></script>
+<script src="./assets/terms-gate.js?v=0.66.1"></script>
+<script src="./assets/cookie-consent.js?v=0.66.1"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1772,7 +1771,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.65.2";
+  TD.version="0.66.1";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -2915,7 +2914,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.65.2"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.66.1"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -5000,6 +4999,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   function fliveStop(){
     if(FLIVE.timer){ clearTimeout(FLIVE.timer); FLIVE.timer=null; }
+    clearTimeout(FLIVE.hitTimer); FLIVE.hitTimer=null; FLIVE.hitQueue=[]; FLIVE.hitBusy=false; FLIVE.sponsors=null;
+    if(window.TBLiveFx) window.TBLiveFx.ballSkin="";
     if(FLIVE.demo){ try{ FLIVE.demo.stop(); }catch(e){} FLIVE.demo=null; }
     flivePlayers(false);
     const host=document.getElementById("flive-mcg");
@@ -5088,89 +5089,126 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const seq=FLIVE.seq;
     import("./assets/mcg/mount.js?v="+encodeURIComponent(TD.version)).then(function(mod){
       if(seq!==FLIVE.seq) return null;
+      FLIVE.mcgMod=mod;
       return mod.mount(host, {night: true});
     }).then(function(handle){
       if(!handle) return;
       if(seq!==FLIVE.seq){ try{ handle.stop(); }catch(e){} return; }
       host._mcg=handle;
-      fliveLogos(handle);
+      fliveSponsors(handle);
       if(handle.resize) handle.resize();
-    }).catch(function(){ FLIVE.mcg=false; fliveLogos(); });
+    }).catch(function(){ FLIVE.mcg=false; fliveSponsors(); });
   }
-  function fliveMarkLit(logos){
-    return (logos||[]).map(function(logo){
-      return Object.assign({}, logo, {lit: !!(logo&&logo.lit)});
-    });
+  // Sponsors on the ground: logos, LED banners and the ball skin come from the
+  // studio. A winning bet from a server linked to a logo fires its fireworks.
+  function fliveBlob(url){
+    if(!url) return Promise.resolve("");
+    FLIVE.blobs=FLIVE.blobs||{};
+    if(FLIVE.blobs[url]) return Promise.resolve(FLIVE.blobs[url]);
+    return api(url).then(function(r){ return r.ok?r.blob():null; }).then(function(b){
+      if(!b) return "";
+      FLIVE.blobs[url]=URL.createObjectURL(b);
+      return FLIVE.blobs[url];
+    }).catch(function(){ return ""; });
   }
-  function fliveLogoLayer(logos){
+  function fliveSponsors(handle){
+    const host=$("flive-mcg");
+    handle=handle||(host&&host._mcg)||null;
+    const seq=FLIVE.seq;
+    api("/api/ground/scene?game="+encodeURIComponent(FLIVE.game||"")).then(function(r){
+      return r.ok?r.json():null;
+    }).then(async function(d){
+      if(!d||seq!==FLIVE.seq) return;
+      const ground=await Promise.all((d.ground||[]).map(async function(g){ return Object.assign({}, g, {url:await fliveBlob(g.url)}); }));
+      const boards=await Promise.all((d.boards||[]).map(async function(b){ return {image:await fliveBlob(b.url), duration:b.seconds}; }));
+      const ball=d.ball?await fliveBlob(d.ball.url):"";
+      if(seq!==FLIVE.seq) return;
+      FLIVE.sponsors={ground:ground.filter(function(g){ return g.url; }), boards:boards.filter(function(b){ return b.image; })};
+      window.TBLiveFx=window.TBLiveFx||{};
+      window.TBLiveFx.ballSkin=ball||"";
+      FLIVE.hitSeen={};
+      (d.hits||[]).forEach(function(h){ FLIVE.hitSeen[h.id]=1; });
+      if(handle&&!handle.fallback){
+        if(handle.setLogos) handle.setLogos(FLIVE.sponsors.ground);
+        if(handle.setBoards) handle.setBoards(FLIVE.sponsors.boards);
+      }
+      flivePhotoLogos();
+      fliveHitsArm();
+    }).catch(function(){});
+  }
+  // No WebGL: the still photo is a render from the same camera, so each logo is
+  // placed by projecting its metres through that camera.
+  function flivePhotoLogos(){
     const host=$("flive-mcg");
     if(!host) return;
-    let layer=host.querySelector(".fl-logo-layer");
-    if(!layer){
-      layer=document.createElement("div");
-      layer.className="fl-logo-layer";
-      host.appendChild(layer);
-    }
-    layer.hidden=false;
+    let layer=host.querySelector(".fl-photo-logos");
+    const mod=FLIVE.mcgMod;
+    const handle=host._mcg;
+    if((handle&&!handle.fallback)||!mod||!mod.projectGround){ if(layer) layer.remove(); return; }
+    if(!layer){ layer=document.createElement("div"); layer.className="fl-photo-logos"; host.appendChild(layer); }
     layer.textContent="";
-    const hw=host.clientWidth||1, hh=host.clientHeight||1;
-    const fit=Math.min(hw/400, hh/220);
-    const ox=(hw-400*fit)/2, oy=(hh-220*fit)/2;
-    (logos||[]).forEach(function(logo){
-      const url=logo&&(logo.url||logo.src)||"";
-      if(!url) return;
-      const mark=document.createElement("span");
-      const x=Number(logo.x)||0, z=Number(logo.z)||0;
-      const w=Number(logo.w)||14, h=Number(logo.h)||Number(logo.d)||4;
-      const vx=200+(x/84)*168, vy=118+(z/71.5)*88;
-      mark.className="fl-logo"+(logo.lit?" is-lit":"");
-      mark.style.left=(ox+vx*fit)+"px";
-      mark.style.top=(oy+vy*fit)+"px";
-      mark.style.width=Math.max(8, w*2*fit)+"px";
-      mark.style.height=Math.max(4, h*(176/143)*fit)+"px";
-      mark.style.transform="translate(-50%,-50%) rotate("+(Number(logo.rot)||0)+"deg)";
+    const W=host.clientWidth||1, H=host.clientHeight||1;
+    ((FLIVE.sponsors&&FLIVE.sponsors.ground)||[]).forEach(function(g){
+      const c=mod.projectGround(g.x, g.z, W, H);
+      const l=mod.projectGround(g.x-g.w/2, g.z, W, H), r=mod.projectGround(g.x+g.w/2, g.z, W, H);
+      const f=mod.projectGround(g.x, g.z-g.d/2, W, H), n=mod.projectGround(g.x, g.z+g.d/2, W, H);
       const img=document.createElement("img");
-      img.alt="";
-      img.src=url;
-      mark.appendChild(img);
-      layer.appendChild(mark);
+      img.alt=""; img.src=g.url; img.className="fl-photo-logo"; img.setAttribute("data-id", g.id);
+      img.style.left=c.x+"px"; img.style.top=c.y+"px";
+      img.style.width=Math.max(4, Math.hypot(r.x-l.x, r.y-l.y))+"px";
+      img.style.height=Math.max(2, Math.abs(n.y-f.y))+"px";
+      img.style.transform="translate(-50%,-50%) rotate("+(Number(g.rot)||0)+"deg)";
+      layer.appendChild(img);
     });
   }
-  function fliveApplyLogos(logos){
-    const marked=fliveMarkLit(logos);
-    const host=$("flive-mcg");
-    const handle=(host&&host._mcg)||null;
-    if(handle&&handle.setLogos) handle.setLogos(marked);
-    fliveLogoLayer(marked);
+  function fliveHitsArm(){
+    clearTimeout(FLIVE.hitTimer);
+    if(!FLIVE.sponsors||!FLIVE.sponsors.ground.length) return;
+    const seq=FLIVE.seq;
+    FLIVE.hitTimer=setTimeout(function(){ fliveHitsPoll(seq); }, 10000);
   }
-  function fliveLogos(handle){
+  function fliveHitsPoll(seq){
+    if(seq!==FLIVE.seq||!FLIVE.sponsors||!FLIVE.sponsors.ground.length) return;
+    clearTimeout(FLIVE.hitTimer);
+    api("/api/ground/hits?game="+encodeURIComponent(FLIVE.game||"")).then(function(r){
+      return r.ok?r.json():null;
+    }).then(function(d){
+      if(seq!==FLIVE.seq) return;
+      ((d&&d.hits)||[]).forEach(function(h){
+        if(FLIVE.hitSeen[h.id]) return;
+        FLIVE.hitSeen[h.id]=1;
+        fliveQueueHit(h);
+      });
+    }).catch(function(){}).then(function(){ if(seq===FLIVE.seq) fliveHitsArm(); });
+  }
+  // Several hits at once play one after another, so each is seen.
+  function fliveQueueHit(h){
+    FLIVE.hitQueue=FLIVE.hitQueue||[];
+    FLIVE.hitQueue.push(h);
+    if(FLIVE.hitBusy) return;
+    const seq=FLIVE.seq;
+    const next=function(){
+      const item=seq===FLIVE.seq&&FLIVE.hitQueue.shift();
+      if(!item){ FLIVE.hitBusy=false; return; }
+      FLIVE.hitBusy=true;
+      fliveCelebrate(item);
+      setTimeout(next, 1500);
+    };
+    next();
+  }
+  function fliveCelebrate(h){
     const host=$("flive-mcg");
-    handle=handle||(host&&host._mcg);
-    const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
-    const gid=FLIVE.gid||(follows[0]&&follows[0].guild_id)||"";
-    if(!gid) return;
-    const game=FLIVE.game||"";
-    api("/api/ground/logos?guild_id="+encodeURIComponent(gid)+(game?"&game="+encodeURIComponent(game):"")).then(async function(r){
-      if(!r.ok) return;
-      const d=await r.json();
-      const logos=(d&&(d.logos||d.placements))||[];
-      const ready=[];
-      for(let i=0;i<logos.length;i++){
-        const logo=logos[i]||{};
-        const url=logo.url||logo.src||"";
-        if(!url) continue;
-        if(/^data:|^blob:/.test(url)){ ready.push(logo); continue; }
-        try{
-          const ir=await api(url);
-          if(!ir.ok) continue;
-          const blob=await ir.blob();
-          ready.push(Object.assign({}, logo, {url:URL.createObjectURL(blob)}));
-        }catch(e){}
-      }
-      FLIVE.logoCache=ready;
-      if(handle&&host) host._mcg=handle;
-      fliveApplyLogos(ready);
-    }).catch(function(){});
+    const handle=host&&host._mcg;
+    if(handle&&!handle.fallback&&handle.celebrate&&handle.celebrate(h.placement_id, h.label)) return;
+    const img=host&&host.querySelector('.fl-photo-logo[data-id="'+String(h.placement_id).replace(/[^a-f0-9]/g,"")+'"]');
+    if(!img) return;
+    const pop=document.createElement("span");
+    pop.className="fl-photo-hit";
+    pop.textContent=h.label;
+    pop.style.left=img.style.left;
+    pop.style.top=img.style.top;
+    img.parentNode.appendChild(pop);
+    setTimeout(function(){ pop.remove(); }, 3200);
   }
   function flivePaint(data){
     const grid=$("flive-grid"), score=$("flive-score"), sum=$("flive-sum"), pill=$("flive-pill"), note=$("flive-note");
@@ -5179,8 +5217,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const won=FollowerLive.newlyHit(FLIVE.seen, legs);
     FLIVE.seen=FollowerLive.remember(FLIVE.seen, legs);
     FLIVE.board=data;
-    if(FLIVE.logoCache) fliveApplyLogos(FLIVE.logoCache);
-    if(won.length) fliveLogos();
+    flivePhotoLogos();
+    if(won.length) fliveHitsPoll(FLIVE.seq);
     if(score) score.innerHTML=FollowerLive.scoreHtml(data&&data.game);
     if(sum) sum.textContent=FollowerLive.summaryText(data);
     if(pill) pill.hidden=!(data&&data.game&&data.game.live);
@@ -7570,7 +7608,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.65.2');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.1');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);

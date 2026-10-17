@@ -22,8 +22,16 @@ export async function addBoards(scene,{rx=88.5,rz=75.7,cfgUrl='boards/boards.jso
  // frame/back
  let si=0,tIn=0;
  function draw(){const s=cfg.slides[si],im=imgs[si];x.fillStyle=s.bg||'#000';x.fillRect(0,0,cv.width,cv.height);
-  if(im){const h=cv.height*0.8,w=h*(im.naturalWidth||im.width)/(im.naturalHeight||im.height);x.drawImage(im,(cv.width-w)/2,(cv.height-h)/2,w,h);}
+  if(im){const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;let h=cv.height*(s.fill?1:0.8),w=h*iw/ih;if(w>cv.width){w=cv.width;h=w*ih/iw;}x.drawImage(im,(cv.width-w)/2,(cv.height-h)/2,w,h);}
   x.fillStyle='rgba(0,0,0,0.18)';for(let y=0;y<cv.height;y+=3)x.fillRect(0,y,cv.width,1); // LED scanlines
   tex.needsUpdate=true;}
  draw();
- return {mesh,update(dt){tIn+=dt;const s=cfg.slides[si];tex.offset.x-=(s.scroll||0)*dt;if(tIn>=s.duration){tIn=0;si=(si+1)%cfg.slides.length;draw();}}};}
+ const house=cfg.slides.slice(), houseImgs=imgs.slice();
+ // Sponsor banners replace the house slides. An empty list brings the house slides back.
+ async function setSlides(list){
+  const want=(list||[]).filter(s=>s&&s.image);
+  if(!want.length){cfg.slides=house;imgs.length=0;houseImgs.forEach(i=>imgs.push(i));si=0;tIn=0;draw();return;}
+  const loaded=await Promise.all(want.map(s=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=s.image;})));
+  cfg.slides=want.map(s=>({image:s.image,duration:Math.max(2,Number(s.duration)||8),scroll:Number(s.scroll)||0,bg:s.bg||'#000',fill:true}));
+  imgs.length=0;loaded.forEach(i=>imgs.push(i));si=0;tIn=0;tex.offset.x=0;draw();}
+ return {mesh,setSlides,update(dt){tIn+=dt;const s=cfg.slides[si];tex.offset.x-=(s.scroll||0)*dt;if(tIn>=s.duration){tIn=0;si=(si+1)%cfg.slides.length;draw();}}};}
