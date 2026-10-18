@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Scan a built tree for the public guard's terms and for PRIVATE_GUILD_IDS.
+// Scan a built tree for the public guard's terms, PRIVATE_GUILD_IDS, and a leftover version token.
 // Report locations only. Never print a secret value or a matched line.
 import fs from "node:fs";
 import path from "node:path";
@@ -24,6 +24,25 @@ function walk(dir, out = []) {
     else if (st.isFile() && TEXT_EXT.test(name)) out.push(abs);
   }
   return out;
+}
+
+const VERSION_TOKEN = Buffer.from("__TD_VERSION__");
+
+/** Every built file. Hits are paths only, never file contents. */
+export function unstampedFiles(dir) {
+  const found = [];
+  function rec(d) {
+    for (const name of fs.readdirSync(d)) {
+      const abs = path.join(d, name);
+      const st = fs.statSync(abs);
+      if (st.isDirectory()) rec(abs);
+      else if (st.isFile() && fs.readFileSync(abs).includes(VERSION_TOKEN)) {
+        found.push(path.relative(dir, abs).split(path.sep).join("/"));
+      }
+    }
+  }
+  if (fs.existsSync(dir)) rec(dir);
+  return found;
 }
 
 /** Fixed-string search. Hits name the id by index, never by value. */
@@ -64,9 +83,15 @@ function main() {
     process.exit(1);
   }
   const result = scanBuilt(dir);
-  const hits = result.guardHits.concat(result.termHits, result.idHits);
-  if (hits.length) {
-    process.stderr.write("leak grep failed:\n" + hits.join("\n") + "\n");
+  const unstamped = unstampedFiles(dir).map((rel) => rel + ": unstamped __TD_VERSION__");
+  const hits = result.guardHits.concat(result.termHits, result.idHits, unstamped);
+  // GitHub Actions on main always has GITHUB_ACTIONS=true. An empty secret must
+  // fail there. A local run may still skip.
+  const missingIds = !result.idCount && process.env.GITHUB_ACTIONS === "true";
+  if (hits.length || missingIds) {
+    const lines = hits.slice();
+    if (missingIds) lines.push("PRIVATE_GUILD_IDS is empty or unset");
+    process.stderr.write("leak grep failed:\n" + lines.join("\n") + "\n");
     process.exit(1);
   }
   if (!result.idCount) {
