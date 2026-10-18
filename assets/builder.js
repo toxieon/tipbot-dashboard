@@ -562,10 +562,6 @@
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
   }
-  function espnSkillPlayers(list){
-    // NFL: skill positions for props (full roster if that empties). Basketball: everyone.
-    return TBEspnProps.propPlayers(list, BUILD.espnLeague);
-  }
   // Prop picker for any prop league (NFL, NBA, WNBA). Name kept from the NFL-only days.
   function renderEspnNflProps(){
     const ev=BUILD.espnEvent;
@@ -695,7 +691,6 @@
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
   }
-  function teamPlayers(t){ if(t&&typeof t==="object"&&Array.isArray(t.players)&&t.players.length)return t.players; return STATE.players[teamName(t)]||[]; }
   // match the backend's _text_key so we can look a live player up by name
   function tkey(s){ return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
   const LIVE_KEYS={Disposals:"disposals",Goals:"goals","Fantasy Points":"dreamTeamPoints",Hitouts:"hitouts",Marks:"marks",Tackles:"tackles",Kicks:"kicks",Handballs:"handballs",Clearances:"totalClearances"};

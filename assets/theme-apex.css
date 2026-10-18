@@ -483,7 +483,6 @@ html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
   }
   html[data-theme="apex"] .apex-indicator,
   html[data-theme="apex"] .apex-seg-pill,
-  html[data-theme="apex"] .apex-flow-bar,
   html[data-theme="apex"] .tb-toast{
     transition:none;
   }
@@ -911,18 +910,6 @@ html[data-theme="apex"] .apex-flow li{
 }
 html[data-theme="apex"] .apex-flow li.is-on,
 html[data-theme="apex"] .apex-flow li.is-done{color:var(--txt)}
-html[data-theme="apex"] .apex-flow-bar{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:0;
-  height:2px;
-  border-radius:999px;
-  background:var(--accent);
-  transform-origin:left center;
-  transform:scaleX(.25);
-  transition:transform 320ms cubic-bezier(.22,1,.36,1);
-}
 html[data-theme="apex"] .apex-step-note{
   margin:0 0 10px;
   color:var(--muted);
