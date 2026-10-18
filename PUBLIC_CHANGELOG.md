@@ -1,3 +1,7 @@
+## 0.66.6
+
+The bottom bar stays at the bottom of the screen while you scroll, including on a server's Settings page.
+
 ## 0.66.5
 
 Internal tidy-up.
