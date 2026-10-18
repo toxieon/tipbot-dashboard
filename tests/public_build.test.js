@@ -98,7 +98,13 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     assert.match(dash, /function ensureExt/);
     assert.doesNotMatch(dash, /TD\.load\("ext"\)/);
     assert.doesNotMatch(dash, /owner-tools|\/api\/ops|custom-games|ops:/);
-    assert.doesNotMatch(dash, /1553952007923040309/);
+    const privateGuildIds = String(process.env.PRIVATE_GUILD_IDS || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    for (const id of privateGuildIds) {
+      assert.doesNotMatch(dash, new RegExp(id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    }
 
     // assets/ext.js is public on GitHub, so the program-owner panel is no longer
     // shipped here at all: the file must be gone, and nothing public may name it.
