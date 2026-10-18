@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.66.3" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.66.3" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.3" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.66.3">
+<link rel="icon" href="./assets/favicon.ico?v=0.66.4" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.66.4" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.4" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.66.4">
 <link rel="preload" as="image" href="./assets/mcg/fallback.png">
 <link rel="preload" as="fetch" href="./assets/mcg/mcg.glb" crossorigin>
-<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.66.3" crossorigin>
+<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.66.4" crossorigin>
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.66.3"></script>
+<script src="./assets/tbtime.js?v=0.66.4"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -222,6 +222,11 @@
   .scard .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px}
   .scard .row1 > div{min-width:0}
   .sname{font-weight:700;font-size:var(--t-h3);min-width:0;overflow-wrap:anywhere}.sgid{color:var(--faint);font-size:var(--t-foot)}
+  .s-id{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+  .s-av{width:36px;height:36px;border-radius:999px;flex:none;display:grid;place-items:center;font-weight:800;font-size:var(--t-foot);line-height:1;background:var(--card2);border:1px solid var(--line);color:var(--accent);overflow:hidden;object-fit:cover}
+  .s-av.lg{width:44px;height:44px;font-size:var(--t-sub)}
+  #detail .dhead h1{display:flex;align-items:center;gap:12px;min-width:0}
+  .server-title-text{min-width:0;overflow-wrap:anywhere}
   .plan{align-self:flex-start;flex:none;height:auto;font-size:var(--t-cap);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 8px;line-height:1.3;white-space:nowrap;text-transform:capitalize}
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}.dot.on{background:var(--win)}.dot.off{background:var(--push)}
   .mini{display:flex;gap:18px;flex-wrap:wrap}.mini .m{display:flex;flex-direction:column}
@@ -1329,13 +1334,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.3">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.4">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.3" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.4" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1346,7 +1351,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.3" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.4" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1355,7 +1360,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.3" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.4" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1376,7 +1381,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-racing-places-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.66.3</div>
+          <div class="dd-label" id="dd-version">tipdash v0.66.4</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1402,31 +1407,32 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.66.3"></script>
-<script src="./assets/light-data.js?v=0.66.3"></script>
-<script src="./assets/lines.js?v=0.66.3"></script>
-<script src="./assets/racing-legs.js?v=0.66.3"></script>
-<script src="./assets/afl-guernseys.js?v=0.66.3"></script>
-<script src="./assets/compare-ui.js?v=0.66.3"></script>
-<script src="./assets/sport-keywords.js?v=0.66.3"></script>
-<script src="./assets/sport-marks.js?v=0.66.3"></script>
-<script src="./assets/discover-sports.js?v=0.66.3"></script>
-<script src="./assets/global-flags.js?v=0.66.3"></script>
-<script src="./assets/routing.js?v=0.66.3"></script>
-<script src="./assets/scheduled-tips.js?v=0.66.3"></script>
-<script src="./assets/auto-recaps.js?v=0.66.3"></script>
-<script src="./assets/emoji-picker.js?v=0.66.3"></script>
-<script src="./assets/upcoming-split.js?v=0.66.3"></script>
-<script src="./assets/espn-props.js?v=0.66.3"></script>
-<script src="./assets/tb-motion.js?v=0.66.3"></script>
-<script src="./assets/form-badges.js?v=0.66.3"></script>
-<script src="./assets/tb-charts.js?v=0.66.3"></script>
-<script src="./assets/server-view.js?v=0.66.3"></script>
-<script src="./assets/follower-live.js?v=0.66.3"></script>
-<script src="./assets/follower-units.js?v=0.66.3"></script>
-<script src="./assets/legal-md.js?v=0.66.3"></script>
-<script src="./assets/terms-gate.js?v=0.66.3"></script>
-<script src="./assets/cookie-consent.js?v=0.66.3"></script>
+<script src="./assets/req-pool.js?v=0.66.4"></script>
+<script src="./assets/light-data.js?v=0.66.4"></script>
+<script src="./assets/lines.js?v=0.66.4"></script>
+<script src="./assets/racing-legs.js?v=0.66.4"></script>
+<script src="./assets/afl-guernseys.js?v=0.66.4"></script>
+<script src="./assets/compare-ui.js?v=0.66.4"></script>
+<script src="./assets/sport-keywords.js?v=0.66.4"></script>
+<script src="./assets/sport-marks.js?v=0.66.4"></script>
+<script src="./assets/discover-sports.js?v=0.66.4"></script>
+<script src="./assets/global-flags.js?v=0.66.4"></script>
+<script src="./assets/routing.js?v=0.66.4"></script>
+<script src="./assets/scheduled-tips.js?v=0.66.4"></script>
+<script src="./assets/auto-recaps.js?v=0.66.4"></script>
+<script src="./assets/emoji-picker.js?v=0.66.4"></script>
+<script src="./assets/upcoming-split.js?v=0.66.4"></script>
+<script src="./assets/espn-props.js?v=0.66.4"></script>
+<script src="./assets/tb-motion.js?v=0.66.4"></script>
+<script src="./assets/form-badges.js?v=0.66.4"></script>
+<script src="./assets/tb-charts.js?v=0.66.4"></script>
+<script src="./assets/guild-profile.js?v=0.66.4"></script>
+<script src="./assets/server-view.js?v=0.66.4"></script>
+<script src="./assets/follower-live.js?v=0.66.4"></script>
+<script src="./assets/follower-units.js?v=0.66.4"></script>
+<script src="./assets/legal-md.js?v=0.66.4"></script>
+<script src="./assets/terms-gate.js?v=0.66.4"></script>
+<script src="./assets/cookie-consent.js?v=0.66.4"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1775,7 +1781,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
   // changes. TD.version must match VERSION: it busts the browser cache on every release.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.66.3";
+  TD.version="0.66.4";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -2226,7 +2232,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   (function softPingLifecycle(){
     document.addEventListener("visibilitychange", function(){
-      if(!document.hidden && getToken()) warmTipBot();
+      if(document.hidden || !getToken()) return;
+      warmTipBot();
+      refreshGuildIdentity();
+    });
+    window.addEventListener("focus", function(){
+      if(document.hidden || !getToken()) return;
+      refreshGuildIdentity();
     });
     window.addEventListener("pageshow", function(){
       if(getToken()) warmTipBot();
@@ -2270,6 +2282,168 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){
       try{ localStorage.removeItem(DETAIL_CACHE_KEY); }catch(e2){}
     }
+  }
+  function guildName(row, fallback){
+    if(window.GuildProfile) return GuildProfile.guildName(row, fallback);
+    return (row&&(row.display_name||row.name))||(fallback==null?"":fallback);
+  }
+  function guildIconUrl(row){
+    if(window.GuildProfile) return GuildProfile.guildIconUrl(row);
+    const direct=row&&(row.icon_url||row.guild_icon)||"";
+    return /^https?:\/\//i.test(String(direct))?String(direct):"";
+  }
+  function serverAvatarHtml(row, label, large){
+    const name=guildName(row, label||"");
+    const url=guildIconUrl(row);
+    const init=(window.GuildProfile&&GuildProfile.initials(name))||((String(name||"?").trim().slice(0,2)||"?").toUpperCase());
+    const cls="s-av"+(large?" lg":"");
+    const px=large?44:36;
+    if(url) return '<img class="'+cls+'" src="'+esc(url)+'" alt="" width="'+px+'" height="'+px+'" loading="lazy">';
+    return '<span class="'+cls+'" aria-hidden="true">'+esc(init)+'</span>';
+  }
+  function patchBootIdentity(gid, src){
+    if(!window.GuildProfile) return;
+    const boot=readBootCache();
+    if(!boot) return;
+    let changed=false;
+    ["servers","follower_servers"].forEach(function(key){
+      (boot[key]||[]).forEach(function(row){
+        if(row && String(row.guild_id)===String(gid) && GuildProfile.applyIdentity(row, src)) changed=true;
+      });
+    });
+    if(!changed) return;
+    try{ localStorage.setItem(BOOT_CACHE_KEY, JSON.stringify(boot)); }catch(e){}
+  }
+  function patchStoredDetails(gid, src){
+    if(!window.GuildProfile) return;
+    const store=readDetailStore();
+    let changed=false;
+    Object.keys(store).forEach(function(key){
+      if(key.indexOf(String(gid)+"|")!==0) return;
+      const data=store[key]&&store[key].data;
+      if(!data||!data.settings) return;
+      if(GuildProfile.applyIdentity(data.settings, src)) changed=true;
+    });
+    if(changed){
+      try{ localStorage.setItem(DETAIL_CACHE_KEY, JSON.stringify(store)); }catch(e){}
+    }
+    const mem=STATE._detailCache||{};
+    Object.keys(mem).forEach(function(key){
+      if(key.indexOf(String(gid)+"|")!==0) return;
+      if(mem[key]&&mem[key].settings) GuildProfile.applyIdentity(mem[key].settings, src);
+    });
+  }
+  function paintOpenServerIdentity(gid){
+    const shown=STATE._detailShown;
+    const s=shown&&shown.settings;
+    if(!s||String(s.guild_id)!==String(gid)) return;
+    const detail=$("detail");
+    if(!detail||detail.hidden||String(window.__tbDetailGid)!==String(gid)) return;
+    const label=guildName(s,"Unnamed server");
+    const inner=serverAvatarHtml(s,label,true)+'<span class="server-title-text">'+esc(label)+'</span>';
+    const title=document.getElementById("server-title");
+    if(title && typeof detail.contains==="function" && detail.contains(title)){
+      title.innerHTML=inner;
+      return;
+    }
+    if(typeof detail.innerHTML==="string" && detail.innerHTML.indexOf('id="server-title"')>=0){
+      detail.innerHTML=detail.innerHTML.replace(/<h1 id="server-title">[\s\S]*?<\/h1>/,'<h1 id="server-title">'+inner+'</h1>');
+    }
+  }
+  function absorbFreshServers(data){
+    if(!data||!window.GuildProfile) return;
+    const gid=window.__tbDetailGid;
+    const detailOpen=!!(gid && $("detail") && !$("detail").hidden);
+    if(detailOpen){
+      const row=GuildProfile.findRow(data, gid);
+      if(row){
+        const shown=STATE._detailShown;
+        const settings=shown&&shown.settings;
+        if(settings && String(settings.guild_id)===String(gid)) GuildProfile.applyIdentity(settings, row);
+        patchStoredDetails(gid, row);
+        try{ paintOpenServerIdentity(gid); }catch(e){}
+      }
+    }
+    if($("overview") && !$("overview").hidden){ try{ renderOverview(); }catch(e){} }
+  }
+  function absorbFreshDetail(data){
+    const settings=data&&data.settings;
+    if(!settings||settings.guild_id==null||!window.GuildProfile) return;
+    const gid=settings.guild_id;
+    (STATE.servers||[]).forEach(function(row){
+      if(row&&String(row.guild_id)===String(gid)) GuildProfile.applyIdentity(row, settings);
+    });
+    (STATE.followerServers||[]).forEach(function(row){
+      if(row&&String(row.guild_id)===String(gid)) GuildProfile.applyIdentity(row, settings);
+    });
+    patchBootIdentity(gid, settings);
+    if($("overview") && !$("overview").hidden){ try{ renderOverview(); }catch(e){} }
+  }
+  function keepListedIdentity(rows, prev){
+    if(!window.GuildProfile||!Array.isArray(rows)) return;
+    const by={};
+    (prev||[]).forEach(function(s){ if(s&&s.guild_id!=null) by[String(s.guild_id)]=s; });
+    rows.forEach(function(s){
+      const o=s&&by[String(s.guild_id)];
+      if(o) GuildProfile.keepMissingIdentity(s, o);
+    });
+  }
+  const IDENTITY_STALE_MS=60*1000;
+  let IDENTITY_LIST_FETCH=null;
+  // Disk key is guildId + "|" + the month argument loadDetail was given.
+  // The payload's own month (for example 2026-10) is not that key: a lifetime
+  // open is stored at "gid|" even when settings.month is "2026-10".
+  function detailSavedAt(gid){
+    const store=readDetailStore();
+    const prefix=String(gid)+"|";
+    const remembered=window.__tbDetailKey;
+    if(remembered && String(remembered).indexOf(prefix)===0){
+      const ent=store[remembered];
+      if(ent && ent.saved_at) return Number(ent.saved_at)||0;
+    }
+    let best=0;
+    Object.keys(store).forEach(function(key){
+      if(key.indexOf(prefix)!==0) return;
+      const at=Number(store[key]&&store[key].saved_at)||0;
+      if(at>best) best=at;
+    });
+    return best;
+  }
+  function identityAttemptAt(){
+    const boot=readBootCache();
+    let at=Math.max(Number(boot&&boot.saved_at)||0, Number(boot&&boot.attempted_at)||0);
+    const gid=window.__tbDetailGid;
+    const detailOpen=!!(gid && $("detail") && !$("detail").hidden);
+    if(detailOpen) at=Math.max(at, detailSavedAt(gid));
+    return at;
+  }
+  function touchIdentityAttempt(){
+    try{
+      const boot=readBootCache()||{};
+      boot.attempted_at=Date.now();
+      localStorage.setItem(BOOT_CACHE_KEY, JSON.stringify(boot));
+    }catch(e){}
+  }
+  function refreshGuildIdentity(){
+    if(document.hidden||!getToken()||!window.GuildProfile) return;
+    if(IDENTITY_LIST_FETCH) return;
+    if(!GuildProfile.stale(identityAttemptAt(), Date.now(), IDENTITY_STALE_MS)) return;
+    touchIdentityAttempt();
+    const boot=readBootCache();
+    IDENTITY_LIST_FETCH=api("/api/servers?lite=1",{retries:1,timeoutMs:20000}).then(async function(r){
+      if(!r||!r.ok) return;
+      const data=await r.json();
+      keepServerStats(data, (STATE.servers&&STATE.servers.length)?STATE.servers:[]);
+      keepListedIdentity(data.servers, (STATE.servers&&STATE.servers.length)?STATE.servers:((boot&&boot.servers)||[]));
+      keepListedIdentity(data.follower_servers, STATE.followerServers||((boot&&boot.follower_servers)||[]));
+      writeBootCache(data);
+      noteOps(data);
+      if(window.TBGlobalFlags) TBGlobalFlags.ingest(data);
+      applyBootPayload(data);
+      absorbFreshServers(data);
+    }).catch(function(e){
+      if(e&&e.unauth) renderLogin("Session expired.");
+    }).then(function(){ IDENTITY_LIST_FETCH=null; });
   }
 
   $("loginbtn").href=API+"/auth/login";
@@ -2836,7 +3010,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       list.forEach(s=>{const p=s.profit_units||0;const c=document.createElement("div");c.className="scard";
         // 0.40.3: no stats yet (lite list, nothing saved) → "…", never a fake 0.
         const noSt=s.queued==null&&s.won==null&&s.profit_units==null;
-        c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Unnamed server")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">'+esc(s.plan_name||"starter")+'</span>'+trialBadge(s)+'</div>'
+        c.innerHTML='<div class="row1"><div class="s-id">'+serverAvatarHtml(s,"Unnamed server")+'<div><div class="sname">'+esc(guildName(s,"Unnamed server"))+'</div><div class="sgid">'+s.guild_id+'</div></div></div><span class="plan">'+esc(s.plan_name||"starter")+'</span>'+trialBadge(s)+'</div>'
         +(noSt?'<div class="mini st-pending" style="gap:8px">'
         +'<div class="m"><span class="mv" style="display:flex;align-items:center;height:28px">'+NDSkeleton.box("24px","20px")+'</span><span class="ml">Queued</span></div>'
         +'<div class="m"><span class="mv" style="display:flex;align-items:center;height:28px">'+NDSkeleton.box("40px","20px")+'</span><span class="ml">W – L</span></div>'
@@ -2847,7 +3021,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<div class="m"><span class="mv '+(p>=0?"pos":"neg")+'">'+u(p)+'</span><span class="ml">Profit</span></div>'
         +'<div class="m"><span class="mv">'+(s.roi||0)+'%</span><span class="ml">ROI</span></div></div>')
         +'<div style="margin-top:14px;color:var(--muted);font-size:var(--t-sub)"><span class="dot '+(s.enabled?"on":"off")+'"></span>'+(s.enabled?"Bot enabled":"Bot disabled")+'</div>';
-        c.setAttribute("role","button");c.tabIndex=0;c.setAttribute("aria-label",(s.display_name||"Unnamed server")+" server");
+        c.setAttribute("role","button");c.tabIndex=0;c.setAttribute("aria-label",guildName(s,"Unnamed server")+" server");
         c.onclick=()=>loadDetail(s.guild_id);
         c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); loadDetail(s.guild_id); } };
         grid.appendChild(c);});
@@ -2870,9 +3044,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         fg.appendChild(all);
       }
       follows.forEach(s=>{const c=document.createElement("div");c.className="scard";
-        c.innerHTML='<div class="row1"><div><div class="sname">'+esc(s.display_name||"Community")+'</div><div class="sgid">'+s.guild_id+'</div></div><span class="plan">follower</span></div>'
+        c.innerHTML='<div class="row1"><div class="s-id">'+serverAvatarHtml(s,"Community")+'<div><div class="sname">'+esc(guildName(s,"Community"))+'</div><div class="sgid">'+s.guild_id+'</div></div></div><span class="plan">follower</span></div>'
           +'<div style="margin-top:12px;color:var(--muted);font-size:var(--t-sub)">Tap to see your units, calendar and tip history →</div>';
-        c.setAttribute("role","button");c.tabIndex=0;c.setAttribute("aria-label",(s.display_name||"Community")+" follower view");
+        c.setAttribute("role","button");c.tabIndex=0;c.setAttribute("aria-label",guildName(s,"Community")+" follower view");
         c.onclick=()=>openFollowerView(s.guild_id,s.display_name);
         c.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openFollowerView(s.guild_id,s.display_name); } };
         fg.appendChild(c);});
@@ -2981,7 +3155,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.66.3"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.66.4"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -3060,6 +3234,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ /* different server — leave batch alone until builder opens */ }
     renderBatchTray();
     const key=guildId+"|"+(month||"");
+    window.__tbDetailKey=key;
     if(opts.force) sharedInvalidate();
     STATE._detailCache=STATE._detailCache||{};
     const mem=STATE._detailCache[key];
@@ -3102,6 +3277,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const data=await r.json();
       STATE._detailCache[key]=data;
       writeDetailDisk(key, data);
+      absorbFreshDetail(data);
       if(!$("detail").hidden) renderDetail(data);
       loadPropCounts(guildId, month, key, data);
       // Warm the tip builder's data after the server page itself has loaded.
@@ -7571,7 +7747,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const total=Math.max(Number(wonN)+Number(lostN)+Number(pushN),1);
     const wl='<span style="width:'+(wonN/total*100)+'%;background:var(--win)"></span><span style="width:'+(lostN/total*100)+'%;background:var(--loss)"></span><span style="width:'+(pushN/total*100)+'%;background:var(--push)"></span>';
     const sv=(window.ServerView&&typeof ServerView.blocks==="function")?ServerView.blocks(viewDetail,{formHtml:guildBadge,period:period,stale:qStale,filter:DETAIL_FILTER}):null;
-    const serverTitle=(!sv&&guildBadge)?'<div class="tb-form-title"><h1>'+esc(s.display_name||"Unnamed server")+'</h1>'+guildBadge+'</div>':'<h1>'+esc(s.display_name||"Unnamed server")+'</h1>';
+    const serverLabel=guildName(s,"Unnamed server");
+    const serverTitleInner=serverAvatarHtml(s,serverLabel,true)+'<span class="server-title-text">'+esc(serverLabel)+'</span>';
+    const serverTitle=(!sv&&guildBadge)?'<div class="tb-form-title"><h1 id="server-title">'+serverTitleInner+'</h1>'+guildBadge+'</div>':'<h1 id="server-title">'+serverTitleInner+'</h1>';
     const qTxt=qStale?'<span class="st-updating">Updating…</span>':(st.queued==null?"—":st.queued);
     const tileDefs=[["Tips Queued",qTxt,"","queued"],["Won",st.won==null?"—":st.won,"pos",""],["Lost",st.lost==null?"—":st.lost,"neg",""],["Success Rate",st.strike_rate==null?"—":st.strike_rate+"%","",""],["Profit",u(st.profit_units),(Number(st.profit_units)||0)>=0?"pos":"neg",""],["ROI",st.roi==null?"—":st.roi+"%",(Number(st.roi)||0)>=0?"pos":"neg",""],["Followers",st.followers==null?"—":st.followers,"","followers"]];
     const tiles=tileDefs.map(t=>'<div class="tile'+(t[3]?" clk":"")+'"'+(t[3]?' data-act="'+t[3]+'"':'')+'><div class="tv '+t[2]+'">'+t[1]+'</div><div class="tl">'+t[0]+(t[3]?' <span style="color:var(--accent)">›</span>':'')+'</div></div>').join("");
@@ -7751,7 +7929,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.3');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.4');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -8607,6 +8785,8 @@ async function loadPerms(gid){
       // 0.40.3: lite=1 has no stats — keep the ones we already have (cache/state)
       // so home cards never flash to 0 and the saved stats aren't overwritten.
       keepServerStats(data, (STATE.servers&&STATE.servers.length)?STATE.servers:((cached&&cached.servers)||[]));
+      keepListedIdentity(data.servers, (STATE.servers&&STATE.servers.length)?STATE.servers:((cached&&cached.servers)||[]));
+      keepListedIdentity(data.follower_servers, (STATE.followerServers&&STATE.followerServers.length)?STATE.followerServers:((cached&&cached.follower_servers)||[]));
       writeBootCache(data);
       noteOps(data);
       if(window.TBGlobalFlags) TBGlobalFlags.ingest(data);
@@ -8622,6 +8802,7 @@ async function loadPerms(gid){
         if(cfg&&window.TBGlobalFlags) TBGlobalFlags.ingest(cfg);
       }catch(e){}
       applyBootPayload(data);
+      absorbFreshServers(data);
       if(!paintedFromCache){
         TopBar.set(92, "Almost ready…");
         show("app");
@@ -8638,13 +8819,15 @@ async function loadPerms(gid){
         if(!r2 || !r2.ok) return;
         try{
           const full=await r2.json();
+          keepListedIdentity(full.servers, STATE.servers);
+          keepListedIdentity(full.follower_servers, STATE.followerServers);
           writeBootCache(full);
           noteOps(full);
           if(window.TBGlobalFlags) TBGlobalFlags.ingest(full);
           STATE.servers=full.servers?listedOnly(full.servers):STATE.servers;
           STATE.followerServers=full.follower_servers?listedOnly(full.follower_servers):STATE.followerServers;
           if(full.theme_prefs) hydrateTheme(full.theme_prefs);
-          if(!$("overview").hidden) try{ renderOverview(); }catch(e){}
+          absorbFreshServers(full);
         }catch(e){}
       }).catch(function(){});
     }catch(e){
