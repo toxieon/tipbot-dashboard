@@ -8,8 +8,6 @@ const SC = require("../assets/tb-charts.js");
 
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
-
 function tip(over){
   return Object.assign({
     tip_id: "t", result: "Win", units: 1, odds: 1.9, profit_units: 0.9,
@@ -269,8 +267,8 @@ test("area, bar and donut are lazy chart hosts", () => {
 });
 
 test("the server page wires the helpers and keeps the old panels", () => {
-  assert.match(html, new RegExp('<script src="\\./assets/tb-charts\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
-  assert.match(html, new RegExp('<script src="\\./assets/server-view\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
+  assert.match(html, /<script src="\.\/assets\/tb-charts\.js\?v=__TD_VERSION__"><\/script>/);
+  assert.match(html, /<script src="\.\/assets\/server-view\.js\?v=__TD_VERSION__"><\/script>/);
   const detail = html.slice(html.indexOf("function renderDetail"), html.indexOf("function mountScheduled"));
   assert.match(detail, /ServerView\.blocks/);
   assert.match(detail, /ServerView\.bindInteractions/);

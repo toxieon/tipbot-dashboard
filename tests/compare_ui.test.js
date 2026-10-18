@@ -7,7 +7,7 @@ const C = require("../assets/compare-ui.js");
 
 const root = path.join(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
-const VERSION = read("VERSION").trim();
+const VERSION = "__TD_VERSION__";
 
 test("exact line is ranked by price and the best price is marked", () => {
   const view = C.fromCompare(C.sampleCompare(), C.samplePick());

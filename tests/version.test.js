@@ -1,4 +1,4 @@
-// node --test tests/   Versioning (VERSIONING.md): VERSION file, Settings-menu label and CHANGELOG agree.
+// node --test tests/   Versioning (VERSIONING.md): VERSION file, settings placeholder and CHANGELOG agree.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -10,11 +10,10 @@ test("VERSION is x.y.z", () => {
   assert.match(version, /^\d+\.\d+\.\d+$/);
 });
 
-test("Settings menu label and CHANGELOG show the current version", () => {
+test("Settings menu keeps the version placeholder and CHANGELOG names VERSION", () => {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-  const m = html.match(/id="dd-version"[^>]*>tipdash v(\d+\.\d+\.\d+)</);
-  assert.ok(m, "#dd-version label missing");
-  assert.equal(m[1], version);
+  assert.match(html, /id="dd-version"[^>]*>tipdash v__TD_VERSION__</);
+  assert.match(html, /TD\.version="__TD_VERSION__"/);
   const log = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
   assert.match(log, new RegExp("## " + version.replace(/\./g, "\\.") + " "));
 });

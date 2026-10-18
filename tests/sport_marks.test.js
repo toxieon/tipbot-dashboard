@@ -7,7 +7,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const S = require("../assets/sport-marks.js");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
-const VERSION = read("VERSION").trim().replace(/\./g, "\\.");
+const VERSION = "__TD_VERSION__";
 const EMOJI = /🏉|🏈|🏀|⚽|⚾|🎾|🏏|🏇|⛳|🏒|🥊|➕/;
 
 test("every listed sport uses the shared mark", () => {

@@ -12,8 +12,7 @@ const CSS = (HTML.match(/<style[^>]*>([\s\S]*?)<\/style>/) || [, ""])[1];
 
 // ── Phase 1 · press-feel ───────────────────────────────────────────────────────
 test("tb-motion.js loads eagerly and exposes TBMotion without a DOM", () => {
-  const version = read("VERSION").trim();
-  const q = version.replace(/\./g, "\\.");
+  const q = "__TD_VERSION__";
   assert.match(HTML, new RegExp("<script src=\"\\./assets/tb-motion\\.js\\?v=" + q + "\"></script>"));
   assert.match(read("master/index.html"), new RegExp("<script src=\"\\.\\./assets/tb-motion\\.js\\?v=" + q + "\"></script>"));
   const ctx = {setTimeout, clearTimeout};
