@@ -739,7 +739,7 @@
     var host = doc.getElementById("app") || doc.body;
     if (host.querySelector(".apex-rail")) {
       railNav = host.querySelector(".apex-rail");
-      tabsNav = host.querySelector(".apex-tabs");
+      tabsNav = doc.querySelector(".apex-tabs");
       shellReady = true;
       return;
     }
@@ -754,12 +754,15 @@
     // 0.53.3: phone tabs follow TABS order (Home | Build | Upcoming), not NAV order.
     tabs.innerHTML = '<i class="apex-indicator" aria-hidden="true"></i>' + buttonRow(navItems(TABS), "");
     host.insertBefore(rail, host.firstChild);
-    host.appendChild(tabs);
+    // Phone tabs sit on the body, outside #app and .wrap. A transform or
+    // filter on the page shell would otherwise be the containing block
+    // for position:fixed, so the bar would ride up the screen while scrolling.
+    doc.body.appendChild(tabs);
     railNav = rail;
     tabsNav = tabs;
-    host.addEventListener("click", function (ev) {
+    doc.addEventListener("click", function (ev) {
       var btn = ev.target && ev.target.closest ? ev.target.closest("[data-apex-nav]") : null;
-      if (!btn || !host.contains(btn)) return;
+      if (!btn || !doc.body.contains(btn)) return;
       ev.preventDefault();
       go(btn.getAttribute("data-apex-nav"));
     });
