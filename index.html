@@ -5342,6 +5342,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       host._mcg=handle;
       fliveSponsors(handle);
       if(handle.resize) handle.resize();
+      try{ if(FLIVE.mcgMod&&FLIVE.mcgMod.mountCameraChips) FLIVE.mcgMod.mountCameraChips(host, handle); }catch(e){}
     }).catch(function(){ FLIVE.mcg=false; FLIVE.expectLogos=0; fliveSponsors(); fliveNoteGround(); });
   }
   // Stadium photo and cached logos paint before the bet list. flive-ground is
