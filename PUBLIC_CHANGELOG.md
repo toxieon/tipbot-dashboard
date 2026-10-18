@@ -1,3 +1,7 @@
+## 0.66.5
+
+Internal tidy-up.
+
 ## 0.66.4
 
 A renamed server shows its new name and picture. The list and an open server page pick them up as soon as Tipdash hears back. Coming back to the tab after a minute updates the name and picture on the page you already have open, and live progress on a tip stays put. If that check can't reach TipBot, Tipdash waits a minute before trying again.

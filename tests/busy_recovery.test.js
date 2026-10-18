@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const T = require("../assets/scheduled-tips.js");
 
-const G = "1547413800012226692";
+const G = "100000000000000001";
 function api(seq) {
   let i = 0;
   return async () => {

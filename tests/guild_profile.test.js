@@ -10,7 +10,7 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const HTML = read("index.html");
 const GP = require("../assets/guild-profile.js");
 
-const GID = "1547413800012226692";
+const GID = "100000000000000001";
 const OLD_ICON = "https://cdn.discordapp.com/icons/" + GID + "/old.png";
 const LIST_ICON = "https://cdn.discordapp.com/icons/" + GID + "/list.png";
 const NEW_ICON = "https://cdn.discordapp.com/icons/" + GID + "/new.png";
