@@ -1,3 +1,9 @@
+## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
+
+- The Home, Build and Upcoming bar stays on the bottom of the screen while you scroll, including on a server's Settings page.
+
+Tests: `tests/e2e/phone-nav.spec.mjs`, `tests/tabbar_order.test.js`.
+
 ## 0.66.5 · 2026-10-18 · `tidy` · Internal tidy-up
 
 - Internal tidy-up.
