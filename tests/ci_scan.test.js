@@ -33,6 +33,7 @@ test("guard reads terms and ids from CI secrets, and skips with a notice when ab
   const wf = fs.readFileSync(path.join(root, ".github", "workflows", "ci.yml"), "utf8");
   assert.match(wf, /TIPDASH_SCAN_ID_1: \$\{\{ secrets\.TIPDASH_SCAN_ID_1 \}\}/);
   assert.match(wf, /TIPDASH_SCAN_TERMS: \$\{\{ secrets\.TIPDASH_SCAN_TERMS \}\}/);
+  assert.match(wf, /PRIVATE_GUILD_IDS: \$\{\{ secrets\.PRIVATE_GUILD_IDS \}\}/);
 });
 
 test("manual publish clones tipdashhq-site and commits dist on that history", () => {

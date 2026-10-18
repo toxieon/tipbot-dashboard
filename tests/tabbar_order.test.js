@@ -18,6 +18,15 @@ test("desktop rail mirrors phone: in-server uses TABS; no-server uses Home, Serv
   assert.doesNotMatch(js, /buttonRow\(NAV,/);
 });
 
+test("phone tab bar hangs off the body and is not blurred", () => {
+  assert.match(js, /doc\.body\.appendChild\(tabs\)/);
+  assert.match(css, /\.apex-tabs\{[^}]*backdrop-filter:\s*none/);
+  assert.doesNotMatch(css, /\.apex-tabs\{[^}]*backdrop-filter:\s*blur/);
+  const phone = css.slice(css.indexOf("@media (max-width:899px)"));
+  assert.match(phone, /\.apex-tabs\{[^}]*position:fixed;[^}]*bottom:0;/);
+  assert.match(phone, /safe-area-inset-bottom/);
+});
+
 test("Build is the centred middle column of the phone tab bar", () => {
   const phone = css.slice(css.indexOf("@media (max-width:899px)"));
   assert.match(phone, /\.apex-tabs\{[^}]*display:grid;[^}]*grid-template-columns:1fr auto 1fr;/);

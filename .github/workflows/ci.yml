@@ -11,6 +11,7 @@ jobs:
     env:
       TIPDASH_SCAN_ID_1: ${{ secrets.TIPDASH_SCAN_ID_1 }}
       TIPDASH_SCAN_TERMS: ${{ secrets.TIPDASH_SCAN_TERMS }}
+      PRIVATE_GUILD_IDS: ${{ secrets.PRIVATE_GUILD_IDS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

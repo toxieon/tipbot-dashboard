@@ -1,3 +1,17 @@
+## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
+
+- Test tidy.
+
+## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
+
+- The Home, Build and Upcoming bar stays on the bottom of the screen while you scroll, including on a server's Settings page.
+
+Tests: `tests/e2e/phone-nav.spec.mjs`, `tests/tabbar_order.test.js`.
+
+## 0.66.5 · 2026-10-18 · `tidy` · Internal tidy-up
+
+- Internal tidy-up.
+
 ## 0.66.4 · 2026-10-18 · `guild-rename` · A renamed server shows its new name and icon
 
 - The server list and an open server page paint from the saved copy first, then replace the name and icon when `/api/servers` or `/api/server` comes back. That new name and icon are written into `tipdash_boot_v1` and `tipdash_detail_v1`.
@@ -606,7 +620,7 @@ Needs TipBot 0.40.1 for the props; older TipBot keeps working (see below). Gradi
 
 ## 0.39.2 · 2026-09-29 · `hide-master-home` · TipBot Master Server hidden from the home servers list
 
-- The home servers list (and the one-server auto-open) skips the configured master guild. The id comes from the owner's `/api/master/config` (`config.master_guild_id`), with the known id `1553952007923040309` covering the first paint; never matched by name. View-as, the ⚙ menu and the Master pages (`/master/`) are unchanged, so the master server is still reachable there.
+- The home servers list (and the one-server auto-open) skips one configured server. A saved value covers the first paint, and that server is never matched by name. Other pages are unchanged, so it stays reachable there.
 
 ## 0.39.1 · 2026-09-28 · `slip-import` · Slip import card (Claude, Phase 1.3)
 

@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const T = require("../assets/scheduled-tips.js");
 
-const G = "1547413800012226692";
+const G = "100000000000000001";
 const tip = (over) => Object.assign({tip_id: G + ":AFL-2026-040", display_id: "AFL-2026-040", game_name: "Carlton v Hawthorn",
   odds: 1.9, units: 1, bookmaker: "Sportsbet", post_at: new Date(Date.now() + 10 * 60000).toISOString(), has_image: true,
   forward: {status: "posted", sent: true}, legs: [{position: 1, description: "Bontempelli 30+ disposals"}, {position: 2, description: "Carlton H2H"}]}, over || {});

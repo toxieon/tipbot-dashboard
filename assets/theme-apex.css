@@ -489,13 +489,17 @@ html[data-theme="apex"] .apex-delta-down{color:var(--muted)}
   }
 }
 
-/* App shell. The rail and the phone tab bar are the only blur surfaces. */
+/* App shell. The side rail blurs. The phone bar is solid so it stays pinned while the page scrolls. */
 .apex-rail,.apex-tabs{display:none}
-html[data-theme="apex"] .apex-rail,
-html[data-theme="apex"] .apex-tabs{
+html[data-theme="apex"] .apex-rail{
   background:color-mix(in srgb, var(--bg) 88%, transparent);
   -webkit-backdrop-filter:blur(16px);
   backdrop-filter:blur(16px);
+}
+html[data-theme="apex"] .apex-tabs{
+  background:var(--bg);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
 }
 html[data-theme="apex"] .apex-rail{
   position:fixed;
