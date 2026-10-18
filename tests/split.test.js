@@ -252,7 +252,7 @@ function appContext(apiBodies) {
   return ctx;
 }
 
-const GID = "1547413800012226692";
+const GID = "100000000000000001";
 const SERVER = {guild_id: GID, display_name: "Toxieon-Tipping", enabled: 1, subscription_active: 1, unit_size: 20};
 const BODIES = [
   ["/api/servers", {role: "owner", servers: [SERVER, {...SERVER, guild_id: "42", display_name: "Tip2"}], follower_servers: []}],

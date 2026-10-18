@@ -3,9 +3,9 @@ const assert = require('node:assert/strict');
 const {parseTargets, escape} = require('../assets/master-access.js');
 
 test('scope IDs retain every digit', () => {
-  assert.deepEqual(parseTargets('channel:1547413800012226692, category:1547413800012226693'), [
-    {target_type:'channel',target_id:'1547413800012226692'},
-    {target_type:'category',target_id:'1547413800012226693'}
+  assert.deepEqual(parseTargets('channel:100000000000000001, category:100000000000000002'), [
+    {target_type:'channel',target_id:'100000000000000001'},
+    {target_type:'category',target_id:'100000000000000002'}
   ]);
 });
 test('invalid scopes and numbers are rejected', () => {
