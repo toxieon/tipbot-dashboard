@@ -86,8 +86,8 @@ test("chip and tag markup escapes labels and marks the selection", () => {
 });
 
 test("Discover page wires the chip row, card tags, and phone layout", () => {
-  const html = read("index.html");
-  const css = html;
+  const html = read("index.html") + "\n" + read("assets/discover.js"); // Discover moved to a lazy file (job 03)
+  const css = read("index.html");
   assert.match(html, new RegExp('<script src="\\./assets/discover-sports\\.js\\?v=' + VERSION + '"></script>'));
   assert.match(html, /id="dc-sports" class="dc-sports"/);
   assert.match(html, /aria-label="Filter by sport"/);

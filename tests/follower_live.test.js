@@ -4,7 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const FL = require("../assets/follower-live.js");
 
-const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+// index.html plus the follower views it lazy-loads (job 03).
+const html = ["index.html", "assets/follower-views.js"].map((f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8")).join("\n");
 
 test("pending, hit and miss cards match the approved states", () => {
   const payload = {
