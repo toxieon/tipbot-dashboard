@@ -288,22 +288,24 @@ test("the page wires a fresh name and icon over both caches, and refetches after
   assert.equal(detailRenamed[GID + "|"].data.settings.icon_url, NEW_ICON);
 
   bootRenamed.saved_at = Date.now() - 90 * 1000;
+  delete bootRenamed.attempted_at;
   detailRenamed[GID + "|"].saved_at = Date.now() - 90 * 1000;
   ctx.store.set("tipdash_boot_v1", JSON.stringify(bootRenamed));
   ctx.store.set("tipdash_detail_v1", JSON.stringify(detailRenamed));
   fire(ctx, "visibilitychange");
   await tick(80);
   assert.equal(lite1Hits, hitsBeforeFocus.lite + 1);
-  assert.equal(detailHits, hitsBeforeFocus.detail + 1);
+  assert.equal(detailHits, hitsBeforeFocus.detail, "focus does not refetch the open server");
   const focused = ctx.byId("detail").innerHTML;
-  assert.match(focused, /Focus Server/);
+  assert.match(focused, /Focus Listed/);
   assert.match(focused, /focus\.png/);
   assert.doesNotMatch(focused, /Renamed/);
   const bootFocus = JSON.parse(ctx.store.get("tipdash_boot_v1"));
-  assert.equal(bootFocus.servers[0].display_name, "Focus Server");
+  assert.equal(bootFocus.servers[0].display_name, "Focus Listed");
   assert.equal(bootFocus.servers[0].icon_url, FOCUS_ICON);
   const detailFocus = JSON.parse(ctx.store.get("tipdash_detail_v1"));
-  assert.equal(detailFocus[GID + "|"].data.settings.display_name, "Focus Server");
+  assert.equal(detailFocus[GID + "|"].data.settings.display_name, "Focus Listed");
+  assert.equal(detailFocus[GID + "|"].data.settings.icon_url, FOCUS_ICON);
 });
 
 test("a failed servers response keeps the cached list", async () => {
@@ -321,12 +323,199 @@ test("a failed servers response keeps the cached list", async () => {
   assert.equal(ctx.byId("app").hidden, false);
 });
 
-test("index.html refreshes name and icon from both endpoints when the tab returns", () => {
+test("prop counts stay on an open server when focus refreshes the name", async () => {
+  let lite1Hits = 0;
+  let detailHits = 0;
+  let propHits = 0;
+  const propTip = {
+    tip_id: "tip-12",
+    status: "Settled",
+    result: "Win",
+    profit_units: 1,
+    game_name: "Carlton vs Richmond",
+    bet_type: "Prop",
+    legs: [{
+      player: "Sam",
+      stat: "Disposals",
+      side: "Over",
+      line: 20,
+      current: 12,
+      emoji: "🔥",
+      status: "live",
+      description: "🔥 Sam 20+ Disposals",
+    }],
+  };
+  const ctx = bootPage(async (url) => {
+    const u = String(url);
+    if (u.includes("/api/servers")) {
+      if (u.includes("lite=0")) return mockResponse(listBody("Listed", LIST_ICON));
+      lite1Hits += 1;
+      return mockResponse(listBody(lite1Hits === 1 ? "Listed" : "Focus Listed", lite1Hits === 1 ? LIST_ICON : FOCUS_ICON));
+    }
+    if (u.includes("/api/server/prop-counts")) {
+      propHits += 1;
+      return mockResponse({ tips: {} });
+    }
+    if (u.includes("/api/server")) {
+      detailHits += 1;
+      const body = detailBody("From Server", "srvhash");
+      body.month = "2026-10";
+      body.months = ["2026-10"];
+      if (detailHits === 1) body.tips.settled = [JSON.parse(JSON.stringify(propTip))];
+      return mockResponse(body);
+    }
+    return mockResponse({ ok: true });
+  }, {
+    tipdash_boot_v1: bootCache("Cached Name", OLD_ICON, Date.now() - 5000),
+    tipdash_detail_v1: detailCache("Cached Name", OLD_ICON, Date.now() - 5000),
+  });
+  await tick(80);
+  vm.runInContext(`loadDetail("${GID}")`, ctx);
+  await tick(80);
+  const painted = ctx.byId("detail").innerHTML;
+  assert.match(painted, /12 \/ 20/);
+  assert.match(painted, /🔥/);
+  assert.equal(vm.runInContext("window.__tbDetailKey", ctx), GID + "|");
+  assert.equal(vm.runInContext("STATE._detailShown.month", ctx), "2026-10");
+  assert.equal(vm.runInContext("STATE._detailShown.tips.settled[0].legs[0].status", ctx), "live");
+  vm.runInContext("STATE._detailShown._propMark=1", ctx);
+  ctx.byId("detail").innerHTML = painted.replace("</h1>", "</h1><!-- prop-hold -->");
+
+  const boot = JSON.parse(ctx.store.get("tipdash_boot_v1"));
+  const detail = JSON.parse(ctx.store.get("tipdash_detail_v1"));
+  boot.saved_at = Date.now() - 90 * 1000;
+  delete boot.attempted_at;
+  detail[GID + "|"].saved_at = Date.now() - 90 * 1000;
+  ctx.store.set("tipdash_boot_v1", JSON.stringify(boot));
+  ctx.store.set("tipdash_detail_v1", JSON.stringify(detail));
+  const hits = { lite: lite1Hits, detail: detailHits, prop: propHits };
+  fire(ctx, "visibilitychange");
+  await tick(80);
+
+  assert.equal(lite1Hits, hits.lite + 1);
+  assert.equal(detailHits, hits.detail, "focus does not refetch /api/server");
+  assert.equal(propHits, hits.prop, "focus does not reload prop counts");
+  const html = ctx.byId("detail").innerHTML;
+  assert.match(html, /prop-hold/);
+  assert.match(html, /12 \/ 20/);
+  assert.match(html, /🔥/);
+  assert.match(html, /Focus Listed/);
+  assert.match(html, /focus\.png/);
+  assert.equal(vm.runInContext("STATE._detailShown._propMark", ctx), 1);
+  assert.equal(vm.runInContext("STATE._detailShown.tips.settled[0].legs[0].emoji", ctx), "🔥");
+  assert.equal(vm.runInContext("STATE._detailShown.tips.settled[0].legs[0].status", ctx), "live");
+  assert.equal(vm.runInContext("STATE._detailShown.tips.settled[0].legs[0].current", ctx), 12);
+  const saved = JSON.parse(ctx.store.get("tipdash_detail_v1"));
+  assert.equal(saved[GID + "|"].data.tips.settled[0].legs[0].emoji, "🔥");
+  assert.equal(saved[GID + "|"].data.tips.settled[0].legs[0].status, "live");
+  assert.equal(saved[GID + "|"].data.tips.settled[0].legs[0].current, 12);
+  assert.equal(saved[GID + "|"].data.settings.display_name, "Focus Listed");
+  assert.equal(Object.keys(saved).some((k) => k === GID + "|2026-10"), false);
+});
+
+test("the first focus is gated when the open page was stored under gid| and the payload month differs", async () => {
+  let lite1Hits = 0;
+  let detailHits = 0;
+  const ctx = bootPage(async (url) => {
+    const u = String(url);
+    if (u.includes("/api/servers")) {
+      if (u.includes("lite=0")) return mockResponse(listBody("Listed", LIST_ICON));
+      lite1Hits += 1;
+      return mockResponse(listBody("Listed", LIST_ICON));
+    }
+    if (u.includes("/api/server") && !u.includes("prop-counts")) {
+      detailHits += 1;
+      const body = detailBody("From Server", "srvhash");
+      body.month = "2026-10";
+      body.months = ["2026-10"];
+      return mockResponse(body);
+    }
+    return mockResponse({ ok: true });
+  }, {
+    tipdash_boot_v1: bootCache("Cached Name", OLD_ICON, Date.now() - 90 * 1000),
+    tipdash_detail_v1: detailCache("Cached Name", OLD_ICON, Date.now() - 90 * 1000),
+  });
+  await tick(80);
+  vm.runInContext(`loadDetail("${GID}")`, ctx);
+  await tick(80);
+  assert.equal(vm.runInContext("window.__tbDetailKey", ctx), GID + "|");
+  assert.equal(vm.runInContext("STATE._detailShown.month", ctx), "2026-10");
+  const boot = JSON.parse(ctx.store.get("tipdash_boot_v1"));
+  boot.saved_at = Date.now() - 90 * 1000;
+  delete boot.attempted_at;
+  ctx.store.set("tipdash_boot_v1", JSON.stringify(boot));
+  const store = JSON.parse(ctx.store.get("tipdash_detail_v1"));
+  assert.ok(store[GID + "|"]);
+  assert.equal(store[GID + "|2026-10"], undefined);
+  const hits = { lite: lite1Hits, detail: detailHits };
+  fire(ctx, "visibilitychange");
+  await tick(40);
+  assert.equal(lite1Hits, hits.lite, "a fresh gid| copy gates the first focus");
+  assert.equal(detailHits, hits.detail, "the first focus does not refetch the server");
+});
+
+test("a failed focus fetch waits 60s before trying again", async () => {
+  let lite1Hits = 0;
+  let releaseLite0;
+  const lite0Gate = new Promise((r) => { releaseLite0 = r; });
+  const ctx = bootPage(async (url) => {
+    const u = String(url);
+    if (u.includes("/api/servers")) {
+      if (u.includes("lite=0")) {
+        await lite0Gate;
+        return mockResponse(listBody("Full", LIST_ICON));
+      }
+      lite1Hits += 1;
+      if (lite1Hits === 1) return mockResponse(listBody("Listed", LIST_ICON));
+      return mockResponse({ error: "down" }, 503);
+    }
+    return mockResponse({ ok: true });
+  }, {
+    tipdash_boot_v1: bootCache("Cached Name", OLD_ICON, Date.now() - 90 * 1000),
+  });
+  await tick(80);
+  const afterLoad = lite1Hits;
+  const boot = JSON.parse(ctx.store.get("tipdash_boot_v1"));
+  boot.saved_at = Date.now() - 90 * 1000;
+  delete boot.attempted_at;
+  ctx.store.set("tipdash_boot_v1", JSON.stringify(boot));
+  fire(ctx, "visibilitychange");
+  await tick(40);
+  assert.equal(lite1Hits, afterLoad + 1);
+  const attempted = JSON.parse(ctx.store.get("tipdash_boot_v1"));
+  assert.equal(typeof attempted.attempted_at, "number");
+  assert.ok(Date.now() - attempted.attempted_at < 5000);
+  assert.equal(attempted.servers[0].display_name, "Listed");
+  fire(ctx, "visibilitychange");
+  await tick(40);
+  assert.equal(lite1Hits, afterLoad + 1, "a 503 does not start another request inside the minute");
+  const again = JSON.parse(ctx.store.get("tipdash_boot_v1"));
+  again.saved_at = Date.now() - 90 * 1000;
+  again.attempted_at = Date.now() - 90 * 1000;
+  ctx.store.set("tipdash_boot_v1", JSON.stringify(again));
+  fire(ctx, "visibilitychange");
+  await tick(40);
+  assert.equal(lite1Hits, afterLoad + 2);
+  releaseLite0();
+});
+
+test("index.html refreshes the name and icon in place when the tab returns", () => {
   assert.match(HTML, /<script src="\.\/assets\/guild-profile\.js\?v=/);
   assert.match(HTML, /const IDENTITY_STALE_MS=60\*1000/);
   assert.match(HTML, /absorbFreshServers\(data\)/);
   assert.match(HTML, /absorbFreshServers\(full\)/);
   assert.match(HTML, /absorbFreshDetail\(data\)/);
   assert.match(HTML, /refreshGuildIdentity\(\)/);
+  assert.match(HTML, /window\.__tbDetailKey=key/);
   assert.match(HTML, /window\.addEventListener\("focus", function\(\)\{\s*if\(document\.hidden \|\| !getToken\(\)\) return;\s*refreshGuildIdentity\(\);\s*\}\)/);
+  const refresh = HTML.slice(HTML.indexOf("function refreshGuildIdentity"), HTML.indexOf('$("loginbtn")'));
+  assert.match(refresh, /\/api\/servers\?lite=1/);
+  assert.match(refresh, /absorbFreshServers\(data\)/);
+  assert.match(refresh, /touchIdentityAttempt\(\)/);
+  assert.match(HTML.slice(HTML.indexOf("function touchIdentityAttempt"), HTML.indexOf("function refreshGuildIdentity")), /attempted_at/);
+  assert.doesNotMatch(refresh, /\/api\/server\?/);
+  assert.doesNotMatch(refresh, /renderDetail/);
+  const absorb = HTML.slice(HTML.indexOf("function absorbFreshServers"), HTML.indexOf("function absorbFreshDetail"));
+  assert.match(absorb, /paintOpenServerIdentity/);
+  assert.doesNotMatch(absorb, /renderDetail/);
 });

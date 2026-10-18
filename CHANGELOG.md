@@ -1,7 +1,7 @@
 ## 0.66.4 · 2026-10-18 · `guild-rename` · A renamed server shows its new name and icon
 
 - The server list and an open server page paint from the saved copy first, then replace the name and icon when `/api/servers` or `/api/server` comes back. That new name and icon are written into `tipdash_boot_v1` and `tipdash_detail_v1`.
-- Coming back to the tab fetches again when that saved copy is older than 60 seconds.
+- Coming back to the tab after 60 seconds fetches the server list and updates the name and icon on the page already open. The server page is not rebuilt, so live prop progress stays. A failed fetch waits 60 seconds before the next try. The open page is checked with the same cache key it was stored under.
 
 Tests: `tests/guild_profile.test.js`.
 

@@ -2333,6 +2333,23 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(mem[key]&&mem[key].settings) GuildProfile.applyIdentity(mem[key].settings, src);
     });
   }
+  function paintOpenServerIdentity(gid){
+    const shown=STATE._detailShown;
+    const s=shown&&shown.settings;
+    if(!s||String(s.guild_id)!==String(gid)) return;
+    const detail=$("detail");
+    if(!detail||detail.hidden||String(window.__tbDetailGid)!==String(gid)) return;
+    const label=guildName(s,"Unnamed server");
+    const inner=serverAvatarHtml(s,label,true)+'<span class="server-title-text">'+esc(label)+'</span>';
+    const title=document.getElementById("server-title");
+    if(title && typeof detail.contains==="function" && detail.contains(title)){
+      title.innerHTML=inner;
+      return;
+    }
+    if(typeof detail.innerHTML==="string" && detail.innerHTML.indexOf('id="server-title"')>=0){
+      detail.innerHTML=detail.innerHTML.replace(/<h1 id="server-title">[\s\S]*?<\/h1>/,'<h1 id="server-title">'+inner+'</h1>');
+    }
+  }
   function absorbFreshServers(data){
     if(!data||!window.GuildProfile) return;
     const gid=window.__tbDetailGid;
@@ -2342,10 +2359,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(row){
         const shown=STATE._detailShown;
         const settings=shown&&shown.settings;
-        let changed=false;
-        if(settings && String(settings.guild_id)===String(gid)) changed=GuildProfile.applyIdentity(settings, row);
+        if(settings && String(settings.guild_id)===String(gid)) GuildProfile.applyIdentity(settings, row);
         patchStoredDetails(gid, row);
-        if(changed && shown){ try{ renderDetail(shown); }catch(e){} }
+        try{ paintOpenServerIdentity(gid); }catch(e){}
       }
     }
     if($("overview") && !$("overview").hidden){ try{ renderOverview(); }catch(e){} }
@@ -2374,45 +2390,60 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   const IDENTITY_STALE_MS=60*1000;
   let IDENTITY_LIST_FETCH=null;
-  let IDENTITY_DETAIL_FETCH=null;
-  function refreshGuildIdentity(){
-    if(document.hidden||!getToken()||!window.GuildProfile) return;
-    const boot=readBootCache();
-    if(GuildProfile.stale(boot&&boot.saved_at, Date.now(), IDENTITY_STALE_MS) && !IDENTITY_LIST_FETCH){
-      IDENTITY_LIST_FETCH=api("/api/servers?lite=1",{retries:1,timeoutMs:20000}).then(async function(r){
-        if(!r||!r.ok) return;
-        const data=await r.json();
-        keepServerStats(data, (STATE.servers&&STATE.servers.length)?STATE.servers:[]);
-        keepListedIdentity(data.servers, (STATE.servers&&STATE.servers.length)?STATE.servers:((boot&&boot.servers)||[]));
-        keepListedIdentity(data.follower_servers, STATE.followerServers||((boot&&boot.follower_servers)||[]));
-        writeBootCache(data);
-        noteOps(data);
-        if(window.TBGlobalFlags) TBGlobalFlags.ingest(data);
-        applyBootPayload(data);
-        absorbFreshServers(data);
-      }).catch(function(e){
-        if(e&&e.unauth) renderLogin("Session expired.");
-      }).then(function(){ IDENTITY_LIST_FETCH=null; });
+  // Disk key is guildId + "|" + the month argument loadDetail was given.
+  // The payload's own month (for example 2026-10) is not that key: a lifetime
+  // open is stored at "gid|" even when settings.month is "2026-10".
+  function detailSavedAt(gid){
+    const store=readDetailStore();
+    const prefix=String(gid)+"|";
+    const remembered=window.__tbDetailKey;
+    if(remembered && String(remembered).indexOf(prefix)===0){
+      const ent=store[remembered];
+      if(ent && ent.saved_at) return Number(ent.saved_at)||0;
     }
+    let best=0;
+    Object.keys(store).forEach(function(key){
+      if(key.indexOf(prefix)!==0) return;
+      const at=Number(store[key]&&store[key].saved_at)||0;
+      if(at>best) best=at;
+    });
+    return best;
+  }
+  function identityAttemptAt(){
+    const boot=readBootCache();
+    let at=Math.max(Number(boot&&boot.saved_at)||0, Number(boot&&boot.attempted_at)||0);
     const gid=window.__tbDetailGid;
     const detailOpen=!!(gid && $("detail") && !$("detail").hidden);
-    if(!detailOpen || IDENTITY_DETAIL_FETCH) return;
-    const month=(STATE._detailShown&&STATE._detailShown.month)||"";
-    const key=String(gid)+"|"+(month||"");
-    const ent=readDetailStore()[key];
-    if(!GuildProfile.stale(ent&&ent.saved_at, Date.now(), IDENTITY_STALE_MS)) return;
-    IDENTITY_DETAIL_FETCH=api("/api/server?guild_id="+encodeURIComponent(gid)+(month?"&month="+encodeURIComponent(month):""),{retries:1,timeoutMs:20000}).then(async function(r){
+    if(detailOpen) at=Math.max(at, detailSavedAt(gid));
+    return at;
+  }
+  function touchIdentityAttempt(){
+    try{
+      const boot=readBootCache()||{};
+      boot.attempted_at=Date.now();
+      localStorage.setItem(BOOT_CACHE_KEY, JSON.stringify(boot));
+    }catch(e){}
+  }
+  function refreshGuildIdentity(){
+    if(document.hidden||!getToken()||!window.GuildProfile) return;
+    if(IDENTITY_LIST_FETCH) return;
+    if(!GuildProfile.stale(identityAttemptAt(), Date.now(), IDENTITY_STALE_MS)) return;
+    touchIdentityAttempt();
+    const boot=readBootCache();
+    IDENTITY_LIST_FETCH=api("/api/servers?lite=1",{retries:1,timeoutMs:20000}).then(async function(r){
       if(!r||!r.ok) return;
-      if(String(window.__tbDetailGid)!==String(gid) || !$("detail") || $("detail").hidden) return;
       const data=await r.json();
-      STATE._detailCache=STATE._detailCache||{};
-      STATE._detailCache[key]=data;
-      writeDetailDisk(key, data);
-      absorbFreshDetail(data);
-      if(!$("detail").hidden && String(window.__tbDetailGid)===String(gid)) renderDetail(data);
+      keepServerStats(data, (STATE.servers&&STATE.servers.length)?STATE.servers:[]);
+      keepListedIdentity(data.servers, (STATE.servers&&STATE.servers.length)?STATE.servers:((boot&&boot.servers)||[]));
+      keepListedIdentity(data.follower_servers, STATE.followerServers||((boot&&boot.follower_servers)||[]));
+      writeBootCache(data);
+      noteOps(data);
+      if(window.TBGlobalFlags) TBGlobalFlags.ingest(data);
+      applyBootPayload(data);
+      absorbFreshServers(data);
     }).catch(function(e){
       if(e&&e.unauth) renderLogin("Session expired.");
-    }).then(function(){ IDENTITY_DETAIL_FETCH=null; });
+    }).then(function(){ IDENTITY_LIST_FETCH=null; });
   }
 
   $("loginbtn").href=API+"/auth/login";
@@ -3203,6 +3234,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ /* different server — leave batch alone until builder opens */ }
     renderBatchTray();
     const key=guildId+"|"+(month||"");
+    window.__tbDetailKey=key;
     if(opts.force) sharedInvalidate();
     STATE._detailCache=STATE._detailCache||{};
     const mem=STATE._detailCache[key];
