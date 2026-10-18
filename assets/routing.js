@@ -9,6 +9,10 @@
  *   >1 channel in the end (incl. a "post to all" rule) → confirm popup listing the channels
  * With routing off, or an older TipBot without the endpoint, nothing changes (no route sent).
  *
+ * Settings → Channels also shows one-tap channel suggestions under each tag ("+ #afl-tips"), from
+ * the optional `suggestions` list TipBot adds to GET /api/routing (older TipBot: no list, no chips).
+ * A chip only ticks that channel in the form; nothing is saved until the admin presses Save.
+ *
  * Reuses the existing tipdash styles (NDCountdownConfirm sheet classes, panels, buttons).
  * Browser global window.TBRouting + CommonJS export (pure helpers) for node --test.
  */
@@ -61,6 +65,47 @@
               return {desc: l.desc, player: l.player, stat: l.stat, market: l.market, custom: l.custom,
                       game_id: l.game_id, league: l.league, espn_event_id: l.espn_event_id};
             })};
+  }
+
+  /**
+   * Channel suggestions still worth showing, per tag: {TAG: [{channel_id, name, reason, score}]}.
+   * Payload rows look like {tag, channel_id, channel_name?, score?, reason?}. Drops rows for unknown
+   * or deleted tags, channels the server doesn't list, channels already on that tag, the default
+   * Tips channel, and duplicates. Highest score first, at most 3 per tag.
+   */
+  function pendingSuggestions(data, deleted) {
+    var out = {};
+    if (!data || !Array.isArray(data.suggestions)) return out;
+    var chans = {}, tags = {};
+    (data.channels || []).forEach(function (c) { chans[String(c.id)] = c; });
+    (data.tags || []).forEach(function (t) { if (!deleted || deleted.indexOf(t.tag) === -1) tags[t.tag] = t; });
+    data.suggestions.forEach(function (sg) {
+      if (!sg) return;
+      var tag = String(sg.tag || ""), id = String(sg.channel_id || ""), t = tags[tag], c = chans[id];
+      if (!t || !c || !id) return;
+      if ((t.channel_ids || []).map(String).indexOf(id) !== -1) return;
+      if (data.default_channel_id != null && String(data.default_channel_id) === id) return;
+      var list = out[tag] || (out[tag] = []);
+      if (list.some(function (x) { return x.channel_id === id; })) return;
+      list.push({channel_id: id, name: c.name || sg.channel_name || id, reason: sg.reason || "", score: Number(sg.score) || 0});
+    });
+    Object.keys(out).forEach(function (k) {
+      out[k].sort(function (a, b) { return b.score - a.score; });
+      out[k] = out[k].slice(0, 3);
+    });
+    return out;
+  }
+  /** True when no visible tag has a channel yet, so "Apply all suggestions" makes sense. */
+  function emptySetup(data, deleted) {
+    return !!data && (data.tags || []).every(function (t) {
+      return (deleted && deleted.indexOf(t.tag) !== -1) || !(t.channel_ids || []).length;
+    });
+  }
+  function suggestionChip(tag, sg) {
+    return '<button type="button" class="sr-sugg-chip" data-tag="' + esc(tag) + '" data-ch="' + esc(sg.channel_id) + '"'
+      + (sg.reason ? ' title="' + esc(sg.reason) + '"' : "") + ' aria-label="Add #' + esc(sg.name) + " to " + esc(tag) + '"'
+      + ' style="min-height:44px;padding:0 14px;border-radius:999px;border:1px dashed var(--line);background:var(--card2);color:var(--txt);font:inherit;font-size:13px;cursor:pointer">+ #'
+      + esc(sg.name) + "</button>";
   }
 
   // ── sheet (reuses the NDCountdownConfirm styles) ─────────────────────────
@@ -227,8 +272,11 @@
         box.innerHTML = '<div class="empty">Couldn’t reach the bot.</div>';
       }
     }
+    function chanSummary(all, selected) {
+      return selected.length ? selected.map(function (id) { var c = all.find(function (x) { return x.id === id; }); return "#" + esc(c ? c.name : id); }).join(", ") : '<span style="color:var(--faint)">No channel</span>';
+    }
     function chanChecks(tag, all, selected, disabled) {
-      return '<details style="min-width:180px"><summary style="cursor:pointer;font-size:13px">' + (selected.length ? selected.map(function (id) { var c = all.find(function (x) { return x.id === id; }); return "#" + esc(c ? c.name : id); }).join(", ") : '<span style="color:var(--faint)">No channel</span>') + "</summary>"
+      return '<details style="min-width:180px"><summary style="cursor:pointer;font-size:13px">' + chanSummary(all, selected) + "</summary>"
         + '<div style="max-height:180px;overflow:auto;padding:6px 0">' + all.map(function (c) {
           return '<label style="display:flex;gap:6px;align-items:center;font-size:12.5px;padding:2px 0"><input type="checkbox" class="sr-ch" data-tag="' + esc(tag) + '" value="' + esc(c.id) + '"' + (selected.indexOf(c.id) !== -1 ? " checked" : "") + (disabled ? " disabled" : "") + "> #" + esc(c.name) + "</label>";
         }).join("") + "</div></details>";
@@ -247,7 +295,9 @@
       if (!d.can_admin) html += '<div style="color:var(--faint);font-size:12px;margin:8px 0">Only a server admin can change sport routing.</div>';
       if (d.enabled) {
         var def = all.find(function (c) { return c.id === d.default_channel_id; });
+        var sugg = ro ? {} : pendingSuggestions(d, S.deleted), suggN = Object.keys(sugg).reduce(function (n, k) { return n + sugg[k].length; }, 0);
         html += '<div style="color:var(--faint);font-size:12px;margin:12px 0">Default channel: <b>' + (def ? "#" + esc(def.name) : "the Tips output") + "</b> (the Tips picker above). Tips that match no rule go there, flagged.</div>"
+          + (suggN && emptySetup(d, S.deleted) ? '<div class="sr-sugg-all-wrap" style="margin:0 0 12px"><button type="button" class="ghost" id="sr-sugg-all" style="min-height:44px">Apply all suggestions (' + suggN + ')</button><span style="display:block;color:var(--faint);font-size:11px;margin-top:4px">Ticks the suggested channels below. Press Save to keep them.</span></div>' : "")
           + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em">'
           + "<th>On</th><th>Tag</th><th>Channels</th><th>Keywords</th><th>Priority</th><th>If several channels</th><th></th></tr></thead><tbody>";
         d.tags.forEach(function (t) {
@@ -260,6 +310,11 @@
             + '<td style="padding:8px 6px"><input class="sr-prio" type="number" step="1" ' + sel(";width:80px") + ' value="' + esc(t.priority) + '"' + (ro ? " disabled" : "") + "></td>"
             + '<td style="padding:8px 6px"><select class="sr-mode" ' + sel() + (ro ? " disabled" : "") + '><option value="ask"' + (t.mode !== "post_all" ? " selected" : "") + '>Ask</option><option value="post_all"' + (t.mode === "post_all" ? " selected" : "") + ">Post to all</option></select></td>"
             + '<td style="padding:8px 6px">' + (t.custom && !ro ? '<button type="button" class="ghost sr-del">Delete</button>' : "") + "</td></tr>";
+          if (sugg[t.tag]) {
+            html += '<tr class="sr-sugg" data-sugg-tag="' + esc(t.tag) + '"><td></td><td colspan="6" style="padding:0 6px 10px">'
+              + '<div style="color:var(--faint);font-size:11px;margin:0 0 4px">Suggested from channel names</div>'
+              + '<div style="display:flex;gap:8px;flex-wrap:wrap">' + sugg[t.tag].map(function (sg) { return suggestionChip(t.tag, sg); }).join("") + "</div></td></tr>";
+          }
         });
         html += "</tbody></table></div>";
         if (!ro) {
@@ -293,7 +348,36 @@
       });
       return {tags: tags, error: err};
     }
+    // A suggestion tick goes through the same checkbox the admin would tick by hand, so Save's
+    // request is built exactly as before (collect() reads the checkboxes).
+    function pickSuggestion(tag, id) {
+      var tr = Array.prototype.slice.call(box.querySelectorAll("tr[data-tag]")).find(function (x) { return x.getAttribute("data-tag") === tag; });
+      if (!tr) return;
+      var cb = Array.prototype.slice.call(tr.querySelectorAll(".sr-ch")).find(function (x) { return x.value === id; });
+      if (cb && !cb.disabled) cb.checked = true;
+      syncTag(tr, tag);
+    }
+    function syncTag(tr, tag) {
+      var ids = Array.prototype.slice.call(tr.querySelectorAll(".sr-ch:checked")).map(function (x) { return x.value; });
+      var sum = tr.querySelector("summary");
+      if (sum) sum.innerHTML = chanSummary(S.data.channels || [], ids);
+      box.querySelectorAll(".sr-sugg-chip").forEach(function (b) {
+        if (b.getAttribute("data-tag") === tag && ids.indexOf(b.getAttribute("data-ch")) !== -1) b.remove();
+      });
+      box.querySelectorAll("tr.sr-sugg").forEach(function (row) { if (!row.querySelector(".sr-sugg-chip")) row.remove(); });
+      if (!box.querySelector(".sr-sugg-chip")) { var w = box.querySelector(".sr-sugg-all-wrap"); if (w) w.remove(); }
+    }
     function wire() {
+      box.querySelectorAll(".sr-sugg-chip").forEach(function (b) {
+        b.onclick = function () { pickSuggestion(b.getAttribute("data-tag"), b.getAttribute("data-ch")); };
+      });
+      var all = box.querySelector("#sr-sugg-all");
+      if (all) all.onclick = function () {
+        Array.prototype.slice.call(box.querySelectorAll(".sr-sugg-chip")).forEach(function (b) { pickSuggestion(b.getAttribute("data-tag"), b.getAttribute("data-ch")); });
+      };
+      if (box.querySelector(".sr-sugg-chip")) box.querySelectorAll(".sr-ch").forEach(function (cb) {   // a hand tick hides the matching chip
+        cb.addEventListener("change", function () { var tr = cb.closest("tr[data-tag]"); if (tr) syncTag(tr, cb.getAttribute("data-tag")); });
+      });
       var en = box.querySelector("#sr-enabled");
       if (en) en.onchange = async function () {
         S.busy = true; S.msg = "Saving…"; S.err = false; paint();
@@ -359,6 +443,7 @@
   }
 
   var API = {fromPreview: fromPreview, decide: decide, route: route, chip: chip, nameMap: nameMap, previewTip: previewTip,
+             pendingSuggestions: pendingSuggestions, emptySetup: emptySetup, suggestionChip: suggestionChip,
              beforePost: beforePost, mountSettings: mountSettings, UNAVAILABLE: UNAVAILABLE};
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBRouting = API;
