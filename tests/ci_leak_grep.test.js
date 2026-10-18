@@ -19,17 +19,22 @@ function tree(files) {
   return dir;
 }
 
-function run(dir, env) {
+function run(dir, env = {}) {
+  const merged = {
+    ...process.env,
+    PRIVATE_GUILD_IDS: "",
+    TIPDASH_SCAN_TERMS: "",
+    TIPDASH_SCAN_ID_1: "",
+    GITHUB_ACTIONS: "",
+    ...env,
+  };
+  for (const key of Object.keys(merged)) {
+    if (merged[key] == null) delete merged[key];
+  }
   return spawnSync(process.execPath, ["scripts/ci-leak-grep.mjs", dir], {
     cwd: root,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      PRIVATE_GUILD_IDS: "",
-      TIPDASH_SCAN_TERMS: "",
-      TIPDASH_SCAN_ID_1: "",
-      ...env,
-    },
+    env: merged,
   });
 }
 
@@ -67,6 +72,45 @@ test("a private id hit fails without printing the id", () => {
     assert.doesNotMatch(out, new RegExp(other));
     assert.match(r.stderr, /private id #2/);
     assert.match(r.stderr, /index\.html:1/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CI fails when PRIVATE_GUILD_IDS is empty or unset; local runs skip", () => {
+  const dir = tree({ "index.html": "<p>Hello</p>\n" });
+  try {
+    for (const ids of ["", "  ,  ", undefined]) {
+      const ci = run(dir, { GITHUB_ACTIONS: "true", PRIVATE_GUILD_IDS: ids });
+      assert.notEqual(ci.status, 0);
+      assert.match(ci.stderr, /PRIVATE_GUILD_IDS is empty or unset/);
+      assert.doesNotMatch(ci.stdout + ci.stderr, /::notice::/);
+      assert.doesNotMatch(ci.stdout, /leak grep ok/);
+    }
+    const local = run(dir, { GITHUB_ACTIONS: "", PRIVATE_GUILD_IDS: "" });
+    assert.equal(local.status, 0, local.stderr);
+    assert.match(local.stdout, /PRIVATE_GUILD_IDS not set/);
+    const set = run(dir, { GITHUB_ACTIONS: "true", PRIVATE_GUILD_IDS: "111" });
+    assert.equal(set.status, 0, set.stderr);
+    assert.doesNotMatch(set.stdout + set.stderr, /111/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("leak grep fails if any built file still contains __TD_VERSION__", () => {
+  const dir = tree({
+    "index.html": "<p>ok</p>\n",
+    "assets/extra.bin": "prefix __TD_VERSION__ suffix\n",
+  });
+  try {
+    const r = run(dir, { PRIVATE_GUILD_IDS: "111" });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /assets\/extra\.bin/);
+    assert.match(r.stderr, /unstamped __TD_VERSION__/);
+    const out = r.stdout + r.stderr;
+    assert.doesNotMatch(out, /prefix /);
+    assert.doesNotMatch(out, /111/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

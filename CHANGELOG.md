@@ -1,6 +1,7 @@
 ## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
 
 - Test tidy.
+- On main, the public leak check fails if the private guild id list is empty, and if a built file still contains the version placeholder.
 
 ## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
 
