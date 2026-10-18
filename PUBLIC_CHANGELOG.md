@@ -1,3 +1,7 @@
+## 0.66.4
+
+A renamed server shows its new name and picture. The list and an open server page pick them up as soon as Tipdash hears back, and again when you return to the tab after a minute.
+
 ## 0.66.3
 
 A sponsor logo on the ground stands up toward the camera, with the near edge on the turf and the far edge shorter. Game view shows the ground and those logos straight away. Your bets load in underneath.
