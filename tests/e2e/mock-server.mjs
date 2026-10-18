@@ -242,15 +242,17 @@ export async function installApiMock(page) {
       await route.continue();
       return;
     }
+    // A credentialed fetch rejects a wildcard allow-origin and Chromium logs
+    // "Failed to load resource". Echo the page origin so the mock is accepted.
+    const origin = route.request().headers().origin || "*";
+    const cors = {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Headers": "authorization,content-type",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    };
+    if (origin !== "*") cors["Access-Control-Allow-Credentials"] = "true";
     if (route.request().method() === "OPTIONS") {
-      await route.fulfill({
-        status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "authorization,content-type",
-          "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        },
-      });
+      await route.fulfill({ status: 204, headers: cors });
       return;
     }
     const parsed = new URL(url);
@@ -258,7 +260,7 @@ export async function installApiMock(page) {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: cors,
       body: JSON.stringify(body),
     });
   });

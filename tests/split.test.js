@@ -10,7 +10,7 @@ const vm = require("node:vm");
 const ROOT = path.join(__dirname, "..");
 const read = (p) => fs.readFileSync(path.join(ROOT, p), "utf8");
 const HTML = read("index.html");
-const VERSION = read("VERSION").trim();
+const VERSION = "__TD_VERSION__";
 const FILES = {builder: read("assets/builder.js"), admin: read("assets/admin.js")};
 const ENTRY = {builder: ["openBuilder", "openCustom", "openRacingBuilder", "openSportsBuilder"], admin: ["pasteSheetPreview", "pasteSheetConfirm", "pasteSheetTemplate"]};
 
@@ -55,7 +55,7 @@ test("the lazy files compile and aren't referenced by any <script src>", () => {
   }
 });
 
-test("TD.version matches VERSION (it cache-busts the lazy files)", () => {
+test("TD.version is the cache-bust placeholder (it cache-busts the lazy files)", () => {
   const m = MAIN.match(/TD\.version="([^"]+)";/);
   assert.ok(m, "TD.version missing");
   assert.equal(m[1], VERSION);

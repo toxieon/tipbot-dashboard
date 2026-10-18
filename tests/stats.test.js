@@ -13,7 +13,6 @@ const S = require("../assets/stats.js");
 
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 const now = Date.parse("2026-10-09T04:00:00Z");
 
 function tip(over) {
@@ -120,7 +119,7 @@ test("index.html wires Stats from Home, not a bottom tab, and keeps the API base
   const panelList = JSON.parse(html.match(/const panel=p=>\{for\(const x of (\[[^\]]*\])\)/)[1]);
   assert.ok(panelList.includes("stats"), "stats must be in panel()'s fixed list or it stays hidden");
   // 0.57.7: loaded on first use (lazyScript), versioned like the other assets.
-  assert.match(html, new RegExp('s\\.src="\\./assets/"\\+name\\+"\\.js\\?v=' + version.replace(/\./g, "\\.") + '"'));
+  assert.match(html, /s\.src="\.\/assets\/"\+name\+"\.js\?v=__TD_VERSION__"/);
   assert.match(html, /lazyScript\("stats"\)/);
   assert.match(html, /if\(m\[0\]==="stats"\) return openStats\(\), true;/);
   assert.match(html, /const API="https:\/\/afl-tipster-bot\.onrender\.com";/);

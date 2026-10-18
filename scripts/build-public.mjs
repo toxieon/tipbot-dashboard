@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { stampTree } from "./bump-version.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -282,6 +283,8 @@ export function build(opts = {}) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     copyShipped(abs, dest);
   }
+  const release = String(opts.release || process.env.TIPDASH_RELEASE_VERSION || "").trim();
+  if (release) stampTree(dist, release);
   const problems = scanTree(dist);
   if (problems.length) {
     const err = new Error("public build refused\n" + formatProblems(problems));

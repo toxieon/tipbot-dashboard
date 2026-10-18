@@ -8,7 +8,7 @@ const root = path.join(__dirname, "..");
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
 require(path.join(root, "assets/sport-marks.js"));
 const DS = require(path.join(root, "assets/discover-sports.js"));
-const VERSION = read("VERSION").trim().replace(/\./g, "\\.");
+const VERSION = "__TD_VERSION__";
 
 const listed = [
   { guild_id: "1", display_name: "Footy Edge", sports: [{ sport: "AFL", settled: 30 }, { sport: "NRL", settled: 8 }, { sport: "NBA", settled: 2 }] },

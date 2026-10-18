@@ -64,10 +64,13 @@ test.afterAll(async () => {
 });
 
 function fulfillJson(route, body) {
+  const origin = route.request().headers().origin || "*";
+  const headers = { "Access-Control-Allow-Origin": origin };
+  if (origin !== "*") headers["Access-Control-Allow-Credentials"] = "true";
   return route.fulfill({
     status: 200,
     contentType: "application/json",
-    headers: { "Access-Control-Allow-Origin": "*" },
+    headers,
     body: JSON.stringify(body),
   });
 }

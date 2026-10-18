@@ -45,8 +45,7 @@ test("empty copy uses muted ink; long names wrap; the page cannot grow sideways"
 });
 
 test("icons and JSON lists are cache-busted with the shipped version", () => {
-  const version = fs.readFileSync(path.join(__dirname, "..", "VERSION"), "utf8").trim();
-  const q = version.replace(/\./g, "\\.");
+  const q = "__TD_VERSION__";
   assert.match(html, new RegExp("favicon\\.ico\\?v=" + q));
   assert.match(html, new RegExp("favicon\\.svg\\?v=" + q));
   assert.match(html, new RegExp("apple-touch-icon\\.png\\?v=" + q));

@@ -6,6 +6,12 @@ Static web control panel for the AFL Tipster Discord bot (GitHub Pages).
 
 This repo keeps the dashboard SPA and helpers only (`index.html`, fixture/bookie/player JSON, scripts). Do not copy TipBot Python modules here.
 
+## Version and changelog
+
+Do not bump `VERSION` in a pull request, and do not edit `?v=` query strings or the settings label. Source pages keep the `__TD_VERSION__` placeholder. On push to `main`, `scripts/bump-version.mjs` runs before the public build and stamps that placeholder into the built site only, using `VERSION` plus the short commit sha, or the next patch number when no sha is available.
+
+For a user-visible change, add a note under the current heading in `CHANGELOG.md`. Add the same note to `PUBLIC_CHANGELOG.md` when it should ship. Do not open a new version heading.
+
 ## Skill and rule scan
 
 Before adding a skill or rule folder, scan it on this machine. The command is

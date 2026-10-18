@@ -1,0 +1,53 @@
+name: Public site
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-site
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Tests
+        run: node --test tests/*.test.js
+
+      - name: Resolve release version
+        run: node scripts/bump-version.mjs --export >> "$GITHUB_ENV"
+
+      - name: Build public site
+        run: node scripts/build-public.mjs
+
+      - name: Public guard
+        env:
+          TIPDASH_SCAN_ID_1: ${{ secrets.TIPDASH_SCAN_ID_1 }}
+          TIPDASH_SCAN_TERMS: ${{ secrets.TIPDASH_SCAN_TERMS }}
+        run: node scripts/ci-public-guard.mjs
+
+      - name: Leak grep
+        env:
+          PRIVATE_GUILD_IDS: ${{ secrets.PRIVATE_GUILD_IDS }}
+          TIPDASH_SCAN_ID_1: ${{ secrets.TIPDASH_SCAN_ID_1 }}
+          TIPDASH_SCAN_TERMS: ${{ secrets.TIPDASH_SCAN_TERMS }}
+        run: node scripts/ci-leak-grep.mjs dist
+
+      - name: Publish public-site branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish-public-site.sh dist

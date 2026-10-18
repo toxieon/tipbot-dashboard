@@ -6,7 +6,6 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 const H = require("../assets/horse-results.js");
 const R = require("../assets/racing-legs.js");
 const S = require("../assets/stats.js");
@@ -210,7 +209,7 @@ test("Stats links to Horses and the dashboard keeps the TipBot API base", () => 
   assert.match(html, /if\(m\[0\]==="stats"\) return openStats\(\), true;/);
   assert.match(html, /onHorses: openHorseResults/);
   // 0.57.7: loaded on first use (lazyScript), versioned like the other assets.
-  assert.match(html, new RegExp('s\\.src="\\./assets/"\\+name\\+"\\.js\\?v=' + version.replace(/\./g, "\\.") + '"'));
+  assert.match(html, /s\.src="\.\/assets\/"\+name\+"\.js\?v=__TD_VERSION__"/);
   assert.match(html, /lazyScript\("horse-results"\)/);
   assert.match(html, /const API="https:\/\/afl-tipster-bot\.onrender\.com";/);
   assert.doesNotMatch(html, /const API="";/);

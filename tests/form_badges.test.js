@@ -8,8 +8,6 @@ const RP = require("../assets/req-pool.js");
 
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
-
 function dots(htmlStr){
   return [...htmlStr.matchAll(/background:(var\(--(?:win|loss|muted)\))/g)].map((m) => m[1]);
 }
@@ -95,7 +93,7 @@ test("tipster list keeps API order, skips empty form, escapes names", () => {
 });
 
 test("the page loads the helper at this version and paints the four surfaces", () => {
-  assert.match(html, new RegExp('<script src="\\./assets/form-badges\\.js\\?v=' + version.replace(/\./g, "\\.") + '"></script>'));
+  assert.match(html, /<script src="\.\/assets\/form-badges\.js\?v=__TD_VERSION__"><\/script>/);
   assert.match(html, /FormBadges\.render\(t\.form\)/);
   assert.match(html, /FormBadges\.render\(featured\.form\)/);
   assert.match(html, /FormBadges\.render\(f\.form\)/);
