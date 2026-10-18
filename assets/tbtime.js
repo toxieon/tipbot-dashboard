@@ -1,7 +1,7 @@
 /* tbtime.js: Tipdash's one clock. Every day, month, "today" and displayed time
  * is Australia/Sydney (DST-aware), whatever timezone the viewer's device is in.
  * TipBot stores UTC; a timestamp with no zone ("2026-09-27 09:30:00") is UTC,
- * same rule as the bot (afl_tipster_bot/timeutil.py).
+ * same rule as the bot's time helpers.
  *
  * Plain script (window.TBTime) and CommonJS (tests: node --test tests/).
  */
