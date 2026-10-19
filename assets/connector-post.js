@@ -1,7 +1,5 @@
 /* Owner-only Post settings for each connector in server settings.
    Reads and writes post_bookmaker and post_style on the connector.
-   Tip channel tiers are per server: GET/POST /api/channels with
-   daily_free_limit (null = off) and tip_channel_tiers {channel_id: free|premium}.
    Quiet is the default. Full is stored as post_style "standard".
    Not part of the public site (scripts/build-public.mjs ASSET_DENY). */
 (function (root) {
@@ -179,8 +177,7 @@
       "#cp-root .cp-book,#cp-root .cp-style{display:flex;flex-direction:column;gap:6px;margin:12px 0;font-size:13px;color:var(--muted,#a8acb2)}",
       "#cp-root .cp-style{flex-direction:row;flex-wrap:wrap;align-items:center}",
       "#cp-root .cp-style-label{flex-basis:100%}",
-      "#cp-root select,#cp-root .cp-num{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line,#3f4147);background:var(--card2,#232428);color:var(--txt,#eee);padding:8px 10px;font:inherit}",
-      "#cp-root .cp-hint{margin:-4px 0 12px;color:var(--faint,#9aa);font-size:12px;line-height:1.45}",
+      "#cp-root select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line,#3f4147);background:var(--card2,#232428);color:var(--txt,#eee);padding:8px 10px;font:inherit}",
       "#cp-root .cp-toggle{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 12px 4px 0;color:var(--txt,#eee);font-size:14px}",
       "#cp-root .cp-toggle input{width:22px;height:22px;flex:none}",
       "#cp-root .cp-preview{margin-top:12px}",
@@ -209,67 +206,6 @@
     (doc.head || doc.documentElement).appendChild(style);
   }
 
-  function channelsPath(gid) { return "/api/channels?guild_id=" + enc(gid); }
-
-  function tierState(body) {
-    var map = {};
-    var raw = body && body.tip_channel_tiers;
-    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-      Object.keys(raw).forEach(function (id) {
-        var t = String(raw[id] || "").trim().toLowerCase();
-        if (String(id).trim() && (t === "free" || t === "premium")) map[String(id).trim()] = t;
-      });
-    }
-    var lim = body ? body.daily_free_limit : null;
-    var n = lim == null || lim === "" ? null : parseInt(lim, 10);
-    if (n != null && (!isFinite(n) || n < 0)) n = null;
-    var chans = Array.isArray(body && body.channels) ? body.channels.filter(function (c) { return c && c.id; }) : [];
-    return {daily_free_limit: n, tip_channel_tiers: map, channels: chans};
-  }
-
-  function tierBody(gid, st) {
-    return {guild_id: String(gid), daily_free_limit: st.daily_free_limit, tip_channel_tiers: st.tip_channel_tiers};
-  }
-
-  function tierHtml(st) {
-    var html = '<section class="cp-sec cp-tiers" data-cp-tiers>';
-    html += '<h3>Tip channel tiers</h3>';
-    html += '<label class="cp-book">Daily free tip limit<input class="cp-num" type="number" min="0" step="1" inputmode="numeric" data-cp-tier-limit value="' + esc(st.daily_free_limit == null ? "" : String(st.daily_free_limit)) + '" placeholder="Off"></label>';
-    html += '<div class="cp-hint">Premium channels get every tip. Free channels get the first N tips each day, Sydney time. Leave blank to turn tiers off.</div>';
-    var ids = {};
-    st.channels.forEach(function (c) { ids[String(c.id)] = true; });
-    var list = st.channels.slice();
-    Object.keys(st.tip_channel_tiers).forEach(function (id) { if (!ids[id]) list.push({id: id, name: ""}); });
-    list.forEach(function (c) {
-      var id = String(c.id);
-      var t = st.tip_channel_tiers[id] || "";
-      var label = c.name ? "#" + String(c.name).replace(/^#/, "") : id;
-      html += '<div class="cp-style" role="group" aria-label="Tier for ' + esc(label) + '" data-cp-tier-id="' + esc(id) + '">';
-      html += '<span class="cp-style-label">' + esc(label) + "</span>";
-      ["", "free", "premium"].forEach(function (v) {
-        html += '<label class="cp-toggle"><input type="radio" name="cp-tier-' + esc(id) + '" data-cp-tier value="' + v + '"' + (t === v ? " checked" : "") + "><span>" + (v === "" ? "Off" : v === "free" ? "Free" : "Premium") + "</span></label>";
-      });
-      html += "</div>";
-    });
-    if (!list.length) html += '<div class="cp-hint">No channels found for this server.</div>';
-    html += '<div class="cp-actions"><button type="button" class="btn" data-cp-tier-save>Save tiers</button><span class="cp-msg" data-cp-tier-msg role="status"></span></div>';
-    html += "</section>";
-    return html;
-  }
-
-  function readTiers(section, prev) {
-    var limEl = section.querySelector("[data-cp-tier-limit]");
-    var raw = limEl ? String(limEl.value).trim() : "";
-    var n = raw === "" ? null : parseInt(raw, 10);
-    if (n != null && (!isFinite(n) || n < 0)) n = null;
-    var map = {};
-    Array.prototype.forEach.call(section.querySelectorAll("[data-cp-tier-id]"), function (g) {
-      var picked = g.querySelector("[data-cp-tier]:checked");
-      if (picked && (picked.value === "free" || picked.value === "premium")) map[g.getAttribute("data-cp-tier-id")] = picked.value;
-    });
-    return {daily_free_limit: n, tip_channel_tiers: map, channels: (prev && prev.channels) || []};
-  }
-
   async function readJson(res) {
     try { return await res.json(); } catch (e) { return {}; }
   }
@@ -290,14 +226,13 @@
     injectCss(doc);
     var stopped = false;
     var gen = 0;
-    var state = { list: [], settings: {}, tiers: null };
+    var state = { list: [], settings: {} };
 
     function alive() { return !stopped && el.isConnected !== false; }
 
     function paint() {
       if (!alive()) return;
       var html = '<div id="cp-root">';
-      if (state.tiers) html += tierHtml(state.tiers);
       if (!state.list.length) html += '<div class="empty">No connectors yet.</div>';
       state.list.forEach(function (c) {
         if (!c || c.id == null || c.id === "") return;
@@ -359,37 +294,7 @@
       }
     }
 
-    async function onTierSave() {
-      var section = el.querySelector("[data-cp-tiers]");
-      if (!section || !ctx.api) return;
-      var msg = section.querySelector("[data-cp-tier-msg]");
-      var next = readTiers(section, state.tiers);
-      if (msg) { msg.textContent = "Saving\u2026"; msg.classList.remove("cp-err"); }
-      try {
-        var res = await ctx.api("/api/channels", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify(tierBody(ctx.gid, next))
-        });
-        if (unauth(res, null, ctx)) return;
-        var body = await readJson(res);
-        if (!res || !res.ok || body.ok === false) {
-          if (msg) { msg.textContent = (body && (body.error || body.message)) || "Could not save"; msg.classList.add("cp-err"); }
-          return;
-        }
-        state.tiers = next;
-        paint();
-        var m2 = el.querySelector("[data-cp-tier-msg]");
-        if (m2) m2.textContent = "Saved";
-      } catch (e) {
-        if (unauth(null, e, ctx)) return;
-        if (msg) { msg.textContent = "Could not save"; msg.classList.add("cp-err"); }
-      }
-    }
-
     function bind() {
-      var ts = el.querySelector("[data-cp-tier-save]");
-      if (ts) ts.onclick = function () { onTierSave(); };
       var sections = el.querySelectorAll("[data-cp-id]");
       Array.prototype.forEach.call(sections, function (section) {
         var id = section.getAttribute("data-cp-id");
@@ -414,11 +319,6 @@
         state.list.forEach(function (c) {
           state.settings[String(c.id)] = fromConnector(c);
         });
-        try {
-          var tr = await ctx.api(channelsPath(ctx.gid));
-          if (!alive() || token !== gen) return;
-          if (tr && tr.ok) state.tiers = tierState(await readJson(tr));
-        } catch (e2) { state.tiers = null; }
         if (alive() && token === gen) paint();
       } catch (e) {
         if (unauth(null, e, ctx)) return;
@@ -435,9 +335,6 @@
     previewModel: previewModel,
     previewHtml: previewHtml,
     saveBody: saveBody,
-    tierState: tierState,
-    tierBody: tierBody,
-    tierHtml: tierHtml,
     styleCode: styleCode,
     bookOf: bookOf,
     BOOKS: BOOKS,

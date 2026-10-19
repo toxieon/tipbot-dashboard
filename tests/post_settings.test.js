@@ -62,26 +62,6 @@ test("a missing bookmaker reads as Ladbrokes", () => {
   assert.ok(P.BOOKS.includes("bet365"));
 });
 
-test("tiers use the bot's /api/channels contract", () => {
-  const st = P.tierState({
-    channels: [{ id: "111", name: "free-tips" }, { id: "222", name: "vip" }],
-    daily_free_limit: 2,
-    tip_channel_tiers: { "111": "free", "222": "Premium", "333": "nope" }
-  });
-  assert.deepEqual(st.tip_channel_tiers, { "111": "free", "222": "premium" });
-  assert.equal(st.daily_free_limit, 2);
-  assert.deepEqual(P.tierBody("9", st), { guild_id: "9", daily_free_limit: 2, tip_channel_tiers: { "111": "free", "222": "premium" } });
-  const off = P.tierState({ daily_free_limit: null, tip_channel_tiers: {} });
-  assert.equal(off.daily_free_limit, null);
-  const html = P.tierHtml(st);
-  assert.match(html, /data-cp-tier-limit[^>]*value="2"/);
-  assert.match(html, /data-cp-tier-id="111"/);
-  assert.match(html, />#vip</);
-  assert.match(html, /Sydney time/);
-  assert.match(html, />Free</);
-  assert.match(html, />Premium</);
-});
-
 test("the section is mounted only from the owner connectors shell", async () => {
   const { ASSET_DENY } = await import("../scripts/build-public.mjs");
   assert.equal(ASSET_DENY.has("assets/connector-post.js"), true);
@@ -101,10 +81,7 @@ test("the section is mounted only from the owner connectors shell", async () => 
   assert.match(src, /\/api\/connectors\//);
   assert.match(src, />Quiet</);
   assert.match(src, />Full</);
-  assert.match(src, /data-cp-tier-limit/);
-  assert.match(src, /\/api\/channels/);
-  assert.match(src, /tip_channel_tiers/);
-  assert.match(src, /daily_free_limit/);
+  assert.doesNotMatch(src, /Tip channel tiers|tip_channel_tiers|daily_free_limit|data-cp-tier|\/api\/channels/);
   const builder = fs.readFileSync(path.join(root, "assets", "builder.js"), "utf8");
   assert.match(builder, /id="f_tier"/);
   assert.match(builder, /<option value="">Auto<\/option>/);
