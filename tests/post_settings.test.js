@@ -41,11 +41,7 @@ test("full is stored as post_style standard and previews the full post", () => {
   assert.equal(P.styleCode("Full"), "standard");
   assert.equal(P.styleCode("quiet"), "quiet");
   const body = P.saveBody({ post_bookmaker: "TAB", post_style: "full" });
-  assert.deepEqual(body, {
-    post_bookmaker: "TAB",
-    post_style: "standard",
-    tiers: { enabled: false, daily_free_limit: 0, channels: {} }
-  });
+  assert.deepEqual(body, { post_bookmaker: "TAB", post_style: "standard" });
   const model = P.previewModel({ post_bookmaker: "Sportsbet", post_style: "standard" });
   const names = model.fields.map((field) => field[0]);
   assert.equal(model.title, "RACING PLAY");
@@ -62,49 +58,28 @@ test("a missing bookmaker reads as Ladbrokes", () => {
   assert.equal(P.bookOf({}), "Ladbrokes");
   assert.equal(P.saveBody({}).post_bookmaker, "Ladbrokes");
   assert.equal(P.saveBody({}).post_style, "quiet");
-  assert.deepEqual(P.saveBody({}).tiers, { enabled: false, daily_free_limit: 0, channels: {} });
   assert.ok(P.BOOKS.includes("Ladbrokes"));
   assert.ok(P.BOOKS.includes("bet365"));
 });
 
-test("tiers save enabled, the daily free limit, and a free or premium channel", () => {
-  const body = P.saveBody({
-    post_bookmaker: "TAB",
-    post_style: "quiet",
-    tiers: { enabled: 1, daily_free_limit: "3", channels: { "111": "Premium", "222": "nope", "": "free" } }
+test("tiers use the bot's /api/channels contract", () => {
+  const st = P.tierState({
+    channels: [{ id: "111", name: "free-tips" }, { id: "222", name: "vip" }],
+    daily_free_limit: 2,
+    tip_channel_tiers: { "111": "free", "222": "Premium", "333": "nope" }
   });
-  assert.deepEqual(body.tiers, {
-    enabled: true,
-    daily_free_limit: 3,
-    channels: { "111": "premium", "222": "free" }
-  });
-  assert.deepEqual(P.saveBody({ tiers: { enabled: "yes", daily_free_limit: -4 } }).tiers, {
-    enabled: false,
-    daily_free_limit: 0,
-    channels: {}
-  });
-  const channels = P.tipChannels(
-    { channel_id: "111", channel_name: "plays", tip_channels: [{ id: "222", name: "tips" }] },
-    { channels: { "333": "premium" } }
-  );
-  assert.deepEqual(channels, [
-    { id: "222", name: "tips" },
-    { id: "111", name: "plays" },
-    { id: "333", name: "" }
-  ]);
-  const html = P.tierBlockHtml("c1", channels, body.tiers);
-  assert.match(html, /data-cp-tier-on[^>]*checked/);
-  assert.match(html, /data-cp-tier-limit[^>]*value="3"/);
-  assert.match(html, /data-cp-tier-id="222"/);
-  assert.match(html, />#tips</);
-  assert.match(html, /value="free"[^>]*checked/);
-  assert.match(html, /value="premium"[^>]*checked/);
+  assert.deepEqual(st.tip_channel_tiers, { "111": "free", "222": "premium" });
+  assert.equal(st.daily_free_limit, 2);
+  assert.deepEqual(P.tierBody("9", st), { guild_id: "9", daily_free_limit: 2, tip_channel_tiers: { "111": "free", "222": "premium" } });
+  const off = P.tierState({ daily_free_limit: null, tip_channel_tiers: {} });
+  assert.equal(off.daily_free_limit, null);
+  const html = P.tierHtml(st);
+  assert.match(html, /data-cp-tier-limit[^>]*value="2"/);
+  assert.match(html, /data-cp-tier-id="111"/);
+  assert.match(html, />#vip</);
+  assert.match(html, /Sydney time/);
   assert.match(html, />Free</);
   assert.match(html, />Premium</);
-  assert.match(html, /Sydney time/);
-  const off = P.tierBlockHtml("c1", [], { enabled: false, daily_free_limit: 0, channels: {} });
-  assert.doesNotMatch(off, /data-cp-tier-on[^>]*checked/);
-  assert.match(off, /No tip channel on this connector yet/);
 });
 
 test("the section is mounted only from the owner connectors shell", async () => {
@@ -126,8 +101,9 @@ test("the section is mounted only from the owner connectors shell", async () => 
   assert.match(src, /\/api\/connectors\//);
   assert.match(src, />Quiet</);
   assert.match(src, />Full</);
-  assert.match(src, /data-cp-tier-on/);
   assert.match(src, /data-cp-tier-limit/);
+  assert.match(src, /\/api\/channels/);
+  assert.match(src, /tip_channel_tiers/);
   assert.match(src, /daily_free_limit/);
   const builder = fs.readFileSync(path.join(root, "assets", "builder.js"), "utf8");
   assert.match(builder, /id="f_tier"/);
