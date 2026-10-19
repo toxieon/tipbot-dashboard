@@ -41,7 +41,11 @@ test("full is stored as post_style standard and previews the full post", () => {
   assert.equal(P.styleCode("Full"), "standard");
   assert.equal(P.styleCode("quiet"), "quiet");
   const body = P.saveBody({ post_bookmaker: "TAB", post_style: "full" });
-  assert.deepEqual(body, { post_bookmaker: "TAB", post_style: "standard" });
+  assert.deepEqual(body, {
+    post_bookmaker: "TAB",
+    post_style: "standard",
+    tiers: { enabled: false, daily_free_limit: 0, channels: {} }
+  });
   const model = P.previewModel({ post_bookmaker: "Sportsbet", post_style: "standard" });
   const names = model.fields.map((field) => field[0]);
   assert.equal(model.title, "RACING PLAY");
@@ -58,8 +62,49 @@ test("a missing bookmaker reads as Ladbrokes", () => {
   assert.equal(P.bookOf({}), "Ladbrokes");
   assert.equal(P.saveBody({}).post_bookmaker, "Ladbrokes");
   assert.equal(P.saveBody({}).post_style, "quiet");
+  assert.deepEqual(P.saveBody({}).tiers, { enabled: false, daily_free_limit: 0, channels: {} });
   assert.ok(P.BOOKS.includes("Ladbrokes"));
   assert.ok(P.BOOKS.includes("bet365"));
+});
+
+test("tiers save enabled, the daily free limit, and a free or premium channel", () => {
+  const body = P.saveBody({
+    post_bookmaker: "TAB",
+    post_style: "quiet",
+    tiers: { enabled: 1, daily_free_limit: "3", channels: { "111": "Premium", "222": "nope", "": "free" } }
+  });
+  assert.deepEqual(body.tiers, {
+    enabled: true,
+    daily_free_limit: 3,
+    channels: { "111": "premium", "222": "free" }
+  });
+  assert.deepEqual(P.saveBody({ tiers: { enabled: "yes", daily_free_limit: -4 } }).tiers, {
+    enabled: false,
+    daily_free_limit: 0,
+    channels: {}
+  });
+  const channels = P.tipChannels(
+    { channel_id: "111", channel_name: "plays", tip_channels: [{ id: "222", name: "tips" }] },
+    { channels: { "333": "premium" } }
+  );
+  assert.deepEqual(channels, [
+    { id: "222", name: "tips" },
+    { id: "111", name: "plays" },
+    { id: "333", name: "" }
+  ]);
+  const html = P.tierBlockHtml("c1", channels, body.tiers);
+  assert.match(html, /data-cp-tier-on[^>]*checked/);
+  assert.match(html, /data-cp-tier-limit[^>]*value="3"/);
+  assert.match(html, /data-cp-tier-id="222"/);
+  assert.match(html, />#tips</);
+  assert.match(html, /value="free"[^>]*checked/);
+  assert.match(html, /value="premium"[^>]*checked/);
+  assert.match(html, />Free</);
+  assert.match(html, />Premium</);
+  assert.match(html, /Sydney time/);
+  const off = P.tierBlockHtml("c1", [], { enabled: false, daily_free_limit: 0, channels: {} });
+  assert.doesNotMatch(off, /data-cp-tier-on[^>]*checked/);
+  assert.match(off, /No tip channel on this connector yet/);
 });
 
 test("the section is mounted only from the owner connectors shell", async () => {
@@ -81,4 +126,15 @@ test("the section is mounted only from the owner connectors shell", async () => 
   assert.match(src, /\/api\/connectors\//);
   assert.match(src, />Quiet</);
   assert.match(src, />Full</);
+  assert.match(src, /data-cp-tier-on/);
+  assert.match(src, /data-cp-tier-limit/);
+  assert.match(src, /daily_free_limit/);
+  const builder = fs.readFileSync(path.join(root, "assets", "builder.js"), "utf8");
+  assert.match(builder, /id="f_tier"/);
+  assert.match(builder, /<option value="">Auto<\/option>/);
+  assert.match(builder, /<option value="free">Free<\/option>/);
+  assert.match(builder, /<option value="premium">Premium<\/option>/);
+  assert.match(builder, /if\(tier==="free"\|\|tier==="premium"\) out\.tier=tier/);
+  assert.match(builder, /if\(tipFields\.tier\) payload\.tier=tipFields\.tier/);
+  assert.doesNotMatch(builder, /out\.tier=""/);
 });

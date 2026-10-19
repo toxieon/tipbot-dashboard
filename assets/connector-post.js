@@ -1,12 +1,21 @@
 /* Owner-only Post settings for each connector in server settings.
-   Reads and writes post_bookmaker and post_style on the connector.
+   Reads and writes post_bookmaker, post_style, and tiers on the connector.
    Quiet is the default. Full is stored as post_style "standard".
+   Tiering is off until enabled. TIER_FIELDS is the one place to rename
+   the tiers payload when the bot contract settles.
    Not part of the public site (scripts/build-public.mjs ASSET_DENY). */
 (function (root) {
   "use strict";
 
   var BOOKS = ["Sportsbet", "TAB", "bet365", "PointsBet", "Dabble", "Picklebet", "Ladbrokes", "Neds", "betr", "Unibet", "BetRight", "PlayUp", "Betfair"];
   var DEFAULT_BOOK = "Ladbrokes";
+  var TIER_FIELDS = {
+    tiers: "tiers",
+    enabled: "enabled",
+    limit: "daily_free_limit",
+    channels: "channels",
+    channelList: "tip_channels"
+  };
 
   var SAMPLE = {
     runner: "Fast Fleet",
@@ -50,15 +59,126 @@
     return styleCode(settings && settings.post_style);
   }
 
+  function tierCode(value) {
+    return String(value || "").trim().toLowerCase() === "premium" ? "premium" : "free";
+  }
+
+  function limitOf(value) {
+    var n = parseInt(value, 10);
+    if (!isFinite(n) || n < 0) return 0;
+    return n;
+  }
+
+  function flagOn(value) {
+    return value === true || value === 1 || value === "1" || value === "true";
+  }
+
+  function tiersOf(settings) {
+    var raw = settings && settings[TIER_FIELDS.tiers];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) raw = {};
+    var src = raw[TIER_FIELDS.channels];
+    var channels = {};
+    if (src && typeof src === "object" && !Array.isArray(src)) {
+      Object.keys(src).forEach(function (id) {
+        var key = String(id || "").trim();
+        if (!key) return;
+        channels[key] = tierCode(src[id]);
+      });
+    }
+    var out = {};
+    out[TIER_FIELDS.enabled] = flagOn(raw[TIER_FIELDS.enabled]);
+    out[TIER_FIELDS.limit] = limitOf(raw[TIER_FIELDS.limit]);
+    out[TIER_FIELDS.channels] = channels;
+    return out;
+  }
+
+  function tipChannels(connector, tiers) {
+    var list = [];
+    var seen = {};
+    function add(id, name) {
+      id = String(id == null ? "" : id).trim();
+      if (!id || seen[id]) return;
+      seen[id] = true;
+      list.push({id: id, name: String(name || "").trim()});
+    }
+    var rows = connector && connector[TIER_FIELDS.channelList];
+    if (Array.isArray(rows)) {
+      rows.forEach(function (row) {
+        if (row && typeof row === "object") add(row.id != null ? row.id : row.channel_id, row.name || row.channel_name);
+        else add(row, "");
+      });
+    }
+    if (connector && connector.channel_id != null && String(connector.channel_id).trim()) {
+      add(connector.channel_id, connector.channel_name || "");
+    }
+    var map = tiers && tiers[TIER_FIELDS.channels];
+    if (map && typeof map === "object" && !Array.isArray(map)) {
+      Object.keys(map).forEach(function (id) { add(id, ""); });
+    }
+    return list;
+  }
+
+  function channelLabel(ch) {
+    var name = String(ch && ch.name || "").trim();
+    if (name) return name.charAt(0) === "#" ? name : ("#" + name);
+    return String(ch && ch.id || "");
+  }
+
+  function mergeChannelNames(prev, next) {
+    var names = {};
+    (prev || []).forEach(function (ch) {
+      if (ch && ch.name) names[String(ch.id)] = ch.name;
+    });
+    return (next || []).map(function (ch) {
+      var id = String(ch.id);
+      return {id: id, name: ch.name || names[id] || ""};
+    });
+  }
+
+  function tierBlockHtml(connectorId, channels, tiers) {
+    var wrap = {};
+    wrap[TIER_FIELDS.tiers] = tiers;
+    var spec = tiersOf(wrap);
+    var on = spec[TIER_FIELDS.enabled];
+    var limit = spec[TIER_FIELDS.limit];
+    var map = spec[TIER_FIELDS.channels];
+    var html = '<div class="cp-tiers">';
+    html += '<div class="cp-style">';
+    html += '<span class="cp-style-label">Tip channel tiers</span>';
+    html += '<label class="cp-toggle"><input type="checkbox" data-cp-tier-on' + (on ? " checked" : "") + "><span>Enabled</span></label>";
+    html += "</div>";
+    html += '<label class="cp-book">Daily free tip limit<input class="cp-num" type="number" min="0" step="1" inputmode="numeric" data-cp-tier-limit value="' + esc(String(limit)) + '"></label>';
+    html += '<div class="cp-hint">That many tips each day, Sydney time, also go to free channels. Off until tiering is on.</div>';
+    (channels || []).forEach(function (ch) {
+      if (!ch || ch.id == null || String(ch.id).trim() === "") return;
+      var id = String(ch.id).trim();
+      var tier = map[id] === "premium" ? "premium" : "free";
+      var group = "cp-tier-" + String(connectorId) + "-" + id;
+      var label = channelLabel({id: id, name: ch.name});
+      html += '<div class="cp-style" role="group" aria-label="Tier for ' + esc(label) + '" data-cp-tier-id="' + esc(id) + '">';
+      html += '<span class="cp-style-label">' + esc(label) + "</span>";
+      html += '<label class="cp-toggle"><input type="radio" name="' + esc(group) + '" data-cp-tier value="free"' + (tier === "free" ? " checked" : "") + "><span>Free</span></label>";
+      html += '<label class="cp-toggle"><input type="radio" name="' + esc(group) + '" data-cp-tier value="premium"' + (tier === "premium" ? " checked" : "") + "><span>Premium</span></label>";
+      html += "</div>";
+    });
+    if (!channels || !channels.length) html += '<div class="cp-hint">No tip channel on this connector yet.</div>';
+    html += "</div>";
+    return html;
+  }
+
   function saveBody(settings) {
-    return {post_bookmaker: bookOf(settings), post_style: styleOf(settings)};
+    var body = {post_bookmaker: bookOf(settings), post_style: styleOf(settings)};
+    body[TIER_FIELDS.tiers] = tiersOf(settings);
+    return body;
   }
 
   function fromConnector(c) {
-    return saveBody({
+    var raw = {
       post_bookmaker: c && c.post_bookmaker,
       post_style: c && c.post_style
-    });
+    };
+    raw[TIER_FIELDS.tiers] = c && c[TIER_FIELDS.tiers];
+    return saveBody(raw);
   }
 
   function previewModel(settings) {
@@ -132,7 +252,7 @@
     return books;
   }
 
-  function sectionHtml(c, settings) {
+  function sectionHtml(c, settings, channels) {
     var id = String(c && c.id != null ? c.id : "");
     var current = bookOf(settings);
     var style = styleOf(settings);
@@ -148,6 +268,7 @@
     html += '<label class="cp-toggle"><input type="radio" name="cp-style-' + esc(id) + '" data-cp-style value="quiet"' + (style === "quiet" ? " checked" : "") + "><span>Quiet</span></label>";
     html += '<label class="cp-toggle"><input type="radio" name="cp-style-' + esc(id) + '" data-cp-style value="standard"' + (style === "standard" ? " checked" : "") + "><span>Full</span></label>";
     html += "</div>";
+    html += tierBlockHtml(id, channels, settings && settings[TIER_FIELDS.tiers]);
     html += '<div class="cp-preview" data-cp-preview>' + previewHtml(settings) + "</div>";
     html += '<div class="cp-actions"><button type="button" class="btn" data-cp-save>Save</button><span class="cp-msg" data-cp-msg role="status"></span></div>';
     html += "</section>";
@@ -157,10 +278,25 @@
   function readSettings(section) {
     var book = section.querySelector("[data-cp-book]");
     var chosen = section.querySelector("[data-cp-style]:checked");
-    return saveBody({
+    var on = section.querySelector("[data-cp-tier-on]");
+    var limit = section.querySelector("[data-cp-tier-limit]");
+    var channels = {};
+    var groups = section.querySelectorAll("[data-cp-tier-id]");
+    Array.prototype.forEach.call(groups, function (group) {
+      var id = group.getAttribute("data-cp-tier-id");
+      var picked = group.querySelector("[data-cp-tier]:checked");
+      if (id) channels[id] = picked ? picked.value : "free";
+    });
+    var raw = {
       post_bookmaker: book ? book.value : "",
       post_style: chosen ? chosen.value : "quiet"
-    });
+    };
+    var tiers = {};
+    tiers[TIER_FIELDS.enabled] = !!(on && on.checked);
+    tiers[TIER_FIELDS.limit] = limit ? limit.value : 0;
+    tiers[TIER_FIELDS.channels] = channels;
+    raw[TIER_FIELDS.tiers] = tiers;
+    return saveBody(raw);
   }
 
   function injectCss(doc) {
@@ -177,7 +313,8 @@
       "#cp-root .cp-book,#cp-root .cp-style{display:flex;flex-direction:column;gap:6px;margin:12px 0;font-size:13px;color:var(--muted,#a8acb2)}",
       "#cp-root .cp-style{flex-direction:row;flex-wrap:wrap;align-items:center}",
       "#cp-root .cp-style-label{flex-basis:100%}",
-      "#cp-root select{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line,#3f4147);background:var(--card2,#232428);color:var(--txt,#eee);padding:8px 10px;font:inherit}",
+      "#cp-root select,#cp-root .cp-num{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line,#3f4147);background:var(--card2,#232428);color:var(--txt,#eee);padding:8px 10px;font:inherit}",
+      "#cp-root .cp-hint{margin:-4px 0 12px;color:var(--faint,#9aa);font-size:12px;line-height:1.45}",
       "#cp-root .cp-toggle{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 12px 4px 0;color:var(--txt,#eee);font-size:14px}",
       "#cp-root .cp-toggle input{width:22px;height:22px;flex:none}",
       "#cp-root .cp-preview{margin-top:12px}",
@@ -226,7 +363,7 @@
     injectCss(doc);
     var stopped = false;
     var gen = 0;
-    var state = { list: [], settings: {} };
+    var state = { list: [], settings: {}, channels: {} };
 
     function alive() { return !stopped && el.isConnected !== false; }
 
@@ -236,7 +373,7 @@
       if (!state.list.length) html += '<div class="empty">No connectors yet.</div>';
       state.list.forEach(function (c) {
         if (!c || c.id == null || c.id === "") return;
-        html += sectionHtml(c, state.settings[String(c.id)] || fromConnector(null));
+        html += sectionHtml(c, state.settings[String(c.id)] || fromConnector(null), state.channels[String(c.id)] || []);
       });
       html += "</div>";
       el.innerHTML = html;
@@ -285,7 +422,11 @@
           if (msg) { msg.textContent = "Could not save"; msg.classList.add("cp-err"); }
           return;
         }
-        state.settings[id] = fromConnector(body);
+        var posted = state.settings[id];
+        var next = fromConnector(body);
+        if (body[TIER_FIELDS.tiers] == null) next[TIER_FIELDS.tiers] = posted[TIER_FIELDS.tiers];
+        state.settings[id] = next;
+        state.channels[id] = mergeChannelNames(state.channels[id], tipChannels(body, next[TIER_FIELDS.tiers]));
         if (msg) msg.textContent = "Saved";
         paint();
       } catch (e) {
@@ -316,8 +457,11 @@
         var list = body && Array.isArray(body.connectors) ? body.connectors : [];
         state.list = list.filter(Boolean);
         state.settings = {};
+        state.channels = {};
         state.list.forEach(function (c) {
-          state.settings[String(c.id)] = fromConnector(c);
+          var id = String(c.id);
+          state.settings[id] = fromConnector(c);
+          state.channels[id] = tipChannels(c, state.settings[id][TIER_FIELDS.tiers]);
         });
         if (alive() && token === gen) paint();
       } catch (e) {
@@ -337,6 +481,9 @@
     saveBody: saveBody,
     styleCode: styleCode,
     bookOf: bookOf,
+    tipChannels: tipChannels,
+    tierBlockHtml: tierBlockHtml,
+    TIER_FIELDS: TIER_FIELDS,
     BOOKS: BOOKS,
     SAMPLE: SAMPLE
   };
