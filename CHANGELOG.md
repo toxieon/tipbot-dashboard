@@ -1,7 +1,7 @@
 ## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
 
 - Test tidy.
-- Post settings can set each tip channel to Free or Premium, with tiering off until it is turned on and a daily free-tip limit. The tip form can send Free or Premium; Auto sends no tier.
+- Post settings can set each tip channel to Free or Premium with a daily free-tip limit. A blank limit turns tiers off. The tip form can send Free or Premium; Auto sends no tier.
 - On main, the public leak check fails if the private guild id list is empty, and if a built file still contains the version placeholder.
 
 ## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
