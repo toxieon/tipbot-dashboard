@@ -566,20 +566,6 @@
     if (el && el.click) { el.click(); return true; }
     return false;
   }
-  function openPanel(el) {
-    if (!el) return;
-    el.hidden = false;
-    var body = el.querySelector(".panel-body");
-    if (body) body.hidden = false;
-    if (root.TDSec && root.TDSec.open) { try { root.TDSec.open(el); } catch (e) {} }
-    try {
-      var bar = doc.querySelector("#app > .top, header.top");
-      var h = 80;
-      if (bar && bar.getBoundingClientRect) h = Math.ceil(bar.getBoundingClientRect().height) + 16;
-      var y = el.getBoundingClientRect().top + (root.pageYOffset || root.scrollY || 0) - h;
-      root.scrollTo(0, Math.max(0, y));
-    } catch (e2) {}
-  }
   function go(id) {
     if (id === "build" && !hasServerContext()) return;
     if (id === "build" && !flagShown("build_tips_enabled")) return;
