@@ -99,7 +99,21 @@
     });
     return tabs;
   }
+  /** Free-text leg TipBot tracks and grades from the score: line, game total, team total. */
+  function teamMarketText(market, team, side, line) {
+    var n = Number(line);
+    if (String(line == null ? "" : line).trim() === "" || !isFinite(n)) return "";
+    var t = String(team || "").trim();
+    var sd = String(side || "").toLowerCase() === "under" ? "Under" : "Over";
+    if (market === "line") return t ? t + " " + (n > 0 ? "+" : "") + n : "";
+    if (market === "total") return n > 0 ? sd + " " + n : "";
+    if (market === "team_total") return t && n > 0 ? t + " Team Total " + sd + " " + n : "";
+    return "";
+  }
+  var LINE_LEAGUES = {nfl: true, nba: true, wnba: true, nbl: true};
+  function hasLines(league) { return !!LINE_LEAGUES[lg(league)]; }
   var API = {
+    teamMarketText: teamMarketText, hasLines: hasLines,
     NFL_PROP_TABS: NFL_PROP_TABS, NBA_PROP_TABS: NBA_PROP_TABS, "hasProps": hasProps, isBasketball: isBasketball,
     propTabs: propTabs, playersUrl: playersUrl, propPlayers: propPlayers, visiblePlayers: visiblePlayers,
     buildLeg: buildLeg, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket

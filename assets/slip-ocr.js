@@ -66,6 +66,8 @@
     { re: /^(win\s*-?\s*draw\s*-?\s*win|match\s*result|1x2|full\s*time\s*result)$/i, market: "Win-Draw-Win" }
   ];
   var LINE_MARKET_RE = /^(?:alt(?:ernate)?\s+)?(?:line|spread|point\s*spread|handicap)\b/i;
+  // "Los Angeles Lakers Total Points" / "Lakers Team Total" (a club's own score).
+  var TEAM_TOTAL_MARKET_RE = /^(?!(?:alt(?:ernate)?\s+)?(?:game\s+)?total\b)(.+?)\s+(?:team\s+total(?:\s*points)?|total\s*points)\b/i;
   var TOTAL_MARKET_RE = /^(?:alt(?:ernate)?\s+)?(?:total(?:\s*points|\s*score)?|game\s*total)\b/i;
   var RACE_MARKETS = /^(win|place|each\s*way|win\s*&\s*place|top\s*\d)$/i;
 
@@ -387,6 +389,17 @@
       if (leg.line == null) leg.flags.push({ field: "line", reason: "No line found" });
       return leg;
     }
+    var ttm = s.match(TEAM_TOTAL_MARKET_RE);
+    if (ttm) {
+      var tt = t.match(/\b(over|under)\s+(\d+(?:\.\d+)?)/i) || s.match(/\b(over|under)\s+(\d+(?:\.\d+)?)/i);
+      leg.kind = "team"; leg.market = "Team Total"; leg.stat = "Team Total";
+      leg.team = squash((ttm[1] || "").replace(/^(?:alt(?:ernate)?\s+)/i, ""));
+      if (tt) { leg.side = wordCap(tt[1]); leg.line = parseFloat(tt[2]); }
+      else leg.flags.push({ field: "line", reason: "No line found" });
+      if (!leg.team) leg.flags.push({ field: "team", reason: "Team not found" });
+      leg.selection = leg.team;
+      return leg;
+    }
     if (TOTAL_MARKET_RE.test(s)) {
       var tot = t.match(/^(over|under)\s+(\d+(?:\.\d+)?)/i) || s.match(/\b(over|under)\s+(\d+(?:\.\d+)?)/i);
       leg.kind = "total"; leg.market = "Total"; leg.stat = "Total"; leg.selection = t;
@@ -445,7 +458,7 @@
     if (RACE_MARKETS.test(s)) return true;
     if (H2H_MARKETS.some(function (h) { return h.re.test(s); })) return true;
     if (/^win$/i.test(s)) return true;
-    if (LINE_MARKET_RE.test(s) || TOTAL_MARKET_RE.test(s)) return true;
+    if (LINE_MARKET_RE.test(s) || TOTAL_MARKET_RE.test(s) || TEAM_TOTAL_MARKET_RE.test(s)) return true;
     if (/^any\s*time\s*(touchdown|td)/i.test(s) || /^anytime\s*(touchdown|td)/i.test(s)) return true;
     if (/^(?:to\s+(?:score|get|have|record)\s+)?\d+(?:\.\d+)?\s*\+\s*[A-Za-z]/i.test(s)) return true;
     if (/^(over|under)\s*\(?\+?\d/i.test(s)) return true;
@@ -553,7 +566,7 @@
         if (isDateLine(ln.text)) { curDate = ln; continue; }
         if (slip.leg_count == null && ln.text.length < 20 && /\b\d{1,2}\s*legs?\s*$/i.test(ln.text)) { slip.leg_count = parseInt(ln.text.match(/(\d{1,2})\s*legs?\s*$/i)[1], 10); continue; }
         // "Over 220.5" / "Total Points": the over line is the selection, not a player-prop subtitle.
-        var totalTitle = /^(over|under)\s+\(?\+?\d+(?:\.\d+)?\)?\s*$/i.test(ln.text) && body[k + 1] && TOTAL_MARKET_RE.test(body[k + 1].text);
+        var totalTitle = /^(over|under)\s+\(?\+?\d+(?:\.\d+)?\)?\s*$/i.test(ln.text) && body[k + 1] && (TOTAL_MARKET_RE.test(body[k + 1].text) || TEAM_TOTAL_MARKET_RE.test(body[k + 1].text));
         if (isSubLine(ln.text) && !totalTitle) {
           if (pendingTitle) { attach(legFromPair(pendingTitle, ln)); pendingTitle = null; }
           else { var orphan = legFromPair({ text: "", conf: ln.conf }, ln); orphan.flags.push({ field: "selection", reason: "Selection missing" }); attach(orphan); }
@@ -892,6 +905,8 @@
   function legDescription(leg) {
     leg = leg || {};
     if (leg.kind === "racing") return String(leg.selection || "") + (leg.market ? " (" + leg.market + ")" : "");
+    if (leg.kind === "team" && leg.market === "Team Total" && leg.line != null) return String(leg.team || "") + " Team Total " + (leg.side === "Under" ? "Under " : "Over ") + leg.line;
+    if (leg.kind === "team" && leg.market === "Line" && leg.line != null && leg.team) return String(leg.team) + " " + (Number(leg.line) > 0 ? "+" : "") + leg.line;
     if (leg.kind === "team") return String(leg.team || leg.selection || "") + " " + (leg.market || "");
     if (leg.player && leg.stat) {
       if (leg.stat === "Anytime TD") return leg.player + " Anytime TD";
@@ -970,6 +985,10 @@
       out.team = signed ? squash(signed[1]) : (leg.team || leg.selection || "");
       out.line = leg.line != null ? leg.line : (signed ? parseFloat(signed[2]) : null);
       matched = !!(out.team || out.line != null);
+    } else if (leg.market === "Team Total" && leg.team) {
+      out.kind = "team"; out.market = "Team Total"; out.team = leg.team;
+      out.side = side; out.line = leg.line != null ? leg.line : null;
+      matched = out.line != null && !!side;
     } else if (TOTAL_MARKET_RE.test(mkt) || leg.market === "Total" || leg.kind === "total") {
       var tot = String(leg.selection || leg.desc || "").match(/\b(over|under)\s+(\d+(?:\.\d+)?)/i);
       out.kind = "total"; out.market = "Total";
