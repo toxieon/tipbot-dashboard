@@ -1,5 +1,6 @@
 ## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
 
+- Removed unused code. Under the Apex theme, the Sport routing table header no longer covers the first row.
 - Test tidy.
 - Post settings can set each tip channel to Free or Premium with a daily free-tip limit. A blank limit turns tiers off. The tip form can send Free or Premium; Auto sends no tier.
 - Settings → Channels shows tip channel tiers for anyone who can edit the server: a daily free-tip limit, and Off, Free or Premium on the tips channel and the channels tips are routed to. Any other text channel can be added.
