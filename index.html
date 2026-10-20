@@ -1418,6 +1418,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/discover-sports.js?v=__TD_VERSION__"></script>
 <script src="./assets/global-flags.js?v=__TD_VERSION__"></script>
 <script src="./assets/routing.js?v=__TD_VERSION__"></script>
+<script src="./assets/tip-tiers.js?v=__TD_VERSION__"></script>
 <script src="./assets/scheduled-tips.js?v=__TD_VERSION__"></script>
 <script src="./assets/auto-recaps.js?v=__TD_VERSION__"></script>
 <script src="./assets/emoji-picker.js?v=__TD_VERSION__"></script>
@@ -6379,7 +6380,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   function renderSettingsTab(gid,tab,s){
     const body=$("settings-body"); if(!body)return;
-    if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div><div id="sport-routing-box"></div>'; loadRouting(gid);
+    if(tab==="channels"){ body.innerHTML='<div id="routing-box"></div><div id="tip-tiers-box"></div><div id="sport-routing-box"></div>'; loadRouting(gid);
+      if(s.can_admin!==false && window.TBTipTiers && typeof TBTipTiers.mount==="function") TBTipTiers.mount($("tip-tiers-box"),{api:api,gid:gid,canEdit:true,onUnauth:()=>renderLogin("Session expired.")});
       if(window.TBRouting)TBRouting.mountSettings($("sport-routing-box"),{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")}); return; }
     if(tab==="features"){ body.innerHTML=''; return; }
     if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
