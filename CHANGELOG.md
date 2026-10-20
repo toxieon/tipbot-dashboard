@@ -1,5 +1,6 @@
 ## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
 
+- Game view has a row of camera presets.
 - Followers, My Tips and Discover now load when opened, so the dashboard starts faster.
 - Removed unused code. Under the Apex theme, the Sport routing table header no longer covers the first row.
 - Test tidy.

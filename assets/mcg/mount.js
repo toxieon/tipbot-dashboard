@@ -6,10 +6,17 @@ import { GLTFLoader } from "../vendor/three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "../vendor/three/addons/libs/meshopt_decoder.module.js";
 import { addBoards } from "./boards/boards.js";
 import { upgradeStands, upgradeTowers, addGround } from "./v5.js";
+import { camerasFor, findCamera, cameraAt, tweenProgress, effectiveFov, TWEEN_MS, mountCameraChips } from "./cameras.js";
+export { mountCameraChips };
 
 var FALLBACK_URL = new URL("./fallback.png", import.meta.url).href;
 // The broadcast camera. The still photo is a render from this same camera.
 var CAM = {fov: 36, pos: [0, 110, 200], look: [0, 0, 0]};
+// Ground logos tilt to face the broadcast camera (CAM), whichever camera preset is
+// showing: the studio previews from that camera, and the rule is "tilt turns the face
+// towards the camera". Flip to true only if logos should re-pose for each preset
+// (not implemented: corners() would need the active camera's position).
+export var POSE_FOLLOWS_ACTIVE_CAMERA = false;
 var PHOTO = {w: 780, h: 552};
 
 // Where a ground point (metres) lands on the still photo shown with object-fit: cover
@@ -27,6 +34,14 @@ export function projectGround(x, z, hostW, hostH) {
     y: (hostH - PHOTO.h * scale) / 2 + py * scale,
     scale: scale
   };
+}
+
+// Switch a mounted ground to a camera preset (see cameras.js). Tweens position, target
+// and fov over 600 ms (ease-out); jumps straight there under prefers-reduced-motion or
+// with {animate: false}. Returns false for an unknown id or a fallback (photo) handle.
+export function setCamera(handle, id, o) {
+  if (!handle || handle.fallback || typeof handle.setCamera !== "function") return false;
+  return handle.setCamera(id, o);
 }
 
 // One pose for a ground logo. Angle 0 leaves it flat on the turf. A larger
@@ -423,6 +438,48 @@ export async function mount(host, opts) {
     var look = opts.look || CAM.look;
     camera.position.set(cam[0], cam[1], cam[2]);
     camera.lookAt(look[0], look[1], look[2]);
+    // Camera presets: the stadium's own table when it has one, else the MCG defaults.
+    var cams = camerasFor(opts.stadium);
+    var camId = opts.cam || opts.look || opts.fov ? "custom" : "broadcast";
+    var camNow = {pos: cam.slice(), look: look.slice(), fov: camera.fov};
+    var camTween = null;
+    function applyCam(st) {
+      camNow = st;
+      camera.position.set(st.pos[0], st.pos[1], st.pos[2]);
+      camera.fov = st.fov;
+      camera.updateProjectionMatrix();
+      camera.lookAt(st.look[0], st.look[1], st.look[2]);
+    }
+    function camTarget(preset) {
+      return {pos: preset.pos.slice(), look: preset.look.slice(), fov: effectiveFov(preset, camera.aspect)};
+    }
+    function retower() {
+      try {
+        scene.traverse(function (o) { if (/^LightTower\d$/.test(o.name)) o.visible = true; });
+        hideTowerOnLens(scene, camera);
+      } catch (eT) {}
+    }
+    function setCam(id, o) {
+      var preset = findCamera(cams, id);
+      if (!preset || !alive || !renderer) return false;
+      camId = id;
+      var to = camTarget(preset);
+      if (still || (o && o.animate === false)) {
+        camTween = null;
+        applyCam(to);
+        retower();
+        renderer.render(scene, camera);
+        return true;
+      }
+      camTween = {from: camNow, to: to, start: performance.now()};
+      return true;
+    }
+    function stepCam(now) {
+      if (!camTween) return;
+      var t = tweenProgress(camTween.start, now, TWEEN_MS, false);
+      applyCam(cameraAt(camTween.from, camTween.to, t));
+      if (t >= 1) { camTween = null; retower(); }
+    }
 
     var loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
@@ -647,6 +704,7 @@ export async function mount(host, opts) {
       last = now;
       if (!still && boards) boards.update(dt);
       if (!still) stepEffects(dt);
+      stepCam(now);
       renderer.render(scene, camera);
       if (!still) raf = requestAnimationFrame(draw);
     }
@@ -666,6 +724,8 @@ export async function mount(host, opts) {
       if (!alive || !renderer) return;
       var next = size();
       camera.aspect = next.w / next.h;
+      var preset = camTween ? null : findCamera(cams, camId);
+      if (preset) applyCam(camTarget(preset));
       camera.updateProjectionMatrix();
       renderer.setSize(next.w, next.h, false);
       if (still) renderer.render(scene, camera);
@@ -675,6 +735,9 @@ export async function mount(host, opts) {
 
     return {
       fallback: false,
+      cameras: cams,
+      get cameraId() { return camId; },
+      setCamera: setCam,
       resize: resize,
       setLogos: setLogos,
       celebrate: celebrate,
