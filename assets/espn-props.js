@@ -24,7 +24,7 @@
     var x = String((p && p.position) || "").toUpperCase();
     return x === "HB" || x === "FB" ? "RB" : x;
   }
-  // NBA and WNBA share one table (same ESPN box score).
+  // NBA, WNBA and NBL share one table (same ESPN box score).
   var NBA_PROP_TABS = [
     {key: "points", stat: "Points", def: 19.5, max: 60},
     {key: "rebounds", stat: "Rebounds", def: 6.5, max: 25},
@@ -32,13 +32,13 @@
     {key: "threes_made", stat: "Threes Made", def: 1.5, max: 12},
     {key: "pra", stat: "Points + Rebounds + Assists", def: 29.5, max: 80}
   ];
-  var PROP_LEAGUES = {nfl: true, nba: true, wnba: true};
+  var PROP_LEAGUES = {nfl: true, nba: true, wnba: true, nbl: true};
   var NFL_SKILL = {QB: 1, RB: 1, FB: 1, WR: 1, TE: 1, HB: 1};
 
   function lg(league) { return String(league || "").toLowerCase(); }
   /** True when TipBot has structured player props for this ESPN league. */
   function hasProps(league) { return !!PROP_LEAGUES[lg(league)]; }
-  function isBasketball(league) { var k = lg(league); return k === "nba" || k === "wnba"; }
+  function isBasketball(league) { var k = lg(league); return k === "nba" || k === "wnba" || k === "nbl"; }
   /** Prop tabs for a league (NFL, else the shared basketball table). */
   function propTabs(league) { return lg(league) === "nfl" ? NFL_PROP_TABS : NBA_PROP_TABS; }
   /** TipBot roster URL. NFL keeps its original endpoint so older deploys still work. */
