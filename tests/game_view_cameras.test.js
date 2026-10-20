@@ -153,7 +153,8 @@ test("mount.js API: setCamera export, current id on the handle, logo poses stay 
 });
 
 test("index.html mounts the chips after the ground; public-repo rules hold", () => {
-  assert.match(html, /FLIVE\.mcgMod\.mountCameraChips\(host, handle\)/);
+  // The venue module that mounted the ground (MCG or arena) adds its own chips.
+  assert.match(html, /res\.mod\.mountCameraChips\(host, handle\)/);
   for (const src of [camerasSrc]) {
     assert.doesNotMatch(src, /console\./);
     assert.doesNotMatch(src, /window\.open|target="_blank"/);

@@ -82,6 +82,25 @@ export function tweenProgress(start, now, ms, reduced) {
   return Math.max(0, Math.min(1, (now - start) / ms));
 }
 
+/** Chip labels for a handle: the MCG labels, with a per-venue override map
+    ({ends: "Baseline", blimp: "Overhead"}). Unknown keys are ignored. */
+export function chipLabels(overrides) {
+  var out = {};
+  for (var i = 0; i < CHIPS.length; i++) {
+    var k = CHIPS[i].key;
+    var o = overrides && typeof overrides[k] === "string" && overrides[k] ? overrides[k] : null;
+    out[k] = o || CHIPS[i].label;
+  }
+  return out;
+}
+
+/** Storage key for the saved camera. The MCG keeps the original key; any other venue
+    is namespaced ("tipdash_gv_cam:arena") so one ground's choice can't bleed into another. */
+export function storageKeyFor(venue) {
+  var v = String(venue || "").trim().toLowerCase();
+  return !v || v === "mcg" ? STORAGE_KEY : STORAGE_KEY + ":" + v;
+}
+
 /** Which camera a chip tap goes to. "Ends" flips north/south when an end camera is already showing. */
 export function nextCameraForChip(key, currentId, cams) {
   var chip = null;
@@ -99,16 +118,16 @@ export function chipForCamera(id) {
 }
 
 /** The saved camera id, or "broadcast" when nothing valid is saved. Storage can throw (private mode). */
-export function loadCameraChoice(storage, cams) {
+export function loadCameraChoice(storage, cams, key) {
   try {
-    var id = storage && storage.getItem(STORAGE_KEY);
+    var id = storage && storage.getItem(key || STORAGE_KEY);
     if (id && findCamera(cams || CAMERAS, id)) return id;
   } catch (e) {}
   return "broadcast";
 }
 
-export function saveCameraChoice(storage, id) {
-  try { if (storage) storage.setItem(STORAGE_KEY, String(id)); return true; } catch (e) { return false; }
+export function saveCameraChoice(storage, id, key) {
+  try { if (storage) storage.setItem(key || STORAGE_KEY, String(id)); return true; } catch (e) { return false; }
 }
 
 // ── chip row ────────────────────────────────────────────────────────────────
@@ -135,12 +154,15 @@ function ensureStyle(doc) {
   (doc.head || doc.documentElement).appendChild(st);
 }
 
-/** Chip row HTML for the current camera (exported for tests). */
-export function chipRowHtml(currentId) {
+/** Chip row HTML for the current camera (exported for tests). `labels` overrides chip
+    labels per venue (see chipLabels); an overridden "ends" label stays fixed. */
+export function chipRowHtml(currentId, labels) {
   var on = chipForCamera(currentId);
+  var names = chipLabels(labels);
+  var fixedEnds = !!(labels && labels.ends);
   return CHIPS.map(function (c) {
-    var label = c.key === "ends" && (currentId === "goals-north" || currentId === "goals-south")
-      ? (currentId === "goals-north" ? "North end" : "South end") : c.label;
+    var label = !fixedEnds && c.key === "ends" && (currentId === "goals-north" || currentId === "goals-south")
+      ? (currentId === "goals-north" ? "North end" : "South end") : names[c.key];
     return '<button type="button" data-cam-chip="' + c.key + '" aria-pressed="' + (c.key === on ? "true" : "false") + '"'
       + (c.key === "ends" ? ' title="Tap again to switch ends"' : "") + "><span>" + label + "</span></button>";
   }).join("");
@@ -158,6 +180,8 @@ export function mountCameraChips(host, handle, opts) {
   if (!doc) return null;
   var storage = opts.storage !== undefined ? opts.storage : (function () { try { return window.localStorage; } catch (e) { return null; } })();
   var cams = handle.cameras || CAMERAS;
+  var key = handle.storageKey || STORAGE_KEY;
+  var labels = handle.chips || null;
   ensureStyle(doc);
   var old = host.querySelector(".fl-cams");
   if (old) old.remove();
@@ -167,17 +191,17 @@ export function mountCameraChips(host, handle, opts) {
   row.setAttribute("aria-label", "Camera");
   function paint() {
     var id = handle.cameraId || "broadcast";
-    row.innerHTML = chipRowHtml(id);
+    row.innerHTML = chipRowHtml(id, labels);
     try { host.dataset.cam = id; } catch (e) {}
   }
   row.addEventListener("click", function (ev) {
     var btn = ev.target && ev.target.closest ? ev.target.closest("[data-cam-chip]") : null;
     if (!btn) return;
     var next = nextCameraForChip(btn.getAttribute("data-cam-chip"), handle.cameraId || "broadcast", cams);
-    if (handle.setCamera(next, {animate: true}) !== false) saveCameraChoice(storage, next);
+    if (handle.setCamera(next, {animate: true}) !== false) saveCameraChoice(storage, next, key);
     paint();
   });
-  var saved = loadCameraChoice(storage, cams);
+  var saved = loadCameraChoice(storage, cams, key);
   if (saved !== (handle.cameraId || "broadcast")) handle.setCamera(saved, {animate: false});
   paint();
   host.appendChild(row);

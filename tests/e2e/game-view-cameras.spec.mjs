@@ -37,6 +37,9 @@ async function openGameView(page, opts = {}) {
   }));
   if (opts.noModel) await page.route("**/assets/mcg/mcg.glb**", (route) => route.fulfill({ status: 404, body: "" }));
   if (!opts.keepStorage) await page.addInitScript(() => { try { localStorage.removeItem("tipdash_gv_cam"); } catch (e) {} });
+  // Player animations default to off (0.66.7 basketball job). This spec was written with the
+  // cartoon players running on the demo, so keep them on here.
+  await page.addInitScript(() => { try { localStorage.setItem("tipdash_gv_anim", "1"); } catch (e) {} });
   await page.addInitScript(authInitScript());
   await page.goto(baseUrl + "#/demo/game", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => {
@@ -54,6 +57,7 @@ for (const vp of [{ name: "390", width: 390, height: 844 }, { name: "1440", widt
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
     test("every preset, the chips, the saved choice", async ({ page, context }) => {
+      test.setTimeout(90000); // five swiftshader screenshots at 1440 px ran close to the 60 s default
       const popups = [];
       context.on("page", (p) => popups.push(p.url()));
       const errors = await openGameView(page);
