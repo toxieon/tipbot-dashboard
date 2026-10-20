@@ -4,6 +4,8 @@ Test tidy.
 
 A scheduled tip can be marked Free or Premium. Auto leaves that choice off the request.
 
+Game view shows the legs of a multi together in one card, with the total odds once.
+
 Game view for NBA, WNBA and NBL games shows points, the quarter and clock, quarter scores, the stat on each bet (18/25 PTS) and a Box score for both teams. Basketball games are shown on an indoor court with Broadcast, Baseline, Wing and Overhead cameras.
 
 Settings has a Player animations switch for the running players on the AFL ground. It is off by default.

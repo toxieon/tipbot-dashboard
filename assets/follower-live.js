@@ -249,6 +249,44 @@
       + "</article>";
   }
 
+  /** Legs of one multi tip together: [{multi, tip_id, odds, legs}] in first-seen order.
+      The multi total shows once on the group; a leg keeps only its own price. */
+  function groupLegs(legs) {
+    var out = [], byTip = {}, counts = {};
+    (legs || []).forEach(function (leg) {
+      var t = leg && leg.tip_id != null ? String(leg.tip_id) : "";
+      if (t) counts[t] = (counts[t] || 0) + 1;
+    });
+    (legs || []).forEach(function (leg) {
+      var t = leg && leg.tip_id != null ? String(leg.tip_id) : "";
+      var multi = !!t && (leg.multi === true || counts[t] > 1);
+      if (!multi) { out.push({multi: false, tip_id: t, odds: leg && leg.odds, legs: [leg]}); return; }
+      if (!byTip[t]) {
+        var total = leg.multi_odds != null ? leg.multi_odds : null;
+        byTip[t] = {multi: true, tip_id: t, odds: total, legs: []};
+        out.push(byTip[t]);
+      }
+      byTip[t].legs.push(leg);
+    });
+    out.forEach(function (item) {
+      if (!item.multi) return;
+      if (item.odds == null) {
+        // Older payloads copied the total onto every leg: lift it to the group.
+        var first = item.legs[0] && item.legs[0].odds;
+        if (first != null && item.legs.every(function (l) { return l && l.odds === first; })) {
+          item.odds = first;
+          item.legs = item.legs.map(function (l) { var c = {}; for (var k in l) c[k] = l[k]; c.odds = null; return c; });
+        }
+      } else {
+        item.legs = item.legs.map(function (l) {
+          if (!l || l.odds == null || l.odds !== item.odds) return l;
+          var c = {}; for (var k in l) c[k] = l[k]; c.odds = null; return c;
+        });
+      }
+    });
+    return out;
+  }
+
   function tipsterHtml(group, game) {
     var name = (group && group.name) || "Tipster";
     var n = (group && group.legs && group.legs.length) || 0;
@@ -259,7 +297,14 @@
       av += '<img src="' + esc(group.avatar) + '" alt="" data-ini="' + esc(ini) + '" onerror="this.remove()">';
     }
     av += "</div>";
-    var cards = (group.legs || []).map(function (leg) { return cardHtml(leg, game); }).join("");
+    var cards = groupLegs(group.legs || []).map(function (item) {
+      if (!item.multi) return cardHtml(item.legs[0], game);
+      var odds = fmtOdds(item.odds);
+      return '<div class="fl-multi" data-tip="' + esc(item.tip_id) + '">'
+        + '<div class="fl-multi-head"><b>Multi · ' + item.legs.length + " legs</b>"
+        + (odds ? '<span class="fl-odds">' + esc(odds) + "</span>" : "") + "</div>"
+        + '<div class="fl-grid">' + item.legs.map(function (leg) { return cardHtml(leg, game); }).join("") + "</div></div>";
+    }).join("");
     return '<section class="fl-group"><header class="fl-tip">' + av
       + "<b>" + esc(name) + '</b><span class="fl-rule" aria-hidden="true"></span><em>'
       + n + " leg" + (n === 1 ? "" : "s") + "</em></header>"
@@ -960,6 +1005,7 @@
     remember: remember,
     summaryText: summaryText,
     render: render,
+    groupLegs: groupLegs,
     scoreHtml: scoreHtml,
     fallbackFromFeed: fallbackFromFeed,
     liveNowGames: liveNowGames,
