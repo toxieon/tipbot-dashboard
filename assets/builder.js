@@ -562,10 +562,6 @@
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
   }
-  function espnSkillPlayers(list){
-    // NFL: skill positions for props (full roster if that empties). Basketball: everyone.
-    return TBEspnProps.propPlayers(list, BUILD.espnLeague);
-  }
   // Prop picker for any prop league (NFL, NBA, WNBA). Name kept from the NFL-only days.
   function renderEspnNflProps(){
     const ev=BUILD.espnEvent;
@@ -695,7 +691,6 @@
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
   }
-  function teamPlayers(t){ if(t&&typeof t==="object"&&Array.isArray(t.players)&&t.players.length)return t.players; return STATE.players[teamName(t)]||[]; }
   // match the backend's _text_key so we can look a live player up by name
   function tkey(s){ return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
   const LIVE_KEYS={Disposals:"disposals",Goals:"goals","Fantasy Points":"dreamTeamPoints",Hitouts:"hitouts",Marks:"marks",Tackles:"tackles",Kicks:"kicks",Handballs:"handballs",Clearances:"totalClearances"};
@@ -1234,6 +1229,7 @@
       +'<div class="field"><label>Total odds</label><input id="f_odds" type="number" step="0.01" placeholder="e.g. 3.20"></div>'
       +stakeFieldHTML()
       +'<div class="field"><label for="f_book">Bookmaker</label><div class="tb-bookmaker-picker"><select id="f_book">'+bk+'</select><div id="f_book_preview" class="tb-bookmaker-selected" aria-live="polite"></div></div></div>'
+      +'<div class="field"><label for="f_tier">Channel tier</label><select id="f_tier"><option value="">Auto</option><option value="free">Free</option><option value="premium">Premium</option></select></div>'
       +'<div class="field"><label>Post delay (minutes, 0 = now)</label><input id="f_delay" type="number" step="1" value="0"></div>'
       +'<div class="field"><label>Screenshot (optional)</label><input id="f_img" type="file" accept="image/*"><div id="f_img_prev" style="margin-top:8px"></div></div>'
       +'<div class="sched-actions"><button class="btn secondary" id="batchaddbtn" type="button">Add to batch</button>'
@@ -1280,6 +1276,8 @@
     BUILD.legs=normalizePropLines(BUILD.legs);
     const start_date=BUILD.espn?(BUILD.espnEvent&&BUILD.espnEvent.date?String(BUILD.espnEvent.date).slice(0,10):(BUILD.customStartDay||"").trim()):(BUILD.custom?((BUILD.customStartDay||"").trim()):"");
     const out={odds,units,bookmaker,game_name,sport,legs:BUILD.legs.slice(),image_b64:BUILD.image||""};
+    const tier=String((($("f_tier")||{}).value)||"").trim().toLowerCase();
+    if(tier==="free"||tier==="premium") out.tier=tier;
     if(BUILD.espn&&BUILD.espnLeague){ out.league=BUILD.espnLeague; }
     if(espnId){ out.espn_event_id=String(espnId); out.event_id=String(espnId); }
     // TipBot may accept start_date / game_start; ignore-unknown on lagging deploys.
@@ -1306,12 +1304,14 @@
     $("scherr").textContent="";
     if(BATCH.guildId && String(BATCH.guildId)!==String(BUILD.guildId)){ BATCH={guildId:null,tips:[]}; }
     BATCH.guildId=BUILD.guildId;
-    BATCH.tips.push({
+    const queued={
       legs:tip.legs, odds:tip.odds, units:tip.units, bookmaker:tip.bookmaker,
       game_name:tip.game_name, sport:tip.sport, image_b64:tip.image_b64||"",
       start_date:tip.start_date||"", game_start:tip.game_start||"",
       league:tip.league||"", espn_event_id:tip.espn_event_id||"", event_id:tip.event_id||""
-    });
+    };
+    if(tip.tier) queued.tier=tip.tier;
+    BATCH.tips.push(queued);
     BUILD.legs=[]; BUILD.image=null;
     clearMultiDraft(BUILD.guildId);
     renderTray();
@@ -1415,6 +1415,7 @@
       if(t.espn_event_id){ row.espn_event_id=t.espn_event_id; row.event_id=t.espn_event_id; }
       if(t.start_date){ row.start_date=t.start_date; row.game_start=t.game_start||t.start_date; }
       else if(t.game_start){ row.game_start=t.game_start; }
+      if(t.tier==="free"||t.tier==="premium") row.tier=t.tier;
       return row;
     });
     const payload={
@@ -1459,6 +1460,7 @@
         if(t.start_date){ one.start_date=t.start_date; one.game_start=t.game_start||t.start_date; }
         else if(t.game_start){ one.game_start=t.game_start; }
         if(t.route) one.route=t.route;
+        if(t.tier==="free"||t.tier==="premium") one.tier=t.tier;
         try{
           const r=await api("/api/queue-tip",{
             method:"POST",
@@ -1702,6 +1704,7 @@
     if(tipFields.start_date){ payload.start_date=tipFields.start_date; payload.game_start=tipFields.game_start||tipFields.start_date; }
     else if(tipFields.game_start){ payload.game_start=tipFields.game_start; }
     if(route) payload.route=route;
+    if(tipFields.tier) payload.tier=tipFields.tier;
     try{
       // Safe to retry: the Idempotency-Key replays instead of double-posting.
       const r=await api("/api/queue-tip",{

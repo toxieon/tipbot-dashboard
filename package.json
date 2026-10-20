@@ -5,7 +5,8 @@
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
     "perf": "node scripts/perf-headless.mjs",
-    "test:slips": "node tests/slip-harness/run.mjs"
+    "test:slips": "node tests/slip-harness/run.mjs",
+    "tokens": "node scripts/token-sheet.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",

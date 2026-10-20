@@ -2,6 +2,8 @@
 
 Test tidy.
 
+A scheduled tip can be marked Free or Premium. Auto leaves that choice off the request.
+
 ## 0.66.6
 
 The bottom bar stays at the bottom of the screen while you scroll, including on a server's Settings page.

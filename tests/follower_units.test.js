@@ -4,7 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const FU = require("../assets/follower-units.js");
 
-const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+// index.html plus the follower views it lazy-loads (job 03).
+const html = ["index.html", "assets/follower-views.js"].map((f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8")).join("\n");
 
 test("hero shows a signed all-time figure", () => {
   assert.deepEqual(FU.heroText(12.5), {text: "+12.50u", cls: "pos"});
@@ -46,7 +47,7 @@ test("cumulative line follows the showing period", () => {
   const view = html.slice(html.indexOf("function renderFollowerView"), html.indexOf("/* ---------- ALL COMMUNITIES"));
   const painted = view.slice(view.indexOf('$("follower").innerHTML'));
   assert.ok(painted.indexOf("unitsBlock") < painted.indexOf("dhead"));
-  const mount = html.slice(html.indexOf("function mountFollowerPromoChip"), html.indexOf("function unmountFollowerPromoChip"));
+  const mount = html.slice(html.indexOf("function mountFollowerPromoChip"), html.indexOf("async function openMyTips"));
   assert.match(mount, /tb-promo-dock/);
   assert.match(mount, /\$\("follower"\)/);
   assert.match(mount, /host\.appendChild\(wrap\)/);
