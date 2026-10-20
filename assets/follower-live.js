@@ -34,6 +34,7 @@
 
   function statusOf(raw) {
     var s = String(raw == null ? "" : raw).trim().toLowerCase();
+    if (s === "push") return "push";
     if (s === "hit" || s === "win" || s === "won") return "hit";
     if (s === "miss" || s === "dead" || s === "loss" || s === "lost") return "miss";
     return "pending";
@@ -42,6 +43,7 @@
   function statusLabel(status, upcoming) {
     if (status === "hit") return "Hit";
     if (status === "miss") return "Missed";
+    if (status === "push") return "Push";
     if (upcoming) return "Upcoming";
     return "Live";
   }
@@ -230,6 +232,9 @@
     if (upcoming) {
       var bounce = bounceLabel(game);
       track = bounce ? '<div class="fl-bounce"><span>Bounce</span><b>' + esc(bounce) + "</b></div>" : "";
+    } else if (leg && leg.live_label) {
+      var tail = String(leg.live_label).split(": ").slice(1).join(": ") || String(leg.live_label);
+      track = '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(tail) + "</b></div>";
     } else if (hasProgress) {
       track = '<div class="fl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
         + esc(String(Math.round(pct))) + '" aria-label="' + esc(title + " " + cur + " of " + line) + '">'
