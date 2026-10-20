@@ -1205,7 +1205,7 @@ html[data-theme="ochre"] #race-app {
   .tray-guernsey-pop { animation:none !important; }
 }
 [data-motion="reduce"] .tray-guernsey-pop { animation:none !important; }
-#players .guernsey-mark { flex:none; display:inline-grid; place-items:center; opacity:0; transform:translateY(6px) scale(.9); animation:guernsey-row-in .45s var(--ease, ease) forwards; animation-delay:calc(var(--gi, 0) * 35ms); }
+#players .guernsey-mark { flex:none; display:inline-grid; place-items:center; opacity:0; transform:translateY(6px) scale(.9); animation:guernsey-row-in .45s var(--ease, ease) both; animation-delay:calc(var(--gi, 0) * 35ms); }
 @keyframes guernsey-row-in { to { opacity:1; transform:none; } }
 @media (prefers-reduced-motion: reduce) {
   #players .guernsey-mark { animation:none; opacity:1; transform:none; }

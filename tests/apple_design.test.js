@@ -169,7 +169,8 @@ test("sticky headers stick: overflow-x clip, not a body scroll container", () =>
 });
 
 test("owner tools live in a Settings view, gear keeps the common path", () => {
-  assert.match(HTML, /id="dd-owner-settings"/);
+  assert.doesNotMatch(HTML, /dd-owner-settings|>Owner settings/);
+  assert.match(HTML, /TBOwner\.mountChrome\(\{ openOps:[^}]*openSettings: \(\)=>openOwnerSettings\(\)/);
   assert.match(HTML, /<div id="settings" hidden><\/div>/);
   assert.match(HTML, /navNote\("#\/settings"/);
 });

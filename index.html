@@ -283,10 +283,10 @@
   .fl-mcg{position:absolute;inset:0}
   .fl-photo-logos{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
   .fl-photo-logo{position:absolute;display:block;object-fit:fill}
-  .fl-photo-hit{position:absolute;z-index:2;transform:translate(-50%,-100%);font:700 20px/1 "Instrument Sans",Geist,sans-serif;color:#e9fbff;text-shadow:0 0 10px rgba(110,220,255,.95);white-space:nowrap;animation:fl-hit-rise 3s ease-out forwards}
+  .fl-photo-hit{position:absolute;z-index:2;transform:translate(-50%,-100%);font:700 20px/1 "Instrument Sans",Geist,sans-serif;color:#e9fbff;text-shadow:0 0 10px rgba(110,220,255,.95);white-space:nowrap;animation:fl-hit-rise 3s ease-out both}
   @keyframes fl-hit-rise{0%{opacity:0;margin-top:0}12%{opacity:1}70%{opacity:1}100%{opacity:0;margin-top:-48px}}
   @keyframes fl-hit-fade{0%,80%{opacity:1}100%{opacity:0}}
-  @media (prefers-reduced-motion:reduce){.fl-photo-hit{animation:fl-hit-fade 3s linear forwards}}
+  @media (prefers-reduced-motion:reduce){.fl-photo-hit{animation:fl-hit-fade 3s linear both}}
   .fl-mcg-fallback,.fl-mcg canvas,.fl-mcg-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
   .fl-mcg canvas,.fl-mcg-canvas{z-index:1;visibility:hidden;-webkit-transform:translateZ(0);transform:translateZ(0)}
   .fl-mcg.is-webgl canvas,.fl-mcg.is-webgl .fl-mcg-canvas{visibility:visible}
@@ -1188,7 +1188,7 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .badge.trial-expired{border-color:var(--warn,#e0a04a);color:var(--warn,#e0a04a)}
 .trial-opts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:var(--t-foot);color:var(--muted);margin:4px 0 8px}
 .trial-opts input,.trial-opts select{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);padding:4px 6px;font:inherit;font-size:var(--t-foot)}
-/* AU sign-up gate (login screen + owner Settings row) */
+/* AU sign-up gate (login screen + settings row) */
 .signup-au{margin-top:14px;display:grid;gap:10px;justify-items:center;text-align:center;max-width:340px;margin-left:auto;margin-right:auto}
 .signup-au-lead{margin:0;color:var(--muted);font-size:var(--t-callout)}
 .signup-au-check{display:flex;gap:8px;align-items:center;font-weight:700}
@@ -1289,8 +1289,8 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 .topnav a:hover{color:var(--txt)}
 .topnav .topnav-dot{margin-right:2px}
 @media(max-width:420px){ .brand .sub{display:none} .topnav a{padding:6px 8px!important;font-size:var(--t-sub)} }
-/* Owner settings view */
-#dropdown #dd-odds-quota,#dropdown #dd-odds-markets,#dropdown #dd-signup-gate{display:none!important} /* live in Owner settings */
+/* Settings view */
+#dropdown #dd-odds-quota,#dropdown #dd-odds-markets,#dropdown #dd-signup-gate{display:none!important} /* live in the settings view */
 #settings .os-lead{color:var(--muted);margin:-8px 0 18px;font-size:var(--t-callout)}
 #settings .os-body{display:grid;gap:16px;max-width:560px}
 #settings .os-card{margin:0}
@@ -1391,14 +1391,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   <div id="app" hidden>
     <div class="top">
       <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=__TD_VERSION__" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
-      <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a><a class="topnav-ops" href="#/ops" id="nav-ops" hidden>Admin tools</a></nav>
+      <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
           <div class="dd-label">Settings</div>
           <a class="dd-item" href="./welcome/" style="color:inherit;text-decoration:none">Public site <span style="color:var(--faint)">›</span></a>
           <div class="dd-item" id="dd-marketplace" role="button" tabindex="0">Marketplace <span class="gf-badge" id="dd-marketplace-badge" hidden>Off for users</span> <span style="color:var(--faint)">›</span></div>
           <div class="dd-item" id="dd-viewas">View as… <span style="color:var(--faint)">›</span></div>
-          <div class="dd-item" id="dd-owner-settings" role="button" tabindex="0" hidden>Owner settings <span style="color:var(--faint)">›</span></div>
           <div id="dd-global" hidden></div>
           <div id="viewas-list" hidden><div class="dd-label">View as server</div><div id="viewas-servers"></div></div>
           <div id="tb-appearance"></div>
@@ -1744,9 +1743,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     s.textContent =
       ".nd-pop-back{position:fixed;inset:0;z-index:2147482600;display:flex;align-items:center;justify-content:center;pointer-events:none;}" +
       ".nd-pop{display:flex;flex-direction:column;align-items:center;gap:12px;animation:nd-pop-in .28s cubic-bezier(.2,.8,.2,1);}" +
-      ".nd-pop-ring{stroke-dasharray:157;stroke-dashoffset:157;animation:nd-pop-ring .5s ease-out forwards;}" +
-      ".nd-pop-check{stroke-dasharray:48;stroke-dashoffset:48;animation:nd-pop-check .35s .34s ease-out forwards;}" +
-      ".nd-pop-halo{transform-origin:center;animation:nd-pop-halo .6s ease-out forwards;}" +
+      ".nd-pop-ring{stroke-dasharray:157;stroke-dashoffset:157;animation:nd-pop-ring .5s ease-out both;}" +
+      ".nd-pop-check{stroke-dasharray:48;stroke-dashoffset:48;animation:nd-pop-check .35s .34s ease-out both;}" +
+      ".nd-pop-halo{transform-origin:center;animation:nd-pop-halo .6s ease-out both;}" +
       ".nd-pop-label{color:var(--nd-text,#f0f0f0);font-family:var(--nd-sans,system-ui,sans-serif);font-weight:700;font-size:var(--t-body);}" +
       "@keyframes nd-pop-in{from{transform:scale(.7);opacity:0;}}" +
       "@keyframes nd-pop-ring{to{stroke-dashoffset:0;}}" +
@@ -1773,7 +1772,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     (doc.body || doc.documentElement).appendChild(back);
     return new Promise(function (res) {
       setTimeout(function () {
-        var p = back.firstChild; if (p) p.style.animation = "nd-pop-out .3s ease forwards";
+        var p = back.firstChild; if (p) p.style.animation = "nd-pop-out .3s ease both";
         setTimeout(function () { try { doc.body.removeChild(back); } catch (e) {} if (opts.onDone) opts.onDone(); res(); }, 300);
       }, dur);
     });
@@ -2506,11 +2505,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { let q=false; const top=document.querySelector("#app > .top");
     const upd=()=>{ q=false; if(top) top.classList.toggle("is-scrolled", window.scrollY>4); };
     window.addEventListener("scroll",()=>{ if(!q){ q=true; requestAnimationFrame(upd); } },{passive:true}); }
-  // Owner settings (0.43.1) live in their own view
+  // Extra settings (0.43.1) live in their own view
   // instead of crowding the gear menu ("common path first, advanced one level deeper").
   // The rows are moved (not copied), so their ids and wiring are unchanged.
   function ownerSettingsAllowed(){ return STATE.ops===true && !STATE.viewAs; }
-  function paintOwnerSettingsEntry(){ const e=$("dd-owner-settings"); if(e) e.hidden=!ownerSettingsAllowed(); }
+  function paintOwnerSettingsEntry(){ const e=$("dd-extra-settings"); if(e) e.hidden=!ownerSettingsAllowed(); }
   function buildTipsShown(){
     return !(window.TBGlobalFlags && typeof TBGlobalFlags.shown==="function" && !TBGlobalFlags.shown("build_tips_enabled"));
   }
@@ -2609,10 +2608,14 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   if(window.TBGlobalFlags && typeof TBGlobalFlags.onChange==="function"){
     TBGlobalFlags.onChange(function(){ paintGlobalChrome(); enforceHiddenRoutes(); });
   }
-  { const e=$("dd-owner-settings"); if(e){ e.onclick=openOwnerSettings; e.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openOwnerSettings(); } }; } }
+  // The session script adds its own menu rows and nav link; the page only hands it the openers.
+  function mountOwnerChrome(){
+    if(!(window.TBOwner && typeof TBOwner.mountChrome==="function")) return;
+    TBOwner.mountChrome({ openOps: ()=>openOps(), openSettings: ()=>openOwnerSettings(),
+      paint: ()=>{ paintOpsTab(); paintOwnerSettingsEntry(); } });
+  }
   { const mp=$("dd-marketplace"); if(mp){ mp.onclick=openMarketplace; mp.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMarketplace(); } }; } }
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
-  { const no=$("nav-ops"); if(no) no.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); openOps(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
   function racingExtraPlacesOn(){ try{ return localStorage.getItem("tipdash_racing_extra_places")==="1"; }catch(_){ return false; } }
   { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
@@ -2663,6 +2666,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const shown=STATE._detailShown;
     const box=$("detail");
     syncGlobalSession();
+    ensureExt();
     if(!gid||!shown||!box||box.hidden) return;
     ensureExt().then(function(){
       if(STATE.ops===true && $("detail") && !$("detail").hidden && String(window.__tbDetailGid)===String(gid)) renderDetail(shown);
@@ -2710,6 +2714,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       }finally{
         try{ URL.revokeObjectURL(url); }catch(e){}
       }
+      if(window.TBOwner) mountOwnerChrome();
       return !!window.TBOwner;
     })().catch(function(){ return false; }).finally(function(){ EXT_PENDING=null; });
     return EXT_PENDING;
@@ -2724,12 +2729,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(window.TBOwnerServer) return Promise.resolve(true);
     return TD.load("owner-server").then(function(){ return !!window.TBOwnerServer; }, function(){ return false; });
   }
+  const OPS_ROUTE="ops";
   function openOps(){
     if(STATE.ops!==true){
       if(window.TBOwner&&TBOwner.clearOps) TBOwner.clearOps();
       return enterHome();
     }
-    navNote("#/ops", ()=>openOps());
+    navNote("#/"+OPS_ROUTE, ()=>openOps());
     panel("ops"); show("app");
     const box=$("ops");
     if(!box.querySelector("[data-ops-root]")) box.innerHTML='<div data-ops-root></div>';
