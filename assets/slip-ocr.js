@@ -39,6 +39,9 @@
     { stat: "Threes Made", re: /^(threes?(\s*made)?|3\s*pointers?(\s*made)?)$/i, sport: "BASKETBALL" },
     { stat: "Steals", re: /^steals?$/i, sport: "BASKETBALL" },
     { stat: "Blocks", re: /^blocks?$/i, sport: "BASKETBALL" },
+    { stat: "Points + Assists", re: /^(pa|p\s*\+\s*a|(points?|pts)\s*(\+|&|and)\s*(assists?|asts?))$/i, sport: "BASKETBALL" },
+    { stat: "Points + Rebounds", re: /^(pr|p\s*\+\s*r|(points?|pts)\s*(\+|&|and)\s*(rebounds?|rebs?))$/i, sport: "BASKETBALL" },
+    { stat: "Rebounds + Assists", re: /^(ra|r\s*\+\s*a|(rebounds?|rebs?)\s*(\+|&|and)\s*(assists?|asts?))$/i, sport: "BASKETBALL" },
     { stat: "Points + Rebounds + Assists", re: /^(pra|points\s*\+\s*rebounds\s*\+\s*assists|pts\s*\+\s*reb\s*\+\s*ast)$/i, sport: "BASKETBALL" },
     { stat: "Passing Yards", re: /^pass(ing)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
     { stat: "Rushing Yards", re: /^rush(ing)?\s*(yds|yards)$/i, sport: "NFL", unit: "yards" },
@@ -896,7 +899,8 @@
     "Completions": "completions", "Interceptions": "interceptions", "Anytime TD": "anytime_td" };
   var BASKETBALL_PROP_KEYS = {
     "Points": "points", "Rebounds": "rebounds", "Assists": "assists", "Threes Made": "threes_made", "Threes": "threes_made",
-    "Steals": "steals", "Blocks": "blocks", "Points + Rebounds + Assists": "pra", "PRA": "pra"
+    "Steals": "steals", "Blocks": "blocks", "Points + Rebounds + Assists": "pra", "PRA": "pra",
+    "Points + Assists": "pa", "Points + Rebounds": "pr", "Rebounds + Assists": "ra"
   };
   var AFL_STATS = { Disposals: 1, Goals: 1, Marks: 1, Tackles: 1, Kicks: 1, Handballs: 1, "Fantasy Points": 1 };
   var ESPN_PATH = { nfl: "football/nfl", nba: "basketball/nba", wnba: "basketball/wnba", nbl: "basketball/nbl" };

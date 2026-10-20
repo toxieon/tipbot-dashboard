@@ -430,7 +430,7 @@
     const label=espnLeagueLabel(league);
     let html='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
       +'<div class="dhead"><h1 style="margin:0">Build a tip · '+esc(sportLabel(label))+'</h1><div style="display:flex;gap:8px"><button class="ghost" id="espnbackafl">'+esc(sportLabel("AFL"))+'</button><button class="ghost" id="espnrefresh">↻ Refresh</button></div></div>'
-      +'<p style="color:var(--muted);margin:0 0 12px">'+(league==="nfl"?"Pick an NFL game, then add player props (yards / TDs / completions / INTs / receptions).":"Pick a "+label+" game, then add player props (points / rebounds / assists / threes / PRA) or free-text selections.")+'</p>';
+      +'<p style="color:var(--muted);margin:0 0 12px">'+(league==="nfl"?"Pick an NFL game, then add player props (yards / TDs / completions / INTs / receptions).":"Pick a "+label+" game, then add player props (points / rebounds / assists / threes / PRA / PTS+AST) or free-text selections.")+'</p>';
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
       +'<button class="compchip" id="espnaflchip">'+esc(sportLabel("AFL"))+'</button>'
       +ESPN_SPORTS.map(s=>'<button class="compchip espnsport'+(s.league===league?" on":"")+'" data-league="'+esc(s.league)+'">'+esc(sportLabel(s.k))+'</button>').join("")
