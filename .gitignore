@@ -5,6 +5,7 @@ node_modules/
 *.png
 !tests/fixtures/**/*.png
 !assets/mcg/fallback.png
+!assets/venues/arena-fallback.png
 *.jpg
 *.jpeg
 *.mov

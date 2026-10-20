@@ -330,6 +330,35 @@
   .fl-switch{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 2px;scrollbar-width:none}
   .fl-switch button{flex:none;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,#070b14 55%,var(--card));color:var(--txt);font:inherit;font-size:var(--t-foot);font-weight:700;cursor:pointer}
   .fl-switch button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,var(--card))}
+  /* Camera chips sit under the top bar, clear of the score (they covered the clock and
+     quarter scores whenever the running players were off). Below the demo buttons in the demo. */
+  #flive .fl-mcg .fl-cams{bottom:auto;top:calc(max(10px, env(safe-area-inset-top, 0px)) + 40px)}
+  #flive .fl-hero:has(.fl-demo) .fl-mcg .fl-cams{top:calc(max(10px, env(safe-area-inset-top, 0px)) + 82px)}
+  .fl-qs{display:block;font-style:normal;font-size:var(--t-foot);color:color-mix(in srgb,var(--txt) 62%,transparent);font-weight:600;margin-top:3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .fl-prog b small{font-size:inherit;font-weight:700;color:var(--muted)}
+  .fl-why{font-size:var(--t-foot);color:var(--muted);line-height:1.3}
+  .fl-box{margin:10px 0 4px;border:1px solid var(--line);border-radius:16px;background:var(--card);min-width:0;max-width:100%}
+  .fl-box>summary{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:12px 14px;cursor:pointer;list-style:none;min-height:44px;box-sizing:border-box}
+  .fl-box>summary::-webkit-details-marker{display:none}
+  .fl-box>summary h2{margin:0;font-size:1.1rem;font-weight:750;letter-spacing:-.01em}.fl-box>summary span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
+  .fl-box>summary h2::after{content:"▾";display:inline-block;margin-left:6px;font-size:.8em;color:var(--muted);transition:transform .15s}
+  .fl-box:not([open])>summary h2::after{transform:rotate(-90deg)}
+  .fl-bx-tabs{display:flex;gap:8px;padding:0 14px 8px}
+  .fl-bx-tabs button{min-height:36px;min-width:64px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--txt);font:inherit;font-size:var(--t-foot);font-weight:700;cursor:pointer}
+  .fl-bx-tabs button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--card))}
+  .fl-bx-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;padding:0 0 8px}
+  .fl-bx{border-collapse:collapse;width:100%;font-size:var(--t-foot);font-variant-numeric:tabular-nums}
+  .fl-bx th,.fl-bx td{padding:7px 6px;text-align:right;white-space:nowrap;border-top:1px solid var(--line)}
+  .fl-bx thead th{border-top:0;color:var(--muted);font-weight:700}
+  /* Apex makes table headers stick under the top bar; inside this scroll box that pushed the header down over row one. */
+  #flive .fl-bx thead th{position:static;top:auto}
+  #flive .fl-bx thead th.fl-bx-name,#flive .fl-bx .fl-bx-name{position:sticky;left:0;top:auto;z-index:1}
+  .fl-bx thead button{appearance:none;background:none;border:0;padding:4px 2px;min-height:32px;font:inherit;font-weight:700;color:inherit;cursor:pointer}
+  .fl-bx thead button.on{color:var(--txt);text-decoration:underline;text-underline-offset:3px}
+  .fl-bx .fl-bx-name{text-align:left;position:sticky;left:0;background:var(--card);font-weight:650;color:var(--txt);max-width:132px;overflow:hidden;text-overflow:ellipsis;padding-left:14px}
+  .fl-bx tr.fl-bx-leg th,.fl-bx tr.fl-bx-leg td{background:color-mix(in srgb,var(--accent) 16%,var(--card));color:var(--txt);font-weight:750}
+  .fl-bx td:last-child{padding-right:14px}
+  .fl-bx-empty{text-align:center!important;color:var(--muted)}
   .fl-empty{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:18px 2px}
   .fl-empty b{font-size:var(--t-body);font-weight:750;color:var(--txt)}
   .fl-empty span{color:var(--muted);font-size:var(--t-sub);line-height:1.4}
@@ -1380,6 +1409,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <span>Show extra places<small>Top 2–Top N on each runner; off uses a per-race More places toggle</small></span>
             <input type="checkbox" id="dd-racing-places-on">
           </label>
+          <label class="tb-setting tb-gv-anim" id="dd-gv-anim" title="Cartoon players running on the ground in Game view during a live game">
+            <span>Player animations<small>Players run on the Game view ground during live AFL games. Off by default</small></span>
+            <input type="checkbox" id="dd-gv-anim-on">
+          </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
           <div class="dd-label" id="dd-version">tipdash v__TD_VERSION__</div>
         </div></div>
@@ -1430,6 +1463,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/guild-profile.js?v=__TD_VERSION__"></script>
 <script src="./assets/server-view.js?v=__TD_VERSION__"></script>
 <script src="./assets/follower-live.js?v=__TD_VERSION__"></script>
+<script src="./assets/venues/select.js?v=__TD_VERSION__"></script>
 <script src="./assets/follower-units.js?v=__TD_VERSION__"></script>
 <script src="./assets/legal-md.js?v=__TD_VERSION__"></script>
 <script src="./assets/terms-gate.js?v=__TD_VERSION__"></script>
@@ -2198,7 +2232,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){}
     return null;
   }
-  function groundMod(){
+  function groundMod(venue){
+    venue=venue||"mcg";
+    if(venue!=="mcg"){
+      FLIVE.venueMods=FLIVE.venueMods||{};
+      if(FLIVE.venueMods[venue]) return FLIVE.venueMods[venue];
+      const src=(window.TBVenues?TBVenues.moduleFor(venue):"./assets/mcg/mount.js")+"?v="+encodeURIComponent(TD.version);
+      FLIVE.venueMods[venue]=import(src).catch(function(e){ FLIVE.venueMods[venue]=null; throw e; });
+      return FLIVE.venueMods[venue];
+    }
     if(FLIVE.mcgMod) return Promise.resolve(FLIVE.mcgMod);
     if(FLIVE.modPromise) return FLIVE.modPromise;
     FLIVE.modPromise=import("./assets/mcg/mount.js?v="+encodeURIComponent(TD.version)).then(function(mod){
@@ -2573,6 +2615,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
   function racingExtraPlacesOn(){ try{ return localStorage.getItem("tipdash_racing_extra_places")==="1"; }catch(_){ return false; } }
   { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
+  { const ga=$("dd-gv-anim-on"); if(ga){
+      const store=()=>{ try{ return window.localStorage; }catch(_){ return null; } };
+      ga.checked=!!(window.FollowerLive&&FollowerLive.animationsOn&&FollowerLive.animationsOn(store(), "", false));
+      ga.onchange=()=>{
+        if(window.FollowerLive&&FollowerLive.setAnimations) FollowerLive.setAnimations(store(), "", ga.checked);
+        const fl=$("flive");
+        if(fl&&!fl.hidden&&typeof fliveSyncPlayers==="function") fliveSyncPlayers(null);
+      };
+  } }
   $("dd-logout").onclick=async()=>{
     try{ await api("/api/logout",{method:"POST",retries:0,timeoutMs:8000}); }catch(e){}
     clearToken();STATE.ops=false;if(window.TBOwner&&TBOwner.clearOps)TBOwner.clearOps();syncGlobalSession();paintOpsTab();location.hash="";renderLogin();
@@ -3618,7 +3669,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       :('<span class="betcard-bookie"><span class="bk-name" style="color:var(--faint)">No bookie</span></span>');
     const hideGame=!!opts.hideGame;
     const gameCta=(!hideGame && t.game_name)
-      ? '<button type="button" class="game-view-pill flive-open" data-game="'+esc(t.game_name)+'">Game view →</button>'
+      ? '<button type="button" class="game-view-pill flive-open" data-game="'+esc(t.game_name)+'" data-sport="'+esc(t.sport||"")+'">Game view →</button>'
       : "";
     const title=hideGame
       ? ''
@@ -5161,15 +5212,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const settleSrc=t.settle_source||(tipGrade&&tipGrade.settle_source)||"";
     const gname=t.game_name?String(t.game_name):"";
     const gbit=gname
-      ?'<button type="button" class="g flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'">'+esc(gname)+'</button>'
+      ?'<button type="button" class="g flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'" data-sport="'+esc(t.sport||"")+'">'+esc(gname)+'</button>'
       :'<div class="g">'+esc(t.bet_type||t.display_id||"Bet")+'</div>';
     const gview=gname
-      ?'<button type="button" class="game-view-pill flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'">Game view →</button>'
+      ?'<button type="button" class="game-view-pill flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'" data-sport="'+esc(t.sport||"")+'">Game view →</button>'
       :"";
     return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+gview+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- Follower live game (#/s/<gid>/game/<name>) ---------- */
-  const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null,mode:"",games:[],gameKey:"",anyLive:false};
+  const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null,mode:"",games:[],gameKey:"",anyLive:false,venue:"mcg",mountSeq:0,box:{team:"home",sort:"",open:true}};
   let FLIVE_DEMO_WAIT=false;
   let AFL_FX=null;
   function fliveUnfit(){
@@ -5236,11 +5287,25 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       TBLiveFx.afl(host, ["#0B1F3A","#FFFFFF"], ["#7A1F2B","#F4E04D"]);
     });
   }
+  function fliveReducedMotion(){
+    try{ return !!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches); }catch(e){ return false; }
+  }
+  // Settings → Player animations. Off by default, per device; reduced motion counts as off.
+  function fliveAnimOn(){
+    if(!window.FollowerLive||!FollowerLive.animationsOn) return false;
+    let store=null; try{ store=window.localStorage; }catch(e){}
+    return FollowerLive.animationsOn(store, "", fliveReducedMotion());
+  }
   function fliveSyncPlayers(game){
+    if(game) FLIVE.lastGame=game;
+    const g=game||FLIVE.lastGame||(FLIVE.venue==="arena"?{sport_kind:"basketball"}:null);
     const run=window.FollowerLive&&FollowerLive.playersShouldRun
-      ? FollowerLive.playersShouldRun(FLIVE.games, game, FLIVE.anyLive)
+      ? FollowerLive.playersShouldRun(FLIVE.games, g, FLIVE.anyLive)
       : !!FLIVE.anyLive;
-    flivePlayers(!!run);
+    const on=window.FollowerLive&&FollowerLive.shouldAnimate
+      ? FollowerLive.shouldAnimate(fliveAnimOn(), !!run, g) && FLIVE.venue!=="arena"
+      : false;
+    flivePlayers(on);
   }
   function fliveStop(){
     if(FLIVE.timer){ clearTimeout(FLIVE.timer); FLIVE.timer=null; }
@@ -5252,6 +5317,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(host&&host._mcg&&host._mcg.stop){ try{ host._mcg.stop(); }catch(e){} host._mcg=null; }
     FLIVE.mcg=false;
     FLIVE.anyLive=false;
+    FLIVE.lastGame=null;
     fliveUnfit();
   }
   window.FollowerLivePage={
@@ -5270,7 +5336,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         const game=b.getAttribute("data-game")||"";
         const g=b.getAttribute("data-gid")||gid;
         if(!game||!g) return;
-        openFollowerGame(g, navServerName(g), game);
+        openFollowerGame(g, navServerName(g), game, b.getAttribute("data-sport")||"");
       };
     });
   }
@@ -5285,7 +5351,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<button type="button" id="flive-reset">Reset</button></div>':'';
     const example=opts.demo?'<div class="fl-example"><span>Example data</span></div>':'';
     const loading=opts.own?'<div class="empty">Loading your bets…</div>':'<div class="empty">Loading your bets…</div>';
-    return '<div class="fl-pin"><div class="fl-hero"><div class="fl-mcg" id="flive-mcg"><img class="fl-mcg-fallback" alt="" src="./assets/mcg/fallback.png"></div><div class="fl-shade"></div>'
+    const venue=FLIVE.venue||"mcg";
+    const still=window.TBVenues?TBVenues.fallbackFor(venue):"./assets/mcg/fallback.png";
+    return '<div class="fl-pin"><div class="fl-hero"><div class="fl-mcg" id="flive-mcg" data-venue="'+esc(venue)+'"><img class="fl-mcg-fallback" alt="" src="'+esc(still)+'"></div><div class="fl-shade"></div>'
       +'<div class="fl-topbar"><button type="button" class="back fl-back" id="flive-back" aria-label="Back">'+fliveBackSvg()+'</button>'
       +'<span class="fl-live" id="flive-pill" hidden><i></i>LIVE</span></div>'
       +demo
@@ -5295,6 +5363,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="fl-sec"><h2>Your bets</h2><span id="flive-sum"></span></div>'
       +'<div id="flive-note" class="fl-note" hidden></div>'
       +'<div id="flive-grid">'+loading+'</div>'
+      +'<div id="flive-boxhost"></div>'
       +example+'</div>';
   }
   function fliveScrollReset(){
@@ -5327,24 +5396,71 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     });
   }
   function fliveMount(){
-    if(FLIVE.mcg) return;
+    if(FLIVE.mcg||FLIVE.venuePending) return;
     const host=$("flive-mcg");
     if(!host) return;
     FLIVE.mcg=true;
     const seq=FLIVE.seq;
-    groundMod().then(function(mod){
-      if(seq!==FLIVE.seq) return null;
-      FLIVE.mcgMod=mod;
+    const venue=FLIVE.venue||"mcg";
+    const mseq=++FLIVE.mountSeq;
+    try{ host.dataset.venue=venue; }catch(e){}
+    groundMod(venue).then(function(mod){
+      if(seq!==FLIVE.seq||mseq!==FLIVE.mountSeq) return null;
+      if(venue==="mcg") FLIVE.mcgMod=mod;
       fliveSponsors(null);
-      return mod.mount(host, {night: true});
-    }).then(function(handle){
-      if(!handle) return;
-      if(seq!==FLIVE.seq){ try{ handle.stop(); }catch(e){} return; }
+      return mod.mount(host, {night: true}).then(function(handle){ return {mod:mod, handle:handle}; });
+    }).then(function(res){
+      if(!res||!res.handle) return;
+      const handle=res.handle;
+      if(seq!==FLIVE.seq||mseq!==FLIVE.mountSeq){
+        try{ handle.stop(); }catch(e){}
+        // A stale ground's stop() clears is-webgl; put it back if the current ground is live.
+        const cur=host._mcg; if(cur&&!cur.fallback) host.classList.add("is-webgl");
+        return;
+      }
       host._mcg=handle;
       fliveSponsors(handle);
       if(handle.resize) handle.resize();
-      try{ if(FLIVE.mcgMod&&FLIVE.mcgMod.mountCameraChips) FLIVE.mcgMod.mountCameraChips(host, handle); }catch(e){}
-    }).catch(function(){ FLIVE.mcg=false; FLIVE.expectLogos=0; fliveSponsors(); fliveNoteGround(); });
+      try{ if(res.mod&&res.mod.mountCameraChips) res.mod.mountCameraChips(host, handle); }catch(e){}
+    }).catch(function(){ if(mseq===FLIVE.mountSeq) FLIVE.mcg=false; FLIVE.expectLogos=0; fliveSponsors(); fliveNoteGround(); });
+  }
+  // The ground follows the game's sport: an NBA/WNBA/NBL game swaps the MCG for the
+  // indoor arena (and back). Only the chosen module is loaded.
+  function fliveSetVenue(venue, remount){
+    venue=venue||"mcg";
+    if(FLIVE.venue===venue) return false;
+    FLIVE.venue=venue;
+    const host=$("flive-mcg");
+    if(!host) return true;
+    FLIVE.mountSeq++;
+    if(host._mcg&&host._mcg.stop){ try{ host._mcg.stop(); }catch(e){} }
+    host._mcg=null;
+    FLIVE.mcg=false;
+    const old=host.querySelector(".fl-cams"); if(old) old.remove();
+    const logos=host.querySelector(".fl-photo-logos"); if(logos) logos.remove();
+    host.classList.remove("is-webgl");
+    try{ delete host.dataset.cam; delete host.dataset.mcgError; host.dataset.venue=venue; }catch(e){}
+    const img=host.querySelector(".fl-mcg-fallback");
+    if(img&&window.TBVenues) img.src=TBVenues.fallbackFor(venue);
+    if(venue!=="mcg") flivePlayers(false);
+    if(remount!==false) fliveMount();
+    return true;
+  }
+  function fliveVenueFromGame(game){
+    if(!game||!window.TBVenues||!(game.sport_kind||game.league||game.sport)){
+      if(FLIVE.venuePending&&FLIVE.mode!=="own") fliveVenueSettle(FLIVE.venue);
+      return;
+    }
+    if(FLIVE.venuePending) return fliveVenueSettle(TBVenues.venueFor(game));
+    fliveSetVenue(TBVenues.venueFor(game));
+  }
+  // A deep link has no sport hint: the still shows straight away and the 3D ground
+  // waits for the first payload, so a basketball game never starts loading the MCG.
+  function fliveVenueSettle(venue){
+    if(!FLIVE.venuePending) return;
+    FLIVE.venuePending=false;
+    fliveSetVenue(venue||"mcg", false);
+    fliveMount();
   }
   // Stadium photo and cached logos paint before the bet list. flive-ground is
   // that moment. Bets never have to finish first.
@@ -5367,7 +5483,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!host) return;
     const img=host.querySelector(".fl-mcg-fallback");
     if(!img||!img.complete||!img.naturalWidth) return;
-    const need=FLIVE.expectLogos|0;
+    const need=FLIVE.venue&&FLIVE.venue!=="mcg"?0:(FLIVE.expectLogos|0);
     if(need){
       const logos=host.querySelectorAll(".fl-photo-logo");
       if(logos.length<need) return;
@@ -5454,6 +5570,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     let layer=host.querySelector(".fl-photo-logos");
     const mod=FLIVE.mcgMod;
     const handle=host._mcg;
+    if(FLIVE.venue&&FLIVE.venue!=="mcg"){ if(layer) layer.remove(); return; }
     if((handle&&!handle.fallback)||!mod||!mod.screenQuad||!mod.cssMatrix){ if(layer) layer.remove(); return; }
     if(!layer){ layer=document.createElement("div"); layer.className="fl-photo-logos"; host.appendChild(layer); }
     layer.textContent="";
@@ -5543,6 +5660,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       else { note.hidden=true; note.textContent=""; }
     }
     grid.innerHTML=FollowerLive.render(data);
+    fliveVenueFromGame(data&&data.game);
+    flivePaintBox(data&&data.game);
     fliveSyncPlayers(data&&data.game);
     const demoPlaying=FLIVE.demo&&FLIVE.demo.playing&&FLIVE.demo.playing();
     if(won.length && (!FLIVE.demo || demoPlaying)){
@@ -5553,6 +5672,26 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         });
       });
     }
+  }
+  function flivePaintBox(game){
+    const host=$("flive-boxhost");
+    if(!host||!window.FollowerLive||!FollowerLive.boxScoreHtml) return;
+    const prev=$("flive-box");
+    if(prev) FLIVE.box.open=prev.open;
+    const wrapPrev=host.querySelector(".fl-bx-wrap");
+    const sx=wrapPrev?wrapPrev.scrollLeft:0;
+    host.innerHTML=FollowerLive.boxScoreHtml(game, FLIVE.box);
+    const box=$("flive-box");
+    if(!box) return;
+    const wrap=host.querySelector(".fl-bx-wrap");
+    if(wrap&&sx) wrap.scrollLeft=sx;
+    box.addEventListener("toggle", function(){ FLIVE.box.open=box.open; });
+    host.querySelectorAll("[data-box-team]").forEach(function(b){
+      b.onclick=function(){ FLIVE.box.team=b.getAttribute("data-box-team")||"home"; flivePaintBox(game); };
+    });
+    host.querySelectorAll("[data-box-sort]").forEach(function(b){
+      b.onclick=function(){ const k=b.getAttribute("data-box-sort")||""; FLIVE.box.sort=FLIVE.box.sort===k?"":k; flivePaintBox(game); };
+    });
   }
   function fliveArm(ms){
     if(FLIVE.timer) clearTimeout(FLIVE.timer);
@@ -5569,10 +5708,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(seq!==FLIVE.seq) return;
       if(r.status===401) return renderLogin("Session expired.");
       if(r.status===403){
+        fliveVenueSettle("mcg");
         if(grid) grid.innerHTML='<div class="empty">You don\'t have a follower view here yet.</div>';
         return;
       }
       if(!r.ok){
+        fliveVenueSettle("mcg");
         const fr=await api("/api/follower?guild_id="+encodeURIComponent(gid));
         if(seq!==FLIVE.seq) return;
         if(fr.ok) flivePaint(FollowerLive.fallbackFromFeed(await fr.json(), game));
@@ -5587,17 +5728,20 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){
       if(e&&e.unauth) return renderLogin("Session expired.");
       if(seq!==FLIVE.seq) return;
+      fliveVenueSettle("mcg");
       if(grid&&!silent) grid.innerHTML='<div class="empty">Couldn\'t reach the bot.</div>';
       fliveArm();
     }
   }
-  function openFollowerGame(gid, name, game){
+  function openFollowerGame(gid, name, game, sport){
     game=String(game||"");
-    navNote("#/s/"+encodeURIComponent(gid)+"/game/"+encodeURIComponent(game), function(){ return openFollowerGame(gid,name,game); });
+    navNote("#/s/"+encodeURIComponent(gid)+"/game/"+encodeURIComponent(game), function(){ return openFollowerGame(gid,name,game,sport); });
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     fliveStop();
     panel("flive");show("app");
     FLIVE.seq++; FLIVE.mode=""; FLIVE.gid=String(gid); FLIVE.game=game; FLIVE.name=name||""; FLIVE.seen={}; FLIVE.games=[]; FLIVE.gameKey="";
+    FLIVE.venue=window.TBVenues?TBVenues.venueFor(sport||""):"mcg"; FLIVE.box={team:"home",sort:"",open:true};
+    FLIVE.venuePending=!sport;
     fliveBeginGround();
     $("flive").innerHTML=fliveShell();
     const back=$("flive-back");
@@ -5625,7 +5769,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     fliveStop();
     panel("flive");show("app");
-    FLIVE.seq++; FLIVE.mode=""; FLIVE.gid=""; FLIVE.game="Northside v Bayside"; FLIVE.name="Demo"; FLIVE.seen={}; FLIVE.games=[]; FLIVE.gameKey="";
+    FLIVE.seq++; FLIVE.mode=""; FLIVE.gid=""; FLIVE.game="Northside v Bayside"; FLIVE.name="Demo"; FLIVE.seen={}; FLIVE.games=[]; FLIVE.gameKey=""; FLIVE.venue="mcg"; FLIVE.venuePending=false;
     fliveBeginGround();
     $("flive").innerHTML=fliveShell({demo:true});
     const back=$("flive-back");
@@ -5726,7 +5870,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     fliveStop();
     panel("flive");show("app");
-    FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null;
+    FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null; FLIVE.venue="mcg"; FLIVE.venuePending=false; FLIVE.box={team:"home",sort:"",open:true};
     fliveBeginGround();
     $("flive").innerHTML=fliveShell({own:true});
     const back=$("flive-back");
@@ -7013,7 +7157,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             +'<pre class="live-copy-text" data-gi="'+gi+'">'+esc(liveTipsPreviewTextFor(g,defQ)||"No preview text for this quarter.")+'</pre>')
           :'<div class="leg" style="color:var(--faint);margin-top:8px">Copy preview needs the latest TipBot deploy.</div>';
         return '<div class="live-tips-row" data-match="'+mid+'">'
-          +'<div class="live-tips-meta"><button type="button" class="g flive-open" data-game="'+esc(g.game_name||"")+'">'+esc(g.game_name||"AFL game")+'</button></div>'
+          +'<div class="live-tips-meta"><button type="button" class="g flive-open" data-game="'+esc(g.game_name||"")+'" data-sport="'+esc(g.sport||g.league||"")+'">'+esc(g.game_name||"AFL game")+'</button></div>'
           +'<div class="meta">'+sportBit+esc(phase)+esc(score)+esc(venue)+' · '+n+' pending tip'+(n===1?"":"s")+'</div></div>'
           +'<div class="live-tips-actions">'
           +'<button type="button" class="ghost sm live-toggle-prev" data-pid="'+pid+'">'+(ui.open?"Hide preview":"Preview")+'</button>'

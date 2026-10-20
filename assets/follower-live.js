@@ -2,7 +2,8 @@
    window.FollowerLive + CommonJS for node --test.
    Cards: pending (purple), hit (green), miss (red), with a bar toward the line.
    A demo clock (#/demo/game) walks one scripted game from the opening bounce
-   through mixed states to the final score. AFL and AFLW share this page.
+   through mixed states to the final score. AFL and AFLW share this page; NBA,
+   WNBA and NBL games add quarter scores and a box score.
 */
 (function (root, factory) {
   var api = factory();
@@ -196,6 +197,8 @@
   function legTitle(leg, game) {
     var player = String((leg && leg.player) || "").trim();
     var label = String((leg && leg.line_label) || "").trim();
+    var statLabel = String((leg && leg.stat_label) || "").trim();
+    if (statLabel && label && !/[a-z]/i.test(label)) label = label + " " + statLabel;
     var gameName = norm(game && (game.game_name || game.name));
     if (looksLikeGame(label) || (gameName && norm(label) === gameName) || blankName(label)) label = "";
     if (blankName(player)) player = "";
@@ -221,6 +224,8 @@
     var line = fmtCount(leg && leg.line);
     var id = leg && leg.id != null ? String(leg.id) : "";
     var hasProgress = num(leg && leg.line) != null || num(leg && leg.current) != null;
+    var statLabel = String((leg && leg.stat_label) || "").trim();
+    var unit = statLabel ? "<small> " + esc(statLabel) + "</small>" : "";
     var track = "";
     if (upcoming) {
       var bounce = bounceLabel(game);
@@ -229,7 +234,11 @@
       track = '<div class="fl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'
         + esc(String(Math.round(pct))) + '" aria-label="' + esc(title + " " + cur + " of " + line) + '">'
         + '<i style="width:' + pct.toFixed(1) + '%"></i></div>'
-        + '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(cur) + "/" + esc(line) + "</b></div>";
+        + '<div class="fl-prog"><span>' + nowLabel + "</span><b>" + esc(cur) + "/" + esc(line) + unit + "</b></div>";
+    }
+    var note = String((leg && leg.note) || "").trim();
+    if (!upcoming && st === "pending" && note && num(leg && leg.current) == null) {
+      track += '<div class="fl-why">' + esc(note.charAt(0).toUpperCase() + note.slice(1)) + "</div>";
     }
     return '<article class="fl-card ' + st + '" data-leg="' + esc(id) + '" data-status="' + st + '">'
       + '<div class="fl-top"><span class="fl-st">' + statusLabel(st, upcoming) + "</span>"
@@ -270,14 +279,121 @@
     var away = game.away || {};
     var phase = game.phase_label || (game.concluded ? "Final" : (game.live ? "Live" : "Upcoming"));
     var venue = game.venue || "";
+    var hoops = isBasketball(game);
     function side(team, right) {
       var sc = team.score == null || team.score === "" ? "–" : String(team.score);
+      var qs = "";
+      if (hoops && Array.isArray(team.period_scores) && team.period_scores.length) {
+        qs = '<i class="fl-qs" aria-label="Quarter scores">' + team.period_scores.map(function (n) {
+          return esc(fmtCount(n));
+        }).join(" · ") + "</i>";
+      }
       return '<div class="fl-team' + (right ? " fl-team-r" : "") + '"><span>'
-        + esc(team.name || "") + "</span><b>" + esc(sc) + "</b></div>";
+        + esc(team.name || "") + "</span><b>" + esc(sc) + "</b>" + qs + "</div>";
     }
     return side(home, false)
       + '<div class="fl-clock"><b>' + esc(phase) + "</b><span>" + esc(venue) + "</span></div>"
       + side(away, true);
+  }
+
+  var BASKETBALL = {nba: 1, wnba: 1, nbl: 1, basketball: 1};
+
+  function isBasketball(game) {
+    if (!game) return false;
+    var fields = [game.sport_kind, game.league, game.sport];
+    for (var i = 0; i < fields.length; i++) {
+      if (BASKETBALL[norm(fields[i])]) return true;
+    }
+    return false;
+  }
+
+  var BOX_COLS = [
+    {key: "min", label: "MIN"}, {key: "pts", label: "PTS"}, {key: "reb", label: "REB"},
+    {key: "ast", label: "AST"}, {key: "3pm", label: "3PM"}, {key: "stl", label: "STL"},
+    {key: "blk", label: "BLK"}, {key: "pra", label: "PRA"}
+  ];
+
+  /** Box score rows for one team, sorted. sort = column key or "" (server order:
+      starters first, then minutes). Highest first; ties keep server order. */
+  function boxRows(team, sort) {
+    var rows = ((team && team.players) || []).slice();
+    if (!sort) return rows;
+    var idx = rows.map(function (r, i) { return i; });
+    idx.sort(function (a, b) {
+      var va = num(rows[a][sort]), vb = num(rows[b][sort]);
+      if (va == null) va = -1;
+      if (vb == null) vb = -1;
+      return vb - va || a - b;
+    });
+    return idx.map(function (i) { return rows[i]; });
+  }
+
+  /** Collapsible basketball box score. opts: {team: "home"|"away", sort, open}. "" when no box. */
+  function boxScoreHtml(game, opts) {
+    opts = opts || {};
+    var box = game && game.box;
+    if (!box || !isBasketball(game)) return "";
+    var home = box.home || {}, away = box.away || {};
+    if (!(home.players || []).length && !(away.players || []).length) return "";
+    var tab = opts.team === "away" ? "away" : "home";
+    var team = tab === "away" ? away : home;
+    var sort = opts.sort || "";
+    function tabBtn(key, t, fallback) {
+      var on = key === tab;
+      return '<button type="button" role="tab" data-box-team="' + key + '" aria-selected="' + (on ? "true" : "false") + '"'
+        + (on ? ' class="on"' : "") + ">" + esc(t.abbr || t.name || fallback) + "</button>";
+    }
+    var head = '<tr><th scope="col" class="fl-bx-name">Player</th>' + BOX_COLS.map(function (c) {
+      var on = c.key === sort;
+      return '<th scope="col"' + (on ? ' aria-sort="descending"' : "") + '><button type="button" data-box-sort="' + c.key + '"'
+        + (on ? ' class="on"' : "") + ">" + c.label + "</button></th>";
+    }).join("") + "</tr>";
+    var body = boxRows(team, sort).map(function (p) {
+      var cls = p.has_leg ? ' class="fl-bx-leg"' : "";
+      return "<tr" + cls + '><th scope="row" class="fl-bx-name">' + esc(p.name || "")
+        + "</th>" + BOX_COLS.map(function (c) {
+          var v = num(p[c.key]);
+          return "<td>" + (v == null ? "–" : esc(fmtCount(v))) + "</td>";
+        }).join("") + "</tr>";
+    }).join("");
+    if (!body) body = '<tr><td colspan="' + (BOX_COLS.length + 1) + '" class="fl-bx-empty">No stats yet</td></tr>';
+    return '<details class="fl-box" id="flive-box"' + (opts.open === false ? "" : " open") + ">"
+      + '<summary><h2>Box score</h2><span>' + esc(game.phase_label || "") + "</span></summary>"
+      + '<div class="fl-bx-tabs" role="tablist">' + tabBtn("home", home, "Home") + tabBtn("away", away, "Away") + "</div>"
+      + '<div class="fl-bx-wrap"><table class="fl-bx"><thead>' + head + "</thead><tbody>" + body + "</tbody></table></div>"
+      + "</details>";
+  }
+
+  var ANIM_KEY = "tipdash_gv_anim";
+
+  function animKey(uid) {
+    var u = String(uid == null ? "" : uid).trim();
+    return u ? ANIM_KEY + ":" + u : ANIM_KEY;
+  }
+
+  /** The "Player animations" setting: "1" = on, "0" or missing = off (the default).
+      prefers-reduced-motion counts as off. Storage can throw (private mode). */
+  function animationsOn(storage, uid, reducedMotion) {
+    if (reducedMotion) return false;
+    try {
+      var v = storage ? storage.getItem(animKey(uid)) : null;
+      if (v == null && uid) v = storage.getItem(ANIM_KEY);
+      return v === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setAnimations(storage, uid, on) {
+    try { if (storage) storage.setItem(animKey(uid), on ? "1" : "0"); return true; } catch (e) { return false; }
+  }
+
+  /** Run the AFL player overlay only when the setting is on, a game is live, and the
+      game isn't basketball (there is no basketball animation yet). */
+  function shouldAnimate(setting, run, game) {
+    if (!setting || !run) return false;
+    if (typeof game === "string") return !BASKETBALL[norm(game)];
+    return !isBasketball(game);
   }
 
   function parseBet(text) {
@@ -446,6 +562,7 @@
     var phase = game.phase && typeof game.phase === "object" ? game.phase : {};
     var key = String(phase.key || game.phase_key || game.phase || "").trim().toUpperCase();
     if (key === "Q1" || key === "Q2" || key === "Q3" || key === "Q4" || key === "LIVE") return true;
+    if (/^P\d+$/.test(key) || key === "OT") return true;
     var label = String(phase.label || game.phase_label || "");
     if (!label || /full\s*time|^final$|^ft$|^upcoming$/i.test(label)) return false;
     return /q[1-4]|quarter|\blive\b/i.test(label);
@@ -857,6 +974,15 @@
     slipAhead: slipAhead,
     gameIsLive: gameIsLive,
     playersShouldRun: playersShouldRun,
+    isBasketball: isBasketball,
+    boxRows: boxRows,
+    boxScoreHtml: boxScoreHtml,
+    BOX_COLS: BOX_COLS,
+    ANIM_KEY: ANIM_KEY,
+    animKey: animKey,
+    animationsOn: animationsOn,
+    setAnimations: setAnimations,
+    shouldAnimate: shouldAnimate,
     upcomingNames: upcomingNames,
     demoPayload: demoPayload,
     createDemo: createDemo

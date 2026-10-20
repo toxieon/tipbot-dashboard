@@ -7,6 +7,12 @@
 - Post settings can set each tip channel to Free or Premium with a daily free-tip limit. A blank limit turns tiers off. The tip form can send Free or Premium; Auto sends no tier.
 - Settings → Channels shows tip channel tiers for anyone who can edit the server: a daily free-tip limit, and Off, Free or Premium on the tips channel and the channels tips are routed to. Any other text channel can be added.
 - On main, the public leak check fails if the private guild id list is empty, and if a built file still contains the version placeholder.
+- Game view for NBA, WNBA and NBL games shows the score as points, the quarter and clock ("Q3 5:32"), and each team's quarter scores. Bet cards show the stat with the numbers, for example 18/25 PTS. A leg TipBot can't match in the box score says why.
+- A collapsible Box score sits under the bets for basketball games: a tab for each team, and MIN, PTS, REB, AST, 3PM, STL, BLK and PRA columns. Tap a column to sort by it. Players you hold a leg on are highlighted. The table scrolls inside its own box on a phone.
+- Basketball games show an indoor court instead of the MCG, with Broadcast, Baseline, Wing and Overhead cameras. The chosen camera is saved separately from the MCG's. Without WebGL a still of the court shows. The court is built in code with three.js and only its module loads.
+- Settings has a Player animations switch. It is off by default and is saved on this device. It turns the running players on the AFL ground on or off straight away. They never run on a basketball court, or when the device asks for reduced motion.
+
+Tests: `tests/basketball_view.test.js`, `tests/e2e/basketball-game.spec.mjs`, `tests/game_view_cameras.test.js`, `tests/e2e/game-view-cameras.spec.mjs`.
 
 ## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
 
