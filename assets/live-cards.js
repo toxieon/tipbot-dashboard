@@ -42,6 +42,12 @@
     threes: ["threes", "threePointersMade"],
     "points + rebounds + assists": ["pra"]
   };
+  // Two-stat combos are summed from their parts.
+  var COMBO_FIELDS = {
+    "points + assists": ["points", "assists"], "pts+ast": ["points", "assists"],
+    "points + rebounds": ["points", "rebounds"], "pts+reb": ["points", "rebounds"],
+    "rebounds + assists": ["rebounds", "assists"], "reb+ast": ["rebounds", "assists"]
+  };
 
   function sv() {
     if (typeof require === "function") {
@@ -438,6 +444,12 @@
     }
     if (!row || typeof row !== "object") return null;
     var summary = row.summary && typeof row.summary === "object" ? row.summary : row;
+    var combo = COMBO_FIELDS[String(stat || "").toLowerCase()];
+    if (combo) {
+      var sum = 0;
+      for (var c = 0; c < combo.length; c++) { var part = num(summary[combo[c]]); if (part == null) return null; sum += part; }
+      return sum;
+    }
     var fields = STAT_FIELDS[stat] || (stat ? [stat] : []);
     for (var f = 0; f < fields.length; f++) {
       var n = num(summary[fields[f]]);
@@ -748,6 +760,7 @@
     buildModel: buildModel,
     render: render,
     statQueries: statQueries,
+    playerStat: playerStat,
     pickGuild: pickGuild,
     sampleInput: sampleInput,
     barFor: barFor,
