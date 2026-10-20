@@ -81,4 +81,13 @@ test("the section is mounted only from the owner connectors shell", async () => 
   assert.match(src, /\/api\/connectors\//);
   assert.match(src, />Quiet</);
   assert.match(src, />Full</);
+  assert.doesNotMatch(src, /Tip channel tiers|tip_channel_tiers|daily_free_limit|data-cp-tier|\/api\/channels/);
+  const builder = fs.readFileSync(path.join(root, "assets", "builder.js"), "utf8");
+  assert.match(builder, /id="f_tier"/);
+  assert.match(builder, /<option value="">Auto<\/option>/);
+  assert.match(builder, /<option value="free">Free<\/option>/);
+  assert.match(builder, /<option value="premium">Premium<\/option>/);
+  assert.match(builder, /if\(tier==="free"\|\|tier==="premium"\) out\.tier=tier/);
+  assert.match(builder, /if\(tipFields\.tier\) payload\.tier=tipFields\.tier/);
+  assert.doesNotMatch(builder, /out\.tier=""/);
 });
