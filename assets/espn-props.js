@@ -30,7 +30,10 @@
     {key: "rebounds", stat: "Rebounds", def: 6.5, max: 25},
     {key: "assists", stat: "Assists", def: 4.5, max: 20},
     {key: "threes_made", stat: "Threes Made", def: 1.5, max: 12},
-    {key: "pra", stat: "Points + Rebounds + Assists", def: 29.5, max: 80}
+    {key: "pra", stat: "Points + Rebounds + Assists", def: 29.5, max: 80},
+    {key: "pa", stat: "Points + Assists", def: 24.5, max: 70},
+    {key: "pr", stat: "Points + Rebounds", def: 24.5, max: 70},
+    {key: "ra", stat: "Rebounds + Assists", def: 10.5, max: 40}
   ];
   var PROP_LEAGUES = {nfl: true, nba: true, wnba: true, nbl: true};
   var NFL_SKILL = {QB: 1, RB: 1, FB: 1, WR: 1, TE: 1, HB: 1};
