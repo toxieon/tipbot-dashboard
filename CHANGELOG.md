@@ -1,5 +1,6 @@
 ## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
 
+- Followers, My Tips and Discover now load when opened, so the dashboard starts faster.
 - Removed unused code. Under the Apex theme, the Sport routing table header no longer covers the first row.
 - Test tidy.
 - Post settings can set each tip channel to Free or Premium with a daily free-tip limit. A blank limit turns tiers off. The tip form can send Free or Premium; Auto sends no tier.

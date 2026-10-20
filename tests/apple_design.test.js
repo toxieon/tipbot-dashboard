@@ -133,9 +133,10 @@ test("every view opener records history (navNote) so Back stays in the app", () 
   for (const sig of ["async function loadDetail(guildId,month,opts){", "async function openFollowers(gid,name){",
     "async function openMyTips(fromGid,fromName,month){", "async function openDiscover(fromGid,fromName){", "async function openResults(guildId,name){",
     "async function openFollowerView(gid,name,month){", "async function openFollowerAllView(month){"]) {
-    const i = HTML.indexOf(sig);
+    const src = [HTML, read("assets/follower-views.js"), read("assets/discover.js")].join("\n"); // views moved to lazy files (job 03)
+    const i = src.indexOf(sig);
     assert.ok(i > 0, sig);
-    assert.match(HTML.slice(i, i + 260), /navNote\("#\//, sig + " calls navNote first");
+    assert.match(src.slice(i, i + 260), /navNote\("#\//, sig + " calls navNote first");
   }
   const home = HTML.indexOf("function enterHome(){");
   assert.ok(home > 0, "function enterHome(){");
