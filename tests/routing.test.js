@@ -112,3 +112,75 @@ test("batch: one route per tip, popups only where needed", async () => {
   assert.deepEqual(calls, ["conflict"]);
   assert.deepEqual(out.routes.map((r) => r.channel_ids), [["11"], ["22"]]);
 });
+
+// ── Settings → Channels: tag suggestions from channel names (job 11) ─────────
+function settingsPayload(extra) {
+  return Object.assign({ok: true, enabled: true, can_admin: true, default_channel_id: "99", multi_sport_mode: "ask", memory: [],
+    channels: [{id: "99", name: "tips"}, {id: "11", name: "afl-tips"}, {id: "12", name: "nrl-multis"}, {id: "13", name: "🏇racing"}, {id: "14", name: "general"}],
+    tags: [
+      {tag: "AFL", label: "AFL", enabled: true, channel_ids: [], keywords: "", priority: 10, mode: "ask"},
+      {tag: "NRL", label: "NRL", enabled: true, channel_ids: [], keywords: "", priority: 10, mode: "ask"},
+      {tag: "RACING", label: "Racing", enabled: true, channel_ids: [], keywords: "", priority: 10, mode: "ask"},
+      {tag: "NBA", label: "NBA", enabled: true, channel_ids: [], keywords: "", priority: 10, mode: "ask"},
+    ],
+    suggestions: [
+      {tag: "AFL", channel_id: "11", channel_name: "afl-tips", score: 0.95, reason: "channel name contains 'afl'"},
+      {tag: "NRL", channel_id: "12", channel_name: "nrl-multis", score: 0.9, reason: "channel name contains 'nrl'"},
+      {tag: "RACING", channel_id: "13", channel_name: "🏇racing", score: 0.9, reason: "channel name contains 'racing'"},
+    ]}, extra || {});
+}
+
+test("suggestions: grouped per tag, best first, at most 3, nothing for tags without a match", () => {
+  const d = settingsPayload({suggestions: [
+    {tag: "AFL", channel_id: "14", score: 0.3, reason: "weak"},
+    {tag: "AFL", channel_id: "11", score: 0.95, reason: "channel name contains 'afl'"},
+    {tag: "AFL", channel_id: "12", score: 0.4}, {tag: "AFL", channel_id: "13", score: 0.35}, {tag: "AFL", channel_id: "11", score: 0.1},
+    {tag: "NRL", channel_id: "12", score: 0.9},
+  ]});
+  const s = R.pendingSuggestions(d);
+  assert.deepEqual(Object.keys(s).sort(), ["AFL", "NRL"]);
+  assert.deepEqual(s.AFL.map((x) => x.channel_id), ["11", "12", "13"], "sorted by score, duplicates dropped, capped at 3");
+  assert.equal(s.AFL[0].name, "afl-tips");
+  assert.equal(s.AFL[0].reason, "channel name contains 'afl'");
+  assert.equal(s.NBA, undefined);
+});
+
+test("suggestions: never the default channel, an already-mapped channel, an unknown channel or a deleted tag", () => {
+  const d = settingsPayload({suggestions: [
+    {tag: "AFL", channel_id: "99", score: 1}, {tag: "AFL", channel_id: "404", score: 1}, {tag: "GOLF", channel_id: "11", score: 1},
+    {tag: "NRL", channel_id: "12", score: 1}, {tag: "RACING", channel_id: "13", score: 1},
+  ]});
+  d.tags[1].channel_ids = ["12"];
+  assert.deepEqual(R.pendingSuggestions(d, ["RACING"]), {});
+  assert.deepEqual(R.pendingSuggestions(settingsPayload({suggestions: undefined})), {}, "older TipBot: no field, no chips");
+  assert.deepEqual(R.pendingSuggestions(null), {});
+});
+
+test("Apply all is offered only for an empty setup", () => {
+  const d = settingsPayload();
+  assert.equal(R.emptySetup(d), true);
+  d.tags[3].channel_ids = ["14"];
+  assert.equal(R.emptySetup(d), false);
+  assert.equal(R.emptySetup(d, ["NBA"]), true, "a deleted tag doesn't count");
+});
+
+test("a suggestion chip is a 44px button that names the channel and tag, escaped", () => {
+  const html = R.suggestionChip("AFL", {channel_id: "11", name: "afl<tips>", reason: "channel name contains 'afl'"});
+  assert.match(html, /^<button type="button" class="sr-sugg-chip" data-tag="AFL" data-ch="11"/);
+  assert.match(html, /min-height:44px/);
+  assert.match(html, /\+ #afl&lt;tips&gt;<\/button>$/);
+  assert.match(html, /aria-label="Add #afl&lt;tips&gt; to AFL"/);
+  assert.match(html, /title="channel name contains &#39;afl&#39;"/);
+  assert.doesNotMatch(html, /target=|window\.open/);
+});
+
+test("tapping a chip ticks the existing channel checkbox, so Save's request shape is unchanged", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(require.resolve("../assets/routing.js"), "utf8");
+  // The chip path only ticks .sr-ch checkboxes; collect() (unchanged) builds the Save body from them.
+  assert.match(src, /function pickSuggestion\(tag, id\) \{[\s\S]{0,400}if \(cb && !cb\.disabled\) cb\.checked = true;/);
+  assert.match(src, /var body = \{guild_id: ctx\.gid, tags: c\.tags, multi_sport_mode: box\.querySelector\("#sr-multi"\)\.value,\s*delete_tags: S\.deleted\.slice\(\), forget: S\.forget\.slice\(\)\};/);
+  assert.doesNotMatch(src.slice(src.indexOf("function pickSuggestion"), src.indexOf("function wire()")), /ctx\.api\(/, "a chip never saves on its own");
+  // Read-only viewers (non-admins, or while saving) get no chips.
+  assert.match(src, /var sugg = ro \? \{\} : pendingSuggestions\(d, S\.deleted\)/);
+});
