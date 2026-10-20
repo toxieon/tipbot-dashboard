@@ -222,6 +222,7 @@ async function waitForGround(page) {
 
 test.describe("follower live demo", () => {
   test("iphone demo start, middle, end, and the live banner", async ({ page }) => {
+    test.setTimeout(90000); // many full-page screenshots of the 3D ground
     const errors = await boot(page);
     await waitForGround(page);
     const ground = await page.evaluate(() => {
@@ -299,6 +300,7 @@ test.describe("follower live demo", () => {
 
 test.describe("follower live demo desktop", () => {
   test("desktop demo start, middle, end, and the live banner", async ({ page }) => {
+    test.setTimeout(90000); // many full-page screenshots of the 3D ground
     await page.setViewportSize({ width: 1280, height: 800 });
     await boot(page);
     await waitForGround(page);
