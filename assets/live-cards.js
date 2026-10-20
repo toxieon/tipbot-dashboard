@@ -35,6 +35,9 @@
     points: ["points"],
     rebounds: ["rebounds"],
     assists: ["assists"],
+    pts: ["points"],
+    reb: ["rebounds"],
+    ast: ["assists"],
     "threes made": ["threes", "threePointersMade"],
     threes: ["threes", "threePointersMade"],
     "points + rebounds + assists": ["pra"]
