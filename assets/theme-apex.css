@@ -1248,3 +1248,4 @@ html[data-theme="apex"][data-apex-variant="light"] #race-app .h-iron,
 html[data-theme="apex"][data-apex-light="1"] #race-app .h-iron { stroke:var(--cut); }
 #race-app .j-halo { fill:var(--cut); stroke:var(--cut); stroke-width:3.4; stroke-linejoin:round; }
 #race-app .j-breeches { fill:var(--breeches); } #race-app .j-dark { fill:var(--jdark); } #race-app .j-silk { fill:var(--accent); } #race-app .j-silk2 { fill:var(--on-accent); opacity:.92; } #race-app .j-face { fill:#C99A7A; }
+html[data-theme="apex"] #sport-routing-box thead th{position:static}
