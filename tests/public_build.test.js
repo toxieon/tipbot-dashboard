@@ -74,14 +74,8 @@ test("public build copies the allowlist and refuses secret terms", async () => {
     assert.ok(PRICE_EXEMPT.has("pricing/index.html"));
     assert.ok(PRICE_EXEMPT.has("assets/site/checkout.js"));
 
-    const grep = spawnSync("grep", ["-riE", "forward|mirror|master|consensus", dist], { encoding: "utf8" });
-    assert.equal(grep.status, 0, "expected CSS forwards (and only the allow-list) to match");
-    const lines = grep.stdout.split("\n").filter(Boolean);
-    assert.ok(lines.length > 0);
-    for (const line of lines) {
-      assert.match(line, /forwards\b/, "unexpected secret match: " + line);
-      assert.doesNotMatch(line, /forwarded|forwarding|\bmaster\b|\bmirror\b|\bconsensus\b/i);
-    }
+    const grep = spawnSync("grep", ["-rIiE", "forward|mirror|master|consensus|watermark|/ops|owner.settings", dist], { encoding: "utf8" });
+    assert.equal(grep.status, 1, "public build must have no matches: " + grep.stdout.slice(0, 400));
 
     for (const rel of ["welcome/index.html", "t/index.html", "404.html", "index.html"]) {
       const html = fs.readFileSync(path.join(dist, rel), "utf8");
@@ -93,7 +87,8 @@ test("public build copies the allowlist and refuses secret terms", async () => {
       assert.doesNotMatch(html, />Home</);
     }
     const dash = fs.readFileSync(path.join(dist, "index.html"), "utf8");
-    assert.match(dash, /id="nav-ops"[^>]*hidden>Admin tools</);
+    assert.doesNotMatch(dash, /dd-owner-settings|>Admin tools<|href="#\/ops"/);
+    assert.match(dash, /function mountOwnerChrome/);
     assert.match(dash, /ops===true/);
     assert.match(dash, /function ensureExt/);
     assert.doesNotMatch(dash, /TD\.load\("ext"\)/);
