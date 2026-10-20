@@ -7,7 +7,8 @@ const FB = require("../assets/form-badges.js");
 const RP = require("../assets/req-pool.js");
 
 const root = path.join(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+// index.html plus the follower and Discover views it lazy-loads (job 03).
+const html = ["index.html", "assets/follower-views.js", "assets/discover.js"].map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
 function dots(htmlStr){
   return [...htmlStr.matchAll(/background:(var\(--(?:win|loss|muted)\))/g)].map((m) => m[1]);
 }

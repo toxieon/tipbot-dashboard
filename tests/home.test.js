@@ -2,7 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert");
 const fs = require("fs");
 const path = require("path");
-const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+// index.html plus the follower views it lazy-loads (job 03).
+const html = ["index.html", "assets/follower-views.js"].map((f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8")).join("\n");
 const body = (name) => {
   const i = html.indexOf("function " + name + "(");
   assert.ok(i >= 0, name + " exists");

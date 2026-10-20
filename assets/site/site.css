@@ -134,8 +134,6 @@ h2 { font-size: 1.05rem; letter-spacing: -.01em; margin: 0; font-weight: 680; }
 .hero-home .lede { margin: 14px 0 0; color: var(--muted); font-size: 1.05rem; max-width: 46rem; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 .hero-actions .btn-primary { flex: 1 1 220px; }
-.hero-links { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-.hero-links a { min-height: 44px; display: inline-flex; align-items: center; font-weight: 650; text-decoration: none; }
 .fine { color: var(--faint); font-size: .8rem; margin: 8px 0 0; }
 .features { display: grid; gap: 12px; margin-top: 28px; grid-template-columns: 1fr; }
 .feature { padding: 18px 18px 16px; }
