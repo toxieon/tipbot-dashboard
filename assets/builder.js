@@ -550,6 +550,12 @@
       +'<div class="panel">'
       +'<div class="field"><label>Event</label><input id="c_event" value="'+esc(BUILD.customEvent||"")+'"></div>'
       +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. Lakers -4.5 · Over 224.5" style="flex:1"><button class="btn sm" id="c_add">Add</button></div></div>'
+      +(TBEspnProps.hasLines(BUILD.espnLeague)?'<div class="field"><label>Lines &amp; totals</label><div style="display:flex;gap:8px;flex-wrap:wrap">'
+        +'<select id="lt_mkt"><option value="line">Line / alt line</option><option value="total">Game total</option><option value="team_total">Team total</option></select>'
+        +'<select id="lt_team">'+[ev.away,ev.home].filter(Boolean).map(t=>{const n=t.name||t.abbreviation||"";return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join("")+'</select>'
+        +'<select id="lt_side"><option>Over</option><option>Under</option></select>'
+        +'<input id="lt_line" type="number" step="0.5" placeholder="e.g. -3.5" style="width:110px">'
+        +'<button class="btn sm" id="lt_add">Add</button></div></div>':'')
       +'<div style="color:var(--faint);font-size:var(--t-foot)">Tip payload includes <code>espn_event_id</code> '+esc(String(ev.id||""))+'.</div>'
       +'</div>';
     $("bg").onclick=()=>navBack(()=>{ BUILD.custom=false; BUILD.espnEvent=null; BUILD.espnPlayers=[]; BUILD.espnTeams=[]; BUILD.espnErr=""; renderEspnGames(); });
@@ -560,6 +566,11 @@
       addLeg({custom:true,desc:v,espn_event_id:String(ev.id),game_id:String(ev.id),league:BUILD.espnLeague});
       inp.value=""; inp.focus(); };
     const ab=$("c_add"); if(ab)ab.onclick=add;
+    const lt=$("lt_add"); if(lt)lt.onclick=()=>{
+      const v=TBEspnProps.teamMarketText($("lt_mkt").value,$("lt_team").value,$("lt_side").value,$("lt_line").value);
+      if(!v){ $("lt_line").focus(); return; }
+      addLeg({custom:true,desc:v,espn_event_id:String(ev.id),game_id:String(ev.id),league:BUILD.espnLeague});
+      $("lt_line").value=""; };
     const li=$("c_leg"); if(li)li.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } });
   }
   // Prop picker for any prop league (NFL, NBA, WNBA). Name kept from the NFL-only days.
@@ -571,7 +582,7 @@
     BUILD.tab=prop.stat;
     BUILD.espnPropKey=prop.key;
     const tabs=TABS.map(t=>'<div class="tab '+(t.key===prop.key?"active":"")+'" data-pk="'+t.key+'">'+esc(t.stat)+'</div>').join("");
-    let html='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><div style="display:flex;gap:8px">'+(bball?'<button class="ghost" id="espnfreetext">＋ Free text</button>':'')+'<button class="ghost" id="espnplayref">↻ Players</button></div></div>'
+    let html='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0">'+esc(espnEventName(ev))+'</h1><div style="display:flex;gap:8px">'+(bball||TBEspnProps.hasLines(BUILD.espnLeague)?'<button class="ghost" id="espnfreetext">＋ Lines / free text</button>':'')+'<button class="ghost" id="espnplayref">↻ Players</button></div></div>'
       +'<div class="tabs" style="flex-wrap:wrap">'+tabs+'</div>'
       +'<div class="builder-tools">'
       +'<input id="psearch" placeholder="Search players… e.g. '+(bball?'Gilgeous-Alexander, Shai':'Hill, Tyreek')+'" value="'+esc(BUILD.search||"")+'" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-md);padding:10px 12px;font:inherit;flex:1">'
