@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.66.7-083af9c" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.66.7-083af9c" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.7-083af9c" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.66.7-083af9c">
+<link rel="icon" href="./assets/favicon.ico?v=0.66.7-9ceda2d" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.66.7-9ceda2d" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.7-9ceda2d" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.66.7-9ceda2d">
 <link rel="preload" as="image" href="./assets/mcg/fallback.png">
 <link rel="preload" as="fetch" href="./assets/mcg/mcg.glb" crossorigin>
-<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.66.7-083af9c" crossorigin>
+<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.66.7-9ceda2d" crossorigin>
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.66.7-083af9c"></script>
+<script src="./assets/tbtime.js?v=0.66.7-9ceda2d"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -866,6 +866,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .tb-kind,.tb-settle {display:inline-flex;align-items:center;gap:4px;max-width:100%;white-space:nowrap;font-size:var(--t-cap);line-height:17px;font-weight:650;vertical-align:middle;font-variant-numeric:tabular-nums;}
 .tb-kind {border:1px solid var(--accent);border-radius:var(--r-xs);padding:0 6px;color:var(--txt);background:var(--card2);letter-spacing:.03em;}
 .tb-kind--cross {border-color:var(--accent2);}
+.tb-kind--late {border-color:#e5a54d;color:#e5a54d;}
 .tb-settle {color:var(--muted);}
 .tb-settle--api {color:var(--api-ink);}.tb-settle--god {color:var(--warn-ink);}
 .tb-settle--api>span {color:var(--api);}.tb-settle--god>span {color:var(--warn);}
@@ -1368,13 +1369,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.7-083af9c">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.7-9ceda2d">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-083af9c" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-9ceda2d" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1385,7 +1386,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-083af9c" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-9ceda2d" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1394,7 +1395,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.7-083af9c" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.7-9ceda2d" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1418,7 +1419,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-gv-anim-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.66.7-083af9c</div>
+          <div class="dd-label" id="dd-version">tipdash v0.66.7-9ceda2d</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1444,34 +1445,34 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.66.7-083af9c"></script>
-<script src="./assets/light-data.js?v=0.66.7-083af9c"></script>
-<script src="./assets/lines.js?v=0.66.7-083af9c"></script>
-<script src="./assets/racing-legs.js?v=0.66.7-083af9c"></script>
-<script src="./assets/afl-guernseys.js?v=0.66.7-083af9c"></script>
-<script src="./assets/compare-ui.js?v=0.66.7-083af9c"></script>
-<script src="./assets/sport-keywords.js?v=0.66.7-083af9c"></script>
-<script src="./assets/sport-marks.js?v=0.66.7-083af9c"></script>
-<script src="./assets/discover-sports.js?v=0.66.7-083af9c"></script>
-<script src="./assets/global-flags.js?v=0.66.7-083af9c"></script>
-<script src="./assets/routing.js?v=0.66.7-083af9c"></script>
-<script src="./assets/tip-tiers.js?v=0.66.7-083af9c"></script>
-<script src="./assets/scheduled-tips.js?v=0.66.7-083af9c"></script>
-<script src="./assets/auto-recaps.js?v=0.66.7-083af9c"></script>
-<script src="./assets/emoji-picker.js?v=0.66.7-083af9c"></script>
-<script src="./assets/upcoming-split.js?v=0.66.7-083af9c"></script>
-<script src="./assets/espn-props.js?v=0.66.7-083af9c"></script>
-<script src="./assets/tb-motion.js?v=0.66.7-083af9c"></script>
-<script src="./assets/form-badges.js?v=0.66.7-083af9c"></script>
-<script src="./assets/tb-charts.js?v=0.66.7-083af9c"></script>
-<script src="./assets/guild-profile.js?v=0.66.7-083af9c"></script>
-<script src="./assets/server-view.js?v=0.66.7-083af9c"></script>
-<script src="./assets/follower-live.js?v=0.66.7-083af9c"></script>
-<script src="./assets/venues/select.js?v=0.66.7-083af9c"></script>
-<script src="./assets/follower-units.js?v=0.66.7-083af9c"></script>
-<script src="./assets/legal-md.js?v=0.66.7-083af9c"></script>
-<script src="./assets/terms-gate.js?v=0.66.7-083af9c"></script>
-<script src="./assets/cookie-consent.js?v=0.66.7-083af9c"></script>
+<script src="./assets/req-pool.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/light-data.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/lines.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/racing-legs.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/afl-guernseys.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/compare-ui.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/sport-keywords.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/sport-marks.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/discover-sports.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/global-flags.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/routing.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/tip-tiers.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/scheduled-tips.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/auto-recaps.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/emoji-picker.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/upcoming-split.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/espn-props.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/tb-motion.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/form-badges.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/tb-charts.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/guild-profile.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/server-view.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/follower-live.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/venues/select.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/follower-units.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/legal-md.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/terms-gate.js?v=0.66.7-9ceda2d"></script>
+<script src="./assets/cookie-consent.js?v=0.66.7-9ceda2d"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1818,10 +1819,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The tip builder (assets/builder.js) and Admin Tools' Paste sheet (assets/admin.js) aren't
   // fetched on first load; TD.load() adds them the first time they're opened. They are plain
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
-  // changes. TD.version is the cache-bust token. Source keeps 0.66.7-083af9c.
+  // changes. TD.version is the cache-bust token. Source keeps 0.66.7-9ceda2d.
   // The main-branch build replaces that token in the built site only.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.66.7-083af9c";
+  TD.version="0.66.7-9ceda2d";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -3219,7 +3220,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.66.7-083af9c"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.66.7-9ceda2d"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -3690,7 +3691,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const finishedCtx=!!opts.finished;
     const outcome=evalTipOutcome(legsSrc, t, t._liveLegs, {finished:finishedCtx||isSettled});
     const ocls=betcardOutcomeClass(outcome);
-    const tags='<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>';
+    const tags='<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+TB.lateBadge(t)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>';
     const body='<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, isSettled, godRegrade)+'</div>';
     const cls='betcard tip betrow'+(ocls?(" "+ocls):"")+(opts.sv?" sv-tip":"");
     const attrs=' data-tip="'+tid+'" data-settled="'+(isSettled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'"';
@@ -5228,7 +5229,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const gview=gname
       ?'<button type="button" class="game-view-pill flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'" data-sport="'+esc(t.sport||"")+'">Game view →</button>'
       :"";
-    return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+gview+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
+    return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+gview+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+TB.lateBadge(t)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- Follower live game (#/s/<gid>/game/<name>) ---------- */
   const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null,mode:"",games:[],gameKey:"",anyLive:false,venue:"mcg",mountSeq:0,box:{team:"home",sort:"",open:true}};
@@ -7624,7 +7625,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.7-083af9c');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.7-9ceda2d');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -7721,6 +7722,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(kind!=='sgm'&&kind!=='cross')return '';
     var label=kind==='sgm'?'SGM':'CROSS',title=kind==='sgm'?'Same-game multi':'Cross-game multi';
     return '<span class="tb-kind tb-kind--'+kind+'" title="'+title+'" aria-label="'+title+'">'+label+'</span>';
+  };
+  // Posted after the game started: still graded, never counted in tipster stats.
+  TB.lateBadge=function(t){
+    if(!t||!t.late)return '';
+    var title='Posted after the game started. Not counted in stats.';
+    return '<span class="tb-kind tb-kind--late" title="'+title+'" aria-label="'+title+'">Late</span>';
   };
   TB.corrWarn=function(legs) {
     var groups=inspect(legs).groups;
