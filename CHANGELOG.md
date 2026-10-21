@@ -12,8 +12,9 @@
 - Basketball games show an indoor court instead of the MCG, with Broadcast, Baseline, Wing and Overhead cameras. The chosen camera is saved separately from the MCG's. Without WebGL a still of the court shows. The court is built in code with three.js and only its module loads.
 - Settings has a Player animations switch. It is off by default and is saved on this device. It turns the running players on the AFL ground on or off straight away. They never run on a basketball court, or when the device asks for reduced motion.
 
+- Maintenance / Internal updates.
 - Game view keeps the legs of one multi together in a single Multi card with the total odds shown once. Each leg shows its own price only when known, and names its market, for example Over 19.5 Points.
-Tests: `tests/follower_multi.test.js`, `tests/basketball_view.test.js`, `tests/e2e/basketball-game.spec.mjs`, `tests/game_view_cameras.test.js`, `tests/e2e/game-view-cameras.spec.mjs`.
+Tests: `tests/post_settings.test.js`, `tests/follower_multi.test.js`, `tests/basketball_view.test.js`, `tests/e2e/basketball-game.spec.mjs`, `tests/game_view_cameras.test.js`, `tests/e2e/game-view-cameras.spec.mjs`.
 
 ## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
 

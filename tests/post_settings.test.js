@@ -91,3 +91,39 @@ test("the section is mounted only from the owner connectors shell", async () => 
   assert.match(builder, /if\(tipFields\.tier\) payload\.tier=tipFields\.tier/);
   assert.doesNotMatch(builder, /out\.tier=""/);
 });
+
+test("post description and link: cleaned, validated and previewed", () => {
+  const link = "https://apps.apple.com/au/app/example-tips/id000000000";
+  assert.equal(P.cleanDescription("Hi @everyone <@&12> see https://x.example/a ok"), "Hi see ok");
+  assert.doesNotMatch(P.cleanDescription("@every@everyoneone"), /@everyone/);
+  assert.equal(P.linkError(link), "");
+  assert.equal(P.linkError(""), "");
+  ["http://apps.apple.com/x", "javascript:alert(1)", "https://localhost/x", "https://a.com/x)", "https://u@a.com/x", "apps.apple.com"].forEach((bad) => {
+    assert.notEqual(P.linkError(bad), "", bad);
+  });
+  assert.equal(P.labelError("Get the app"), "");
+  assert.notEqual(P.labelError("[x](y)"), "");
+  const body = P.saveBody({ post_bookmaker: "TAB", post_style: "quiet", post_description: " Example  Tips @here ", post_link: " " + link + " ", post_link_label: "" });
+  assert.equal(body.post_description, "Example Tips");
+  assert.equal(body.post_link, link);
+  assert.equal(body.post_link_label, "");
+  const quiet = P.previewModel({ post_style: "quiet", post_description: "Example Tips daily - 1 unit each-way", post_link: link });
+  assert.equal(quiet.extra.description, "Example Tips daily - 1 unit each-way");
+  assert.equal(quiet.extra.link.text, "App Store →");
+  const full = P.previewModel({ post_style: "standard", post_description: "Daily", post_link: link, post_link_label: "Get the app" });
+  assert.equal(full.extra.link.text, "Get the app →");
+  const html = P.previewHtml({ post_style: "quiet", post_description: "<b>x</b>", post_link: link });
+  assert.match(html, /&lt;b&gt;x&lt;\/b&gt;/);
+  assert.match(html, /data-cp-extra-link/);
+  assert.doesNotMatch(html, new RegExp('<a[^>]+href="' + link.replace(/[.?/]/g, "\\$&")));
+  const bad = P.previewModel({ post_style: "quiet", post_link: "http://plain.example" });
+  assert.equal(bad.extra.link, null);
+});
+
+test("the post link fields never open a new tab", () => {
+  const block = src.slice(src.indexOf("var extra = model.extra"), src.indexOf("if (model.fields.length)"));
+  assert.doesNotMatch(block, /target=|window\.open/);
+  assert.match(src, /data-cp-desc/);
+  assert.match(src, /data-cp-link/);
+  assert.match(src, /data-cp-label/);
+});
