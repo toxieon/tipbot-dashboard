@@ -113,13 +113,13 @@ test("arena cameras pass validCamera, stay inside the stands, reuse the chip ids
     assert.ok(Math.abs(c.pos[0]) < 26 && Math.abs(c.pos[2]) < 21 && c.pos[1] < 34, c.id + " inside the bowl");
   }
   assert.equal(C.camerasFor({ cameras: A.ARENA_CAMERAS }), A.ARENA_CAMERAS);
-  const row = C.chipRowHtml("goals-north", A.ARENA_CHIPS);
-  assert.match(row, /data-cam-chip="ends" aria-pressed="true"[^>]*><span>Baseline</);
-  assert.match(row, /<span>Overhead</);
-  assert.match(row, /<span>Broadcast<\/span>.*<span>Wing</);
+  assert.equal(C.cameraName("goals-north", A.ARENA_CHIPS), "Baseline");
+  assert.equal(C.cameraName("blimp", A.ARENA_CHIPS), "Overhead");
+  assert.match(C.cycleButtonHtml("wing", A.ARENA_CHIPS), /title="Change view: Wing"/);
+  assert.equal(C.nextCameraInCycle("blimp", A.ARENA_CAMERAS), "broadcast");
   // MCG labels unchanged.
-  assert.match(C.chipRowHtml("goals-north"), /<span>North end</);
-  assert.match(C.chipRowHtml("blimp"), /<span>Blimp</);
+  assert.equal(C.cameraName("goals-north"), "North end");
+  assert.equal(C.cameraName("blimp"), "Blimp");
   assert.equal(C.storageKeyFor("arena"), "tipdash_gv_cam:arena");
   assert.equal(C.storageKeyFor("mcg"), "tipdash_gv_cam");
   const s = memoryStorage({ tipdash_gv_cam: "blimp" });

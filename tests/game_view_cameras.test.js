@@ -42,9 +42,9 @@ test("a stadium can supply its own table; anything incomplete falls back to the 
   assert.equal(C.camerasFor({}), C.CAMERAS);
   assert.equal(C.camerasFor({ cameras: [own[1]] }), C.CAMERAS, "no broadcast camera");
   assert.equal(C.camerasFor({ cameras: [own[0], { id: "x", fov: 40, pos: [0, 1], look: [0, 0, 0] }] }), C.CAMERAS, "bad entry");
-  // The chip for a camera the stadium doesn't have does nothing.
-  assert.equal(C.nextCameraForChip("ends", "broadcast", own), "broadcast");
-  assert.equal(C.nextCameraForChip("wing", "broadcast", own), "wing");
+  // The cycle only visits cameras the stadium has.
+  assert.equal(C.nextCameraInCycle("broadcast", own), "wing");
+  assert.equal(C.nextCameraInCycle("wing", own), "broadcast");
 });
 
 test("tween maths: start, middle and end, ease-out, and reduced motion jumps", async () => {
@@ -80,15 +80,18 @@ test("minAspect widens the fov on narrow hosts and keeps the horizontal coverage
   assert.ok(Math.abs(halfWidth(narrow, 0.7) - halfWidth(40, 1.4)) < 1e-9);
 });
 
-test("Ends flips between north and south; other chips go to their camera", async () => {
+test("each tap moves to the next preset and wraps; unknown ids start the cycle", async () => {
   const C = await load();
-  assert.equal(C.nextCameraForChip("ends", "broadcast"), "goals-north");
-  assert.equal(C.nextCameraForChip("ends", "goals-north"), "goals-south");
-  assert.equal(C.nextCameraForChip("ends", "goals-south"), "goals-north");
-  assert.equal(C.nextCameraForChip("wing", "goals-south"), "wing");
-  assert.equal(C.nextCameraForChip("blimp", "blimp"), "blimp");
-  assert.equal(C.nextCameraForChip("nope", "wing"), "wing");
+  const order = C.CAMERAS.map((c) => c.id);
+  let id = "broadcast";
+  const seen = [];
+  for (let i = 0; i < order.length; i++) { id = C.nextCameraInCycle(id); seen.push(id); }
+  assert.deepEqual(seen, [...order.slice(1), "broadcast"], "full lap back to broadcast");
+  assert.equal(C.nextCameraInCycle("drone"), "broadcast");
+  assert.equal(C.nextCameraInCycle("blimp", []), "broadcast", "empty table falls back to the MCG table");
   assert.equal(C.chipForCamera("goals-south"), "ends");
+  assert.equal(C.cameraName("goals-south"), "South end");
+  assert.equal(C.cameraName("wing"), "Wing");
 });
 
 test("localStorage round trip (tipdash_gv_cam), with safe defaults", async () => {
@@ -110,7 +113,7 @@ test("localStorage round trip (tipdash_gv_cam), with safe defaults", async () =>
   assert.equal(C.loadCameraChoice(null), "broadcast");
 });
 
-test("no chip row in fallback (photo) mode", async () => {
+test("no button in fallback (photo) mode", async () => {
   const C = await load();
   let touched = 0;
   const host = new Proxy({}, { get() { touched++; return () => null; } });
@@ -122,15 +125,43 @@ test("no chip row in fallback (photo) mode", async () => {
   assert.match(camerasSrc, /\.fl-mcg:not\(\.is-webgl\) \.fl-cams\{display:none\}/);
 });
 
-test("chip row markup: four 44px buttons, the pressed one follows the camera, Ends names the end", async () => {
+test("change-view button: one small round button, labelled, inside the safe area", async () => {
   const C = await load();
-  const row = C.chipRowHtml("broadcast");
-  assert.equal((row.match(/<button type="button" data-cam-chip=/g) || []).length, 4);
-  assert.match(row, /data-cam-chip="broadcast" aria-pressed="true"/);
-  assert.match(row, /data-cam-chip="ends" aria-pressed="false"[^>]*><span>Ends<\/span>/);
-  assert.match(C.chipRowHtml("goals-south"), /data-cam-chip="ends" aria-pressed="true"[^>]*><span>South end<\/span>/);
-  assert.match(camerasSrc, /\.fl-cams button\{[^}]*min-width:44px;min-height:44px;height:44px/);
-  assert.match(camerasSrc, /env\(safe-area-inset-left/);
+  const html = C.cycleButtonHtml("broadcast");
+  assert.equal((html.match(/<button /g) || []).length, 1);
+  assert.match(html, /aria-label="Change view"/);
+  assert.match(html, /title="Change view: Broadcast"/);
+  assert.match(C.cycleButtonHtml("goals-north"), /title="Change view: North end"/);
+  assert.doesNotMatch(html, /data-cam-chip|aria-pressed/);
+  assert.match(camerasSrc, /\.fl-camcycle\{[^}]*width:40px;height:40px;[^}]*border-radius:50%/);
+  assert.match(camerasSrc, /\.fl-cams\{position:absolute;[^}]*env\(safe-area-inset-left[^}]*env\(safe-area-inset-bottom/);
+});
+
+test("mounting: one button, a tap cycles, saves, and wraps", async () => {
+  const C = await load();
+  const made = [];
+  function el(tag) {
+    const e = { tag, children: [], dataset: {}, listeners: {}, className: "", innerHTML: "", attrs: {},
+      setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(t, f) { this.listeners[t] = f; },
+      appendChild(c) { this.children.push(c); }, remove() {}, querySelector() { return null; } };
+    made.push(e);
+    return e;
+  }
+  const doc = { getElementById() { return null; }, createElement: el, head: el("head") };
+  const host = { ownerDocument: doc, dataset: {}, children: [], appendChild(c) { this.children.push(c); }, querySelector() { return null; } };
+  const handle = { cameras: C.CAMERAS, cameraId: "blimp", setCamera(id) { this.cameraId = id; return true; } };
+  const st = memoryStorage();
+  const wrap = C.mountCameraChips(host, handle, { storage: st });
+  assert.ok(wrap && host.children.includes(wrap));
+  assert.equal(handle.cameraId, "broadcast", "nothing saved: broadcast");
+  const tap = () => wrap.listeners.click({ target: { closest: () => ({}) } });
+  tap();
+  assert.equal(handle.cameraId, "goals-north");
+  assert.equal(st.map.get("tipdash_gv_cam"), "goals-north");
+  for (let i = 0; i < C.CAMERAS.length - 1; i++) tap();
+  assert.equal(handle.cameraId, "broadcast", "wrapped");
+  assert.equal(host.dataset.cam, "broadcast");
+  assert.match(wrap.innerHTML, /aria-label="Change view"/);
 });
 
 test("mount.js API: setCamera export, current id on the handle, logo poses stay on the broadcast camera", async () => {
