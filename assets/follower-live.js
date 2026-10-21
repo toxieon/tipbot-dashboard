@@ -993,7 +993,95 @@
     };
   }
 
+  // ── Game cache + bounded prefetch (instant game switching) ────────────────
+  var CACHE_FRESH_MS = 20000;
+  /** Per-game payload cache keyed by switcher key. `fresh` = younger than maxAge. */
+  function createGameCache(now) {
+    var clock = typeof now === "function" ? now : function () { return Date.now(); };
+    var map = {};
+    return {
+      get: function (key) { var e = map[key]; return e ? e.data : null; },
+      set: function (key, data) { if (key) map[key] = { data: data, at: clock() }; },
+      fresh: function (key, maxAge) {
+        var e = map[key];
+        return !!e && clock() - e.at < (maxAge == null ? CACHE_FRESH_MS : maxAge);
+      },
+      has: function (key) { return !!map[key]; },
+      clear: function () { map = {}; },
+      keys: function () { return Object.keys(map); }
+    };
+  }
+  /** Order to prefetch: the shown game first, then the rest in switcher order, skipping fresh ones. */
+  function prefetchOrder(games, currentKey, cache, maxAge) {
+    var list = (games || []).filter(function (g) { return g && g.key; });
+    var first = list.filter(function (g) { return g.key === currentKey; });
+    var rest = list.filter(function (g) { return g.key !== currentKey; });
+    return first.concat(rest).filter(function (g) { return !(cache && cache.fresh(g.key, maxAge)); });
+  }
+  /** Run fn over items with at most `limit` in flight. Resolves when all settle; never rejects. */
+  function runPool(items, limit, fn) {
+    var list = (items || []).slice();
+    var n = Math.max(1, Math.min(limit || 1, list.length || 1));
+    var i = 0;
+    function next() {
+      if (i >= list.length) return Promise.resolve();
+      var item = list[i++];
+      return Promise.resolve().then(function () { return fn(item); }).catch(function () {}).then(next);
+    }
+    var workers = [];
+    for (var w = 0; w < n; w++) workers.push(next());
+    return Promise.all(workers).then(function () {});
+  }
+
+  // ── Zoom lock (Game view only) ────────────────────────────────────────────
+  var LOCKED_VIEWPORT = "width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover";
+  /** Installs pinch and double-tap zoom guards and a no-zoom viewport while Game view shows.
+      lock() is idempotent; unlock() restores the page's own viewport. */
+  function createZoomLock(doc, win) {
+    var meta = null, original = null, on = false, lastTouch = 0;
+    function stop(ev) { if (ev && ev.cancelable !== false && ev.preventDefault) ev.preventDefault(); }
+    function onTouchMove(ev) { if (ev && ev.touches && ev.touches.length > 1) stop(ev); }
+    function onTouchEnd(ev) {
+      var t = Date.now();
+      // Quick taps on controls (the change-view button, game buttons) must still click.
+      var control = ev && ev.target && ev.target.closest && ev.target.closest("button,a,input,textarea,select,label,[role=button],[role=tab]");
+      if (t - lastTouch < 300 && !control) stop(ev);
+      lastTouch = t;
+    }
+    var opts = { passive: false };
+    return {
+      lock: function () {
+        if (on || !doc) return false;
+        on = true;
+        meta = doc.querySelector ? doc.querySelector('meta[name="viewport"]') : null;
+        if (meta) { original = meta.getAttribute("content"); meta.setAttribute("content", LOCKED_VIEWPORT); }
+        if (doc.documentElement && doc.documentElement.classList) doc.documentElement.classList.add("gv-zoomlock");
+        ["gesturestart", "gesturechange", "gestureend"].forEach(function (t) { doc.addEventListener(t, stop, opts); });
+        doc.addEventListener("touchmove", onTouchMove, opts);
+        doc.addEventListener("touchend", onTouchEnd, opts);
+        return true;
+      },
+      unlock: function () {
+        if (!on || !doc) return false;
+        on = false;
+        if (meta && original != null) meta.setAttribute("content", original);
+        if (doc.documentElement && doc.documentElement.classList) doc.documentElement.classList.remove("gv-zoomlock");
+        ["gesturestart", "gesturechange", "gestureend"].forEach(function (t) { doc.removeEventListener(t, stop, opts); });
+        doc.removeEventListener("touchmove", onTouchMove, opts);
+        doc.removeEventListener("touchend", onTouchEnd, opts);
+        return true;
+      },
+      locked: function () { return on; }
+    };
+  }
+
   return {
+    createGameCache: createGameCache,
+    prefetchOrder: prefetchOrder,
+    runPool: runPool,
+    createZoomLock: createZoomLock,
+    LOCKED_VIEWPORT: LOCKED_VIEWPORT,
+    CACHE_FRESH_MS: CACHE_FRESH_MS,
     POLL_MS: POLL_MS,
     DEMO_MS: DEMO_MS,
     esc: esc,
