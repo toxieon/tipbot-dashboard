@@ -40,17 +40,35 @@
     return cur === null || cur === String(ctx.gid);
   }
 
+  function mountLibrary(el, ctx) {
+    if (!el || !ctx || ctx.owner !== true) return;
+    var TD = root.TD;
+    if (!TD || typeof TD.load !== "function") return;
+    TD.load("connector-library").then(function () {
+      if (!el.isConnected || ctx.owner !== true || !sameServer(ctx)) return;
+      if (!(root.TBConnectorLibrary && typeof root.TBConnectorLibrary.mount === "function")) { el.innerHTML = ""; return; }
+      var libCtx = Object.assign({}, ctx, {
+        // A new connector shows up in the lists below straight away.
+        onAdded: function () { if (sameServer(ctx)) renderConnectors(ctx); }
+      });
+      root.TBConnectorLibrary.mount(el, libCtx);
+    }).catch(function () { if (el.isConnected) el.innerHTML = ""; });
+  }
+
   function renderConnectors(ctx) {
     var body = ctx && ctx.detail && ctx.detail.querySelector("#settings-body");
     if (!body) return;
     if (!(ctx && ctx.owner === true) || !sameServer(ctx)) { body.innerHTML = ""; return; }
-    body.innerHTML = '<div data-cx-client></div><div data-cx-post></div><div data-cx-push></div><div data-cx-extra><div class="empty">Loading…</div></div>';
+    stop(ctx.detail);
+    body.innerHTML = '<div data-cx-library></div><div data-cx-client></div><div data-cx-post></div><div data-cx-push></div><div data-cx-extra><div class="empty">Loading…</div></div>';
+    var library = body.querySelector("[data-cx-library]");
     var client = body.querySelector("[data-cx-client]");
     var post = body.querySelector("[data-cx-post]");
     var push = body.querySelector("[data-cx-push]");
     var extra = body.querySelector("[data-cx-extra]");
     ensureExt().then(function () {
       if (!(ctx && ctx.owner === true) || !sameServer(ctx)) return;
+      if (library && library.isConnected) mountLibrary(library, ctx);
       if (client && client.isConnected && root.TBConnectors && typeof root.TBConnectors.mount === "function") root.TBConnectors.mount(client, ctx);
       if (post && post.isConnected) mountPostSettings(post, ctx);
       if (push && push.isConnected) mountPushSecrets(push, ctx);
@@ -92,7 +110,7 @@
     });
   }
 
-  var API = { attach: attach, renderConnectors: renderConnectors, mountPushSecrets: mountPushSecrets, mountPostSettings: mountPostSettings, sameServer: sameServer, stop: stop };
+  var API = { attach: attach, renderConnectors: renderConnectors, mountPushSecrets: mountPushSecrets, mountPostSettings: mountPostSettings, sameServer: sameServer, stop: stop, mountLibrary: mountLibrary };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBOwnerServer = API;
   if (root.TD && root.TD.loaded) root.TD.loaded["owner-server"] = true;
