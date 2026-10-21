@@ -645,6 +645,8 @@
         phase_label: game.live ? "Live" : "Upcoming",
         starts_at: game.start || null,
         venue: game.venue || "",
+        sport: game.sport || "",
+        league: game.league || "",
         home: {name: sides.home, score: null},
         away: {name: sides.away, score: null}
       },
@@ -674,6 +676,7 @@
         var st = slipStart(tip);
         if (st != null && (g.start == null || st < g.start)) g.start = st;
         if (!g.venue && tip.venue) g.venue = String(tip.venue);
+        if (!g.sport && (tip.league || tip.sport)) { g.sport = String(tip.sport || ""); g.league = String(tip.league || ""); }
         g.tips.push(tip);
       });
     });
@@ -733,6 +736,10 @@
         if (t) tipsters.push(t);
       });
     });
+    // Keep the sport hint from the feed when a read has none, so the ground can follow the game.
+    if (game && fallback && fallback.game && !(game.sport_kind || game.league || game.sport) && (fallback.game.league || fallback.game.sport)) {
+      game = Object.assign({}, game, {sport: fallback.game.sport || "", league: fallback.game.league || ""});
+    }
     if (game && !game.live && fallback && fallback.game && gameStartMs(game) == null && gameStartMs(fallback.game) != null) {
       game = Object.assign({}, game, {starts_at: fallback.game.starts_at});
     }
