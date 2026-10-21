@@ -35,5 +35,10 @@
     return FALLBACKS[venue] || FALLBACKS.mcg;
   }
 
-  return {venueFor: venueFor, moduleFor: moduleFor, fallbackFor: fallbackFor};
+  /** True for a ground this build can load (new venues just add a module). */
+  function isVenue(venue) {
+    return Object.prototype.hasOwnProperty.call(MODULES, key(venue));
+  }
+
+  return {venueFor: venueFor, moduleFor: moduleFor, fallbackFor: fallbackFor, isVenue: isVenue};
 });

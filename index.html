@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.66.7-275e713" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.66.7-275e713" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.7-275e713" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.66.7-275e713">
+<link rel="icon" href="./assets/favicon.ico?v=0.66.7-083af9c" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.66.7-083af9c" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.66.7-083af9c" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.66.7-083af9c">
 <link rel="preload" as="image" href="./assets/mcg/fallback.png">
 <link rel="preload" as="fetch" href="./assets/mcg/mcg.glb" crossorigin>
-<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.66.7-275e713" crossorigin>
+<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.66.7-083af9c" crossorigin>
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.66.7-275e713"></script>
+<script src="./assets/tbtime.js?v=0.66.7-083af9c"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -247,6 +247,10 @@
   .fl-up-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
   .fl-up-row:last-child{border-bottom:0}
   .bet-game-cta{margin-top:8px}
+  html.gv-zoomlock #flive{touch-action:pan-x pan-y}
+  /* iOS zooms the page when a field under 16px is focused and keeps that zoom, so the
+     next view opened (Game view) started slightly zoomed. Touch screens get 16px fields. */
+  @media (hover:none) and (pointer:coarse){ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:max(16px,1em)!important} }
   html.flive-lock,html.flive-lock body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
   .fl-mcg .tblfx-afl{z-index:2;pointer-events:none}
   .fl-mcg .tblfx-afl svg>ellipse:first-child{fill:transparent;stroke:transparent}
@@ -1364,13 +1368,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.7-275e713">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.66.7-083af9c">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-275e713" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-083af9c" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1381,7 +1385,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-275e713" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.66.7-083af9c" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1390,7 +1394,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.7-275e713" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.66.7-083af9c" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1414,7 +1418,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <input type="checkbox" id="dd-gv-anim-on">
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.66.7-275e713</div>
+          <div class="dd-label" id="dd-version">tipdash v0.66.7-083af9c</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1440,34 +1444,34 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.66.7-275e713"></script>
-<script src="./assets/light-data.js?v=0.66.7-275e713"></script>
-<script src="./assets/lines.js?v=0.66.7-275e713"></script>
-<script src="./assets/racing-legs.js?v=0.66.7-275e713"></script>
-<script src="./assets/afl-guernseys.js?v=0.66.7-275e713"></script>
-<script src="./assets/compare-ui.js?v=0.66.7-275e713"></script>
-<script src="./assets/sport-keywords.js?v=0.66.7-275e713"></script>
-<script src="./assets/sport-marks.js?v=0.66.7-275e713"></script>
-<script src="./assets/discover-sports.js?v=0.66.7-275e713"></script>
-<script src="./assets/global-flags.js?v=0.66.7-275e713"></script>
-<script src="./assets/routing.js?v=0.66.7-275e713"></script>
-<script src="./assets/tip-tiers.js?v=0.66.7-275e713"></script>
-<script src="./assets/scheduled-tips.js?v=0.66.7-275e713"></script>
-<script src="./assets/auto-recaps.js?v=0.66.7-275e713"></script>
-<script src="./assets/emoji-picker.js?v=0.66.7-275e713"></script>
-<script src="./assets/upcoming-split.js?v=0.66.7-275e713"></script>
-<script src="./assets/espn-props.js?v=0.66.7-275e713"></script>
-<script src="./assets/tb-motion.js?v=0.66.7-275e713"></script>
-<script src="./assets/form-badges.js?v=0.66.7-275e713"></script>
-<script src="./assets/tb-charts.js?v=0.66.7-275e713"></script>
-<script src="./assets/guild-profile.js?v=0.66.7-275e713"></script>
-<script src="./assets/server-view.js?v=0.66.7-275e713"></script>
-<script src="./assets/follower-live.js?v=0.66.7-275e713"></script>
-<script src="./assets/venues/select.js?v=0.66.7-275e713"></script>
-<script src="./assets/follower-units.js?v=0.66.7-275e713"></script>
-<script src="./assets/legal-md.js?v=0.66.7-275e713"></script>
-<script src="./assets/terms-gate.js?v=0.66.7-275e713"></script>
-<script src="./assets/cookie-consent.js?v=0.66.7-275e713"></script>
+<script src="./assets/req-pool.js?v=0.66.7-083af9c"></script>
+<script src="./assets/light-data.js?v=0.66.7-083af9c"></script>
+<script src="./assets/lines.js?v=0.66.7-083af9c"></script>
+<script src="./assets/racing-legs.js?v=0.66.7-083af9c"></script>
+<script src="./assets/afl-guernseys.js?v=0.66.7-083af9c"></script>
+<script src="./assets/compare-ui.js?v=0.66.7-083af9c"></script>
+<script src="./assets/sport-keywords.js?v=0.66.7-083af9c"></script>
+<script src="./assets/sport-marks.js?v=0.66.7-083af9c"></script>
+<script src="./assets/discover-sports.js?v=0.66.7-083af9c"></script>
+<script src="./assets/global-flags.js?v=0.66.7-083af9c"></script>
+<script src="./assets/routing.js?v=0.66.7-083af9c"></script>
+<script src="./assets/tip-tiers.js?v=0.66.7-083af9c"></script>
+<script src="./assets/scheduled-tips.js?v=0.66.7-083af9c"></script>
+<script src="./assets/auto-recaps.js?v=0.66.7-083af9c"></script>
+<script src="./assets/emoji-picker.js?v=0.66.7-083af9c"></script>
+<script src="./assets/upcoming-split.js?v=0.66.7-083af9c"></script>
+<script src="./assets/espn-props.js?v=0.66.7-083af9c"></script>
+<script src="./assets/tb-motion.js?v=0.66.7-083af9c"></script>
+<script src="./assets/form-badges.js?v=0.66.7-083af9c"></script>
+<script src="./assets/tb-charts.js?v=0.66.7-083af9c"></script>
+<script src="./assets/guild-profile.js?v=0.66.7-083af9c"></script>
+<script src="./assets/server-view.js?v=0.66.7-083af9c"></script>
+<script src="./assets/follower-live.js?v=0.66.7-083af9c"></script>
+<script src="./assets/venues/select.js?v=0.66.7-083af9c"></script>
+<script src="./assets/follower-units.js?v=0.66.7-083af9c"></script>
+<script src="./assets/legal-md.js?v=0.66.7-083af9c"></script>
+<script src="./assets/terms-gate.js?v=0.66.7-083af9c"></script>
+<script src="./assets/cookie-consent.js?v=0.66.7-083af9c"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1814,10 +1818,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The tip builder (assets/builder.js) and Admin Tools' Paste sheet (assets/admin.js) aren't
   // fetched on first load; TD.load() adds them the first time they're opened. They are plain
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
-  // changes. TD.version is the cache-bust token. Source keeps 0.66.7-275e713.
+  // changes. TD.version is the cache-bust token. Source keeps 0.66.7-083af9c.
   // The main-branch build replaces that token in the built site only.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.66.7-275e713";
+  TD.version="0.66.7-083af9c";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -3215,7 +3219,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.66.7-275e713"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.66.7-083af9c"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -5230,7 +5234,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null,mode:"",games:[],gameKey:"",anyLive:false,venue:"mcg",mountSeq:0,box:{team:"home",sort:"",open:true}};
   let FLIVE_DEMO_WAIT=false;
   let AFL_FX=null;
+  // Game view: no pinch or double-tap zoom, always at scale 1 (see FollowerLive.createZoomLock).
+  let FLIVE_ZOOM=null;
+  function fliveZoom(){ if(!FLIVE_ZOOM&&window.FollowerLive&&FollowerLive.createZoomLock) FLIVE_ZOOM=FollowerLive.createZoomLock(document, window); return FLIVE_ZOOM; }
   function fliveUnfit(){
+    const z=fliveZoom(); if(z) z.unlock();
     document.documentElement.classList.remove("flive-lock");
     const box=$("flive");
     if(!box) return;
@@ -5240,6 +5248,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const box=$("flive");
     if(!box||box.hidden) return;
     document.documentElement.classList.add("flive-lock");
+    const z=fliveZoom(); if(z) z.lock();
     const vv=window.visualViewport;
     const widths=[];
     if(vv&&vv.width) widths.push(vv.width);
@@ -5810,7 +5819,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         FLIVE.gameKey=next;
         FLIVE.seen={};
         fliveScrollReset();
-        fliveLoadOwn(true);
+        fliveLoadOwn(true, {switching:true});
       };
     });
   }
@@ -5828,42 +5837,114 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     flivePaint(data);
     paintGameSwitch(games||[], key||"");
+    if(key&&FLIVE.mode==="own") fliveMemory().set(key, FLIVE.venue);
+    fliveRefreshMount();
   }
-  async function fliveLoadOwn(silent){
+  // Game view keeps every followed game's payload in FLIVE.cache. Opening prefetches them
+  // all (one request at a time beside the shown game, under the page's API queue), so a
+  // game button paints from the cache at once and refreshes that one game behind it.
+  const FLIVE_FEEDS_MS=60000, FLIVE_PROBE_MS=60000, FLIVE_BG_MAX_AGE_MS=120000;
+  let FLIVE_MEMORY=null;
+  function fliveMemory(){
+    if(!FLIVE_MEMORY){ let st=null; try{ st=window.localStorage; }catch(e){}
+      FLIVE_MEMORY=FollowerLive.createGameMemory(st, window.TBVenues&&TBVenues.isVenue); }
+    return FLIVE_MEMORY;
+  }
+  function fliveCache(){ if(!FLIVE.cache) FLIVE.cache=FollowerLive.createGameCache(); return FLIVE.cache; }
+  async function fliveOwnFeeds(seq, follows, force){
+    if(!force && FLIVE.games && FLIVE.games.length && Date.now()-(FLIVE.feedsAt||0)<FLIVE_FEEDS_MS) return FLIVE.games;
+    const packs=[];
+    await Promise.all(follows.map(async function(s){
+      const r=await api("/api/follower?guild_id="+encodeURIComponent(s.guild_id));
+      if(seq!==FLIVE.seq) return;
+      if(r.status===401) throw Object.assign(new Error("unauth"), {unauth:true});
+      if(!r.ok) return;
+      const d=await r.json();
+      if(!d||d.sample) return;
+      packs.push({guild_id:s.guild_id, name:(d.display_name||s.display_name||""), preview:!!d.preview, feed:d.feed||[], gv_refresh_button:!!d.gv_refresh_button});
+    }));
+    if(seq!==FLIVE.seq) return null;
+    FLIVE.refreshOn=FollowerLive.refreshEnabled(packs);
+    FLIVE.games=FollowerLive.gamesFromFeeds(packs);
+    FLIVE.feedsAt=Date.now();
+    return FLIVE.games;
+  }
+  async function fliveReadGame(g){
+    const reads=[];
+    await Promise.all((g.guild_ids||[]).map(async function(gid){
+      const r=await api(FollowerLive.endpoint(gid, g.game_name));
+      if(!r.ok) return;
+      reads.push(await r.json());
+    }));
+    const merged=FollowerLive.mergeGamePayload(g.payload, reads);
+    fliveCache().set(g.key, merged);
+    return merged;
+  }
+  function flivePrefetch(games, currentKey, maxAge){
+    const token=FLIVE.ownToken;
+    if(FLIVE.prefetching) return;
+    const todo=FollowerLive.prefetchOrder(games, currentKey, fliveCache(), maxAge).filter(function(g){ return g.key!==currentKey; });
+    if(!todo.length) return;
+    FLIVE.prefetching=true;
+    FollowerLive.runPool(todo, 1, function(g){
+      if(FLIVE.mode!=="own"||FLIVE.ownToken!==token||document.hidden) return null;
+      return fliveReadGame(g);
+    }).then(function(){ if(FLIVE.ownToken===token) FLIVE.prefetching=false; });
+  }
+  // Optional refresh button (Settings > Features). Re-reads the shown game now, skipping the cache.
+  function fliveRefreshMount(){
+    const root=$("flive"); if(!root) return;
+    let btn=$("flive-refresh");
+    if(!(FLIVE.refreshOn&&FLIVE.mode==="own"&&window.FollowerLive&&FollowerLive.refreshButtonHtml)){ if(btn) btn.remove(); return; }
+    if(!$("fl-refresh-css")){ const st=document.createElement("style"); st.id="fl-refresh-css"; st.textContent=FollowerLive.REFRESH_CSS; document.head.appendChild(st); }
+    const host=root.querySelector(".fl-mcg")||root;
+    if(btn&&btn.parentNode===host) return;
+    if(btn) btn.remove();
+    const tmp=document.createElement("div"); tmp.innerHTML=FollowerLive.refreshButtonHtml(!!FLIVE.refreshing);
+    btn=tmp.firstChild; host.appendChild(btn);
+    btn.addEventListener("click", fliveRefreshNow);
+  }
+  async function fliveRefreshNow(){
+    if(FLIVE.refreshing) return;
+    const g=(FLIVE.games||[]).find(function(x){ return x.key===FLIVE.gameKey; });
+    if(!g) return;
+    const seq=FLIVE.seq, btn=$("flive-refresh");
+    FLIVE.refreshing=true;
+    if(btn){ btn.disabled=true; btn.classList.add("is-busy"); btn.setAttribute("aria-busy","true"); }
+    try{
+      const merged=await fliveReadGame(g);
+      if(seq===FLIVE.seq&&FLIVE.gameKey===g.key){ flivePaintOwn(merged, FLIVE.games, g.key); fliveSyncPlayers(merged&&merged.game); }
+    }catch(e){}
+    FLIVE.refreshing=false;
+    const b=$("flive-refresh");
+    if(b){ b.disabled=false; b.classList.remove("is-busy"); b.removeAttribute("aria-busy"); }
+    fliveRefreshMount();
+  }
+  async function fliveLoadOwn(silent, opts){
+    opts=opts||{};
     const seq=FLIVE.seq;
     const follows=STATE.viewAs?[]:(STATE.followerServers||[]);
     const grid=$("flive-grid");
     if(!follows.length){ flivePaintOwn(null); return; }
     try{
-      const packs=[];
-      await Promise.all(follows.map(async function(s){
-        const r=await api("/api/follower?guild_id="+encodeURIComponent(s.guild_id));
-        if(seq!==FLIVE.seq) return;
-        if(r.status===401) throw Object.assign(new Error("unauth"), {unauth:true});
-        if(!r.ok) return;
-        const d=await r.json();
-        if(!d||d.sample) return;
-        packs.push({guild_id:s.guild_id, name:(d.display_name||s.display_name||""), preview:!!d.preview, feed:d.feed||[]});
-      }));
-      if(seq!==FLIVE.seq) return;
-      const games=FollowerLive.gamesFromFeeds(packs);
-      FLIVE.games=games;
+      const games=await fliveOwnFeeds(seq, follows, !!opts.refreshFeeds);
+      if(!games||seq!==FLIVE.seq) return;
       if(!games.length){ flivePaintOwn(null); fliveProbeLive(); return; }
-      let idx=0;
-      for(let i=0;i<games.length;i++){ if(games[i].key===FLIVE.gameKey){ idx=i; break; } }
-      const chosen=games[idx];
+      // The remembered game when it is still on, else the first game (its own ground follows).
+      const chosen=games[FollowerLive.pickGameIndex(games, FLIVE.gameKey)];
       FLIVE.gameKey=chosen.key;
-      const reads=[];
-      await Promise.all((chosen.guild_ids||[]).map(async function(gid){
-        const r=await api(FollowerLive.endpoint(gid, chosen.game_name));
-        if(seq!==FLIVE.seq||!r.ok) return;
-        reads.push(await r.json());
-      }));
-      if(seq!==FLIVE.seq) return;
-      const merged=FollowerLive.mergeGamePayload(chosen.payload, reads);
-      flivePaintOwn(merged, games, chosen.key);
-      fliveSyncPlayers(merged&&merged.game);
-      fliveProbeLive();
+      const cache=fliveCache();
+      const hit=cache.get(chosen.key);
+      if(hit){ flivePaintOwn(hit, games, chosen.key); fliveSyncPlayers(hit&&hit.game); }
+      if(!hit||!cache.fresh(chosen.key)){
+        const merged=await fliveReadGame(chosen);
+        if(seq!==FLIVE.seq) return;
+        flivePaintOwn(merged, games, chosen.key);
+        fliveSyncPlayers(merged&&merged.game);
+      }
+      if(Date.now()-(FLIVE.probeAt||0)>FLIVE_PROBE_MS){ FLIVE.probeAt=Date.now(); fliveProbeLive(); }
+      fliveRefreshMount();
+      flivePrefetch(games, chosen.key, opts.opening?undefined:FLIVE_BG_MAX_AGE_MS);
       fliveArm();
     }catch(e){
       if(e&&e.unauth) return renderLogin("Session expired.");
@@ -5877,7 +5958,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     fliveStop();
     panel("flive");show("app");
-    FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null; FLIVE.venue="mcg"; FLIVE.venuePending=false; FLIVE.box={team:"home",sort:"",open:true};
+    FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null;
+    FLIVE.ownToken=(FLIVE.ownToken|0)+1; FLIVE.cache=null; FLIVE.games=[]; FLIVE.feedsAt=0; FLIVE.probeAt=0; FLIVE.prefetching=false; FLIVE.refreshOn=false; FLIVE.refreshing=false; FLIVE.venue="mcg"; FLIVE.venuePending=false; FLIVE.box={team:"home",sort:"",open:true};
+    const mem=window.FollowerLive&&FollowerLive.createGameMemory?fliveMemory().get():null;
+    if(mem){ if(!FLIVE.gameKey) FLIVE.gameKey=mem.key; if(mem.venue) FLIVE.venue=mem.venue; }
     fliveBeginGround();
     $("flive").innerHTML=fliveShell({own:true});
     const back=$("flive-back");
@@ -5886,7 +5970,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     fliveFitSoon();
     fliveWatchStadium();
     fliveMount();
-    fliveLoadOwn(false);
+    fliveLoadOwn(false, {opening:true, refreshFeeds:true});
   }
   async function fliveProbeLive(){
     const seq=FLIVE.seq;
@@ -7540,7 +7624,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.7-275e713');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.66.7-083af9c');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
