@@ -141,17 +141,17 @@ for (const vp of [{ name: "390", width: 390, height: 844 }, { name: "desktop", w
   });
 }
 
-test("arena chips: Broadcast, Baseline, Wing, Overhead; the choice sticks after a reload", async ({ page }) => {
+test("arena change-view button cycles the court views; the choice sticks after a reload", async ({ page }) => {
   await openBasketball(page);
   await waitGround(page);
   await expect(page.locator("#flive-mcg")).toHaveClass(/is-webgl/);
-  const chips = page.locator(".fl-cams button");
-  await expect(chips).toHaveText(["Broadcast", "Baseline", "Wing", "Overhead"]);
-  for (const [chip, id] of [["ends", "goals-north"], ["ends", "goals-south"], ["wing", "wing"], ["blimp", "blimp"]]) {
-    await page.locator(`[data-cam-chip="${chip}"]`).click();
+  const btn = page.getByRole("button", { name: "Change view" });
+  await expect(page.locator(".fl-cams button")).toHaveCount(1);
+  for (const id of ["goals-north", "goals-south", "wing", "blimp"]) {
+    await btn.click();
     await expect(page.locator("#flive-mcg")).toHaveAttribute("data-cam", id);
   }
-  await expect(page.locator('[data-cam-chip="ends"]')).toHaveText("Baseline");
+  await expect(btn).toHaveAttribute("title", "Change view: Overhead");
   expect(await page.evaluate(() => localStorage.getItem("tipdash_gv_cam:arena"))).toBe("blimp");
   expect(await page.evaluate(() => localStorage.getItem("tipdash_gv_cam"))).toBeNull();
   await page.reload({ waitUntil: "domcontentloaded" });
