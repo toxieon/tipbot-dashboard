@@ -14,7 +14,7 @@
 
 - Maintenance / Internal updates.
 - Game view keeps the legs of one multi together in a single Multi card with the total odds shown once. Each leg shows its own price only when known, and names its market, for example Over 19.5 Points.
-Tests: `tests/post_settings.test.js`, `tests/follower_multi.test.js`, `tests/basketball_view.test.js`, `tests/e2e/basketball-game.spec.mjs`, `tests/game_view_cameras.test.js`, `tests/e2e/game-view-cameras.spec.mjs`.
+Tests: `tests/follower_multi.test.js`, `tests/basketball_view.test.js`, `tests/e2e/basketball-game.spec.mjs`, `tests/game_view_cameras.test.js`, `tests/e2e/game-view-cameras.spec.mjs`.
 
 ## 0.66.6 · 2026-10-18 · `phone-nav` · The bottom bar stays at the bottom of the screen
 
