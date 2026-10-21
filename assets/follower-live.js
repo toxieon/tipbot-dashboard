@@ -1075,11 +1075,33 @@
     };
   }
 
+  // Game view refresh button: shown when any followed server has the setting on.
+  function refreshEnabled(packs) {
+    return (packs || []).some(function (p) { return !!(p && p.gv_refresh_button); });
+  }
+  function refreshButtonHtml(busy) {
+    return '<button type="button" class="fl-refresh' + (busy ? ' is-busy' : '') + '" id="flive-refresh"'
+      + ' aria-label="Refresh game" title="Refresh game"' + (busy ? ' disabled aria-busy="true"' : '') + '>'
+      + '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor"'
+      + ' stroke-width="2" stroke-linecap="round" d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4"/></svg></button>';
+  }
+  var REFRESH_CSS = ".fl-refresh{position:absolute;z-index:6;right:max(8px, env(safe-area-inset-right, 0px));bottom:8px;"
+    + "width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.45);"
+    + "color:#fff;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"
+    + "-webkit-tap-highlight-color:transparent;touch-action:manipulation}"
+    + ".fl-refresh[disabled]{opacity:.7;cursor:default}"
+    + ".fl-refresh.is-busy svg{animation:fl-refresh-spin .8s linear infinite}"
+    + "@keyframes fl-refresh-spin{to{transform:rotate(360deg)}}"
+    + "@media (prefers-reduced-motion:reduce){.fl-refresh.is-busy svg{animation:none}}";
+
   return {
     createGameCache: createGameCache,
     prefetchOrder: prefetchOrder,
     runPool: runPool,
     createZoomLock: createZoomLock,
+    refreshEnabled: refreshEnabled,
+    refreshButtonHtml: refreshButtonHtml,
+    REFRESH_CSS: REFRESH_CSS,
     LOCKED_VIEWPORT: LOCKED_VIEWPORT,
     CACHE_FRESH_MS: CACHE_FRESH_MS,
     POLL_MS: POLL_MS,

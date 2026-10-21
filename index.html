@@ -5837,6 +5837,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     flivePaint(data);
     paintGameSwitch(games||[], key||"");
+    fliveRefreshMount();
   }
   // Game view keeps every followed game's payload in FLIVE.cache. Opening prefetches them
   // all (one request at a time beside the shown game, under the page's API queue), so a
@@ -5853,9 +5854,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(!r.ok) return;
       const d=await r.json();
       if(!d||d.sample) return;
-      packs.push({guild_id:s.guild_id, name:(d.display_name||s.display_name||""), preview:!!d.preview, feed:d.feed||[]});
+      packs.push({guild_id:s.guild_id, name:(d.display_name||s.display_name||""), preview:!!d.preview, feed:d.feed||[], gv_refresh_button:!!d.gv_refresh_button});
     }));
     if(seq!==FLIVE.seq) return null;
+    FLIVE.refreshOn=FollowerLive.refreshEnabled(packs);
     FLIVE.games=FollowerLive.gamesFromFeeds(packs);
     FLIVE.feedsAt=Date.now();
     return FLIVE.games;
@@ -5882,6 +5884,35 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       return fliveReadGame(g);
     }).then(function(){ if(FLIVE.ownToken===token) FLIVE.prefetching=false; });
   }
+  // Optional refresh button (Settings > Features). Re-reads the shown game now, skipping the cache.
+  function fliveRefreshMount(){
+    const root=$("flive"); if(!root) return;
+    let btn=$("flive-refresh");
+    if(!(FLIVE.refreshOn&&FLIVE.mode==="own"&&window.FollowerLive&&FollowerLive.refreshButtonHtml)){ if(btn) btn.remove(); return; }
+    if(!$("fl-refresh-css")){ const st=document.createElement("style"); st.id="fl-refresh-css"; st.textContent=FollowerLive.REFRESH_CSS; document.head.appendChild(st); }
+    const host=root.querySelector(".fl-mcg")||root;
+    if(btn&&btn.parentNode===host) return;
+    if(btn) btn.remove();
+    const tmp=document.createElement("div"); tmp.innerHTML=FollowerLive.refreshButtonHtml(!!FLIVE.refreshing);
+    btn=tmp.firstChild; host.appendChild(btn);
+    btn.addEventListener("click", fliveRefreshNow);
+  }
+  async function fliveRefreshNow(){
+    if(FLIVE.refreshing) return;
+    const g=(FLIVE.games||[]).find(function(x){ return x.key===FLIVE.gameKey; });
+    if(!g) return;
+    const seq=FLIVE.seq, btn=$("flive-refresh");
+    FLIVE.refreshing=true;
+    if(btn){ btn.disabled=true; btn.classList.add("is-busy"); btn.setAttribute("aria-busy","true"); }
+    try{
+      const merged=await fliveReadGame(g);
+      if(seq===FLIVE.seq&&FLIVE.gameKey===g.key){ flivePaintOwn(merged, FLIVE.games, g.key); fliveSyncPlayers(merged&&merged.game); }
+    }catch(e){}
+    FLIVE.refreshing=false;
+    const b=$("flive-refresh");
+    if(b){ b.disabled=false; b.classList.remove("is-busy"); b.removeAttribute("aria-busy"); }
+    fliveRefreshMount();
+  }
   async function fliveLoadOwn(silent, opts){
     opts=opts||{};
     const seq=FLIVE.seq;
@@ -5906,6 +5937,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         fliveSyncPlayers(merged&&merged.game);
       }
       if(Date.now()-(FLIVE.probeAt||0)>FLIVE_PROBE_MS){ FLIVE.probeAt=Date.now(); fliveProbeLive(); }
+      fliveRefreshMount();
       flivePrefetch(games, chosen.key, opts.opening?undefined:FLIVE_BG_MAX_AGE_MS);
       fliveArm();
     }catch(e){
@@ -5921,7 +5953,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     fliveStop();
     panel("flive");show("app");
     FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null;
-    FLIVE.ownToken=(FLIVE.ownToken|0)+1; FLIVE.cache=null; FLIVE.games=[]; FLIVE.feedsAt=0; FLIVE.probeAt=0; FLIVE.prefetching=false; FLIVE.venue="mcg"; FLIVE.venuePending=false; FLIVE.box={team:"home",sort:"",open:true};
+    FLIVE.ownToken=(FLIVE.ownToken|0)+1; FLIVE.cache=null; FLIVE.games=[]; FLIVE.feedsAt=0; FLIVE.probeAt=0; FLIVE.prefetching=false; FLIVE.refreshOn=false; FLIVE.refreshing=false; FLIVE.venue="mcg"; FLIVE.venuePending=false; FLIVE.box={team:"home",sort:"",open:true};
     fliveBeginGround();
     $("flive").innerHTML=fliveShell({own:true});
     const back=$("flive-back");
