@@ -2,7 +2,10 @@
    Status: GET  /api/connectors/{id}/push-secret/status  → {set, created_at}
    Create: POST /api/connectors/{id}/push-secret/generate → {secret, created_at} once.
    The secret is shown in a sheet and then dropped. It is never written to
-   storage, and it is never sent to a log. */
+   storage, and it is never sent to a log.
+   Dry run: POST /api/connectors/{id}/push-dry-run {payload} checks a pasted
+   push body (validation, race match, each-way split, Late, post preview).
+   Nothing is posted or stored. */
 (function (root) {
   "use strict";
 
@@ -86,8 +89,112 @@
     return withGuild("/api/connectors/" + enc(id) + "/push-secret/generate", gid);
   }
 
+  function dryRunPath(id, gid) {
+    return withGuild("/api/connectors/" + enc(id) + "/push-dry-run", gid);
+  }
+
   function paths(id, gid) {
-    return { list: listPath(gid), status: statusPath(id, gid), generate: generatePath(id, gid) };
+    return { list: listPath(gid), status: statusPath(id, gid), generate: generatePath(id, gid), dryRun: dryRunPath(id, gid) };
+  }
+
+  // Parse the pasted body before sending, so a typo is caught on the phone.
+  function parsePayload(text) {
+    var raw = String(text == null ? "" : text).trim();
+    if (!raw) return { error: "Paste a push body first." };
+    try {
+      var value = JSON.parse(raw);
+      if (value === null || typeof value !== "object") return { error: "The body must be a JSON object or list." };
+      return { payload: value };
+    } catch (e) {
+      return { error: "That isn't valid JSON." };
+    }
+  }
+
+  function legLine(leg) {
+    if (!leg) return "";
+    if (!leg.event_id) return String(leg.description || "Unmatched leg");
+    var bits = [];
+    if (leg.meeting_name) bits.push(String(leg.meeting_name) + (leg.race_number != null ? " R" + leg.race_number : ""));
+    bits.push((leg.runner_number != null ? "#" + leg.runner_number + " " : "") + String(leg.runner_name || ""));
+    bits.push(String(leg.bet_type || ""));
+    return bits.filter(Boolean).join(" \u00b7 ");
+  }
+
+  function tipHtml(item) {
+    item = item || {};
+    var ok = item.accepted === true;
+    var html = '<div class="pd-tip">';
+    html += '<div class="pd-head"><span class="pd-badge ' + (ok ? "pd-ok" : "pd-bad") + '">' + (ok ? "Would post" : "Would not post") + "</span>";
+    html += '<span class="pd-id">' + esc(item.id || ("Tip " + ((item.index || 0) + 1))) + "</span></div>";
+    var reasons = Array.isArray(item.reasons) ? item.reasons : [];
+    if (reasons.length) {
+      html += '<ul class="pd-reasons">';
+      reasons.forEach(function (r) { html += "<li>" + esc(r) + "</li>"; });
+      html += "</ul>";
+    }
+    var facts = [];
+    if (item.market) facts.push("Market: " + item.market);
+    if (item.odds != null) facts.push("Odds: " + item.odds);
+    if (item.units != null) facts.push("Units: " + item.units);
+    if (item.would_be_late) facts.push("Late: posted after the start, kept out of stats");
+    if (facts.length) html += '<div class="pd-facts">' + esc(facts.join(" \u00b7 ")) + "</div>";
+    var res = item.resolved || {};
+    if (res.status) {
+      html += '<div class="pd-k">Race match: ' + esc(res.status) + "</div>";
+      if (res.reason) html += '<div class="pd-facts">' + esc(res.reason) + "</div>";
+      (Array.isArray(res.legs) ? res.legs : []).forEach(function (leg) {
+        html += '<div class="pd-leg">' + esc(legLine(leg)) + "</div>";
+      });
+    }
+    var ew = item.each_way;
+    if (ew) {
+      var terms = ew.place_terms || {};
+      html += '<div class="pd-k">Each way</div><div class="pd-facts">'
+        + esc((ew.stake_each_part != null ? ew.stake_each_part + "u each part \u00b7 " : "")
+          + "Place odds " + (ew.place_odds != null ? ew.place_odds : "?") + " (" + (ew.place_odds_source || "") + ")"
+          + " \u00b7 Terms " + (terms.fraction != null ? terms.fraction : "") + ", places " + (terms.places != null ? terms.places : "")
+          + " (" + (ew.place_terms_source || "") + ")")
+        + "</div>";
+    }
+    var pv = item.preview;
+    if (pv && pv.text) html += '<div class="pd-k">Post preview</div><pre class="pd-pre">' + esc(pv.text) + "</pre>";
+    html += "</div>";
+    return html;
+  }
+
+  function resultHtml(body) {
+    if (!body || typeof body !== "object") return '<div class="pd-err">No answer.</div>';
+    if (body.ok === false) return '<div class="pd-err">' + esc(body.message || body.error || "Dry run failed.") + "</div>";
+    var tips = Array.isArray(body.tips) ? body.tips : [];
+    var head = (body.accepted || 0) + " of " + (body.count || tips.length) + " would post. Nothing was posted or saved.";
+    if (body.paused) head += " The connector is paused.";
+    var html = '<div class="pd-sum">' + esc(head) + "</div>";
+    tips.forEach(function (t) { html += tipHtml(t); });
+    return html;
+  }
+
+  function dryRunHtml(name) {
+    return '<div class="pd-modal">'
+      + '<div class="ps-k">Dry run \u00b7 ' + esc(name) + "</div>"
+      + '<p class="pd-note">Paste a push body. It is checked like a real push but nothing is posted or saved.</p>'
+      + '<textarea class="pd-input" data-pd-input rows="8" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder=\'{"tips":[{"id":"...","market":"Each Way"}]}\'></textarea>'
+      + '<div class="pd-actions"><button type="button" class="btn" data-pd-run>Run dry run</button><button type="button" class="ghost" data-pd-close>Close</button></div>'
+      + '<div class="pd-out" data-pd-out role="status" aria-live="polite"></div>'
+      + "</div>";
+  }
+
+  async function runDryRun(ctx, id, text) {
+    var parsed = parsePayload(text);
+    if (parsed.error) return { ok: false, message: parsed.error };
+    var res = await ctx.api(dryRunPath(id, ctx.gid), {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ payload: parsed.payload })
+    });
+    if (unauth(res, null, ctx)) return { ok: false, unauth: true, message: "" };
+    var body = await readJson(res);
+    if (!res || !res.ok) return { ok: false, message: (body && (body.message || body.error)) || "Dry run failed." };
+    return body;
   }
 
   function rememberStatus(createdAt) {
@@ -109,7 +216,8 @@
       + '<button type="button" class="ghost ps-copy" data-ps-copy-id>Copy</button></div>'
       + '<div class="ps-status"' + (failed ? "" : ' aria-live="polite"') + '>' + esc(status) + '</div>'
       + '<span class="ps-msg" data-ps-msg role="status"></span></div>'
-      + '<button type="button" class="' + (set && !failed ? "ghost" : "btn") + ' ps-go" data-ps-go>' + esc(failed ? "Retry" : label) + '</button>'
+      + '<div class="ps-btns"><button type="button" class="' + (set && !failed ? "ghost" : "btn") + ' ps-go" data-ps-go>' + esc(failed ? "Retry" : label) + '</button>'
+      + '<button type="button" class="ghost ps-go" data-ps-dry>Dry run</button></div>'
       + '</section>';
   }
 
@@ -150,6 +258,23 @@
       "#ps-root .ps-msg:empty{display:none}",
       "#ps-root .ps-go{min-height:44px;flex:none}",
       "#ps-root .ps-err{color:var(--loss)}",
+      "#ps-root .ps-btns{display:flex;gap:8px;flex-wrap:wrap}",
+      ".pd-modal .pd-note{margin:0 0 8px;font-size:var(--t-foot);color:var(--faint);line-height:1.45}",
+      ".pd-modal .pd-input{display:block;width:100%;min-height:140px;margin:0 0 10px;padding:10px 12px;border-radius:var(--r-sm,10px);border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical;box-sizing:border-box}",
+      ".pd-modal .pd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}",
+      ".pd-modal .pd-actions .btn,.pd-modal .pd-actions .ghost{min-height:44px;flex:1}",
+      ".pd-modal .pd-sum{font-weight:700;font-size:var(--t-sub);margin:4px 0 8px;line-height:1.4}",
+      ".pd-modal .pd-tip{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;min-width:0}",
+      ".pd-modal .pd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}",
+      ".pd-modal .pd-badge{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}",
+      ".pd-modal .pd-ok{background:var(--win-bg,rgba(46,160,67,.18));color:var(--win-ink,var(--txt))}",
+      ".pd-modal .pd-bad{background:var(--loss-bg,rgba(229,83,75,.18));color:var(--loss-ink,var(--txt))}",
+      ".pd-modal .pd-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere;min-width:0}",
+      ".pd-modal .pd-reasons{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--loss-ink,var(--txt))}",
+      ".pd-modal .pd-k{font-weight:700;font-size:12px;margin-top:8px;color:var(--txt)}",
+      ".pd-modal .pd-facts,.pd-modal .pd-leg{font-size:13px;color:var(--faint);line-height:1.45;overflow-wrap:anywhere}",
+      ".pd-modal .pd-pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0 0;padding:8px;border-radius:8px;background:var(--card2);font-size:12px;line-height:1.45;max-width:100%}",
+      ".pd-modal .pd-err{color:var(--loss);font-size:13px}",
       ".ps-modal .ps-k{display:block;font-weight:700;font-size:var(--t-sub);margin-bottom:6px;color:var(--txt)}",
       ".ps-modal .ps-field{margin:0 0 14px;min-width:0}",
       ".ps-modal .ps-warn{margin:0 0 8px;font-weight:700;font-size:var(--t-sub);line-height:1.4;color:var(--warn-ink,var(--loss-ink,var(--txt)))}",
@@ -306,6 +431,16 @@
       Array.prototype.forEach.call(buttons, function (btn) {
         btn.onclick = function () { onGo(btn); };
       });
+      var dryButtons = rootEl.querySelectorAll("[data-ps-dry]");
+      Array.prototype.forEach.call(dryButtons, function (btn) {
+        btn.onclick = function () {
+          var row = btn.closest ? btn.closest("[data-ps-id]") : null;
+          var cid = row ? row.getAttribute("data-ps-id") : "";
+          var c = null;
+          state.list.forEach(function (item) { if (String(item.id) === cid) c = item; });
+          if (cid) openDryRun(cid, labelOf(c || { id: cid }));
+        };
+      });
       var idCopies = rootEl.querySelectorAll("[data-ps-copy-id]");
       Array.prototype.forEach.call(idCopies, function (btn) {
         btn.onclick = function () {
@@ -378,6 +513,49 @@
       }
     }
 
+    function openDryRun(id, name) {
+      function bind(scope, close) {
+        var input = scope.querySelector("[data-pd-input]");
+        var out = scope.querySelector("[data-pd-out]");
+        var run = scope.querySelector("[data-pd-run]");
+        var shut = scope.querySelector("[data-pd-close]");
+        if (shut) shut.onclick = close;
+        if (run) run.onclick = async function () {
+          if (run.disabled) return;
+          run.disabled = true;
+          if (out) out.innerHTML = '<div class="pd-note">Checking\u2026</div>';
+          try {
+            var body = await runDryRun(ctx, id, input ? input.value : "");
+            if (body && body.unauth) return;
+            if (out) out.innerHTML = resultHtml(body);
+          } catch (e) {
+            if (unauth(null, e, ctx)) return;
+            if (out) out.innerHTML = '<div class="pd-err">Couldn\'t reach the bot.</div>';
+          } finally {
+            run.disabled = false;
+          }
+        };
+      }
+      var sheet = root.TBSheet;
+      if (sheet && typeof sheet.open === "function") {
+        var sh = sheet.open({ label: "Dry run", html: dryRunHtml(name), initialFocus: "[data-pd-input]" });
+        bind(sh.card, function () { sh.close({ via: "done" }); });
+        return;
+      }
+      var back = doc.createElement("div");
+      back.className = "ps-back";
+      back.innerHTML = '<div class="ps-sheet" role="dialog" aria-modal="true" aria-label="Dry run">' + dryRunHtml(name) + "</div>";
+      doc.body.appendChild(back);
+      function close() {
+        if (back.parentNode) back.parentNode.removeChild(back);
+        doc.removeEventListener("keydown", onKey, true);
+      }
+      function onKey(e) { if (e.key === "Escape") close(); }
+      doc.addEventListener("keydown", onKey, true);
+      back.addEventListener("click", function (e) { if (e.target === back) close(); });
+      bind(back, close);
+    }
+
     async function onGo(btn) {
       var row = btn.closest ? btn.closest("[data-ps-id]") : null;
       var id = row ? row.getAttribute("data-ps-id") : "";
@@ -425,6 +603,12 @@
     listPath: listPath,
     statusPath: statusPath,
     generatePath: generatePath,
+    dryRunPath: dryRunPath,
+    parsePayload: parsePayload,
+    resultHtml: resultHtml,
+    tipHtml: tipHtml,
+    dryRunHtml: dryRunHtml,
+    runDryRun: runDryRun,
     rememberStatus: rememberStatus,
     rowHtml: rowHtml,
     modalHtml: modalHtml,

@@ -120,3 +120,56 @@ test("the row is mounted only from the owner connectors shell", () => {
   assert.doesNotMatch(html, /assets\/connectors\.js/);
   assert.doesNotMatch(html, /loadConnectorPanel|connector-panel/);
 });
+
+test("dry run: path, pasted JSON check, and the result is escaped text with no links", async () => {
+  assert.equal(P.dryRunPath("id/2", "guild 1"), "/api/connectors/id%2F2/push-dry-run?guild_id=guild%201");
+  assert.equal(P.paths("c", "9").dryRun, "/api/connectors/c/push-dry-run?guild_id=9");
+  assert.equal(P.parsePayload("").error, "Paste a push body first.");
+  assert.equal(P.parsePayload("{nope").error, "That isn't valid JSON.");
+  assert.equal(P.parsePayload("3").error, "The body must be a JSON object or list.");
+  assert.deepEqual(P.parsePayload(' {"tips":[]} ').payload, { tips: [] });
+  const body = {
+    ok: true, test: true, count: 2, accepted: 1, paused: true,
+    tips: [
+      { index: 0, id: "t-1", accepted: true, reasons: [], market: "EW", odds: 5, units: 2, would_be_late: true,
+        resolved: { status: "matched", legs: [
+          { event_id: "e", meeting_name: "Flemington", race_number: 4, runner_number: 7, runner_name: "Fast Fleet", bet_type: "win" },
+          { event_id: "e", meeting_name: "Flemington", race_number: 4, runner_number: 7, runner_name: "Fast Fleet", bet_type: "place" }] },
+        each_way: { stake_each_part: 1, place_odds: 2, place_odds_source: "terms fraction of the win odds",
+          place_terms: { fraction: 0.25, places: 3 }, place_terms_source: "sent" },
+        preview: { text: "<b>R4</b> [App Store →](https://apps.apple.com/x)" } },
+      { index: 1, id: "t-2", accepted: false, reasons: ["odds must be > 1"], resolved: { status: "not_checked" } }
+    ]
+  };
+  const html = P.resultHtml(body);
+  assert.match(html, /1 of 2 would post\. Nothing was posted or saved\. The connector is paused\./);
+  assert.match(html, /Would post/);
+  assert.match(html, /Would not post/);
+  assert.match(html, /odds must be &gt; 1/);
+  assert.match(html, /Flemington R4 · #7 Fast Fleet · place/);
+  assert.match(html, /Late: posted after the start/);
+  assert.match(html, /&lt;b&gt;R4&lt;\/b&gt;/);
+  assert.doesNotMatch(html, /<a\b|target=|window\.open/);
+  assert.match(P.resultHtml({ ok: false, message: "bad body" }), /bad body/);
+  const sheet = P.dryRunHtml("Feed <x>");
+  assert.match(sheet, /Feed &lt;x&gt;/);
+  assert.match(sheet, /data-pd-input/);
+  assert.match(sheet, /data-pd-run/);
+  assert.doesNotMatch(src, /target=["']?_blank|window\.open/);
+
+  const sent = [];
+  const ctx = { gid: "9", api: async function (p, opts) { sent.push({ p: p, opts: opts }); return { ok: true, status: 200, json: async function () { return body; } }; } };
+  const out = await P.runDryRun(ctx, "c1", '{"tips":[{"id":"t-1"}]}');
+  assert.equal(out.accepted, 1);
+  assert.equal(sent[0].p, "/api/connectors/c1/push-dry-run?guild_id=9");
+  assert.equal(sent[0].opts.method, "POST");
+  assert.deepEqual(JSON.parse(sent[0].opts.body), { payload: { tips: [{ id: "t-1" }] } });
+  const bad = await P.runDryRun(ctx, "c1", "{oops");
+  assert.equal(bad.ok, false);
+  assert.equal(sent.length, 1);
+});
+
+test("each connector row has a Dry run button", () => {
+  const row = P.rowHtml({ id: "c1", tipster_name: "Tips" }, { set: true }, function () { return ""; });
+  assert.match(row, /data-ps-dry>Dry run</);
+});
