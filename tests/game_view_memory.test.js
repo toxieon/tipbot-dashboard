@@ -51,3 +51,14 @@ test("Game view wires the memory on open and on paint", () => {
   assert.match(html, /fliveMemory\(\)\.set\(key, FLIVE\.venue\)/);
   assert.match(html, /FollowerLive\.pickGameIndex\(games, FLIVE\.gameKey\)/);
 });
+
+test("feed-built games keep a sport hint so the ground can follow them", () => {
+  const FL = require("../assets/follower-live.js");
+  const games = FL.gamesFromFeeds([{ guild_id: "9", feed: [
+    { tip_id: "b", game_name: "Hawks @ Owls", bet_type: "Y 25+ points", sport: "NBA", odds: 2, result: "Pending", starts_at: "2099-01-01T00:00:00Z" },
+  ] }]);
+  assert.equal(games[0].payload.game.sport, "NBA");
+  const merged = FL.mergeGamePayload(games[0].payload, [{ game: { game_name: "Hawks @ Owls" }, tipsters: [] }]);
+  assert.equal(merged.game.sport, "NBA");
+  assert.equal(FL.mergeGamePayload(games[0].payload, []).game.sport, "NBA");
+});

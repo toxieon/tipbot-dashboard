@@ -5878,7 +5878,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       reads.push(await r.json());
     }));
     const merged=FollowerLive.mergeGamePayload(g.payload, reads);
-    fliveCache().set(g.key, merged);
+    // A failed read is not cached: the next switch or poll reads the game again.
+    if(reads.length) fliveCache().set(g.key, merged);
     return merged;
   }
   function flivePrefetch(games, currentKey, maxAge){
