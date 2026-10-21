@@ -5837,12 +5837,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     flivePaint(data);
     paintGameSwitch(games||[], key||"");
+    if(key&&FLIVE.mode==="own") fliveMemory().set(key, FLIVE.venue);
     fliveRefreshMount();
   }
   // Game view keeps every followed game's payload in FLIVE.cache. Opening prefetches them
   // all (one request at a time beside the shown game, under the page's API queue), so a
   // game button paints from the cache at once and refreshes that one game behind it.
   const FLIVE_FEEDS_MS=60000, FLIVE_PROBE_MS=60000, FLIVE_BG_MAX_AGE_MS=120000;
+  let FLIVE_MEMORY=null;
+  function fliveMemory(){
+    if(!FLIVE_MEMORY){ let st=null; try{ st=window.localStorage; }catch(e){}
+      FLIVE_MEMORY=FollowerLive.createGameMemory(st, window.TBVenues&&TBVenues.isVenue); }
+    return FLIVE_MEMORY;
+  }
   function fliveCache(){ if(!FLIVE.cache) FLIVE.cache=FollowerLive.createGameCache(); return FLIVE.cache; }
   async function fliveOwnFeeds(seq, follows, force){
     if(!force && FLIVE.games && FLIVE.games.length && Date.now()-(FLIVE.feedsAt||0)<FLIVE_FEEDS_MS) return FLIVE.games;
@@ -5923,9 +5930,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const games=await fliveOwnFeeds(seq, follows, !!opts.refreshFeeds);
       if(!games||seq!==FLIVE.seq) return;
       if(!games.length){ flivePaintOwn(null); fliveProbeLive(); return; }
-      let idx=0;
-      for(let i=0;i<games.length;i++){ if(games[i].key===FLIVE.gameKey){ idx=i; break; } }
-      const chosen=games[idx];
+      // The remembered game when it is still on, else the first game (its own ground follows).
+      const chosen=games[FollowerLive.pickGameIndex(games, FLIVE.gameKey)];
       FLIVE.gameKey=chosen.key;
       const cache=fliveCache();
       const hit=cache.get(chosen.key);
@@ -5954,6 +5960,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     panel("flive");show("app");
     FLIVE.seq++; FLIVE.mode="own"; FLIVE.gid=""; FLIVE.game=""; FLIVE.name=""; FLIVE.seen={}; FLIVE.demo=null;
     FLIVE.ownToken=(FLIVE.ownToken|0)+1; FLIVE.cache=null; FLIVE.games=[]; FLIVE.feedsAt=0; FLIVE.probeAt=0; FLIVE.prefetching=false; FLIVE.refreshOn=false; FLIVE.refreshing=false; FLIVE.venue="mcg"; FLIVE.venuePending=false; FLIVE.box={team:"home",sort:"",open:true};
+    const mem=window.FollowerLive&&FollowerLive.createGameMemory?fliveMemory().get():null;
+    if(mem){ if(!FLIVE.gameKey) FLIVE.gameKey=mem.key; if(mem.venue) FLIVE.venue=mem.venue; }
     fliveBeginGround();
     $("flive").innerHTML=fliveShell({own:true});
     const back=$("flive-back");

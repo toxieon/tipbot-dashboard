@@ -1094,11 +1094,41 @@
     + "@keyframes fl-refresh-spin{to{transform:rotate(360deg)}}"
     + "@media (prefers-reduced-motion:reduce){.fl-refresh.is-busy svg{animation:none}}";
 
+  // Game view remembers the last game shown and its ground, so it reopens there.
+  var GAME_MEMORY_KEY = "tb.gv.last";
+  function createGameMemory(storage, isVenue) {
+    function read() {
+      try {
+        var raw = storage && storage.getItem(GAME_MEMORY_KEY);
+        var v = raw ? JSON.parse(raw) : null;
+        if (!v || typeof v.key !== "string" || !v.key) return null;
+        var venue = typeof v.venue === "string" && (!isVenue || isVenue(v.venue)) ? v.venue : "";
+        return {key: v.key, venue: venue};
+      } catch (e) { return null; }
+    }
+    return {
+      get: read,
+      set: function (key, venue) {
+        if (!key) return;
+        try { storage && storage.setItem(GAME_MEMORY_KEY, JSON.stringify({key: String(key), venue: String(venue || "")})); } catch (e) {}
+      },
+      clear: function () { try { storage && storage.removeItem(GAME_MEMORY_KEY); } catch (e) {} }
+    };
+  }
+  /** Index of the game to open: the current/remembered key when it still exists, else 0. */
+  function pickGameIndex(games, key) {
+    for (var i = 0; i < (games || []).length; i++) if (games[i] && games[i].key === key) return i;
+    return 0;
+  }
+
   return {
     createGameCache: createGameCache,
     prefetchOrder: prefetchOrder,
     runPool: runPool,
     createZoomLock: createZoomLock,
+    createGameMemory: createGameMemory,
+    pickGameIndex: pickGameIndex,
+    GAME_MEMORY_KEY: GAME_MEMORY_KEY,
     refreshEnabled: refreshEnabled,
     refreshButtonHtml: refreshButtonHtml,
     REFRESH_CSS: REFRESH_CSS,
