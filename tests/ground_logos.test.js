@@ -65,7 +65,7 @@ test("sponsor files stay cached and the scene revalidates", () => {
   const own = html.slice(html.indexOf("function openGameView"), html.indexOf("async function fliveProbeLive"));
   assert.match(own, /fliveBeginGround\(\)/);
   assert.match(own, /fliveWatchStadium\(\)/);
-  assert.match(own, /fliveMount\(\);\n    fliveLoadOwn\(false\)/);
+  assert.match(own, /fliveMount\(\);\n    fliveLoadOwn\(false, \{opening:true, refreshFeeds:true\}\)/);
   const loadOwn = html.slice(html.indexOf("async function fliveLoadOwn"), html.indexOf("function openGameView"));
   assert.doesNotMatch(loadOwn, /fliveMount\(|fliveSponsors\(|fliveBeginGround\(/);
   const blob = html.slice(html.indexOf("function fliveBlob"), html.indexOf("function fliveSponsors"));
