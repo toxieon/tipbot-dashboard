@@ -1,4 +1,4 @@
-// Job 08: Game view camera presets. Opens the demo Game view, cycles every preset at phone and
+// Job 08: Game view camera presets. Opens the demo Game view, cycles every preset with the change-view button at phone and
 // desktop size, and saves a screenshot per preset to tests/e2e/__screens__/cameras/ (tests/ is in
 // the public build's DENY_DIRS, so these never ship).
 import { test, expect } from "@playwright/test";
@@ -50,46 +50,66 @@ async function openGameView(page, opts = {}) {
   return errors;
 }
 
-const CYCLE = [["broadcast", "broadcast"], ["ends", "goals-north"], ["ends", "goals-south"], ["wing", "wing"], ["blimp", "blimp"]];
+const CYCLE = ["goals-north", "goals-south", "wing", "blimp", "broadcast"];
+
+async function buttonBox(page) {
+  return page.evaluate(() => {
+    const b = document.querySelector(".fl-camcycle").getBoundingClientRect();
+    const host = document.getElementById("flive-mcg").getBoundingClientRect();
+    return { b: b.toJSON(), host: host.toJSON(), vw: document.documentElement.clientWidth, vh: window.innerHeight,
+      noHScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1 };
+  });
+}
+function expectOnScreen(m) {
+  expect(m.b.width).toBeGreaterThanOrEqual(36);
+  expect(m.b.width).toBeLessThanOrEqual(44);
+  expect(Math.abs(m.b.width - m.b.height)).toBeLessThan(1);
+  expect(m.b.left).toBeGreaterThanOrEqual(m.host.left);
+  expect(m.b.right).toBeLessThanOrEqual(m.host.right + 0.5);
+  expect(m.b.top).toBeGreaterThanOrEqual(m.host.top);
+  expect(m.b.bottom).toBeLessThanOrEqual(m.host.bottom + 0.5);
+  expect(m.b.left).toBeGreaterThanOrEqual(0);
+  expect(m.b.right).toBeLessThanOrEqual(m.vw);
+  // A corner, not the middle of the ground.
+  expect(m.b.left - m.host.left).toBeLessThan(m.host.width / 4);
+  expect(m.noHScroll).toBe(true);
+}
 
 for (const vp of [{ name: "390", width: 390, height: 844 }, { name: "1440", width: 1440, height: 900 }]) {
-  test.describe(`camera presets at ${vp.width}x${vp.height}`, () => {
+  test.describe(`change-view button at ${vp.width}x${vp.height}`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
-    test("every preset, the chips, the saved choice", async ({ page, context }) => {
+    test("one round button; each tap goes to the next preset and wraps; the choice is saved", async ({ page, context }) => {
       test.setTimeout(90000); // five swiftshader screenshots at 1440 px ran close to the 60 s default
       const popups = [];
       context.on("page", (p) => popups.push(p.url()));
       const errors = await openGameView(page);
       await expect(page.locator("#flive-mcg")).toHaveClass(/is-webgl/);
-      const chips = page.locator(".fl-cams button");
-      await expect(chips).toHaveCount(4);
-      await expect(chips).toHaveText(["Broadcast", "Ends", "Wing", "Blimp"]);
-      for (const box of await chips.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()))) {
-        expect(box.height).toBeGreaterThanOrEqual(44);
-        expect(box.width).toBeGreaterThanOrEqual(44);
-      }
-      // The row fits inside the ground at this width.
-      const fits = await page.evaluate(() => {
-        const row = document.querySelector(".fl-cams").getBoundingClientRect();
-        const host = document.getElementById("flive-mcg").getBoundingClientRect();
-        return row.left >= host.left && row.right <= host.right + 0.5 && document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1;
-      });
-      expect(fits).toBe(true);
+      await expect(page.locator(".fl-cams button")).toHaveCount(1);
+      const btn = page.getByRole("button", { name: "Change view" });
+      await expect(btn).toHaveCount(1);
+      await expect(page.locator("[data-cam-chip]")).toHaveCount(0);
+      expectOnScreen(await buttonBox(page));
+      await expect(page.locator("#flive-mcg")).toHaveAttribute("data-cam", "broadcast");
 
-      for (const [chip, id] of CYCLE) {
-        await page.locator(`[data-cam-chip="${chip}"]`).click();
+      for (const id of CYCLE) {
+        await btn.click();
         await expect(page.locator("#flive-mcg")).toHaveAttribute("data-cam", id);
-        await expect(page.locator(`[data-cam-chip="${chip}"]`)).toHaveAttribute("aria-pressed", "true");
         expect(await page.evaluate(() => document.getElementById("flive-mcg")._mcg.cameraId)).toBe(id);
         await page.waitForTimeout(750); // let the 600 ms tween land
         await page.locator(".fl-hero").screenshot({ path: path.join(SHOTS, `${vp.name}-${id}.png`) });
       }
-      await expect(page.locator('[data-cam-chip="ends"]')).toHaveText("Ends");
-      expect(await page.evaluate(() => localStorage.getItem("tipdash_gv_cam"))).toBe("blimp");
-      // The cartoon players only show on the broadcast camera.
-      await page.locator('[data-cam-chip="broadcast"]').click();
-      await expect(page.locator("#flive-mcg")).toHaveAttribute("data-cam", "broadcast");
+      expect(await page.evaluate(() => localStorage.getItem("tipdash_gv_cam"))).toBe("broadcast");
+      await expect(btn).toHaveAttribute("title", "Change view: Broadcast");
+      // Still in its corner after a scroll and a rotation.
+      await page.evaluate(() => window.scrollBy(0, 400));
+      await page.waitForTimeout(100);
+      const afterScroll = await buttonBox(page);
+      expect(afterScroll.b.left - afterScroll.host.left).toBeLessThan(afterScroll.host.width / 4);
+      await page.setViewportSize({ width: vp.height, height: vp.width });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(300);
+      expectOnScreen(await buttonBox(page));
       expect(popups).toEqual([]);
       expect(errors).toEqual([]);
     });
@@ -100,11 +120,11 @@ test("the saved camera comes back on the next open", async ({ page }) => {
   await page.addInitScript(() => { try { localStorage.setItem("tipdash_gv_cam", "wing"); } catch (e) {} });
   await openGameView(page, { keepStorage: true });
   await expect(page.locator("#flive-mcg")).toHaveAttribute("data-cam", "wing");
-  await expect(page.locator('[data-cam-chip="wing"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Change view" })).toHaveAttribute("title", "Change view: Wing");
   expect(await page.evaluate(() => document.getElementById("flive-mcg")._mcg.cameraId)).toBe("wing");
 });
 
-test("photo fallback (the model can't load): no chip row", async ({ page }) => {
+test("photo fallback (the model can't load): no change-view button", async ({ page }) => {
   await openGameView(page, { noModel: true });
   await expect(page.locator("#flive-mcg")).not.toHaveClass(/is-webgl/);
   await expect(page.locator(".fl-cams")).toHaveCount(0);

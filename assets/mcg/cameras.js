@@ -1,5 +1,5 @@
-/* Game view camera presets and the chip row that switches between them.
-   Pure helpers (presets, tween maths, saved choice) plus a small DOM chip row.
+/* Game view camera presets and the change-view button that cycles through them.
+   Pure helpers (presets, tween maths, saved choice) plus one small DOM button.
    mount.js owns the three.js camera and calls these; nothing here imports three.js. */
 
 // Presets as data. Metres, y up, the same space as mount.js (the broadcast camera
@@ -17,7 +17,7 @@ export var CAMERAS = [
   {id: "blimp", label: "Blimp", fov: 42, pos: [0, 190, 50], look: [0, 0, -3], minAspect: 1.4}
 ];
 
-// Chips shown in the overlay. "Ends" covers both goal cameras; tapping it again flips end.
+// View names by group, used for the button title and per-venue labels.
 export var CHIPS = [
   {key: "broadcast", label: "Broadcast", ids: ["broadcast"]},
   {key: "ends", label: "Ends", ids: ["goals-north", "goals-south"]},
@@ -101,20 +101,26 @@ export function storageKeyFor(venue) {
   return !v || v === "mcg" ? STORAGE_KEY : STORAGE_KEY + ":" + v;
 }
 
-/** Which camera a chip tap goes to. "Ends" flips north/south when an end camera is already showing. */
-export function nextCameraForChip(key, currentId, cams) {
-  var chip = null;
-  for (var i = 0; i < CHIPS.length; i++) if (CHIPS[i].key === key) chip = CHIPS[i];
-  if (!chip) return currentId;
-  var ids = chip.ids.filter(function (id) { return !cams || findCamera(cams, id); });
-  if (!ids.length) return currentId;
-  var at = ids.indexOf(currentId);
-  return at === -1 ? ids[0] : ids[(at + 1) % ids.length];
+/** The next preset in table order, wrapping to the first. Unknown ids start the cycle. */
+export function nextCameraInCycle(currentId, cams) {
+  var list = cams && cams.length ? cams : CAMERAS;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === currentId) return list[(i + 1) % list.length].id;
+  }
+  return list[0].id;
 }
 
 export function chipForCamera(id) {
   for (var i = 0; i < CHIPS.length; i++) if (CHIPS[i].ids.indexOf(id) !== -1) return CHIPS[i].key;
   return null;
+}
+
+/** Name of the view showing, for the button's title ("Wing", "South end", or a venue label). */
+export function cameraName(id, labels) {
+  var names = chipLabels(labels);
+  if (!(labels && labels.ends) && (id === "goals-north" || id === "goals-south")) return id === "goals-north" ? "North end" : "South end";
+  var key = chipForCamera(id);
+  return key ? names[key] : String(id || "");
 }
 
 /** The saved camera id, or "broadcast" when nothing valid is saved. Storage can throw (private mode). */
@@ -130,21 +136,23 @@ export function saveCameraChoice(storage, id, key) {
   try { if (storage) storage.setItem(key || STORAGE_KEY, String(id)); return true; } catch (e) { return false; }
 }
 
-// ── chip row ────────────────────────────────────────────────────────────────
+// ── change-view button ──────────────────────────────────────────────────────
 var STYLE_ID = "tb-gv-cams-style";
 var CSS = ""
-  + ".fl-cams{position:absolute;z-index:5;left:max(8px, env(safe-area-inset-left, 0px));bottom:4px;display:flex;gap:2px;"
-  + "max-width:calc(100% - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));pointer-events:auto}"
-  + ".fl-cams button{flex:none;min-width:44px;min-height:44px;height:44px;padding:0 3px;margin:0;border:0;background:none;"
-  + "color:var(--txt);font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center}"
-  + ".fl-cams span{display:block;height:28px;line-height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:700;"
-  + "border:1px solid color-mix(in srgb,var(--txt) 22%,transparent);background:color-mix(in srgb,#070b14 72%,transparent);white-space:nowrap}"
-  + ".fl-cams button[aria-pressed=\"true\"] span{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 30%,#070b14)}"
-  + ".fl-cams button:focus-visible span{outline:2px solid var(--accent);outline-offset:2px}"
+  + ".fl-cams{position:absolute;z-index:5;left:max(8px, env(safe-area-inset-left, 0px));bottom:max(8px, env(safe-area-inset-bottom, 0px));"
+  + "width:40px;height:40px;pointer-events:auto}"
+  + ".fl-camcycle{display:grid;place-items:center;width:40px;height:40px;padding:0;margin:0;border-radius:50%;cursor:pointer;"
+  + "border:1px solid color-mix(in srgb,var(--txt) 22%,transparent);background:color-mix(in srgb,#070b14 72%,transparent);"
+  + "color:var(--txt);-webkit-tap-highlight-color:transparent;touch-action:manipulation}"
+  + ".fl-camcycle svg{width:20px;height:20px;display:block}"
+  + ".fl-camcycle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
   // Photo mode (WebGL off or lost) has no cameras: the still exists only for broadcast.
   + ".fl-mcg:not(.is-webgl) .fl-cams{display:none}"
   // The cartoon player overlay is drawn for the broadcast framing, so it only shows there.
   + ".fl-mcg.is-webgl[data-cam]:not([data-cam=\"broadcast\"]) .tblfx-afl{visibility:hidden}";
+
+var ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" '
+  + 'stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h3l2-3h8l2 3h3v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
 function ensureStyle(doc) {
   if (!doc || doc.getElementById(STYLE_ID)) return;
@@ -154,24 +162,16 @@ function ensureStyle(doc) {
   (doc.head || doc.documentElement).appendChild(st);
 }
 
-/** Chip row HTML for the current camera (exported for tests). `labels` overrides chip
-    labels per venue (see chipLabels); an overridden "ends" label stays fixed. */
-export function chipRowHtml(currentId, labels) {
-  var on = chipForCamera(currentId);
-  var names = chipLabels(labels);
-  var fixedEnds = !!(labels && labels.ends);
-  return CHIPS.map(function (c) {
-    var label = !fixedEnds && c.key === "ends" && (currentId === "goals-north" || currentId === "goals-south")
-      ? (currentId === "goals-north" ? "North end" : "South end") : names[c.key];
-    return '<button type="button" data-cam-chip="' + c.key + '" aria-pressed="' + (c.key === on ? "true" : "false") + '"'
-      + (c.key === "ends" ? ' title="Tap again to switch ends"' : "") + "><span>" + label + "</span></button>";
-  }).join("");
+/** Button markup for the current camera (exported for tests). */
+export function cycleButtonHtml(currentId, labels) {
+  return '<button type="button" class="fl-camcycle" data-cam-cycle aria-label="Change view" title="Change view: '
+    + cameraName(currentId, labels) + '">' + ICON + "</button>";
 }
 
 /**
- * Adds the chip row to the ground host and applies the saved camera.
- * handle: the mount() handle. No row in fallback (photo) mode: the photo exists only
- * for the broadcast camera. Returns the row element, or null when no row is shown.
+ * Adds the change-view button to the ground host and applies the saved camera. Each tap
+ * moves to the next preset (wrapping). No button in fallback (photo) mode: the photo
+ * exists only for the broadcast camera. Returns the wrapper element, or null.
  */
 export function mountCameraChips(host, handle, opts) {
   opts = opts || {};
@@ -185,25 +185,26 @@ export function mountCameraChips(host, handle, opts) {
   ensureStyle(doc);
   var old = host.querySelector(".fl-cams");
   if (old) old.remove();
-  var row = doc.createElement("div");
-  row.className = "fl-cams";
-  row.setAttribute("role", "group");
-  row.setAttribute("aria-label", "Camera");
+  var wrap = doc.createElement("div");
+  wrap.className = "fl-cams";
+  // The button is built once and only its title changes, so focus stays on it between taps.
   function paint() {
     var id = handle.cameraId || "broadcast";
-    row.innerHTML = chipRowHtml(id, labels);
+    var btn = wrap.querySelector ? wrap.querySelector("[data-cam-cycle]") : null;
+    if (btn && btn.setAttribute) btn.setAttribute("title", "Change view: " + cameraName(id, labels));
+    else wrap.innerHTML = cycleButtonHtml(id, labels);
     try { host.dataset.cam = id; } catch (e) {}
   }
-  row.addEventListener("click", function (ev) {
-    var btn = ev.target && ev.target.closest ? ev.target.closest("[data-cam-chip]") : null;
+  wrap.addEventListener("click", function (ev) {
+    var btn = ev.target && ev.target.closest ? ev.target.closest("[data-cam-cycle]") : null;
     if (!btn) return;
-    var next = nextCameraForChip(btn.getAttribute("data-cam-chip"), handle.cameraId || "broadcast", cams);
+    var next = nextCameraInCycle(handle.cameraId || "broadcast", cams);
     if (handle.setCamera(next, {animate: true}) !== false) saveCameraChoice(storage, next, key);
     paint();
   });
   var saved = loadCameraChoice(storage, cams, key);
   if (saved !== (handle.cameraId || "broadcast")) handle.setCamera(saved, {animate: false});
   paint();
-  host.appendChild(row);
-  return row;
+  host.appendChild(wrap);
+  return wrap;
 }
