@@ -7471,6 +7471,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button>'+accessTab+'</div>'
       +'<div id="settings-body"></div></div></div>';
     const schedNote=(typeof scheduleNoteHtml==="function")?scheduleNoteHtml(s.guild_id):"";
+    // A new server page: stop the old page's owner panels first, so nothing carries over.
+    if(window.TBOwnerServer&&typeof TBOwnerServer.stop==="function") try{ TBOwnerServer.stop($("detail")); }catch(e){}
+    $("detail").setAttribute("data-guild-id", String(s.guild_id));
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
       +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
@@ -7531,6 +7534,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
     { const ab=$("stab-access"); if(ab) ab.onclick=()=>setTab("access"); }
     if(isAdmin) loadOwnerServer().then(function(){
+      // A server switch while the owner tools loaded: this page is gone, so never attach its server here.
+      if(gen!==DETAIL_RENDER_GEN) return;
       if(!(STATE.ops===true&&!STATE.viewAs)) return;
       const detail=$("detail");
       if(!detail||!detail.isConnected||!(window.TBOwnerServer&&typeof TBOwnerServer.attach==="function")) return;
