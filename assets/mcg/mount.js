@@ -6,6 +6,7 @@ import { GLTFLoader } from "../vendor/three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "../vendor/three/addons/libs/meshopt_decoder.module.js";
 import { addBoards } from "./boards/boards.js";
 import { upgradeStands, upgradeTowers, addGround } from "./v5.js";
+import "../logo_frame.js";
 import { camerasFor, findCamera, cameraAt, tweenProgress, effectiveFov, TWEEN_MS, mountCameraChips } from "./cameras.js";
 export { mountCameraChips };
 
@@ -545,8 +546,29 @@ export async function mount(host, opts) {
       sparkTex = new T.CanvasTexture(cv);
       return sparkTex;
     }
+    // Tap a logo: raycast logo meshes only; a pointer that moved more than 8 px is a drag.
+    var logoMeshes = [];
+    var tapRay = new T.Raycaster();
+    var tapStart = null;
+    function onTapDown(ev) { tapStart = {x: ev.clientX, y: ev.clientY}; }
+    function onTapUp(ev) {
+      var st = tapStart; tapStart = null;
+      if (!st || !opts || typeof opts.onLogoTap !== "function" || !logoMeshes.length) return;
+      if (Math.hypot(ev.clientX - st.x, ev.clientY - st.y) > 8) return;
+      var r = canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var ndc = new T.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+      tapRay.setFromCamera(ndc, camera);
+      var hit = tapRay.intersectObjects(logoMeshes, false)[0];
+      if (hit && hit.object && hit.object.userData.logoTap) {
+        try { opts.onLogoTap(hit.object.userData.logoTap); } catch (eT) {}
+      }
+    }
+    canvas.addEventListener("pointerdown", onTapDown);
+    canvas.addEventListener("pointerup", onTapUp);
     function setLogos(logos) {
       clearLogos();
+      logoMeshes = [];
       (logos || []).forEach(function (logo, i) {
         var url = logo && (logo.url || logo.src || logo.image);
         if (!url) return;
@@ -556,14 +578,36 @@ export async function mount(host, opts) {
         if (!(d > 0)) d = 4.7;
         var x = Number(logo.x) || 0;
         var z = Number(logo.z) || 0;
-        var tex = new T.TextureLoader().load(url, function () {
-          if (alive && still && renderer) renderer.render(scene, camera);
-        });
+        var LF = globalThis.LogoFrame;
+        var view = {zoom: logo.zoom, pan_x: logo.pan_x, pan_y: logo.pan_y, shape: logo.shape};
+        var tex;
+        if (!LF || (w === d && LF.plain(view))) {
+          tex = new T.TextureLoader().load(url, function () {
+            if (alive && still && renderer) renderer.render(scene, camera);
+          });
+        } else {
+          // Canvas with the logo's width:depth aspect; alpha outside the shape.
+          var cv = document.createElement("canvas");
+          var cw = 512, ch = Math.max(1, Math.round(512 * d / w));
+          if (ch > 512) { ch = 512; cw = Math.max(1, Math.round(512 * w / d)); }
+          cv.width = cw; cv.height = ch;
+          tex = new T.CanvasTexture(cv);
+          var im = new Image();
+          im.crossOrigin = "anonymous";
+          im.onload = function () {
+            try { LF.paint(cv.getContext("2d"), im, cw, ch, view); } catch (eP) {}
+            tex.needsUpdate = true;
+            if (alive && renderer) renderer.render(scene, camera);
+          };
+          im.src = url;
+        }
         if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
         tex.anisotropy = 8;
         var mat = new T.MeshBasicMaterial({map: tex, transparent: true, depthWrite: false});
         var mesh = new T.Mesh(new T.PlaneGeometry(w, d), mat);
         placeLogo(mesh, logo, 0.4);
+        mesh.userData.logoTap = {id: String(logo.id || logo.asset_id || i), listing: logo.listing || null};
+        logoMeshes.push(mesh);
         logoGroup.add(mesh);
         var glow = new T.Mesh(
           new T.PlaneGeometry(w * 1.5, d * 2.2),
@@ -747,6 +791,9 @@ export async function mount(host, opts) {
       },
       stop: function () {
         alive = false;
+        canvas.removeEventListener("pointerdown", onTapDown);
+        canvas.removeEventListener("pointerup", onTapUp);
+        logoMeshes = [];
         if (raf) cancelAnimationFrame(raf);
         if (watch) watch.disconnect();
         if (renderer) {

@@ -286,7 +286,8 @@
   .fl-hero{position:relative;height:300px;border-radius:0 0 22px 22px;overflow:hidden;background:#070b14;margin:0;isolation:isolate}
   .fl-mcg{position:absolute;inset:0}
   .fl-photo-logos{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
-  .fl-photo-logo{position:absolute;display:block;object-fit:fill}
+  .fl-photo-logo{position:absolute;display:block;width:100px;height:100px;overflow:hidden;pointer-events:auto;cursor:pointer}
+  .fl-photo-logo>img{position:absolute;display:block;max-width:none;object-fit:fill;pointer-events:none}
   .fl-photo-hit{position:absolute;z-index:2;transform:translate(-50%,-100%);font:700 20px/1 "Instrument Sans",Geist,sans-serif;color:#e9fbff;text-shadow:0 0 10px rgba(110,220,255,.95);white-space:nowrap;animation:fl-hit-rise 3s ease-out both}
   @keyframes fl-hit-rise{0%{opacity:0;margin-top:0}12%{opacity:1}70%{opacity:1}100%{opacity:0;margin-top:-48px}}
   @keyframes fl-hit-fade{0%,80%{opacity:1}100%{opacity:0}}
@@ -1446,6 +1447,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="batchtray" class="batchtray" hidden></div>
 
 <script src="./assets/req-pool.js?v=__TD_VERSION__"></script>
+<script src="./assets/logo_frame.js?v=__TD_VERSION__"></script>
 <script src="./assets/light-data.js?v=__TD_VERSION__"></script>
 <script src="./assets/lines.js?v=__TD_VERSION__"></script>
 <script src="./assets/racing-legs.js?v=__TD_VERSION__"></script>
@@ -1917,7 +1919,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(m[0]==="stats") return openStats(), true;
     if(m[0]==="mytips") return openMyTips(), true;
     if(m[0]==="discover") return openDiscover(), true;
-    if(m[0]==="marketplace"){ if(!marketplaceShown()) return enterHome(), true; return openMarketplace(), true; }
+    if(m[0]==="marketplace"){ if(!marketplaceShown()) return enterHome(), true; let mid=""; try{ mid=m[1]?decodeURIComponent(m[1]):""; }catch(_){ mid=""; } return openMarketplace(mid), true; }
     if(m[0]==="following") return openFollowerAllView(), true;
     if(m[0]==="settings") return openOwnerSettings(), true;
     if(m[0]==="ops") return openOps(), true;
@@ -2589,15 +2591,16 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     try{ enterHome(); }catch(e){}
     ENFORCING=false;
   }
-  function openMarketplace(){
+  function openMarketplace(id){
     if(!marketplaceShown()) return enterHome();
-    navNote("#/marketplace", ()=>openMarketplace());
+    const lid=(typeof id==="string")?id:"";
+    navNote(lid?"#/marketplace/"+encodeURIComponent(lid):"#/marketplace", ()=>openMarketplace(lid));
     $("dropdown").hidden=true; $("gear").setAttribute("aria-expanded","false");
     panel("marketplace"); show("app");
     const text=(window.TBGlobalFlags&&typeof TBGlobalFlags.badge==="function")?TBGlobalFlags.badge("marketplace_enabled"):"";
     $("marketplace").innerHTML='<div class="back" id="mp-back">← Back</div>'
       +'<h1 style="margin:0 0 12px">Marketplace'+(text?' <span class="gf-badge">'+esc(text)+'</span>':'')+'</h1>'
-      +'<div class="empty">Nothing is listed yet.</div>';
+      +'<div class="empty">'+(lid?"This listing isn\'t available yet.":"Nothing is listed yet.")+'</div>';
     const back=$("mp-back"); if(back) back.onclick=()=>navBack(()=>enterHome());
   }
   async function openOwnerSettings(){
@@ -2619,6 +2622,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     TBOwner.mountChrome({ openOps: ()=>openOps(), openSettings: ()=>openOwnerSettings(),
       paint: ()=>{ paintOpsTab(); paintOwnerSettingsEntry(); } });
   }
+  window.addEventListener("hashchange", function(){ if(/^#\/marketplace(?:\/|$)/.test(location.hash||"")) navRoute(location.hash); });
   { const mp=$("dd-marketplace"); if(mp){ mp.onclick=openMarketplace; mp.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMarketplace(); } }; } }
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
@@ -5425,7 +5429,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(seq!==FLIVE.seq||mseq!==FLIVE.mountSeq) return null;
       if(venue==="mcg") FLIVE.mcgMod=mod;
       fliveSponsors(null);
-      return mod.mount(host, {night: true}).then(function(handle){ return {mod:mod, handle:handle}; });
+      return mod.mount(host, {night: true, onLogoTap: fliveLogoTap}).then(function(handle){ return {mod:mod, handle:handle}; });
     }).then(function(res){
       if(!res||!res.handle) return;
       const handle=res.handle;
@@ -5504,7 +5508,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(need){
       const logos=host.querySelectorAll(".fl-photo-logo");
       if(logos.length<need) return;
-      for(let i=0;i<logos.length;i++) if(!logos[i].complete) return;
+      for(let i=0;i<logos.length;i++){ const im=logos[i].tagName==="IMG"?logos[i]:logos[i].querySelector("img"); if(!im||!im.complete) return; }
     }
     FLIVE.groundMarked=true;
     try{
@@ -5592,23 +5596,52 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!layer){ layer=document.createElement("div"); layer.className="fl-photo-logos"; host.appendChild(layer); }
     layer.textContent="";
     const W=host.clientWidth||1, H=host.clientHeight||1;
+    const LF=window.LogoFrame;
     ((FLIVE.sponsors&&FLIVE.sponsors.ground)||[]).forEach(function(g){
       const quad=mod.screenQuad(g, W, H);
+      const lw=Number(g.w||g.width_m||14)||14, ld=Number(g.d||g.depth_m||g.h||4.7)||4.7;
+      const view={zoom:g.zoom, pan_x:g.pan_x, pan_y:g.pan_y, shape:g.shape};
+      const frame=document.createElement("div");
+      frame.className="fl-photo-logo"; frame.setAttribute("data-id", g.id);
+      frame.style.left="0";
+      frame.style.top="0";
+      frame.style.width="100px";
+      frame.style.height="100px";
+      frame.style.overflow="hidden";
+      frame.style.pointerEvents="auto";
+      frame.style.transformOrigin="0 0";
+      frame.style.transform=mod.cssMatrix(100, 100, quad);
+      if(LF){ const clip=LF.clipCss(LF.read(view).shape, lw, ld); if(clip!=="none"){ frame.style.clipPath=clip; frame.style.webkitClipPath=clip; } }
       const img=document.createElement("img");
-      img.alt=""; img.src=g.url; img.className="fl-photo-logo"; img.setAttribute("data-id", g.id);
-      img.style.left="0";
-      img.style.top="0";
-      img.style.width="100px";
-      img.style.height="100px";
-      img.style.transformOrigin="0 0";
-      img.style.transform=mod.cssMatrix(100, 100, quad);
+      img.alt=""; img.src=g.url;
+      const pl=LF?LF.placement(100, 100, view):{x:0,y:0,w:100,h:100};
+      img.style.left=pl.x+"px";
+      img.style.top=pl.y+"px";
+      img.style.width=pl.w+"px";
+      img.style.height=pl.h+"px";
       img.addEventListener("load", fliveNoteGround);
       img.addEventListener("error", fliveNoteGround);
+      frame.appendChild(img);
       var sx=0, sy=0, i;
       for(i=0;i<quad.length;i++){ sx+=quad[i].x; sy+=quad[i].y; }
-      img.dataset.hitX=(sx/quad.length)+"px";
-      img.dataset.hitY=(sy/quad.length)+"px";
-      layer.appendChild(img);
+      frame.dataset.hitX=(sx/quad.length)+"px";
+      frame.dataset.hitY=(sy/quad.length)+"px";
+      let down=null;
+      frame.addEventListener("pointerdown", function(ev){ down={x:ev.clientX, y:ev.clientY}; });
+      frame.addEventListener("pointerup", function(ev){
+        const st=down; down=null;
+        if(!st||Math.hypot(ev.clientX-st.x, ev.clientY-st.y)>8) return;
+        fliveLogoTap({id:g.id, listing:g.listing||null});
+      });
+      layer.appendChild(frame);
+    });
+  }
+  // A sponsor logo tap: offer its Marketplace listing, in this page only.
+  function fliveLogoTap(tap){
+    const listing=tap&&tap.listing;
+    if(!listing||!listing.id||!marketplaceShown()) return;
+    tbConfirm({title:"View "+String(listing.title||"this listing")+" in Marketplace?", confirmLabel:"Open", cancelLabel:"Cancel"}).then(function(ok){
+      if(ok) location.hash="#/marketplace/"+encodeURIComponent(String(listing.id));
     });
   }
   function fliveHitsArm(){
