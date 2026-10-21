@@ -1736,7 +1736,7 @@
         armScheduleNote(BUILD.guildId, warn);
         if(window.TBRacingLegs&&(tipFields.legs||[]).some(function(l){ return l&&l.kind==="racing"; })) TBRacingLegs.setRacingPostSupported(true);
         if(window.NDConfirmPop)NDConfirmPop.show({label:"Tip scheduled",color:"#2eaf62"});
-        BUILD.legs=[]; BUILD.image=null; BUILD._importGameName=""; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
+        BUILD.legs=[]; BUILD.image=null; BUILD._importGameName=""; BUILD._slipDiag=null; clearMultiDraft(BUILD.guildId); $("tray").hidden=true; renderBatchTray(); loadDetail(BUILD.guildId);
       }
       else{
         const blocked=scheduleRefusal(j, raw);
@@ -1748,6 +1748,7 @@
         }
         const m=blocked||(j&&(j.message||j.error))||"Couldn't schedule.";
         reportScheduleError($("scherr"), prog, m);
+        try{ if(BUILD._slipDiag&&window.TDSlipDiag) TDSlipDiag.report("server_rejected", "HTTP "+r.status+": "+m, BUILD._slipDiag); }catch(e){}
       }
     }catch(e){ if(e.unauth)return renderLogin("Session expired."); reportScheduleError($("scherr"), prog, "Couldn't reach the bot."); }
   }
