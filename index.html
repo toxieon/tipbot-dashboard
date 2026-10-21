@@ -866,6 +866,7 @@ html[data-theme="ochre"] {--warn-ink:#f0bf79;--api-ink:#9ebdff;}
 .tb-kind,.tb-settle {display:inline-flex;align-items:center;gap:4px;max-width:100%;white-space:nowrap;font-size:var(--t-cap);line-height:17px;font-weight:650;vertical-align:middle;font-variant-numeric:tabular-nums;}
 .tb-kind {border:1px solid var(--accent);border-radius:var(--r-xs);padding:0 6px;color:var(--txt);background:var(--card2);letter-spacing:.03em;}
 .tb-kind--cross {border-color:var(--accent2);}
+.tb-kind--late {border-color:#e5a54d;color:#e5a54d;}
 .tb-settle {color:var(--muted);}
 .tb-settle--api {color:var(--api-ink);}.tb-settle--god {color:var(--warn-ink);}
 .tb-settle--api>span {color:var(--api);}.tb-settle--god>span {color:var(--warn);}
@@ -3690,7 +3691,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const finishedCtx=!!opts.finished;
     const outcome=evalTipOutcome(legsSrc, t, t._liveLegs, {finished:finishedCtx||isSettled});
     const ocls=betcardOutcomeClass(outcome);
-    const tags='<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>';
+    const tags='<div class="tb-tip-tags">'+TB.multiBadge(t.legs||t._fullLegs)+TB.lateBadge(t)+(isSettled?TB.settleBadge.render(t.settle_source):'')+'</div>';
     const body='<div class="betcard-body" id="cardbody_'+tid+'">'+legsBlockHtml(t, legsSrc, t._liveLegs)+gradeRowHtml(tid, isSettled, godRegrade)+'</div>';
     const cls='betcard tip betrow'+(ocls?(" "+ocls):"")+(opts.sv?" sv-tip":"");
     const attrs=' data-tip="'+tid+'" data-settled="'+(isSettled?"1":"0")+'" data-finished="'+(finishedCtx?"1":"0")+'"';
@@ -5228,7 +5229,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const gview=gname
       ?'<button type="button" class="game-view-pill flive-open" data-game="'+esc(gname)+'" data-gid="'+esc(String(t.guild_id||""))+'" data-sport="'+esc(t.sport||"")+'">Game view →</button>'
       :"";
-    return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+gview+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
+    return '<div class="tip betrow'+(god?' tip-god':'')+'" data-tip="'+tid+'" data-settled="'+(settled?"1":"0")+'" style="cursor:default;flex-wrap:wrap"><div style="flex:1;min-width:0">'+gbit+gview+'<div class="meta">'+esc(t.bet_type||"")+(t.display_id?" · "+esc(t.display_id):"")+'</div>'+clabel+'<div class="tb-tip-tags">'+TB.multiBadge(t.legs)+TB.lateBadge(t)+(settled?TB.settleBadge.render(settleSrc):'')+'</div>'+grade+'</div><div class="tb-result">'+TB.chips.render(result)+amount+'</div></div>';
   }
   /* ---------- Follower live game (#/s/<gid>/game/<name>) ---------- */
   const FLIVE={timer:null,seq:0,seen:{},gid:"",game:"",name:"",mcg:false,demo:null,mode:"",games:[],gameKey:"",anyLive:false,venue:"mcg",mountSeq:0,box:{team:"home",sort:"",open:true}};
@@ -7721,6 +7722,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(kind!=='sgm'&&kind!=='cross')return '';
     var label=kind==='sgm'?'SGM':'CROSS',title=kind==='sgm'?'Same-game multi':'Cross-game multi';
     return '<span class="tb-kind tb-kind--'+kind+'" title="'+title+'" aria-label="'+title+'">'+label+'</span>';
+  };
+  // Posted after the game started: still graded, never counted in tipster stats.
+  TB.lateBadge=function(t){
+    if(!t||!t.late)return '';
+    var title='Posted after the game started. Not counted in stats.';
+    return '<span class="tb-kind tb-kind--late" title="'+title+'" aria-label="'+title+'">Late</span>';
   };
   TB.corrWarn=function(legs) {
     var groups=inspect(legs).groups;
