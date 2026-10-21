@@ -188,7 +188,45 @@
     }
   }
 
+  // Diagnostics: failed imports go to TipBot so the parser can be improved. Fire-and-forget:
+  // never awaited, never shown, never changes the import flow.
+  var diagSent = 0;
+  function reportDiagnostics(kind, err, extra) {
+    try {
+      extra = extra || {};
+      if (diagSent >= 5 || typeof fetch !== "function" || typeof FormData !== "function") return;
+      if (typeof getToken !== "function" || typeof API === "undefined" || !getToken()) return;
+      diagSent++;
+      var file = extra.file || SLIP.file;
+      var ocr = extra.ocr || SLIP.ocr || null;
+      var parsed = extra.parsed || SLIP.parsed || null;
+      var fd = new FormData();
+      var put = function (k, v) { fd.append(k, v == null ? "" : String(v).slice(0, 200000)); };
+      put("kind", kind);
+      put("error", err && err.message ? err.message : err);
+      put("ocr_text", (ocr && ocr.text) || SLIP.ocrText || "");
+      try { put("ocr_lines", ocr && ocr.lines ? JSON.stringify({ text: ocr.text || "", lines: ocr.lines, width: ocr.width }) : ""); } catch (_e) {}
+      try { put("parsed", parsed ? JSON.stringify(parsed) : ""); } catch (_e) {}
+      put("sport", extra.sport || (parsed && parsed.sport) || "");
+      put("bookie", extra.bookie || (parsed && parsed.bookie) || "");
+      put("guild_id", extra.guildId || SLIP.guildId || "");
+      put("client_ts", new Date().toISOString());
+      if (file && file.size && file.size <= 8 * 1024 * 1024 && /^image\//.test(file.type || "")) fd.append("image", file, "slip");
+      setTimeout(function () {
+        try {
+          fetch(API + "/api/diagnostics/slip", {
+            method: "POST", body: fd, credentials: "include", cache: "no-store",
+            headers: { Authorization: "Bearer " + getToken() },
+          }).catch(function () {});
+        } catch (_e) {}
+      }, 0);
+    } catch (_e) {}
+  }
+
   async function startImport(file) {
+    diagSent = 0;
+    SLIP.ocr = null;
+    SLIP.parsed = null;
     SLIP.file = file;
     var st = $("slip-status");
     var prev = $("slip-preview");
@@ -202,11 +240,17 @@
         prev.innerHTML = "";
       }
     }
+    var stage = "ocr_failed";
+    var ocr = null;
     try {
       await ensureSlipOcr();
-      var ocr = await runOcr(file);
+      ocr = await runOcr(file);
       SLIP.ocrText = ocr.text || "";
+      SLIP.ocr = ocr;
+      stage = "parse_failed";
       SLIP.parsed = TBSlipOcr.parseSlipLines(ocr);
+      if (!(SLIP.parsed.legs || []).length) reportDiagnostics("nothing_recognised", "No legs recognised.");
+      stage = "done";
       SLIP.fixtureSport = SLIP.parsed.sport || "";
       SLIP.fixtures = await loadFixtureGames(SLIP.parsed.sport, SLIP.parsed.start_local || SLIP.parsed.date_time, SLIP.parsed.event);
       SLIP.parsedLegs = TBSlipOcr.attachFixtureMatches(SLIP.parsed.legs || [], SLIP.fixtures);
@@ -215,6 +259,7 @@
       SLIP.imageData = await compressImage(file);
       renderReviewScreen();
     } catch (e) {
+      reportDiagnostics(stage === "done" ? "parse_failed" : stage, e, { ocr: ocr });
       if (st) st.textContent = "Couldn't read that screenshot. Try a clearer image or enter the tip manually.";
     }
   }
@@ -647,6 +692,7 @@
       };
     }
     BUILD.image = SLIP.imageData || null;
+    BUILD._slipDiag = { file: SLIP.file, ocr: SLIP.ocr, parsed: SLIP.parsed, guildId: gid, sport: tip.sport || reviewed.sport || "", bookie: tip.bookmaker || "" };
     var primary = resolvePrimaryGame(matchedLegs);
     var state = TBSlipOcr.builderStateForSlip(tip, primary, { parsedLegs: matchedLegs });
     BUILD.legs = state.legs;
@@ -707,5 +753,6 @@
   }
 
   window.openSlipImport = openSlipImport;
+  window.TDSlipDiag = { report: reportDiagnostics };
   TD.loaded["slip-ocr-ui"] = true;
 })();
