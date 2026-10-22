@@ -73,6 +73,45 @@
     return out;
   }
   /** The leg the picker adds (same shape as NFL legs; league is the event's league). */
+  var THREES_PLUS_LINES = [1, 2, 3, 4, 5, 6];
+  /** Over/Under threes are .5 lines. A whole number steps down to the .5 below it. */
+  function snapHalfLine(line) {
+    var n = Number(line);
+    if (!isFinite(n)) return null;
+    var half = Math.round(n * 2) / 2;
+    if (Math.abs(half - Math.round(half)) < 1e-9) half = Math.round(half) - 0.5;
+    if (!(half > 0)) return null;
+    return half;
+  }
+  function threesPlusLine(line) {
+    var n = Math.round(Number(line));
+    return THREES_PLUS_LINES.indexOf(n) >= 0 ? n : null;
+  }
+  /** TipBot 0.70.24 grades both labels as 3PM: "Threes Made" and "2+ Threes Made". */
+  function buildThreesLeg(o) {
+    o = o || {};
+    var prop = null;
+    for (var i = 0; i < NBA_PROP_TABS.length; i++) if (NBA_PROP_TABS[i].key === "threes_made") prop = NBA_PROP_TABS[i];
+    if (!prop || !o.player) return null;
+    var plus = o.mode === "plus";
+    var line = plus ? threesPlusLine(o.line) : snapHalfLine(o.line);
+    if (line == null) return null;
+    var label = plus ? (line + "+ Threes Made") : "Threes Made";
+    var side = plus ? "Over" : (String(o.side || "").toLowerCase() === "under" ? "Under" : "Over");
+    var leg = buildLeg({
+      player: o.player, team: o.team, prop: { key: "threes_made", stat: label },
+      line: line, side: side, league: o.league, eventId: o.eventId, odds: o.odds
+    });
+    leg.prop = "threes_made";
+    leg.prop_key = "threes_made";
+    leg.stat = label;
+    if (plus) {
+      leg.plus = true;
+      leg.market = label;
+      if (o.player.name) leg.desc = o.player.name + " " + label;
+    }
+    return leg;
+  }
   function buildLeg(o) {
     var leg = {
       player: o.player.name,
@@ -119,7 +158,8 @@
     teamMarketText: teamMarketText, hasLines: hasLines,
     NFL_PROP_TABS: NFL_PROP_TABS, NBA_PROP_TABS: NBA_PROP_TABS, "hasProps": hasProps, isBasketball: isBasketball,
     propTabs: propTabs, playersUrl: playersUrl, propPlayers: propPlayers, visiblePlayers: visiblePlayers,
-    buildLeg: buildLeg, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket
+    buildLeg: buildLeg, buildThreesLeg: buildThreesLeg, THREES_PLUS_LINES: THREES_PLUS_LINES,
+    snapHalfLine: snapHalfLine, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket
   };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBEspnProps = API;

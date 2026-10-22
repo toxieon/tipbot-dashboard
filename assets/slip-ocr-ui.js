@@ -139,6 +139,9 @@
       '<div class="panel">' +
       '<div class="field"><label for="slip-file">Screenshot</label><input id="slip-file" type="file" accept="image/*"></div>' +
       '<div id="slip-paste-zone" tabindex="0" style="margin-top:10px;padding:14px;border:1px dashed var(--line);border-radius:var(--r-md);color:var(--muted);font-size:var(--t-sub)">Or paste an image here (⌘V / Ctrl+V)</div>' +
+      '<p id="slip-supported" style="color:var(--faint);font-size:var(--t-foot);margin:12px 0 0">' +
+      esc(window.TBSlipOcr && TBSlipOcr.supportedSlipsNote ? TBSlipOcr.supportedSlipsNote() : "") +
+      "</p>" +
       '<div id="slip-status" style="margin-top:12px;font-size:var(--t-sub);color:var(--muted)"></div>' +
       '<div id="slip-preview" style="margin-top:10px"></div>' +
       "</div>";

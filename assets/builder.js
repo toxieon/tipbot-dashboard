@@ -607,6 +607,9 @@
     const TABS=TBEspnProps.propTabs(BUILD.espnLeague);
     const prop=TABS.find(t=>t.key===BUILD.espnPropKey)||TABS[0];
     const pos=prop.posFilter?(BUILD.espnPos||"All"):"All";
+    const threes=prop.key==="threes_made";
+    const threesPlus=threes && BUILD.espnThreesMode==="plus";
+    const threesN=TBEspnProps.THREES_PLUS_LINES.indexOf(BUILD.espnThreesPlus)>=0?BUILD.espnThreesPlus:2;
     const shown=list=>TBEspnProps.visiblePlayers(list, BUILD.espnLeague, BUILD.search, nameMatchesSearch, pos, !!prop.posFilter);
     const teams=BUILD.espnTeams&&BUILD.espnTeams.length?BUILD.espnTeams:(()=>{
       // Fallback: group flat players list.
@@ -620,6 +623,14 @@
     })();
     BUILD.collapsed=BUILD.collapsed||{};
     let html="";
+    if(threes){
+      html+='<div class="ou threes-modes" role="group" aria-label="Threes Made line">'
+        +'<button type="button" data-threes-mode="ou"'+(threesPlus?"":' class="on"')+'>Over/Under</button>'
+        +TBEspnProps.THREES_PLUS_LINES.map(function(n){
+          return '<button type="button" data-threes-plus="'+n+'"'+(threesPlus&&threesN===n?' class="on"':"")+'>'+n+"+</button>";
+        }).join("")
+        +'</div><p style="color:var(--faint);font-size:var(--t-foot);margin:0 0 10px">3PM. Over/Under uses a .5 line. 1+ to 6+ are alt lines.</p>';
+    }
     teams.forEach((team,ti)=>{
       const nm=team.name||team.abbreviation||("Team "+(ti+1));
       const slug=String(team.id||nm).replace(/\W/g,"");
@@ -633,8 +644,9 @@
         const def=prop.def, mx=prop.max;
         html+='<div class="prow"><div class="pnum" style="min-width:40px;color:var(--muted);font-weight:700">'+esc(p.position||"—")+'</div>'
           +'<div class="pname-block"><div class="pname">'+esc(p.name)+(p.number?' <small style="color:var(--muted)">#'+esc(String(p.number))+'</small>':'')+'</div></div>'
-          +'<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
-          +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
+          +(threesPlus?'':('<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
+          +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'))
+          +(threesPlus?'<div class="prow-actions">':'')
           +'<input id="'+rid+'_odds" type="number" step="0.01" min="1.01" placeholder="Odds" title="Leg odds (optional)" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit">'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
@@ -642,6 +654,8 @@
     });
     box.innerHTML=html||'<div class="empty">No roster players yet — try Refresh closer to kickoff.</div>';
     box.querySelectorAll(".thdr").forEach(h=>h.onclick=()=>{const slug=h.dataset.slug;const tp=$("tp_"+slug);if(!tp)return;const c=!tp.hidden;tp.hidden=c;BUILD.collapsed[slug]=c;h.setAttribute("aria-expanded",String(!c));const cr=h.querySelector(".tcaret");if(cr)cr.textContent=c?"▹":"▾";});
+    box.querySelectorAll("[data-threes-mode]").forEach(b=>b.onclick=()=>{BUILD.espnThreesMode="ou";paintEspnNflPlayers();});
+    box.querySelectorAll("[data-threes-plus]").forEach(b=>b.onclick=()=>{BUILD.espnThreesMode="plus";BUILD.espnThreesPlus=parseInt(b.getAttribute("data-threes-plus"),10);paintEspnNflPlayers();});
     teams.forEach((team,ti)=>{
       const nm=team.name||team.abbreviation||("Team "+(ti+1));
       const slug=String(team.id||nm).replace(/\W/g,"");
@@ -650,14 +664,23 @@
       const list=shown(team.players||[]);
       list.forEach((p,idx)=>{
         const rid="er_"+slug+"_"+idx;
-        const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou"); let side="Over";
-        if(!sl||!vv)return;
-        function curLine(){ const n=parseFloat(vv.value); return isNaN(n)?0:Math.max(0,n); }
-        sl.oninput=()=>{vv.value=sl.value;};
-        vv.oninput=()=>{ let n=parseFloat(vv.value); if(isNaN(n))return; if(n<0){n=0;vv.value=0;} sl.value=Math.min(n,+sl.max); };
-        ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
-        $(rid+"_a").onclick=()=>{
+        const sl=$(rid+"_s"),vv=$(rid+"_v"),ou=$(rid+"_ou"),addBtn=$(rid+"_a"); let side="Over";
+        if(!addBtn)return;
+        function curLine(){ const n=parseFloat(vv&&vv.value); return isNaN(n)?0:Math.max(0,n); }
+        if(sl&&vv){
+          sl.oninput=()=>{vv.value=sl.value;};
+          vv.oninput=()=>{ let n=parseFloat(vv.value); if(isNaN(n))return; if(n<0){n=0;vv.value=0;} sl.value=Math.min(n,+sl.max); };
+        }
+        if(ou) ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
+        addBtn.onclick=()=>{
           const oddsRaw=parseFloat(($(rid+"_odds")||{}).value);
+          if(threes){
+            const leg=TBEspnProps.buildThreesLeg({player:p, team:nm, mode:threesPlus?"plus":"ou",
+              line:threesPlus?threesN:curLine(), side:side, league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw});
+            if(leg) addLeg(leg);
+            return;
+          }
+          if(!sl||!vv)return;
           addLeg(TBEspnProps.buildLeg({player:p, team:nm, prop:prop, line:curLine(), side:side,
             league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw}));
         };
