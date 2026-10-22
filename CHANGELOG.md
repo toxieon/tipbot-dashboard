@@ -1,3 +1,7 @@
+## 0.66.8 · 2026-10-22 · `update` · Update dashboard
+
+- Maintenance / Internal updates.
+
 ## 0.66.7 · 2026-10-18 · `test-tidy` · Test tidy
 
 - Game view has a row of camera presets.

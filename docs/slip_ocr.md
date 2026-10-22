@@ -1,6 +1,6 @@
 # Screenshot slip import (client OCR)
 
-Build → **Import from screenshot** runs [tesseract.js](https://github.com/naptha/tesseract.js) (Apache-2.0) entirely in the browser. Parsers live in `assets/slip-ocr.js` (Sportsbet first, with Ladbrokes, Neds, TAB and Pointsbet sharing the AU layout helpers). The lazy UI module is `assets/slip-ocr-ui.js`; WASM, worker and `eng` traineddata are vendored under `assets/vendor/tesseract/` (see `LICENSE.md` there).
+Build → **Import from screenshot** runs [tesseract.js](https://github.com/naptha/tesseract.js) (Apache-2.0) entirely in the browser. Parsers live in `assets/slip-ocr.js`. Sportsbet is the base layout. Ladbrokes, Neds, TAB and PointsBet share it, and Ladbrokes, bet365 and PointsBet also have an NBA player-prop single reader. The lazy UI module is `assets/slip-ocr-ui.js`; WASM, worker and `eng` traineddata are vendored under `assets/vendor/tesseract/` (see `LICENSE.md` there). The line under the importer (`Supported slips: …`) is built from `SLIP_REGISTRY` in the parser, so the screen only names those bookmakers.
 
 ## Flow
 
@@ -32,9 +32,19 @@ If you want the original file stored server-side separately from the compressed 
   `player`/`team`, `stat`, `line`, `side` and `odds` (SGM legs have no own odds). Truncated labels
   ("Receiving Yar...") are completed only from a unique known stat that matches the subtitle.
 - Anything read below confidence 70, missing, or inconsistent (leg count mismatch) goes into
-  `slip.flags` / `leg.flags` and is highlighted on the review screen. Stake is never on a slip and is
-  always flagged.
-- `npm run test:slips` runs the same browser pipeline in headless Chromium over
-  `tests/fixtures/slips` (7 real Sportsbet slips + 9 labelled synthetic variants) and prints a
-  per-fixture, per-field pass table; it fails if any real fixture misses a field.
+  `slip.flags` / `leg.flags` and is highlighted on the review screen. A stake printed on the slip
+  (`Stake $100`, including the amount on the next line) is kept. When it is missing it is flagged.
+  Returns are stored when printed. Odds are never worked out from the stake and the return.
+- NBA player-prop singles:
+  - Ladbrokes `Player Assists O/u` / `Player Rebounds O/u` with `Name Under 2.5`.
+  - bet365 `2+ Threes Made`. A clock in the header is the screenshot time, not the game time.
+    Cash Out, Reuse and Share are ignored.
+  - PointsBet `Under 5.5 Assists` and `Assists + Rebounds` (graded on the sum, same market as
+    Rebounds + Assists). `Away @ Home` stays in that order. `Tomorrow, 11:30am` is the next calendar
+    day in Australia/Melbourne. The footer is ignored.
+  - A bare time with no date is shown and flagged. It is not given a day.
+  - Team abbreviations (WAS, DAL, UTA, …) count toward NBA.
+- `npm run test:slips` runs the browser pipeline in headless Chromium over `tests/fixtures/slips`
+  (Sportsbet screenshots, labelled synthetic variants, and `text/*.txt` slips that skip OCR) and
+  prints a per-fixture, per-field pass table. It fails if any real fixture misses a field.
 - The vendored core is the SIMD build only; browsers without wasm SIMD can't run the import.

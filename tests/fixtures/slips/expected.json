@@ -656,6 +656,101 @@
      }
     ]
    }
+  },
+  {
+   "id": "p01",
+   "file": "text/nba-assists-under.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.58,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "WAS v MIL",
+    "date_time": "Thu 22 Oct 10:10",
+    "bookie": "ladbrokes",
+    "stake_dollars": 100,
+    "returns_dollars": 158,
+    "legs": [
+     {"who": "Sarr", "stat": "Assists", "line": 2.5, "side": "Under"}
+    ]
+   }
+  },
+  {
+   "id": "p02",
+   "file": "text/nba-rebounds-under.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.7,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "NOP v IND",
+    "date_time": "11:10",
+    "bookie": "ladbrokes",
+    "stake_dollars": 150,
+    "returns_dollars": 255,
+    "legs": [
+     {"who": "Murray", "stat": "Rebounds", "line": 6.5, "side": "Under"}
+    ]
+   }
+  },
+  {
+   "id": "p03",
+   "file": "text/nba-threes-plus.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.66,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "ATL Hawks v ORL Magic",
+    "date_time": "Thu 22 Oct 10:10",
+    "bookie": "bet365",
+    "stake_dollars": 150,
+    "returns_dollars": 250,
+    "legs": [
+     {"who": "Tristan da Silva", "stat": "Threes Made", "line": 2, "side": "Over"}
+    ]
+   }
+  },
+  {
+   "id": "p04",
+   "file": "text/nba-assists-tomorrow.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.71,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "DAL @ HOU",
+    "date_time": "Wed 14 Oct 11:30",
+    "bookie": "pointsbet",
+    "stake_dollars": 35.21,
+    "returns_dollars": 60.2,
+    "legs": [
+     {"who": "Cooper Flagg", "stat": "Assists", "line": 5.5, "side": "Under"}
+    ]
+   }
+  },
+  {
+   "id": "p05",
+   "file": "text/nba-assists-rebounds.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.9,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "UTA @ MEM",
+    "date_time": "Wed 14 Oct 11:00",
+    "bookie": "pointsbet",
+    "stake_dollars": 150,
+    "returns_dollars": 285,
+    "legs": [
+     {"who": "Keyonte George", "stat": "Rebounds + Assists", "line": 10.5, "side": "Under"}
+    ]
+   }
   }
  ]
 }
