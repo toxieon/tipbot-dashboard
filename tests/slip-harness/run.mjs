@@ -43,14 +43,22 @@ const rows = [];
 let realFail = false;
 for (const fx of spec.fixtures) {
   if (only && !only.includes(fx.id)) continue;
-  const slip = await page.evaluate(async ({ file, now }) => {
+  const textFile = String(fx.file || "").endsWith(".txt");
+  const text = textFile ? fs.readFileSync(path.join(FX, fx.file), "utf8") : "";
+  const slip = await page.evaluate(async ({ file, text, now, textFile }) => {
+    const parsedNow = Date.parse(now);
+    if (textFile) {
+      const s = window.TBSlipOcr.parseSlipLines(text, { now: parsedNow });
+      s._raw = text;
+      return s;
+    }
     const r = await window.TBSlipOcr.recognizeImage(window.Tesseract, "/tests/fixtures/slips/" + file, "/assets/vendor/tesseract/");
-    const s = window.TBSlipOcr.parseSlipLines(r, { now: Date.parse(now) });
+    const s = window.TBSlipOcr.parseSlipLines(r, { now: parsedNow });
     s._raw = r.text; return s;
-  }, { file: fx.file, now: spec.now });
+  }, { file: fx.file, text, now: fx.now || spec.now, textFile });
   const e = fx.expect, checks = [];
   const ck = (field, got, want) => checks.push({ field, got, want, ok: eq(got, want) });
-  for (const k of ["bet_type", "odds", "leg_count", "sport", "event", "date_time"]) if (k in e) ck(k, slip[k], e[k]);
+  for (const k of ["bet_type", "odds", "leg_count", "sport", "event", "date_time", "bookie", "stake_dollars", "returns_dollars"]) if (k in e) ck(k, slip[k], e[k]);
   ck("legs.length", (slip.legs || []).length, e.legs.length);
   e.legs.forEach((w, i) => {
     const g = (slip.legs || [])[i] || {};
@@ -72,7 +80,7 @@ await browser.close(); srv.close();
 const pad = (s, n) => String(s).padEnd(n);
 console.log(pad("fixture", 34) + pad("kind", 22) + pad("fields", 9) + "rate");
 for (const r of rows) {
-  console.log(pad(r.file.split("/")[1].replace(".png", ""), 34) + pad(r.synthetic ? "SYNTHETIC " + r.variant : "real", 22) +
+  console.log(pad(path.basename(r.file).replace(/\.(png|txt)$/, ""), 34) + pad(r.synthetic ? "SYNTHETIC " + r.variant : "real", 22) +
     pad(`${r.pass}/${r.total}`, 9) + Math.round((100 * r.pass) / r.total) + "%");
   for (const f of r.fails) console.log(`    FAIL ${f.field}: got ${JSON.stringify(f.got)} want ${JSON.stringify(f.want)}`);
   for (const f of r.flags) console.log(`    flag ${f}`);

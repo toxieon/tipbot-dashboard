@@ -14,7 +14,28 @@
   var RESPONSIBLE_RE = /think\.|is this a bet|deposit\s*limit|gamble\s*responsibly|set\s*a\s*limit|want\s*to\s*place/i;
   var DATE_RE = /^(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|^(?:mon|tue|wed|thu|fri|sat|sun)\b[ ,]|^\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|^(?:today|tomorrow|tonight)\b/i;
   var DATE_PARTS_RE = /^(mon|tue|wed|thu|fri|sat|sun)[a-z]*,?\s+(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})[:.](\d{2})/i;
-  var REL_DATE_RE = /^(today|tomorrow|tonight)\b(?:[,\s]+(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?)?(?:[,\s]+(\d{1,2})[:.](\d{2}))?/i;
+  var REL_DATE_RE = /^(today|tomorrow|tonight)\b(?:[,\s]+(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?)?(?:[,\s]+(\d{1,2})[:.](\d{2})\s*(am|pm)?)?/i;
+  var DM_DATE_RE = /^(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:[,\s]+(\d{1,2})[:.](\d{2})\s*(am|pm)?)?/i;
+  var BARE_TIME_RE = /^(\d{1,2})[:.](\d{2})\s*(am|pm)?$/i;
+  // Public bookmaker labels only. The import screen prints supportedSlipsNote() from this list.
+  var SLIP_REGISTRY = [
+    { id: "sportsbet", label: "Sportsbet" },
+    { id: "ladbrokes", label: "Ladbrokes" },
+    { id: "neds", label: "Neds" },
+    { id: "tab", label: "TAB" },
+    { id: "pointsbet", label: "PointsBet" },
+    { id: "bet365", label: "bet365" }
+  ];
+  var NBA_ABBR = {
+    atl: "hawks", bos: "celtics", bkn: "nets", cha: "hornets", chi: "bulls",
+    cle: "cavaliers", dal: "mavericks", den: "nuggets", det: "pistons",
+    gsw: "warriors", hou: "rockets", ind: "pacers", lac: "clippers", lal: "lakers",
+    mem: "grizzlies", mia: "heat", mil: "bucks", min: "timberwolves", nop: "pelicans",
+    nyk: "knicks", okc: "thunder", orl: "magic", phi: "76ers", phx: "suns",
+    por: "trail blazers", sac: "kings", sas: "spurs", tor: "raptors", uta: "jazz",
+    was: "wizards"
+  };
+  var PROP_FOOTER_RE = /^(cash\s*out|reuse(\s+\S+){0,4}|share(\s+\S+){0,4}|copy(\s+bet)?|bet\s+with\s+mates|add\s+to\s+(the\s+)?(bet\s*)?slip)$/i;
   var BET_RE = /\b(same\s*game\s*multi|sgm|multi(?:\s*bet)?|single)\b\s*@\s*([\d.,]+)/i;
   var BET_WORD_RE = /^(same\s*game\s*multi|sgm|multi(?:\s*bet)?|single)\b/i;
   var TITLE_AT_RE = /^(.+?)\s*@\s*(\d+(?:[.,]\d+)?)\s*$/;
@@ -242,7 +263,30 @@
       ok: ok
     };
   }
-  /** "Today"/"Tomorrow"/"Tonight", with or without "16 Oct 11:16". */
+  function applyAmPm(hh, ampm) {
+    if (hh == null || !ampm) return hh;
+    var ap = String(ampm).toLowerCase();
+    if (ap === "pm" && hh < 12) return hh + 12;
+    if (ap === "am" && hh === 12) return 0;
+    return hh;
+  }
+  /** Calendar day in Australia/Melbourne (AEDT/AEST), not UTC. */
+  function melbourneYmd(ms) {
+    var parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Australia/Melbourne", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(new Date(ms));
+    var o = { year: 1970, month: 1, day: 1 };
+    parts.forEach(function (p) {
+      if (p.type === "year" || p.type === "month" || p.type === "day") o[p.type] = parseInt(p.value, 10);
+    });
+    return { year: o.year, mon: o.month - 1, day: o.day };
+  }
+  function addCalendarDays(year, mon, day, n) {
+    var d = new Date(Date.UTC(year, mon, day + (n || 0)));
+    return { year: d.getUTCFullYear(), mon: d.getUTCMonth(), day: d.getUTCDate() };
+  }
+  /** "Today"/"Tomorrow"/"Tonight", with or without "16 Oct 11:16".
+   *  A bare Tomorrow/Today is the next (or same) calendar day in Australia/Melbourne. */
   function parseRelativeSlipDate(m, nowMs) {
     var word = m[1].toLowerCase();
     var now = new Date(nowMs != null ? nowMs : Date.now());
@@ -250,14 +294,15 @@
     var mon = m[3] ? MONTHS[m[3].toLowerCase()] : null;
     var hh = m[4] != null && m[4] !== "" ? parseInt(m[4], 10) : null;
     var mm = m[5] != null && m[5] !== "" ? parseInt(m[5], 10) : null;
+    hh = applyAmPm(hh, m[6]);
     var year;
     if (day != null && mon != null) year = nearestYear(mon, day, now);
     else {
-      var base = new Date(now.getTime());
-      if (word === "tomorrow") base.setUTCDate(base.getUTCDate() + 1);
-      year = base.getUTCFullYear();
-      mon = base.getUTCMonth();
-      day = base.getUTCDate();
+      var mel = melbourneYmd(now.getTime());
+      var ymd = addCalendarDays(mel.year, mel.mon, mel.day, word === "tomorrow" ? 1 : 0);
+      year = ymd.year;
+      mon = ymd.mon;
+      day = ymd.day;
     }
     return slipDateParts(year, mon, day, hh, mm);
   }
@@ -265,6 +310,16 @@
   function parseSlipDate(t, nowMs) {
     var rel = String(t || "").match(REL_DATE_RE);
     if (rel) return parseRelativeSlipDate(rel, nowMs);
+    var dm = String(t || "").match(DM_DATE_RE);
+    if (dm && !DATE_PARTS_RE.test(String(t || ""))) {
+      var dDay = parseInt(dm[1], 10), dMon = MONTHS[dm[2].toLowerCase()];
+      var dHh = dm[3] != null && dm[3] !== "" ? parseInt(dm[3], 10) : null;
+      var dMm = dm[4] != null && dm[4] !== "" ? parseInt(dm[4], 10) : null;
+      dHh = applyAmPm(dHh, dm[5]);
+      var melNow = melbourneYmd(nowMs != null ? nowMs : Date.now());
+      var dYear = nearestYear(dMon, dDay, new Date(Date.UTC(melNow.year, melNow.mon, melNow.day, 12)));
+      return slipDateParts(dYear, dMon, dDay, dHh, dMm);
+    }
     var m = String(t || "").match(DATE_PARTS_RE);
     if (!m) return { display: squash(t), local: "", ok: false };
     var dow = DOW[m[1].toLowerCase()], day = parseInt(m[2], 10), mon = MONTHS[m[3].toLowerCase()];
@@ -286,8 +341,32 @@
       ok: ok
     };
   }
+  /** "Assists + Rebounds" and "Rebounds + Assists" are the same sum. */
+  function canonCombo(s) {
+    var parts = String(s || "").split(/\s*(?:\+|\/|&|\band\b)\s*/);
+    if (parts.length !== 2) return "";
+    var map = {
+      points: "points", pts: "points", point: "points",
+      rebounds: "rebounds", rebound: "rebounds", rebs: "rebounds", reb: "rebounds",
+      assists: "assists", assist: "assists", asts: "assists", ast: "assists"
+    };
+    var a = map[parts[0]], b = map[parts[1]];
+    if (!a || !b || a === b) return "";
+    var key = [a, b].sort().join("+");
+    var names = {
+      "assists+points": "Points + Assists",
+      "points+rebounds": "Points + Rebounds",
+      "assists+rebounds": "Rebounds + Assists"
+    };
+    return names[key] || "";
+  }
   function canonStat(raw, titleUnit) {
-    var s = low(raw).replace(/^alt(ernate)?\s+/, "").replace(/\.+$/, "").trim();
+    var s = low(raw).replace(/^alt(ernate)?\s+/, "").replace(/\s*(o\/u|over\s*\/\s*under)\s*$/i, "").replace(/\.+$/, "").trim();
+    var comboEarly = canonCombo(s);
+    if (comboEarly) {
+      var comboDef = STATS.find(function (x) { return x.stat === comboEarly; });
+      return { stat: comboEarly, sport: comboDef ? comboDef.sport : "BASKETBALL", truncated: false };
+    }
     var truncated = /\.\.\.$|…$/.test(squash(raw));
     for (var i = 0; i < STATS.length; i++) if (STATS[i].re.test(s)) return { stat: STATS[i].stat, sport: STATS[i].sport, truncated: false };
     if (truncated || titleUnit) {
@@ -331,6 +410,11 @@
     var s = " " + low(text).replace(/[^a-z0-9 ]/g, " ") + " ";
     return (TEAMS[sport] || []).filter(function (t) { return t.indexOf(" ") >= 0 && s.indexOf(" " + t + " ") >= 0; }).length;
   }
+  function expandNbaAbbr(text) {
+    return String(text || "").replace(/\b([A-Za-z]{3})\b/g, function (m) {
+      return NBA_ABBR[m.toLowerCase()] || m;
+    });
+  }
   function detectSport(eventName, legs) {
     legs = legs || [];
     var ev = String(eventName || "");
@@ -344,6 +428,8 @@
     if (legs.some(function (l) { return l.market === "Win-Draw-Win"; })) return "Soccer";
     var scores = {};
     ["AFL", "NFL", "WNBA", "NBA", "NBL", "Soccer"].forEach(function (k) { scores[k] = teamHits(ev, k); });
+    var expanded = expandNbaAbbr(ev);
+    if (expanded !== ev) scores.NBA = Math.max(scores.NBA, teamHits(expanded, "NBA"));
     if (statSports.indexOf("NFL") >= 0) scores.NFL += 3;
     if (statSports.indexOf("AFL") >= 0) scores.AFL += 3;
     if (statSports.indexOf("BASKETBALL") >= 0) { scores.WNBA += 1; scores.NBA += 1; scores.NBL += 1; }
@@ -473,6 +559,7 @@
   function detectBookie(text) {
     var s = low(text);
     if (/\bsports\s*b[ae]t\b|\bsportsb[ae]t|\bsportshet|^sports\b|\bsports\b/m.test(s)) return "sportsbet";
+    if (/\bbet\s*365\b|\bbet365\b/.test(s)) return "bet365";
     if (/\bladbrokes\b/.test(s)) return "ladbrokes";
     if (/\bneds\b/.test(s)) return "neds";
     if (/\bpointsbet\b|\bpoints\s*bet\b/.test(s)) return "pointsbet";
@@ -496,6 +583,8 @@
     var lines = cleanOcrLines(input);
     var flags = [];
     var rawText = input && typeof input === "object" && input.text != null ? input.text : (typeof input === "string" ? input : lines.map(function (l) { return l.text; }).join("\n"));
+    var claimed = claimPlayerPropSingle(input, rawText, opts);
+    if (claimed) return claimed;
     var slip = { bookie: detectBookie(rawText), bet_type: "", odds: null, leg_count: null, stake: null, sport: "",
       event: "", date_time: "", start_local: "", legs: [], flags: flags, raw_text: normalizeText(rawText) };
     var end = lines.length;
@@ -598,7 +687,11 @@
       if (!slip.bet_type) slip.bet_type = legs.length > 1 ? "Multi" : "Single";
     }
 
-    // Per-leg sport + confidence, then slip-level fields.
+    return finishSlip(slip, lines, rawText);
+  }
+
+  function finishSlip(slip, lines, rawText) {
+    var flags = slip.flags;
     slip.legs.forEach(function (leg, i) {
       leg.sport = detectSport(leg.event, [leg]);
       if (!leg.sport) flag(leg.flags, "sport", "Sport not recognised");
@@ -620,6 +713,7 @@
     if (slip.leg_count != null && slip.leg_count !== slip.legs.length) flag(flags, "legs", "Slip says " + slip.leg_count + " legs but " + slip.legs.length + " were read");
     if (slip.leg_count == null) slip.leg_count = slip.legs.length;
     var dollars = readStake(lines, rawText);
+    if (!(dollars > 0) && slip.stake_dollars > 0) dollars = slip.stake_dollars;
     if (dollars > 0) {
       slip.stake_dollars = dollars;
       slip.stake_mode = "dollars";
@@ -628,26 +722,197 @@
       slip.stake_mode = "units";
       flag(flags, "stake", "Stake isn't on the slip \u2014 enter it");
     }
+    if (!(slip.returns_dollars > 0)) {
+      var ret = readReturns(lines, rawText);
+      if (ret > 0) slip.returns_dollars = ret;
+    }
     slip.game_groups = groupLegsByEvent(slip.legs);
     return slip;
   }
 
-  function readStake(lines, rawText) {
-    var sources = (lines || []).map(function (l) {
+  function moneyBlob(lines, rawText) {
+    var parts = (lines || []).map(function (l) {
       if (l == null) return "";
       if (typeof l === "string") return l;
       return String(l.text || "");
     });
-    sources.push(String(rawText || ""));
-    var i, text, m;
+    parts.push(String(rawText || ""));
+    return parts.join("\n");
+  }
+  function readStake(lines, rawText) {
+    var blob = moneyBlob(lines, rawText);
+    var m = blob.match(/(?:stake|staked|bet\s*amount|wager)\s*[:\-]?\s*(?:\n\s*)?\$\s*(\d+(?:\.\d{1,2})?)/i);
+    if (m) return num(m[1]);
+    var sources = blob.split("\n");
+    var i, text;
     for (i = 0; i < sources.length; i++) {
       text = sources[i];
-      m = text.match(/(?:stake|staked|bet\s*amount|wager)\s*[:\-]?\s*\$\s*(\d+(?:\.\d{1,2})?)/i);
-      if (m) return num(m[1]);
       m = text.match(/\$\s*(\d+(?:\.\d{1,2})?)/);
       if (m && /stake|staked|wager|bet\s*amount/i.test(text)) return num(m[1]);
     }
     return null;
+  }
+  function readReturns(lines, rawText) {
+    var blob = moneyBlob(lines, rawText);
+    var m = blob.match(/(?:potential\s*returns?|est\.?\s*returns?|to\s*return|returns?)\s*[:\-]?\s*(?:\n\s*)?\$\s*(\d+(?:\.\d{1,2})?)/i);
+    return m ? num(m[1]) : null;
+  }
+
+  function supportedSlipsNote() {
+    return "Supported slips: " + SLIP_REGISTRY.map(function (row) { return row.label; }).join(", ") + ".";
+  }
+  function looksLikeNbaProp(text) {
+    var s = low(text);
+    if (/\b(same\s*game\s*multi|sgm|\d+\s*legs?\b|multi(?:\s*bet)?)\b/.test(s)) return false;
+    var prop = /(\d+(?:\.\d+)?\s*\+\s*(?:threes?(?:\s*made)?|points|rebounds?|assists?|steals?|blocks?))|((?:over|under)\s+\d+(?:\.\d+)?)|((?:over|under)\s+\d+(?:\.\d+)?\s+\S+)/.test(s);
+    var stat = /(assists?|rebounds?|points|threes?(?:\s*made)?|steals?|blocks?)/.test(s);
+    return prop && stat;
+  }
+  function confMap(input) {
+    var map = {};
+    var src = input && input.lines ? input.lines : [];
+    src.forEach(function (ln) {
+      if (!ln || typeof ln.conf !== "number") return;
+      var t = squash(ln.text || "");
+      if (!t) return;
+      if (map[t] == null || ln.conf < map[t]) map[t] = ln.conf;
+    });
+    return map;
+  }
+  function isMarketLabel(t) {
+    var s = low(t).replace(/\s*(o\/u|over\s*\/\s*under)\s*$/i, "").replace(/^player\s+/, "").trim();
+    if (canonCombo(s)) return true;
+    return /^(points|rebounds?|assists?|threes?(?:\s*made)?|steals?|blocks?|pra|pts|reb|ast)$/i.test(s);
+  }
+  function tagPropLine(text, index, confs) {
+    var t = squash(text);
+    var tag = { text: t, index: index, conf: Object.prototype.hasOwnProperty.call(confs, t) ? confs[t] : null };
+    if (/^single$/i.test(t)) { tag.kind = "bet"; return tag; }
+    if (/^(ladbrokes|bet\s*365|bet365|points\s*bet|pointsbet|neds|tab|sportsbet|my bets|open|pending)$/i.test(t)) { tag.kind = "noise"; return tag; }
+    if (PROP_FOOTER_RE.test(t) || RESPONSIBLE_RE.test(t)) { tag.kind = "footer"; return tag; }
+    if (isEventLine(t)) { tag.kind = "event"; tag.event = canonicalEvent(t); return tag; }
+    if (isDateLine(t)) { tag.kind = "date"; return tag; }
+    if (BARE_TIME_RE.test(t)) { tag.kind = "time"; return tag; }
+    var at = t.match(/^@\s*(\d+(?:[.,]\d+)?)\s*$/);
+    if (at) { tag.kind = "odds"; tag.odds = num(at[1]); return tag; }
+    var ouTitle = t.match(/^(.+?)\s+(over|under)\s+(\d+(?:\.\d+)?)$/i);
+    if (ouTitle && letters(ouTitle[1]) >= 2 && !isMarketLabel(ouTitle[1])) {
+      tag.kind = "ouTitle"; tag.player = squash(ouTitle[1]); tag.side = wordCap(ouTitle[2]); tag.line = parseFloat(ouTitle[3]); return tag;
+    }
+    var ouStat = t.match(/^(over|under)\s+(\d+(?:\.\d+)?)\s+(.+)$/i);
+    if (ouStat) { tag.kind = "ouStat"; tag.side = wordCap(ouStat[1]); tag.line = parseFloat(ouStat[2]); tag.statRaw = squash(ouStat[3]); return tag; }
+    var plus = t.match(/^(\d+(?:\.\d+)?)\s*\+\s+(.+)$/);
+    if (plus && /[A-Za-z]/.test(plus[2])) { tag.kind = "plus"; tag.line = parseFloat(plus[1]); tag.statRaw = squash(plus[2]); return tag; }
+    if (isMarketLabel(t)) { tag.kind = "market"; tag.statRaw = t; return tag; }
+    if (/^[A-Za-z][A-Za-z'’. -]{1,60}$/.test(t) && letters(t) >= 3) { tag.kind = "name"; tag.name = t; return tag; }
+    tag.kind = "other";
+    return tag;
+  }
+  function tagIsLow(tag) { return tag && typeof tag.conf === "number" && tag.conf < LOW_CONF; }
+  function bareTimeText(text) {
+    var m = String(text || "").match(BARE_TIME_RE);
+    if (!m) return "";
+    var hh = applyAmPm(parseInt(m[1], 10), m[3]);
+    var mm = parseInt(m[2], 10);
+    if (hh > 23 || mm > 59) return "";
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    return pad(hh) + ":" + pad(mm);
+  }
+  /** NBA player-prop singles (Ladbrokes O/U label, bet365 N+ line, PointsBet away @ home).
+   *  Returns null when the text is not one of those slips, so the Sportsbet parser still runs.
+   *  A missing or header-only time is flagged, never copied in as the game time. */
+  function claimPlayerPropSingle(input, rawText, opts) {
+    var bookie = detectBookie(rawText);
+    if (bookie !== "ladbrokes" && bookie !== "bet365" && bookie !== "pointsbet") return null;
+    if (!looksLikeNbaProp(rawText)) return null;
+    opts = opts || {};
+    var confs = confMap(input);
+    var raw = normalizeText(rawText).split("\n").map(squash).filter(Boolean);
+    var tags = [], sawProp = false;
+    for (var i = 0; i < raw.length; i++) {
+      if (RESPONSIBLE_RE.test(raw[i])) break;
+      var tag = tagPropLine(raw[i], i, confs);
+      if (tag.kind === "footer" && sawProp) break;
+      if (tag.kind === "footer" || tag.kind === "noise") continue;
+      if (tag.kind === "ouTitle" || tag.kind === "ouStat" || tag.kind === "plus") sawProp = true;
+      tags.push(tag);
+    }
+    var flags = [];
+    var slip = {
+      bookie: bookie, bet_type: "Single", odds: null, leg_count: 1, stake: null, sport: "",
+      event: "", date_time: "", start_local: "", legs: [], flags: flags, raw_text: normalizeText(rawText)
+    };
+    var nameBefore = null, player = "", side = "", line = null, statRaw = "", plus = false;
+    var playerConf = null, statConf = null;
+    tags.forEach(function (tag, idx) {
+      if (tag.kind === "name") { nameBefore = tag; return; }
+      if (tag.kind === "ouTitle") {
+        player = tag.player; side = tag.side; line = tag.line; playerConf = tag.conf;
+        var nxt = tags[idx + 1];
+        if (nxt && nxt.kind === "market") { statRaw = nxt.statRaw; statConf = nxt.conf; }
+        return;
+      }
+      if (tag.kind === "ouStat" || tag.kind === "plus") {
+        if (!player && nameBefore) { player = nameBefore.name; playerConf = nameBefore.conf; }
+        side = tag.kind === "plus" ? "Over" : tag.side;
+        line = tag.line;
+        plus = tag.kind === "plus";
+        statRaw = tag.statRaw;
+        statConf = tag.conf;
+      }
+    });
+    var cs = statRaw ? canonStat(statRaw) : { stat: "", unknown: true };
+    var leg = {
+      selection: player, market: cs.stat || statRaw, player: player, team: "", stat: cs.stat || "",
+      line: line, side: side, plus: plus, odds: null, kind: "player", flags: [],
+      conf: typeof playerConf === "number" ? playerConf : null, stat_sport: cs.sport || ""
+    };
+    if (!player) leg.flags.push({ field: "selection", reason: "Selection missing" });
+    if (!statRaw || cs.unknown) leg.flags.push({ field: "stat", reason: statRaw ? ("Unrecognised market \u201c" + (cs.stat || statRaw) + "\u201d") : "Market not on the slip" });
+    else if (tagIsLow({ conf: statConf })) leg.flags.push({ field: "stat", reason: "Market read with low confidence" });
+    if (line == null) leg.flags.push({ field: "line", reason: "No line found" });
+    if (!side) leg.flags.push({ field: "side", reason: "Side not on the slip" });
+    var evTag = null, oddsTag = null;
+    tags.forEach(function (tag) {
+      if (tag.kind === "event" && !evTag) evTag = tag;
+      if (tag.kind === "odds" && !oddsTag) oddsTag = tag;
+    });
+    leg.event = evTag ? evTag.event : "";
+    if (!evTag) flag(flags, "event", "No event found");
+    else if (tagIsLow(evTag)) flag(flags, "event", "Event read with low confidence");
+    var propTag = null;
+    tags.forEach(function (tag) {
+      if (!propTag && (tag.kind === "ouTitle" || tag.kind === "ouStat" || tag.kind === "plus" || tag.kind === "name")) propTag = tag;
+    });
+    var whens = tags.filter(function (tag) { return tag.kind === "date" || tag.kind === "time"; });
+    var afterEvent = evTag ? whens.filter(function (tag) { return tag.index > evTag.index; }) : [];
+    var afterProp = propTag ? whens.filter(function (tag) { return tag.index > propTag.index; }) : [];
+    var chosen = afterEvent[0] || afterProp[0] || (bookie === "bet365" ? null : (whens[0] || null));
+    if (!chosen) flag(flags, "date_time", "No date/time found");
+    else if (chosen.kind === "time") {
+      var clock = bareTimeText(chosen.text);
+      leg.date_time = clock || squash(chosen.text);
+      leg.start_local = "";
+      flag(flags, "date_time", "Date not on the slip");
+      if (tagIsLow(chosen)) flag(flags, "date_time", "Date/time read with low confidence");
+    } else {
+      var pd = parseSlipDate(chosen.text, opts.now);
+      leg.date_time = pd.ok ? pd.display : squash(chosen.text);
+      leg.start_local = pd.local || "";
+      if (!pd.ok) flag(flags, "date_time", "Date/time not understood");
+      if (tagIsLow(chosen)) flag(flags, "date_time", "Date/time read with low confidence");
+    }
+    slip.event = leg.event;
+    slip.date_time = leg.date_time || "";
+    slip.start_local = leg.start_local || "";
+    if (oddsTag && oddsTag.odds > 1) {
+      slip.odds = oddsTag.odds;
+      leg.odds = oddsTag.odds;
+      if (tagIsLow(oddsTag)) flag(flags, "odds", "Odds read with low confidence");
+    } else flag(flags, "odds", "Total odds not read");
+    slip.legs = [leg];
+    var kept = tags.map(function (tag) { return tag.text; });
+    return finishSlip(slip, kept, kept.join("\n"));
   }
 
   function legHasFlag(leg, field) {
@@ -890,6 +1155,7 @@
       neds: "Neds",
       tab: "TAB",
       pointsbet: "PointsBet",
+      bet365: "bet365",
     };
     return map[slug] || "";
   }
@@ -964,6 +1230,15 @@
       if (propComplete(leg)) {
         out.player = leg.player; out.stat = leg.stat; out.prop = BASKETBALL_PROP_KEYS[leg.stat]; out.prop_key = out.prop;
         out.line = Number(leg.line); out.side = side;
+        if (leg.plus && leg.stat === "Threes Made") {
+          var nPlus = Math.round(Number(leg.line));
+          if (nPlus >= 1 && nPlus <= 6 && Math.abs(Number(leg.line) - nPlus) < 1e-9) {
+            out.stat = nPlus + "+ Threes Made";
+            out.market = out.stat;
+            out.plus = true;
+            out.desc = leg.player + " " + out.stat;
+          }
+        }
         matched = true;
       } else incompleteProp = true;
     } else if (leg.player && NFL_PROP_KEYS[leg.stat] && sport !== "AFL" && sport !== "AFLW" && sport !== "NBA" && sport !== "WNBA" && sport !== "NBL") {
@@ -1182,6 +1457,9 @@
     cleanOcrLines: cleanOcrLines,
     parseSlipLines: parseSlipLines,
     parseSlipText: parseSlipText,
+    supportedSlipsNote: supportedSlipsNote,
+    SLIP_REGISTRY: SLIP_REGISTRY,
+    readReturns: readReturns,
     parseSlipDate: parseSlipDate,
     parseSportsbet: parseSportsbet,
     parseLadbrokes: parseLadbrokes,

@@ -46,7 +46,8 @@
   var COMBO_FIELDS = {
     "points + assists": ["points", "assists"], "pts+ast": ["points", "assists"],
     "points + rebounds": ["points", "rebounds"], "pts+reb": ["points", "rebounds"],
-    "rebounds + assists": ["rebounds", "assists"], "reb+ast": ["rebounds", "assists"]
+    "rebounds + assists": ["rebounds", "assists"], "reb+ast": ["rebounds", "assists"],
+    "assists + rebounds": ["assists", "rebounds"], "ast+reb": ["assists", "rebounds"]
   };
 
   function sv() {
@@ -121,6 +122,7 @@
 
   function normStat(v) {
     var s = String(v || "").trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+    s = s.replace(/^\d+(?:\.\d+)?\s*\+\s*/, "");
     if (s === "disposal") return "disposals";
     if (s === "player disposals") return "disposals";
     if (s === "dream team points" || s === "fantasy") return "fantasy points";
@@ -444,13 +446,14 @@
     }
     if (!row || typeof row !== "object") return null;
     var summary = row.summary && typeof row.summary === "object" ? row.summary : row;
-    var combo = COMBO_FIELDS[String(stat || "").toLowerCase()];
+    var named = normStat(stat);
+    var combo = COMBO_FIELDS[named] || COMBO_FIELDS[String(stat || "").toLowerCase()];
     if (combo) {
       var sum = 0;
       for (var c = 0; c < combo.length; c++) { var part = num(summary[combo[c]]); if (part == null) return null; sum += part; }
       return sum;
     }
-    var fields = STAT_FIELDS[stat] || (stat ? [stat] : []);
+    var fields = STAT_FIELDS[named] || STAT_FIELDS[String(stat || "").toLowerCase()] || (named ? [named] : []);
     for (var f = 0; f < fields.length; f++) {
       var n = num(summary[fields[f]]);
       if (n != null) return n;
