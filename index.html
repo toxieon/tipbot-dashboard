@@ -3588,9 +3588,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(leg.player&&leg.stat!=null&&(leg.line!=null||leg.line===0)){
       const side=legSide(leg,null)||"";
       const line=leg.line;
-      if(side==="Over") return leg.player+" "+line+"+ "+leg.stat;
-      if(side==="Under") return leg.player+" under "+line+" "+leg.stat;
-      return leg.player+" "+line+" "+leg.stat;
+      const stat=(leg.period?leg.period+" ":"")+leg.stat;   // "Q1 Points" for a period leg
+      if(side==="Over") return leg.player+" "+line+"+ "+stat;
+      if(side==="Under") return leg.player+" under "+line+" "+stat;
+      return leg.player+" "+line+" "+stat;
     }
     if(leg.player) return String(leg.player);
     return "Leg";

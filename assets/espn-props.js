@@ -33,8 +33,72 @@
     {key: "pra", stat: "Points + Rebounds + Assists", def: 29.5, max: 80},
     {key: "pa", stat: "Points + Assists", def: 24.5, max: 70},
     {key: "pr", stat: "Points + Rebounds", def: 24.5, max: 70},
-    {key: "ra", stat: "Rebounds + Assists", def: 10.5, max: 40}
+    {key: "ra", stat: "Rebounds + Assists", def: 10.5, max: 40},
+    // Yes = Over 0.5, No = Under 0.5. TipBot grades it 1/0 from the box score.
+    {key: "double_double", stat: "Double Double", def: 0.5, max: 1, yesNo: true}
   ];
+  /** Q control on prop rows. Blank = full game (no period on the leg). */
+  var PERIODS = ["Q1", "Q2", "Q3", "Q4", "H1", "H2"];
+  var PERIOD_OPTIONS = [{value: "", label: "Full"}].concat(PERIODS.map(function (p) { return {value: p, label: p}; }));
+  var ORD = {"1": 1, "1st": 1, first: 1, "2": 2, "2nd": 2, second: 2, "3": 3, "3rd": 3, third: 3, "4": 4, "4th": 4, fourth: 4};
+  var N = "(1st|2nd|3rd|4th|first|second|third|fourth|[1-4])";
+  // Same phrases as TipBot services/periods.py: "1st Qtr", "Q1", "1Q", "first quarter",
+  // "quarter 1", "1st Half", "1H", "H2", "second half", "half 2".
+  var PERIOD_SRC = "(?:" + N + "\\s*\\.?\\s*(?:quarter|qtr|qrt|qt|q)\\.?" +
+    "|(?:quarter|qtr|qrt|qt|q)\\s*([1-4])|quarter\\s+" + N +
+    "|(1st|2nd|first|second|[12])\\s*\\.?\\s*(?:half|hlf|h)\\.?|h([12])|half\\s+(1st|2nd|first|second|[12]))";
+  function periodRe(flags) { return new RegExp("(^|[^a-z0-9])" + PERIOD_SRC + "(?![a-z0-9])", flags); }
+  function codeFrom(m) {
+    var q = m[2] || m[3] || m[4];
+    if (q) { var n = ORD[q.toLowerCase()]; return n ? "Q" + n : null; }
+    var h = m[5] || m[6] || m[7];
+    if (h) { var k = ORD[h.toLowerCase()]; return k === 1 || k === 2 ? "H" + k : null; }
+    return null;
+  }
+  /** "Q1".."Q4", "H1", "H2" from a code or bookie wording; "" for blank / full game / unknown. */
+  function normalizePeriod(v) {
+    var t = String(v == null ? "" : v).replace(/_/g, " ").replace(/\s+/g, " ").trim();
+    if (!t) return "";
+    if (PERIODS.indexOf(t.toUpperCase()) >= 0) return t.toUpperCase();
+    var m = new RegExp("^" + PERIOD_SRC + "$", "i").exec(t);
+    // codeFrom reads periodRe groups, which start after its leading boundary group.
+    return m ? (codeFrom(["", ""].concat(m.slice(1))) || "") : "";
+  }
+  /** {period:"Q1", rest:"Points"} from "1st Qtr Points". No (or two different) phrases: period "". */
+  function splitPeriodText(text) {
+    var raw = String(text == null ? "" : text);
+    var re = periodRe("gi"), m, codes = {};
+    while ((m = re.exec(raw))) { var c = codeFrom(m); if (c) codes[c] = 1; }
+    var keys = Object.keys(codes);
+    if (keys.length !== 1) return {period: "", rest: raw};
+    var rest = raw.replace(periodRe("gi"), "$1 ")
+      .replace(/^\s*[-–—:|,]\s*/, "").replace(/\s*[-–—:|,]\s*$/, "").replace(/\s+/g, " ").trim();
+    return {period: keys[0], rest: rest};
+  }
+  // "Double Double NO", "No Double Double", "To Record A Double Double", "Double Double - Yes".
+  var DD_RE = /^(?:(yes|no)\s*[-:]?\s*)?(?:to\s+record\s+(?:a\s+)?)?(double[\s-]*doubles?)(?:\s*[-:(]?\s*(yes|no)\)?)?$/i;
+  /** {side:"Over"|"Under"|""} when text is a Double Double market; null otherwise. */
+  function parseDoubleDouble(text) {
+    var t = String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+    var m = DD_RE.exec(t);
+    if (!m) return null;
+    var yn = (m[1] || m[3] || "").toLowerCase();
+    var side = yn === "no" ? "Under" : (yn === "yes" || /^to\s+record/i.test(t.replace(/^(yes|no)\s*[-:]?\s*/i, "")) ? "Over" : "");
+    return {side: side};
+  }
+  /** "Cameron Boozer & Ty Jerome Double Double NO" -> {players:[...], side:"Under"}; null if not DD. */
+  function parseDoubleDoubleLine(text) {
+    var t = String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+    var m = /^(.+?)\s+((?:(?:yes|no)\s+)?(?:to\s+record\s+(?:a\s+)?)?double[\s-]*doubles?.*)$/i.exec(t);
+    if (!m) return null;
+    var dd = parseDoubleDouble(m[2]);
+    var who = m[1].replace(/\s*[-–—:]\s*$/, "").trim();
+    if (!dd || !who) return null;
+    var tail = /^(.*?)\s+(yes|no)$/i.exec(who);
+    if (tail && !dd.side) { dd.side = tail[2].toLowerCase() === "no" ? "Under" : "Over"; who = tail[1]; }
+    var players = who.split(/\s+(?:&|and)\s+/i).map(function (x) { return x.trim(); }).filter(Boolean);
+    return players.length ? {players: players, side: dd.side} : null;
+  }
   var PROP_LEAGUES = {nfl: true, nba: true, wnba: true, nbl: true};
   var NFL_SKILL = {QB: 1, RB: 1, FB: 1, WR: 1, TE: 1, HB: 1};
 
@@ -100,7 +164,7 @@
     var side = plus ? "Over" : (String(o.side || "").toLowerCase() === "under" ? "Under" : "Over");
     var leg = buildLeg({
       player: o.player, team: o.team, prop: { key: "threes_made", stat: label },
-      line: line, side: side, league: o.league, eventId: o.eventId, odds: o.odds
+      line: line, side: side, league: o.league, eventId: o.eventId, odds: o.odds, period: o.period
     });
     leg.prop = "threes_made";
     leg.prop_key = "threes_made";
@@ -129,7 +193,20 @@
       game_id: String(o.eventId)
     };
     if (o.odds > 1) leg.odds = o.odds;
+    var period = normalizePeriod(o.period);
+    if (period) leg.period = period;
     return leg;
+  }
+  /** Q control beside Over/Under on a prop row (id <rid>_q). Full = whole game: no period on the leg. */
+  function periodSelectHtml(rid) {
+    return '<label class="qlbl" style="display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-weight:700">Q <select id="' + rid + '_q" class="qsel" aria-label="Period" title="Period (Full = whole game)" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 4px;font:inherit">' +
+      PERIOD_OPTIONS.map(function (o) { return '<option value="' + o.value + '">' + o.label + '</option>'; }).join("") + '</select></label>';
+  }
+  /** Leg text with the period and Yes/No wording ("Isaiah Jackson under 2.5 Q1 Points"). */
+  function propLegText(l) {
+    var stat = (l.period ? l.period + " " : "") + l.stat;
+    if ((l.prop_key || l.prop) === "double_double") return l.player + " " + stat + " " + (l.side === "Under" ? "No" : "Yes");
+    return l.player + " " + (l.side === "Over" ? l.line + "+ " : "under " + l.line + " ") + stat;
   }
   /** Prefer TipBot's labels when the roster response carries prop_markets. */
   function applyMarketLabels(league, markets) {
@@ -159,7 +236,9 @@
     NFL_PROP_TABS: NFL_PROP_TABS, NBA_PROP_TABS: NBA_PROP_TABS, "hasProps": hasProps, isBasketball: isBasketball,
     propTabs: propTabs, playersUrl: playersUrl, propPlayers: propPlayers, visiblePlayers: visiblePlayers,
     buildLeg: buildLeg, buildThreesLeg: buildThreesLeg, THREES_PLUS_LINES: THREES_PLUS_LINES,
-    snapHalfLine: snapHalfLine, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket
+    snapHalfLine: snapHalfLine, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket,
+    PERIODS: PERIODS, PERIOD_OPTIONS: PERIOD_OPTIONS, normalizePeriod: normalizePeriod, splitPeriodText: splitPeriodText,
+    parseDoubleDouble: parseDoubleDouble, parseDoubleDoubleLine: parseDoubleDoubleLine, propLegText: propLegText, periodSelectHtml: periodSelectHtml
   };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBEspnProps = API;

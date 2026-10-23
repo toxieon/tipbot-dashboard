@@ -47,6 +47,25 @@
     out.push(cur.trim());
     return out;
   }
+  // Same rules as TipBot's _sheet_legs: "1st Qtr Points" is Points for Q1, "Double Double NO"
+  // is Under 0.5 (Yes is Over), and "A & B" on a Double Double row is one leg per player.
+  function sheetLegs(player, stat, line, side){
+    const EP=typeof TBEspnProps!=="undefined"?TBEspnProps:null;   // espn-props.js (page global)
+    let period="", st=String(stat||"").trim(), ln=line, sd=side;
+    const sp=EP?EP.splitPeriodText(st):{period:""};
+    if(sp.period&&sp.rest){ period=sp.period; st=sp.rest; }
+    const dd=EP?EP.parseDoubleDouble(st):null;
+    let names=[player];
+    if(dd){
+      st="Double Double";
+      const yn=String(sd||"").trim().toLowerCase();
+      sd=dd.side||(yn==="no"?"Under":yn==="yes"?"Over":sd);
+      if(ln==null) ln=0.5;
+      const parts=String(player||"").split(/\s+(?:&|and)\s+/i).map(function(x){ return x.trim(); }).filter(Boolean);
+      if(parts.length>1) names=parts;
+    }
+    return names.map(function(n){ const l={player:n, stat:st, line:ln, side:sd}; if(period) l.period=period; return l; });
+  }
   function parseTipSheet(raw){
     const parsedFm=parseTipSheetYamlFrontmatter(raw);
     const meta=parsedFm.meta, body=parsedFm.body;
@@ -72,9 +91,10 @@
         errors.push({row:rowNum, message:"kind must be SINGLE or MULTI", hard:true});
         continue;
       }
-      const game=get("game",1), player=get("player",2), stat=get("stat",3);
-      const lineRaw=get("line",4), side=get("side",5), oddsRaw=get("odds",6), unitsRaw=get("units",7), group=get("group",8);
-      const line=lineRaw===""?null:Number(lineRaw);
+      const game=get("game",1), player=get("player",2);
+      const lineRaw=get("line",4), oddsRaw=get("odds",6), unitsRaw=get("units",7), group=get("group",8);
+      const legs=sheetLegs(player, get("stat",3), lineRaw===""?null:Number(lineRaw), get("side",5));
+      const stat=legs[0].stat, side=legs[0].side, line=legs[0].line;
       const odds=oddsRaw===""?null:Number(oddsRaw);
       const units=unitsRaw===""?null:Number(unitsRaw);
       const missing=[];
@@ -88,17 +108,18 @@
       if(kind==="MULTI" && !String(group||"").trim()) missing.push("group");
       const hard=missing.length>0;
       if(hard) errors.push({row:rowNum, message:"Incomplete: missing "+missing.join(", "), hard:true});
-      rows.push({row:rowNum, kind:kind, game:game, player:player, stat:stat, line:line, side:side, odds:odds, units:units, group:kind==="MULTI"?String(group||"").trim():"", hard:hard, missing:missing});
+      rows.push({row:rowNum, kind:kind, game:game, player:player, stat:stat, line:line, side:side, odds:odds, units:units, group:kind==="MULTI"?String(group||"").trim():"", hard:hard, missing:missing, legs:legs});
     }
     const singles=[];
     const multiMap=new Map();
     rows.forEach(function(r){
       if(r.kind==="SINGLE"){
-        singles.push({kind:"SINGLE", game_name:r.game, odds:r.odds, units:r.units, legs:[{player:r.player,stat:r.stat,line:r.line,side:r.side,game:r.game}], rows:[r.row], hard:r.hard, errors:r.hard?[r.missing.join(", ")]:[]});
+        singles.push({kind:"SINGLE", game_name:r.game, odds:r.odds, units:r.units, legs:r.legs.map(function(l){ return Object.assign({}, l, {game:r.game}); }), rows:[r.row], hard:r.hard, errors:r.hard?[r.missing.join(", ")]:[]});
       }else{
         if(!multiMap.has(r.group)) multiMap.set(r.group,{kind:"MULTI", group:r.group, legs:[], rows:[], hard:false, errors:[]});
         const m=multiMap.get(r.group);
-        m.legs.push({player:r.player,stat:r.stat,line:r.line,side:r.side,game:r.game,odds:r.odds,units:r.units});
+        // A split Double Double row is one price: only its first leg carries the odds.
+        r.legs.forEach(function(l,i){ m.legs.push(Object.assign({}, l, {game:r.game,odds:i?null:r.odds,units:r.units})); });
         m.rows.push(r.row);
         if(r.hard){ m.hard=true; m.errors.push("row "+r.row+": "+(r.missing||[]).join(", ")); }
       }
@@ -111,7 +132,7 @@
       const hard=m.hard || m.legs.length<2;
       const errs=m.errors.slice();
       if(m.legs.length<2){ errs.push("MULTI needs ≥2 legs"); errors.push({row:m.rows[0]||0, message:"MULTI group "+m.group+" needs ≥2 legs", hard:true}); }
-      return {kind:"MULTI", group:m.group, game_name:games.length===1?games[0]:(games.length+" games"), odds:Math.round(odds*100)/100, units:units, legs:m.legs.map(function(l){ return {player:l.player,stat:l.stat,line:l.line,side:l.side,game:l.game}; }), rows:m.rows, hard:hard, errors:errs};
+      return {kind:"MULTI", group:m.group, game_name:games.length===1?games[0]:(games.length+" games"), odds:Math.round(odds*100)/100, units:units, legs:m.legs.map(function(l){ const o={player:l.player,stat:l.stat,line:l.line,side:l.side,game:l.game}; if(l.period) o.period=l.period; return o; }), rows:m.rows, hard:hard, errors:errs};
     });
     const tipCount=singles.length+multis.length;
     const hardErrors=errors.filter(function(e){ return e.hard; });
@@ -150,7 +171,7 @@
       html+='<div class="paste-card'+(t.hard?' paste-card--err':'')+'"><div class="paste-card-hd"><span class="paste-card-kind">SINGLE</span><span class="paste-card-meta">'+esc(String(t.units))+'u @ '+esc(String(t.odds))+'</span></div>';
       html+='<div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">'+esc(t.game_name||"")+'</div>';
       (t.legs||[]).forEach(function(l){
-        html+='<div class="paste-leg">'+esc(l.player)+' · '+esc(l.stat)+' '+esc(String(l.side))+' '+esc(String(l.line))+'</div>';
+        html+='<div class="paste-leg">'+esc(l.player)+' · '+(l.period?esc(l.period)+' ':'')+esc(l.stat)+' '+esc(String(l.side))+' '+esc(String(l.line))+'</div>';
       });
       if(t.hard) html+='<div class="paste-err">Incomplete row</div>';
       html+='</div>';
@@ -159,7 +180,7 @@
       html+='<div class="paste-card paste-card--multi'+(t.hard?' paste-card--err':'')+'"><div class="paste-card-hd"><span class="paste-card-kind">MULTI · '+esc(t.group||"")+'</span><span class="paste-card-meta">'+(t.legs||[]).length+' legs · '+esc(String(t.units))+'u @ ~'+esc(String(t.odds))+'</span></div>';
       html+='<div style="font-weight:700;font-size:var(--t-sub);margin-bottom:4px">'+esc(t.game_name||"")+'</div>';
       (t.legs||[]).forEach(function(l){
-        html+='<div class="paste-leg">'+esc(l.player)+' · '+esc(l.stat)+' '+esc(String(l.side))+' '+esc(String(l.line))+(l.game&&l.game!==t.game_name?' <span style="color:var(--faint)">('+esc(l.game)+')</span>':'')+'</div>';
+        html+='<div class="paste-leg">'+esc(l.player)+' · '+(l.period?esc(l.period)+' ':'')+esc(l.stat)+' '+esc(String(l.side))+' '+esc(String(l.line))+(l.game&&l.game!==t.game_name?' <span style="color:var(--faint)">('+esc(l.game)+')</span>':'')+'</div>';
       });
       if(t.hard) html+='<div class="paste-err">'+esc((t.errors||["Incomplete"]).join("; "))+'</div>';
       html+='</div>';

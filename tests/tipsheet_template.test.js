@@ -53,3 +53,23 @@ test("the download button is not duplicated into the public dashboard shell", ()
   assert.match(html, /STATE\.ops===true&&!STATE\.viewAs/);
   assert.doesNotMatch(html, /id="paste-template"/);
 });
+
+test("Double Double NO / YES and 1st Qtr Points in a pasted sheet", () => {
+  const ctx = { TD: { loaded: {} }, console, TBEspnProps: require("../assets/espn-props.js") };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, "assets/admin.js"), "utf8"), ctx, { filename: "admin.js" });
+  const p = ctx.parseTipSheet([
+    "kind\tgame\tplayer\tstat\tline\tside\todds\tunits\tgroup",
+    "SINGLE\tMemphis Grizzlies v Golden State Warriors\tCameron Boozer & Ty Jerome\tDouble Double NO\t\t\t1.64\t1\t",
+    "MULTI\tLA Clippers v Los Angeles Lakers\tIsaiah Jackson\t1st Qtr Points\t2.5\tUnder\t1.15\t1\tA",
+    "MULTI\tLA Clippers v Los Angeles Lakers\tLuka Doncic\tRebounds\t3.5\tOver\t1.40\t1\tA",
+  ].join("\n"));
+  assert.equal(p.hardErrors.length, 0);
+  assert.deepEqual(plain(p.singles[0].legs.map((l) => [l.player, l.stat, l.side, l.line])),
+    [["Cameron Boozer", "Double Double", "Under", 0.5], ["Ty Jerome", "Double Double", "Under", 0.5]]);
+  const m = p.multis[0];
+  assert.equal(m.odds, 1.61);
+  assert.deepEqual(plain(m.legs[0]), { player: "Isaiah Jackson", stat: "Points", line: 2.5, side: "Under",
+    game: "LA Clippers v Los Angeles Lakers", period: "Q1" });
+  assert.equal("period" in m.legs[1], false);
+});
