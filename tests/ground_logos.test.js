@@ -183,6 +183,6 @@ test("the court paints studio logos scaled from the oval layout", async () => {
   assert.equal(edge.rot, 90);
   const centre = A.courtLogoPlacement({x: 0, z: 0, w: 20, d: 10});
   assert.equal(centre.w / centre.d, 2, "shape kept");
-  const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "assets", "venues", "arena.js"), "utf8");
+  const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "assets", "venues", "kit.js"), "utf8");
   assert.match(src, /setLogos: setLogos,/);
 });

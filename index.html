@@ -5358,7 +5358,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       ? FollowerLive.playersShouldRun(FLIVE.games, g, FLIVE.anyLive)
       : !!FLIVE.anyLive;
     const on=window.FollowerLive&&FollowerLive.shouldAnimate
-      ? FollowerLive.shouldAnimate(fliveAnimOn(), !!run, g) && FLIVE.venue!=="arena"
+      ? FollowerLive.shouldAnimate(fliveAnimOn(), !!run, g) && FLIVE.venue==="mcg"
       : false;
     flivePlayers(on);
   }

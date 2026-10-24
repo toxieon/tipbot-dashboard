@@ -92,11 +92,11 @@ test("ESPN period keys count as live", () => {
   assert.equal(FL.gameIsLive({ concluded: true, phase: { key: "P4" } }), false);
 });
 
-test("venueFor: basketball gets the arena, everything else the MCG", () => {
+test("venueFor: basketball gets the arena, AFL and unknown the MCG", () => {
   for (const g of [{ league: "nba" }, { league: "wnba" }, { sport: "NBL" }, { sport_kind: "basketball" }, "NBA", "basketball"]) {
     assert.equal(V.venueFor(g), "arena", JSON.stringify(g));
   }
-  for (const g of [{ sport: "AFL" }, { sport: "AFLW" }, { league: "nfl" }, {}, null, "", "SOCCER"]) {
+  for (const g of [{ sport: "AFL" }, { sport: "AFLW" }, {}, null, "", "curling"]) {
     assert.equal(V.venueFor(g), "mcg", JSON.stringify(g));
   }
   assert.equal(V.moduleFor("arena"), "./assets/venues/arena.js");
@@ -136,8 +136,11 @@ test("arena module: same handle contract, no controls, no player models, no leag
   // No league marks: the only images are the house LED slides and the still.
   assert.doesNotMatch(arenaSrc, /nba\.com|espncdn|logos?\/(nba|wnba|nbl)/i);
   assert.deepEqual((arenaSrc.match(/["'][^"']+\.(?:png|svg|jpg|webp)["']/g) || []), ['"./arena-fallback.png"']);
+  // The handle itself is built by the shared kit.
+  assert.match(arenaSrc, /mountVenue\(host, opts, DEF\)/);
+  const kitSrc = fs.readFileSync(path.join(root, "assets/venues/kit.js"), "utf8");
   for (const k of ["fallback", "cameras", "cameraId", "setCamera", "resize", "setBoards", "setLogos", "celebrate", "stop"]) {
-    assert.match(arenaSrc, new RegExp("\\b" + k + "\\b"), k);
+    assert.match(kitSrc, new RegExp("\\b" + k + "\\b"), k);
   }
   const png = fs.statSync(path.join(root, "assets/venues/arena-fallback.png"));
   assert.ok(png.size > 1000 && png.size <= 200 * 1024, "fallback still <= 200 KB");
