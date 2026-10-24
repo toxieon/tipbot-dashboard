@@ -1,0 +1,2 @@
+# Shared parity fixtures are hashed byte for byte in both repos: keep LF on every OS.
+tests/fixtures/*_vectors.json -text

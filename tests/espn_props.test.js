@@ -193,3 +193,18 @@ test("the builder wires Q into both prop rows and the free-text Double Double li
   assert.match(APP, /TBEspnProps\.parseDoubleDoubleLine\(v\)/);
   assert.doesNotMatch(APP + fs.readFileSync(path.join(__dirname, "..", "assets", "espn-props.js"), "utf8"), /target=["']?_blank/);
 });
+
+// Shared with TipBot tests/fixtures/period_vectors.json (same sha256 in tests/test_period_props.py).
+const VECTORS = fs.readFileSync(path.join(__dirname, "fixtures", "period_vectors.json"));
+test("period vectors file is the shared copy", () => {
+  assert.equal(require("node:crypto").createHash("sha256").update(VECTORS).digest("hex"), "c71725396d6956f2031998ba4c7b4cb39ee08a88f27ce5709527a6936adb9a03");
+});
+test("period and Double Double wording matches every shared vector", () => {
+  const v = JSON.parse(VECTORS.toString("utf8"));
+  for (const [raw, want] of v.normalize) assert.equal(P.normalizePeriod(raw) || null, want, raw);
+  for (const [raw, want, rest] of v.split) assert.deepEqual(P.splitPeriodText(raw), {period: want || "", rest}, raw);
+  for (const [raw, want] of v.double_double) {
+    const got = P.parseDoubleDouble(raw);
+    assert.equal(got ? got.side : null, want, raw);
+  }
+});
