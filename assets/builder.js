@@ -434,8 +434,8 @@
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
       +'<button class="compchip" id="espnaflchip">'+esc(sportLabel("AFL"))+'</button>'
       +ESPN_SPORTS.map(s=>'<button class="compchip espnsport'+(s.league===league?" on":"")+'" data-league="'+esc(s.league)+'">'+esc(sportLabel(s.k))+'</button>').join("")
-      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'">'+esc(sportLabel(s.k))+'</button>').join("")
-      +'<button class="compchip sportstub" data-s="">'+esc(sportLabel("Other"))+'</button></div>';
+      +(manualBets()?SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'">'+esc(sportLabel(s.k))+'</button>').join("")
+      +'<button class="compchip sportstub" data-s="">'+esc(sportLabel("Other"))+'</button>':'')+'</div>';
     if(league==="nfl"){
       const weeks=BUILD.espnWeeks||[];
       html+='<div style="display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap">'
@@ -549,7 +549,8 @@
       +'<p style="color:var(--muted);margin:0 0 14px">'+(BUILD.espnPropsMissing?'Match pick only — add free-text selections for this '+esc(label)+' game.':'Free-text selections for this '+esc(label)+' game. <button class="ghost" id="espnpropsback">Player props</button>')+'</p>'
       +'<div class="panel">'
       +'<div class="field"><label>Event</label><input id="c_event" value="'+esc(BUILD.customEvent||"")+'"></div>'
-      +'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. Lakers -4.5 · Over 224.5" style="flex:1"><button class="btn sm" id="c_add">Add</button></div></div>'
+      +(manualBets()?'<div class="field"><label>Add a selection</label><div style="display:flex;gap:8px"><input id="c_leg" placeholder="e.g. Lakers -4.5 · Over 224.5" style="flex:1"><button class="btn sm" id="c_add">Add</button></div></div>'
+        :'<div class="field" style="color:var(--faint);font-size:var(--t-foot)">Free-text selections are manual bets (Settings → Features). Lines and totals below grade automatically.</div>')
       +(TBEspnProps.hasLines(BUILD.espnLeague)?'<div class="field"><label>Lines &amp; totals</label><div style="display:flex;gap:8px;flex-wrap:wrap">'
         +'<select id="lt_mkt"><option value="line">Line / alt line</option><option value="total">Game total</option><option value="team_total">Team total</option></select>'
         +'<select id="lt_team">'+[ev.away,ev.home].filter(Boolean).map(t=>{const n=t.name||t.abbreviation||"";return '<option value="'+esc(n)+'">'+esc(n)+'</option>';}).join("")+'</select>'
@@ -652,7 +653,7 @@
           +(threesPlus?'':yesNo?('<div class="prow-actions"><div class="ou" id="'+rid+'_ou" role="group" aria-label="Double Double"><button data-s="Over" class="on">Yes</button><button data-s="Under">No</button></div>'):('<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'))
           +(threesPlus?'<div class="prow-actions">':'')
-          +TBEspnProps.periodSelectHtml(rid)
+          +(TBEspnProps.periodsGrade(BUILD.espnLeague)||(typeof manualBets==="function"&&manualBets())?TBEspnProps.periodSelectHtml(rid):'')
           +'<input id="'+rid+'_odds" type="number" step="0.01" min="1.01" placeholder="Odds" title="Leg odds (optional)" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit">'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
@@ -702,10 +703,18 @@
   // /api/espn/players for NBA/WNBA). Stubs → Custom.
   const ESPN_SPORTS=[{k:"NFL",league:"nfl",hint:"NFL · week picker + player props"},{k:"NBA",league:"nba",hint:"NBA · date picker + player props"},{k:"WNBA",league:"wnba",hint:"WNBA · date picker + player props"}];
   const SPORT_STUBS=[{k:"Soccer",hint:"EPL · A-League"},{k:"NRL",hint:"NRL"}];
+  // Settings → Features → Manual bets (off by default): markets TipBot can't grade by
+  // itself are hidden. TipBot refuses them too (services/gradeable.py).
+  function manualBets(){ return typeof guildFeature!=="function"||guildFeature(BUILD.guildId,"manual_bets"); }
+  const MANUAL_MARKETS={"1st Disposal":1,"Last Disposal":1};   // no auto-grade source
   const NFL_PROP_TABS=TBEspnProps.NFL_PROP_TABS;   // assets/espn-props.js (values unchanged)
   function openCustom(guildId,name,presetSport){
     if(typeof buildTipsShown==="function"&&!buildTipsShown())return;
     navNote("#/s/"+encodeURIComponent(guildId)+"/build/custom", ()=>openCustom(guildId,name,presetSport));
+    if(typeof guildFeature==="function"&&!guildFeature(guildId,"manual_bets")){
+      toast("Custom tips are manual bets. Turn on Manual bets in Settings → Features.");
+      return;
+    }
     clearDetailTimers();clearLiveTimer();clearGamesTimer();
     try{ stopRacingCountdown(); stopRacingHero(); }catch(e){}
     if(BATCH.guildId && String(BATCH.guildId)!==String(guildId)){ BATCH={guildId:null,tips:[]}; }
@@ -745,14 +754,14 @@
     const hasMulti=comps.length>1;
     if(!BUILD.compFilter||(BUILD.compFilter!=="All"&&!comps.includes(BUILD.compFilter)))BUILD.compFilter="All";
     let html='<div class="back" id="bx">← Back to '+esc(BUILD.serverName||"server")+'</div>'
-      +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" id="slipimportbtn" type="button">Import from screenshot</button><button class="ghost" id="customgames">＋ Custom (non-AFL)</button><button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
+      +'<div class="dhead"><h1 style="margin:0">Build a tip</h1><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" id="slipimportbtn" type="button">Import from screenshot</button>'+(manualBets()?'<button class="ghost" id="customgames">＋ Custom (non-AFL)</button>':'')+'<button class="ghost" id="refreshgames">↻ Refresh</button></div></div>'
       +'<p style="color:var(--muted);margin:0 0 12px">Upcoming games (next 7 days) · pick one · live games show here too · or add a Custom tip for any other sport</p>';
     // Sport switcher: AFL live · NFL/NBA/WNBA via TipBot ESPN · stubs → custom.
     html+='<div style="display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;align-items:center">'
       +'<span class="compchip on" title="Live AFL/AFLW data">'+esc(sportLabel("AFL"))+' <span style="opacity:.7;font-size:var(--t-cap)">live</span></span>'
       +ESPN_SPORTS.map(s=>'<button class="compchip espnsport" data-league="'+esc(s.league)+'" title="'+esc(s.hint)+'">'+esc(sportLabel(s.k))+' <span style="opacity:.7;font-size:var(--t-cap)">ESPN</span></button>').join("")
-      +SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — custom tip">'+esc(sportLabel(s.k))+'</button>').join("")
-      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">'+esc(sportLabel("Other"))+'</button>'
+      +(manualBets()?SPORT_STUBS.map(s=>'<button class="compchip sportstub" data-s="'+esc(s.k)+'" title="'+esc(s.hint)+' — custom tip">'+esc(sportLabel(s.k))+'</button>').join("")
+      +'<button class="compchip sportstub" data-s="" title="Any other sport" style="opacity:.85">'+esc(sportLabel("Other"))+'</button>':'')
       +'<button type="button" class="compchip" id="build-racing-switch" title="Gallops and harness">Racing</button></div>';
     if(hasMulti){
       const chip=(v,l)=>'<button class="compchip'+(BUILD.compFilter===v?" on":"")+'" data-c="'+esc(v)+'">'+esc(l)+'</button>';
@@ -837,7 +846,7 @@
     const g=BUILD.game;
     if(BUILD.compareSel&&BUILD.compareSel.stat!==BUILD.tab){ BUILD.compareSel=null; BUILD.compareCache=null; }
     const tabs=Object.keys(STATS).map(t=>'<div class="tab '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
-    const mtabs=Object.keys(MARKETS).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
+    const mtabs=Object.keys(MARKETS).filter(t=>manualBets()||!MANUAL_MARKETS[t]).map(t=>'<div class="tab mkt '+(t===BUILD.tab?"active":"")+'" data-t="'+t+'">'+t+'</div>').join("");
     const isLive=g.aflMatchId&&Number(g.complete)>0&&Number(g.complete)<100;
     $("builder").innerHTML='<div class="back" id="bg">← Games</div><div class="dhead"><h1 style="margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+aflLogoHtml(g.hteam)+'<span>'+esc(teamName(g.hteam))+'</span><span style="color:var(--muted);font-weight:600">v</span>'+aflLogoHtml(g.ateam)+'<span>'+esc(teamName(g.ateam))+'</span></h1><div style="display:flex;align-items:center;gap:10px"><span class="plan">'+(g.roundname||"")+'</span>'+(isLive?'<button class="ghost" id="refreshlive">↻ Live</button>':"")+'</div></div>'
       +(gameNeedsAssume(g)?('<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 4px;padding:10px 12px;border:1px solid var(--warn,#e0a04a);border-radius:var(--r-md);background:color-mix(in srgb,var(--warn,#e0a04a) 8%,transparent)">'

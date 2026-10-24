@@ -1857,6 +1857,14 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   };
 
   // Per-guild unit size ($). 0 = not configured -> dollar-mode staking stays off.
+  // Per-server features from /api/server settings.features (TipBot 0.70.29). A server we
+  // have no features for yet (or an older TipBot) shows everything; TipBot still refuses.
+  const GUILD_FEATURES={};
+  function guildFeature(guildId, name){
+    const f=GUILD_FEATURES[String(guildId==null?"":guildId)];
+    return !f||!(name in f)||f[name]!==false;
+  }
+  function tipGuildId(tipId){ return String(tipId||"").split(":")[0]; }
   function guildUnitSize(guildId){
     const pools=[].concat(STATE.servers||[], STATE.followerServers||[]);
     const g=pools.find(function(s){ return s&&String(s.guild_id)===String(guildId); });
@@ -2558,7 +2566,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function paintBuildEntries(){
     const show=buildTipsShown();
     const text=(window.TBGlobalFlags&&typeof TBGlobalFlags.badge==="function")?TBGlobalFlags.badge("build_tips_enabled"):"";
-    ["buildbtn","custombtn","flracebtn"].forEach(function(id){ const el=$(id); if(el) el.hidden=!show; });
+    // Per server too: Build needs the tip builder, Custom needs Manual bets.
+    const need={buildbtn:"builder", custombtn:"manual_bets"};
+    ["buildbtn","custombtn","flracebtn"].forEach(function(id){ const el=$(id); if(!el) return;
+      const gid=el.dataset&&el.dataset.gid;
+      el.hidden=!show||!!(need[id]&&gid&&!guildFeature(gid, need[id])); });
     const b=$("buildbtn");
     if(b){
       let tag=b.querySelector(".gf-badge");
@@ -3601,6 +3613,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function gradeRowHtml(tipId, settled, godRegrade){
     const pending=!settled||godRegrade;
     if(!pending) return "";
+    // Manual grading off (the default): tips settle by auto-grade only, so no buttons.
+    if(!godRegrade&&!guildFeature(tipGuildId(tipId),"manual_grading")) return "";
     return '<div class="graderow">'
       +'<span style="color:'+(godRegrade?'var(--warn,#e0a04a)':'var(--faint)')+';font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.05em">'+((godRegrade&&window.TBOwner&&TBOwner.gradeLabel)?TBOwner.gradeLabel():'Grade')+'</span>'
       +'<button type="button" class="gradebtn" data-tip="'+esc(tipId)+'" data-r="Win" style="border:1px solid rgba(66,176,111,.45);background:rgba(66,176,111,.14);color:#7ee0a6;border-radius:var(--r-sm);padding:5px 10px;cursor:pointer;font:inherit;font-size:var(--t-foot);font-weight:700">Win</button>'
@@ -7447,6 +7461,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     clearDetailTimers();
     if(!d||typeof d!=="object") d={};
     const s=d.settings&&typeof d.settings==="object"?d.settings:{};
+    if(s.guild_id!=null&&s.features&&typeof s.features==="object") GUILD_FEATURES[String(s.guild_id)]=s.features;
     const st=d.stats&&typeof d.stats==="object"?d.stats:{};
     const rawTips=d.tips;
     const tips={
@@ -7513,7 +7528,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
       +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" title="Add a non-AFL tip">＋ Custom</button><button class="btn sm" id="buildbtn">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
@@ -7524,7 +7539,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="panel" id="scheduled-panel" data-sec="scheduled" data-sec-open="1"><h3>Scheduled Tips</h3><div style="color:var(--faint);font-size:var(--t-foot);margin:-6px 0 10px;line-height:1.4">Queued tips that haven\'t posted yet. Cancel, adjust the odds or edit before they post.</div><div id="scheduled-box"><div class="empty">Loading…</div></div></div>'
       +(sv?"":sparkline(d.profit_series||[]))
       +'<div class="panel" data-sec="wlp" data-sec-sum="'+wonN+'–'+lostN+'–'+pushN+'"><h3>Win / Loss / Push · '+period+'</h3><div class="wlbar">'+wl+'</div><div class="wl-legend"><span class="lg"><span class="sw" style="background:var(--win)"></span>Won '+wonN+'</span><span class="lg"><span class="sw" style="background:var(--loss)"></span>Lost '+lostN+'</span><span class="lg"><span class="sw" style="background:var(--push)"></span>Push '+pushN+'</span><span class="lg" style="margin-left:auto">'+settledN+' settled · '+stakedN+'u staked</span></div></div>'
-      +renderCalendar(d.cal_month,d.daily_series)
+      +(guildFeature(s.guild_id,"units_calendar")?renderCalendar(d.cal_month,d.daily_series):"")
       +settingsPanel
       +'<div class="panel" id="recent-panel" data-sec="recent" data-sec-sum="'+tips.settled.length+' settled"><h3>Recent tips</h3><div id="recent-box">'+se+'</div></div>';
     if(showBack)$("backbtn").onclick=enterHome;
@@ -7533,6 +7548,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     { const ldb=$("livedemobtn"); if(ldb){ ldb.hidden=!ownerSettingsAllowed(); if(!ldb.hidden) ldb.onclick=()=>openFollowerDemo(); } }
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
+    if(!guildFeature(s.guild_id,"livestats")){ const lp=$("live-tips-panel"); if(lp) lp.remove(); }   // Live stats off
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
     paintBuildEntries();
     { const sb=$("scoresbtn"); if(sb)sb.onclick=()=>openResults(s.guild_id,s.display_name); }
@@ -7835,6 +7851,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(FEAT_MEM[key]&&FEAT_MEM[key].flags) return;
     refreshFeatures(key);
   }
+  /** [{name, keys}] in category order; one unnamed group when the bot sends no categories. */
+  function featureGroups(keys, categories, order){
+    if(!categories||typeof categories!=="object") return [{name:"", keys:keys}];
+    const names=(Array.isArray(order)?order.slice():[]);
+    keys.forEach(k=>{ const c=categories[k]||"Other"; if(names.indexOf(c)<0) names.push(c); });
+    return names.map(n=>({name:n, keys:keys.filter(k=>(categories[k]||"Other")===n)})).filter(g=>g.keys.length);
+  }
   function paintFeatureShell(box){
     box.innerHTML='<div class="feat-shell" data-feat-shell="1">'+NDSkeleton.lines(6)+'</div>';
   }
@@ -7852,7 +7875,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<span id="feat-msg" style="font-size:var(--t-foot);align-self:center"></span></div>';
     html+='<div style="display:flex;flex-direction:column;gap:8px">';
     let placed=false;
-    keys.forEach(k=>{
+    // TipBot 0.70.29 groups the toggles (Tips, Grading, Live, ...). Older bots: one list.
+    const groups=featureGroups(keys, mem.categories, mem.categoryOrder);
+    groups.forEach(g=>{
+     if(g.name) html+='<h4 class="feat-cat" style="margin:10px 0 2px;font-size:var(--t-foot);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">'+esc(g.name)+'</h4>';
+     g.keys.forEach(k=>{
       if(recap&&recap.isRecapKey(k)){
         if(!placed){ html+=recap.groupHtml(state); placed=true; }
         return;
@@ -7866,6 +7893,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         +'<span style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(k)+'</span>'
         +(note?'<span class="ft-grade-note" style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(note)+'</span>':'')
         +'</span></label>';
+     });
     });
     if(recap&&!placed) html+=recap.groupHtml(state);
     html+='</div>';
@@ -7976,7 +8004,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         const known={};
         keys.forEach(function(k){ known[k]=true; });
         const prev=FEAT_MEM[key]||{};
-        FEAT_MEM[key]={flags:flags, labels:d.labels||{}, keys:keys, known:known, recap:recap, dirty:!!prev.dirty};
+        FEAT_MEM[key]={flags:flags, labels:d.labels||{}, keys:keys, known:known, recap:recap, dirty:!!prev.dirty,
+          categories:d.categories||null, categoryOrder:d.category_order||null};
         if(!same||FEAT_MEM[key].dirty) return;
         paintFeatures(box, key, FEAT_MEM[key]);
       }catch(e){

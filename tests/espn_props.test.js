@@ -188,7 +188,10 @@ test("period and Double Double wording", () => {
 });
 
 test("the builder wires Q into both prop rows and the free-text Double Double line", () => {
-  assert.equal((APP.match(/\+TBEspnProps\.periodSelectHtml\(rid\)/g) || []).length, 2);
+  assert.equal((APP.match(/TBEspnProps\.periodSelectHtml\(rid\)/g) || []).length, 2);
+  // ESPN rows show Q only where quarters grade (NBA, WNBA) or with Manual bets on.
+  assert.match(APP, /\(TBEspnProps\.periodsGrade\(BUILD\.espnLeague\)\|\|\(typeof manualBets==="function"&&manualBets\(\)\)\?TBEspnProps\.periodSelectHtml\(rid\):''\)/);
+  assert.deepEqual(["nba", "WNBA", "nbl", "nfl"].map(P.periodsGrade), [true, true, false, false]);
   assert.match(APP, /const period=TBEspnProps\.normalizePeriod\(\(\$\(rid\+"_q"\)\|\|\{\}\)\.value\);\n\s*if\(period\) leg\.period=period;/);
   assert.match(APP, /TBEspnProps\.parseDoubleDoubleLine\(v\)/);
   assert.doesNotMatch(APP + fs.readFileSync(path.join(__dirname, "..", "assets", "espn-props.js"), "utf8"), /target=["']?_blank/);

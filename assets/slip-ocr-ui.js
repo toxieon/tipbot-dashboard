@@ -699,6 +699,18 @@
     BUILD._slipDiag = { file: SLIP.file, ocr: SLIP.ocr, parsed: SLIP.parsed, guildId: gid, sport: tip.sport || reviewed.sport || "", bookie: tip.bookmaker || "" };
     var primary = resolvePrimaryGame(matchedLegs);
     var state = TBSlipOcr.builderStateForSlip(tip, primary, { parsedLegs: matchedLegs });
+    // Manual bets off (the default): a leg TipBot can't grade itself stays out of the tray.
+    var manualOff = typeof guildFeature === "function" && !guildFeature(gid, "manual_bets");
+    var freeText = (state.legs || []).filter(function (l) { return l && l.custom; });
+    if (manualOff && freeText.length) {
+      // A scanned race leg has no meeting / race ids, so only Build → Racing grades it.
+      var racing = matchedLegs.some(function (l) { return l && l.kind === "racing"; });
+      if (err) err.textContent = (freeText.length === 1 ? "1 leg isn't" : freeText.length + " legs aren't")
+        + " a market TipBot grades automatically (" + freeText.map(function (l) { return l.desc || l.stat || "leg"; }).join(", ")
+        + "). " + (racing ? "Post races from Build → Racing, " : "Fix the market, skip the leg, ")
+        + "or turn on Manual bets in Settings → Features.";
+      return;
+    }
     BUILD.legs = state.legs;
     BUILD.custom = state.custom;
     BUILD.espn = state.espn;

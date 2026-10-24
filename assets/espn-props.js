@@ -197,6 +197,8 @@
     if (period) leg.period = period;
     return leg;
   }
+  /** Quarter / half props grade from ESPN play-by-play for these leagues (TipBot periods.py). */
+  function periodsGrade(league) { var k = lg(league); return k === "nba" || k === "wnba"; }
   /** Q control beside Over/Under on a prop row (id <rid>_q). Full = whole game: no period on the leg. */
   function periodSelectHtml(rid) {
     return '<label class="qlbl" style="display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-weight:700">Q <select id="' + rid + '_q" class="qsel" aria-label="Period" title="Period (Full = whole game)" style="background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 4px;font:inherit">' +
@@ -238,7 +240,7 @@
     buildLeg: buildLeg, buildThreesLeg: buildThreesLeg, THREES_PLUS_LINES: THREES_PLUS_LINES,
     snapHalfLine: snapHalfLine, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket,
     PERIODS: PERIODS, PERIOD_OPTIONS: PERIOD_OPTIONS, normalizePeriod: normalizePeriod, splitPeriodText: splitPeriodText,
-    parseDoubleDouble: parseDoubleDouble, parseDoubleDoubleLine: parseDoubleDoubleLine, propLegText: propLegText, periodSelectHtml: periodSelectHtml
+    parseDoubleDouble: parseDoubleDouble, parseDoubleDoubleLine: parseDoubleDoubleLine, propLegText: propLegText, periodSelectHtml: periodSelectHtml, periodsGrade: periodsGrade
   };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBEspnProps = API;
