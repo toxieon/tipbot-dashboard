@@ -614,6 +614,18 @@
     }) || null;
   }
 
+  /** Tips on this server in the last week with these legs (TipBot /api/tips/duplicate-check). */
+  async function slipDuplicates(gid, legs) {
+    try {
+      var r = await api("/api/tips/duplicate-check", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ guild_id: gid, legs: legs }),
+      });
+      if (!r.ok) return [];
+      var j = await r.json();
+      return (j && Array.isArray(j.duplicates)) ? j.duplicates : [];
+    } catch (e) { return []; }   // an older bot or a blip never blocks the import
+  }
   async function applyToBuilder() {
     var err = $("slip-err");
     var reviewed = readReviewDraft();
@@ -677,6 +689,29 @@
     BUILD._slipDiag = { file: SLIP.file, ocr: SLIP.ocr, parsed: SLIP.parsed, guildId: gid, sport: tip.sport || reviewed.sport || "", bookie: tip.bookmaker || "" };
     var primary = resolvePrimaryGame(matchedLegs);
     var state = TBSlipOcr.builderStateForSlip(tip, primary, { parsedLegs: matchedLegs });
+    // Manual bets off (the default): a leg TipBot can't grade itself stays out of the tray.
+    var manualOff = typeof guildFeature === "function" && !guildFeature(gid, "manual_bets");
+    var freeText = (state.legs || []).filter(function (l) { return l && l.custom; });
+    if (manualOff && freeText.length) {
+      // A scanned race leg has no meeting / race ids, so only Build → Racing grades it.
+      var racing = matchedLegs.some(function (l) { return l && l.kind === "racing"; });
+      if (err) err.textContent = (freeText.length === 1 ? "1 leg isn't" : freeText.length + " legs aren't")
+        + " a market TipBot grades automatically (" + freeText.map(function (l) { return l.desc || l.stat || "leg"; }).join(", ")
+        + "). " + (racing ? "Post races from Build → Racing, " : "Fix the market, skip the leg, ")
+        + "or turn on Manual bets in Settings → Features.";
+      return;
+    }
+    // Already on this server? Warn once; Apply again with the same legs adds it anyway.
+    var dupKey = JSON.stringify((state.legs || []).map(function (l) { return [l.player || l.team || "", l.stat || l.market || "", l.line, l.side, l.period || ""]; }));
+    if (SLIP.dupOk !== dupKey) {
+      var dups = await slipDuplicates(gid, state.legs || []);
+      if (dups.length) {
+        SLIP.dupOk = dupKey;
+        if (err) err.textContent = "Already posted: " + dups.map(function (d) { return d.display_id + (d.status && d.status !== "Pending" ? " (" + d.status + ")" : ""); }).join(", ")
+          + " has the same legs. Apply again to add it anyway.";
+        return;
+      }
+    }
     BUILD.legs = state.legs;
     BUILD.custom = state.custom;
     BUILD.espn = state.espn;
