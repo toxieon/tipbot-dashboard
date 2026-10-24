@@ -2225,7 +2225,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   let GROUND_WARM=null;
   let GROUND_SCENE=null;
   const GROUND_BLOBS={};
-  const GROUND_SCENE_KEY="tipdash_ground_scene_v1";
+  // One scene per ground: the studio picks which tipsters' logos show on each (TipBot 0.70.30).
+  const GROUND_SCENE_KEY="tipdash_ground_scene_v2";
   function groundFetch(path, cacheMode){
     var url=String(path||"");
     if(url.indexOf("http://")!==0 && url.indexOf("https://")!==0) url=API+url;
@@ -2234,20 +2235,27 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(t) headers.Authorization="Bearer "+t;
     return fetch(url,{credentials:"include",headers:headers,cache:cacheMode||"force-cache"});
   }
-  function rememberGroundScene(d){
+  function rememberGroundScene(d, venue){
     if(!d||typeof d!=="object") return;
-    GROUND_SCENE=d;
-    try{ sessionStorage.setItem(GROUND_SCENE_KEY, JSON.stringify(d)); }catch(e){}
+    GROUND_SCENE=Object.assign({}, cachedScenes(), {[venue||d.venue||"mcg"]:d});
+    try{ sessionStorage.setItem(GROUND_SCENE_KEY, JSON.stringify(GROUND_SCENE)); }catch(e){}
   }
-  function cachedGroundScene(){
+  function cachedScenes(){
     if(GROUND_SCENE) return GROUND_SCENE;
     try{
       const raw=sessionStorage.getItem(GROUND_SCENE_KEY);
-      if(!raw) return null;
-      const d=JSON.parse(raw);
+      const d=raw?JSON.parse(raw):null;
       if(d&&typeof d==="object"){ GROUND_SCENE=d; return d; }
     }catch(e){}
-    return null;
+    return {};
+  }
+  function cachedGroundScene(venue){ return cachedScenes()[venue||"mcg"]||null; }
+  /** Logos for this ground only. A bot without per-ground scenes (no ``venue``) keeps them on the AFL field. */
+  function sceneLogosFor(d, venue){
+    venue=venue||"mcg";
+    if(!d||!Array.isArray(d.ground)) return [];
+    if(d.venue) return d.venue===venue?d.ground:[];
+    return venue==="mcg"?d.ground:[];
   }
   function groundMod(venue){
     venue=venue||"mcg";
@@ -2271,12 +2279,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(GROUND_WARM) return GROUND_WARM;
     try{ groundMod().catch(function(){}); }catch(e){}
     GROUND_WARM=ensureFreshToken().then(function(){
-      return groundFetch("/api/ground/scene?game=", "no-cache");
+      return groundFetch("/api/ground/scene?game=&venue=mcg", "no-cache");
     }).then(function(r){
       return r&&r.ok?r.json():null;
     }).then(function(d){
       if(!d){ GROUND_WARM=null; return; }
-      rememberGroundScene(d);
+      rememberGroundScene(d, "mcg");
       var jobs=[];
       function keep(url){
         if(!url) return;
@@ -5506,7 +5514,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     FLIVE.groundMarked=false;
     FLIVE.sceneFetch=0;
     FLIVE.paintedCache=0;
-    const d=cachedGroundScene();
+    const d=cachedGroundScene(FLIVE.venue);
     FLIVE.expectLogos=d&&d.ground?d.ground.filter(function(g){ return g&&g.url; }).length:0;
     try{
       performance.clearMarks("flive-open");
@@ -5560,7 +5568,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(handle.setBoards) handle.setBoards(FLIVE.sponsors.boards);
   }
   async function fliveUseScene(d, handle, seq, fromCache){
-    const ground=await Promise.all((d.ground||[]).map(async function(g){ return Object.assign({}, g, {url:await fliveBlob(g.url)}); }));
+    const ground=await Promise.all(sceneLogosFor(d, FLIVE.venue).map(async function(g){ return Object.assign({}, g, {url:await fliveBlob(g.url)}); }));
     const boards=await Promise.all((d.boards||[]).map(async function(b){ return {image:await fliveBlob(b.url), duration:b.seconds}; }));
     const ball=d.ball?await fliveBlob(d.ball.url):"";
     if(seq!==FLIVE.seq) return;
@@ -5581,7 +5589,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     handle=handle||(host&&host._mcg)||null;
     if(handle) FLIVE.sponsorHandle=handle;
     const seq=FLIVE.seq;
-    const cached=cachedGroundScene();
+    const cached=cachedGroundScene(FLIVE.venue);
     if(cached&&FLIVE.paintedCache!==seq){
       FLIVE.paintedCache=seq;
       fliveUseScene(cached, handle, seq, true);
@@ -5591,12 +5599,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(FLIVE.sceneFetch===seq) return;
     FLIVE.sceneFetch=seq;
     ensureFreshToken().then(function(){
-      return groundFetch("/api/ground/scene?game="+encodeURIComponent(FLIVE.game||""), "no-cache");
+      const venue=FLIVE.venue||"mcg";
+      return groundFetch("/api/ground/scene?game="+encodeURIComponent(FLIVE.game||"")+"&venue="+encodeURIComponent(venue), "no-cache");
     }).then(function(r){
       return r.ok?r.json():null;
     }).then(function(d){
       if(!d||seq!==FLIVE.seq) return;
-      rememberGroundScene(d);
+      rememberGroundScene(d, FLIVE.venue||"mcg");
       return fliveUseScene(d, FLIVE.sponsorHandle, seq, false);
     }).catch(function(){});
   }
