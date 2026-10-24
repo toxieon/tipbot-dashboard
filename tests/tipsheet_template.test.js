@@ -37,6 +37,8 @@ test("a filled CSV with quotes and a multi", () => {
   const p = admin().parseTipSheet(sheet);
   assert.equal(p.ok, true);
   assert.deepEqual(plain(p.multis[0].legs.map((l) => l.player)), ["Smith, J", "Cripps"]);
+  // The tip's price is the row odds (as TipBot imports it), not 3.2 x 3.2.
+  assert.deepEqual([p.multis[0].odds, p.multis[0].units], [3.2, 0.5]);
 });
 
 test("TSV sheets are read as before", () => {
@@ -61,8 +63,8 @@ test("Double Double NO / YES and 1st Qtr Points in a pasted sheet", () => {
   const p = ctx.parseTipSheet([
     "kind\tgame\tplayer\tstat\tline\tside\todds\tunits\tgroup",
     "SINGLE\tMemphis Grizzlies v Golden State Warriors\tCameron Boozer & Ty Jerome\tDouble Double NO\t\t\t1.64\t1\t",
-    "MULTI\tLA Clippers v Los Angeles Lakers\tIsaiah Jackson\t1st Qtr Points\t2.5\tUnder\t1.15\t1\tA",
-    "MULTI\tLA Clippers v Los Angeles Lakers\tLuka Doncic\tRebounds\t3.5\tOver\t1.40\t1\tA",
+    "MULTI\tLA Clippers v Los Angeles Lakers\tIsaiah Jackson\t1st Qtr Points\t2.5\tUnder\t1.61\t1\tA",
+    "MULTI\tLA Clippers v Los Angeles Lakers\tLuka Doncic\tRebounds\t3.5\tOver\t\t\tA",
   ].join("\n"));
   assert.equal(p.hardErrors.length, 0);
   assert.deepEqual(plain(p.singles[0].legs.map((l) => [l.player, l.stat, l.side, l.line])),

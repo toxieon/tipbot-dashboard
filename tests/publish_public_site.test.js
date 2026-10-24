@@ -54,7 +54,7 @@ test("publish updates an existing branch and leaves an unchanged tree", () => {
     assert.match(first.stdout, /public-site updated \(0\.66\.4-abc1234\)/);
 
     const check = path.join(tmp, "check");
-    git(["clone", "--branch", "public-site", bare, check]);
+    git(["clone", "-c", "core.autocrlf=false", "--branch", "public-site", bare, check]);   // byte-exact on every OS
     assert.equal(fs.readFileSync(path.join(check, "index.html"), "utf8"), "new\n");
     assert.equal(fs.readFileSync(path.join(check, "VERSION"), "utf8").trim(), "0.66.4-abc1234");
     assert.equal(fs.readFileSync(path.join(check, ".nojekyll"), "utf8"), "");

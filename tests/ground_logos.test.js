@@ -53,10 +53,12 @@ test("sponsor files stay cached and the scene revalidates", () => {
   assert.match(html, /rel="preload" as="image" href="\.\/assets\/mcg\/fallback\.png"/);
   assert.match(html, /rel="preload" as="fetch" href="\.\/assets\/mcg\/mcg\.glb" crossorigin/);
   assert.match(html, /function warmGround\(/);
-  assert.match(html, /groundFetch\("\/api\/ground\/scene\?game=", "no-cache"\)/);
+  assert.match(html, /groundFetch\("\/api\/ground\/scene\?game=&venue=mcg", "no-cache"\)/);
   assert.match(html, /function keep\(url\)/);
   assert.match(html, /groundFetch\(url, "force-cache"\)/);
-  assert.match(html, /rememberGroundScene\(d\)/);
+  assert.match(html, /rememberGroundScene\(d, "mcg"\)/);
+  assert.match(html, /rememberGroundScene\(d, FLIVE\.venue\|\|"mcg"\)/);
+  assert.match(html, /"&venue="\+encodeURIComponent\(venue\)/);
   assert.match(html, /cache:cacheMode\|\|"force-cache"/);
   assert.match(html, /performance\.mark\("flive-open"\)/);
   assert.match(html, /performance\.mark\("flive-ground"\)/);
@@ -154,4 +156,33 @@ test("a tilt stands the far edge up and the photo quad is perspective", async ()
 test("a ball skin only accepts image URLs and escapes them", () => {
   assert.match(afl, /\^\(blob:\|data:image/);
   assert.match(afl, /replace\(\/"\/g, "&quot;"\)/);
+});
+
+// 0.66.12: one scene per ground. The studio picks which tipsters' logos show on each.
+test("each ground draws only its own logos; an older bot keeps logos on the AFL field", () => {
+  const start = html.indexOf("  function sceneLogosFor(d, venue){");
+  const c = {};
+  require("node:vm").createContext(c);
+  require("node:vm").runInContext(html.slice(start, html.indexOf("\n  }\n", start) + 4), c);
+  const a = {id: "a"}, b = {id: "b"};
+  const L = (d, v) => JSON.parse(JSON.stringify(c.sceneLogosFor(d, v)));   // vm realm -> this realm
+  assert.deepEqual(L({venue: "arena", ground: [a]}, "arena"), [a]);
+  assert.deepEqual(L({venue: "arena", ground: [a]}, "mcg"), []);
+  assert.deepEqual(L({ground: [a, b]}, "mcg"), [a, b]);      // no venue: an older TipBot
+  assert.deepEqual(L({ground: [a, b]}, "arena"), []);         // never on the court
+  assert.deepEqual(L(null, "mcg"), []);
+  assert.match(html, /const ground=await Promise\.all\(sceneLogosFor\(d, FLIVE\.venue\)\.map/);
+  assert.match(html, /const GROUND_SCENE_KEY="tipdash_ground_scene_v2";/);
+});
+
+test("the court paints studio logos scaled from the oval layout", async () => {
+  const A = await import("../assets/venues/arena.js");
+  assert.ok(A.COURT_LOGO_SCALE > 0 && A.COURT_LOGO_SCALE < 0.2);
+  const edge = A.courtLogoPlacement({x: 84, z: 71.5, w: 14, d: 4.7, rot: 90});
+  assert.ok(Math.abs(edge.x) <= A.COURT.w / 2 && Math.abs(edge.z) <= A.COURT.d / 2, "an oval-edge logo stays on the court");
+  assert.equal(edge.rot, 90);
+  const centre = A.courtLogoPlacement({x: 0, z: 0, w: 20, d: 10});
+  assert.equal(centre.w / centre.d, 2, "shape kept");
+  const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "assets", "venues", "arena.js"), "utf8");
+  assert.match(src, /setLogos: setLogos,/);
 });

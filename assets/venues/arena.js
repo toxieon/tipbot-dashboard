@@ -29,6 +29,24 @@ export var ARENA_CAMERAS = [
 ];
 export var ARENA_CHIPS = {ends: "Baseline", blimp: "Overhead"};
 export var COURT = {w: 28, d: 15, hoopX: 12.8, rimY: 3.05};
+// Studio logos are laid out on the AFL oval (boundary 84 x 71.5 m). On the court the
+// same layout is scaled down evenly so every logo keeps its shape and stays on the floor.
+var OVAL = {x: 84, z: 71.5};
+export var COURT_LOGO_SCALE = Math.min((COURT.w / 2) / OVAL.x, (COURT.d / 2) / OVAL.z);
+
+/** Court position and size (metres) for one studio logo: {x, z, w, d, rot}. */
+export function courtLogoPlacement(logo) {
+  var k = COURT_LOGO_SCALE;
+  var w = Number(logo && (logo.w || logo.width_m)) || 14;
+  var d = Number(logo && (logo.d || logo.depth_m || logo.h)) || 4.7;
+  return {
+    x: (Number(logo && logo.x) || 0) * k,
+    z: (Number(logo && logo.z) || 0) * k,
+    w: Math.max(0.2, w * k),
+    d: Math.max(0.2, d * k),
+    rot: Number(logo && (logo.rot || logo.rotation)) || 0
+  };
+}
 
 function reducedMotion() {
   try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; }
@@ -424,6 +442,51 @@ export async function mount(host, opts) {
     var built = await buildArena(scene, {boardsUrl: opts.boardsUrl});
     if (!alive) { fail(); return fallbackHandle(); }
     var led = built.led;
+    // Sponsor logos painted on the floor (studio "Grounds" picks which tipsters show here).
+    var logoGroup = new T.Group();
+    scene.add(logoGroup);
+    function clearLogos() {
+      while (logoGroup.children.length) {
+        var m = logoGroup.children.pop();
+        try { if (m.material.map) m.material.map.dispose(); m.material.dispose(); m.geometry.dispose(); } catch (eD) {}
+      }
+    }
+    function setLogos(logos) {
+      clearLogos();
+      (logos || []).forEach(function (logo) {
+        var url = logo && (logo.url || logo.src || logo.image);
+        if (!url) return;
+        var at = courtLogoPlacement(logo);
+        var LF = globalThis.LogoFrame;
+        var view = {zoom: logo.zoom, pan_x: logo.pan_x, pan_y: logo.pan_y, shape: logo.shape};
+        var tex;
+        if (!LF || (at.w === at.d && LF.plain(view))) {
+          tex = new T.TextureLoader().load(url, function () { if (alive && still && renderer) renderer.render(scene, camera); });
+        } else {
+          var cv = document.createElement("canvas");
+          var cw = 512, ch = Math.max(1, Math.round(512 * at.d / at.w));
+          if (ch > 512) { ch = 512; cw = Math.max(1, Math.round(512 * at.w / at.d)); }
+          cv.width = cw; cv.height = ch;
+          tex = new T.CanvasTexture(cv);
+          var im = new Image();
+          im.crossOrigin = "anonymous";
+          im.onload = function () {
+            try { LF.paint(cv.getContext("2d"), im, cw, ch, view); } catch (eP) {}
+            tex.needsUpdate = true;
+            if (alive && renderer) renderer.render(scene, camera);
+          };
+          im.src = url;
+        }
+        if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+        tex.anisotropy = 8;
+        var mesh = new T.Mesh(new T.PlaneGeometry(at.w, at.d),
+          new T.MeshBasicMaterial({map: tex, transparent: true, opacity: 0.9, depthWrite: false}));
+        mesh.rotation.set(-Math.PI / 2, 0, -at.rot * Math.PI / 180);
+        mesh.position.set(at.x, 0.03, at.z);   // just above the court plane (y 0.01)
+        logoGroup.add(mesh);
+      });
+      if (alive && renderer) renderer.render(scene, camera);
+    }
     var last = 0;
     function draw(now) {
       if (!alive || !renderer) return;
@@ -466,7 +529,7 @@ export async function mount(host, opts) {
       get cameraId() { return camId; },
       setCamera: setCam,
       resize: resize,
-      setLogos: noop,
+      setLogos: setLogos,
       celebrate: function () { return false; },
       setBoards: function (list) {
         if (!led || !led.setSlides) return Promise.resolve();
@@ -476,6 +539,7 @@ export async function mount(host, opts) {
         alive = false;
         if (raf) cancelAnimationFrame(raf);
         if (watch) watch.disconnect();
+        clearLogos();
         if (renderer) { try { renderer.dispose(); } catch (e8) {} }
         renderer = null;
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);

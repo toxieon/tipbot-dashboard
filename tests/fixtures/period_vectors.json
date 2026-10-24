@@ -1,0 +1,39 @@
+{
+  "about": "Period and Double Double wording. Same bytes in TipBot tests/fixtures and tipdash tests/fixtures. TipBot services/periods.py and tipdash assets/espn-props.js must both match every case. null = not a period / not a Double Double; \"\" = Double Double with no Yes/No.",
+  "normalize": [
+    ["Q1", "Q1"], ["q3", "Q3"], ["1st Qtr", "Q1"], ["1st Quarter", "Q1"], ["1Q", "Q1"],
+    ["first quarter", "Q1"], ["2nd Quarter", "Q2"], ["3rd Qtr", "Q3"], ["4th Quarter", "Q4"],
+    ["Quarter 4", "Q4"], ["H1", "H1"], ["1st Half", "H1"], ["2H", "H2"], ["second half", "H2"],
+    ["Half 2", "H2"], ["Half 1", "H1"],
+    ["", null], ["Full", null], ["OT", null], ["Q5", null], ["3rd half", null], ["points", null]
+  ],
+  "split": [
+    ["1st Qtr Points", "Q1", "Points"],
+    ["1st Quarter Points", "Q1", "Points"],
+    ["Q1 Points", "Q1", "Points"],
+    ["Points - 2nd Half", "H2", "Points"],
+    ["2nd Half Disposals", "H2", "Disposals"],
+    ["Isaiah Jackson Under 2.5 1st Qtr Points", "Q1", "Isaiah Jackson Under 2.5 Points"],
+    ["Points", null, "Points"],
+    ["H2H", null, "H2H"],
+    ["1st Qtr 2nd Half Points", null, "1st Qtr 2nd Half Points"]
+  ],
+  "double_double": [
+    ["Double Double NO", "Under"],
+    ["No Double Double", "Under"],
+    ["Double Double YES", "Over"],
+    ["Double Double - Yes", "Over"],
+    ["To Record A Double Double", "Over"],
+    ["Double Double", ""],
+    ["Points", null],
+    ["Triple Double", null]
+  ],
+  "milestone": [
+    ["Double Double NO", "double_double", "Under"],
+    ["Triple Double YES", "triple_double", "Over"],
+    ["No Triple Double", "triple_double", "Under"],
+    ["To Record A Triple Double", "triple_double", "Over"],
+    ["Triple Double", "triple_double", ""],
+    ["Points", null, null]
+  ]
+}

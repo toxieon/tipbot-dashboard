@@ -76,6 +76,7 @@
     }
     const errors=[];
     const rows=[];
+    const seenGroups=new Set();
     let header=null;
     for(let i=0;i<lines.length;i++){
       const cells=splitTipSheetRow(lines[i]);
@@ -103,8 +104,12 @@
       if(!stat) missing.push("stat");
       if(line==null||!Number.isFinite(line)) missing.push("line");
       if(!side) missing.push("side");
-      if(odds==null||!Number.isFinite(odds)||odds<=1) missing.push("odds");
-      if(units==null||!Number.isFinite(units)||units<=0) missing.push("units");
+      // Like TipBot's parse_tipsheet: later rows of a MULTI may leave odds/units blank
+      // (the tip's odds and units come from its first row that has them).
+      const followOn=kind==="MULTI" && seenGroups.has(String(group||"").trim());
+      if(odds==null ? !followOn : (!Number.isFinite(odds)||odds<=1)) missing.push("odds");
+      if(units==null ? !followOn : (!Number.isFinite(units)||units<=0)) missing.push("units");
+      if(kind==="MULTI" && String(group||"").trim()) seenGroups.add(String(group).trim());
       if(kind==="MULTI" && !String(group||"").trim()) missing.push("group");
       const hard=missing.length>0;
       if(hard) errors.push({row:rowNum, message:"Incomplete: missing "+missing.join(", "), hard:true});
@@ -118,15 +123,16 @@
       }else{
         if(!multiMap.has(r.group)) multiMap.set(r.group,{kind:"MULTI", group:r.group, legs:[], rows:[], hard:false, errors:[]});
         const m=multiMap.get(r.group);
-        // A split Double Double row is one price: only its first leg carries the odds.
-        r.legs.forEach(function(l,i){ m.legs.push(Object.assign({}, l, {game:r.game,odds:i?null:r.odds,units:r.units})); });
+        r.legs.forEach(function(l){ m.legs.push(Object.assign({}, l, {game:r.game,odds:r.odds,units:r.units})); });
         m.rows.push(r.row);
         if(r.hard){ m.hard=true; m.errors.push("row "+r.row+": "+(r.missing||[]).join(", ")); }
       }
     });
     const multis=Array.from(multiMap.values()).map(function(m){
-      const odds=m.legs.reduce(function(acc,l){ return acc*(Number(l.odds)||1); }, 1);
-      const units=Number(m.legs[0]&&m.legs[0].units)||1;
+      // The tip's price, not a product of rows: TipBot takes the first odds/units given.
+      const first=function(k){ const hit=m.legs.find(function(l){ return l[k]!=null&&Number.isFinite(Number(l[k])); }); return hit?Number(hit[k]):null; };
+      const odds=first("odds")||0;
+      const units=first("units")||1;
       const games=[];
       m.legs.forEach(function(l){ if(l.game && games.indexOf(l.game)<0) games.push(l.game); });
       const hard=m.hard || m.legs.length<2;
