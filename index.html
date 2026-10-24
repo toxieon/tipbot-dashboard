@@ -333,7 +333,9 @@
   .fl-prog,.fl-bounce{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--t-foot);color:var(--muted);margin-top:-2px}.fl-prog b,.fl-bounce b{color:var(--txt);font-weight:750}
   .fl-example{display:flex;justify-content:flex-end;margin-top:auto;padding:10px 2px 4px}
   .fl-example span{border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted);font-size:var(--t-foot)}
-  .fl-switch{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 2px;scrollbar-width:none}
+  .fl-switch{display:flex;gap:8px;overflow-x:auto;padding:8px 14px 2px;scrollbar-width:none;cursor:grab;overscroll-behavior-x:contain}
+  .fl-switch.dragging{cursor:grabbing;user-select:none}
+  .fl-switch.dragging button{pointer-events:none}
   .fl-switch button{flex:none;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,#070b14 55%,var(--card));color:var(--txt);font:inherit;font-size:var(--t-foot);font-weight:700;cursor:pointer}
   .fl-switch button.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,var(--card))}
   /* Camera chips sit under the top bar, clear of the score (they covered the clock and
@@ -8634,6 +8636,29 @@ async function loadPerms(gid){
       }).catch(function(){});
     } catch(e){}
   }, 60000);
+</script>
+<script>
+/* Game view tabs: click and drag to scroll with a mouse (PC has no swipe or scrollbar there). */
+(function(){
+  var el=null,startX=0,startLeft=0,moved=false,down=false;
+  document.addEventListener("pointerdown",function(e){
+    if(e.pointerType!=="mouse"||e.button!==0)return;
+    var t=e.target.closest&&e.target.closest("#flive-switch"); if(!t)return;
+    el=t;down=true;moved=false;startX=e.clientX;startLeft=t.scrollLeft;
+  });
+  document.addEventListener("pointermove",function(e){
+    if(!down||!el)return;
+    var dx=e.clientX-startX;
+    if(!moved&&Math.abs(dx)>5){moved=true;el.classList.add("dragging");}
+    if(moved){el.scrollLeft=startLeft-dx;e.preventDefault();}
+  });
+  function end(){ if(el)el.classList.remove("dragging"); down=false; el=null; }
+  document.addEventListener("pointerup",function(){ var m=moved; end();
+    if(m){ var kill=function(ev){ev.stopPropagation();ev.preventDefault();}; document.addEventListener("click",kill,true); setTimeout(function(){document.removeEventListener("click",kill,true);},0); }
+  });
+  document.addEventListener("pointercancel",end);
+  document.addEventListener("dragstart",function(e){ if(e.target.closest&&e.target.closest("#flive-switch"))e.preventDefault(); });
+})();
 </script>
 </body>
 </html>
