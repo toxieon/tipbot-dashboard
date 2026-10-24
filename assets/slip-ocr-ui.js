@@ -307,7 +307,8 @@
   function legRowHtml(leg, idx) {
     leg = leg || {};
     var who = leg.player || leg.team || leg.selection || "";
-    var stat = leg.stat || leg.market || "";
+    // A period stays visible and editable in the market box ("Q1 Points").
+    var stat = (leg.period ? leg.period + " " : "") + (leg.stat || leg.market || "");
     var ev = leg.event != null ? leg.event : "";
     var gid = leg.game_id != null ? leg.game_id : "";
     var ff = legFlagFields(leg);

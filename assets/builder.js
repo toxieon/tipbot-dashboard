@@ -563,7 +563,11 @@
     const pb=$("espnpropsback"); if(pb)pb.onclick=()=>{ BUILD.custom=false; openEspnEvent(ev); };
     const evEl=$("c_event"); if(evEl)evEl.oninput=()=>{BUILD.customEvent=evEl.value;saveMultiDraft();};
     const add=()=>{ const inp=$("c_leg"); const v=(inp.value||"").trim(); if(!v)return;
-      addLeg({custom:true,desc:v,espn_event_id:String(ev.id),game_id:String(ev.id),league:BUILD.espnLeague});
+      // "Cameron Boozer & Ty Jerome Double Double NO" -> one Double Double leg per player.
+      const dd=TBEspnProps.isBasketball(BUILD.espnLeague)?TBEspnProps.parseDoubleDoubleLine(v):null;
+      if(dd&&dd.side) dd.players.forEach(name=>addLeg({player:name,stat:"Double Double",prop:"double_double",prop_key:"double_double",
+        line:0.5,side:dd.side,espn_event_id:String(ev.id),game_id:String(ev.id),league:BUILD.espnLeague}));
+      else addLeg({custom:true,desc:v,espn_event_id:String(ev.id),game_id:String(ev.id),league:BUILD.espnLeague});
       inp.value=""; inp.focus(); };
     const ab=$("c_add"); if(ab)ab.onclick=add;
     const lt=$("lt_add"); if(lt)lt.onclick=()=>{
@@ -622,6 +626,7 @@
       return Array.from(map.values());
     })();
     BUILD.collapsed=BUILD.collapsed||{};
+    const yesNo=!!prop.yesNo;   // Double Double: Yes = Over 0.5, No = Under 0.5
     let html="";
     if(threes){
       html+='<div class="ou threes-modes" role="group" aria-label="Threes Made line">'
@@ -644,9 +649,10 @@
         const def=prop.def, mx=prop.max;
         html+='<div class="prow"><div class="pnum" style="min-width:40px;color:var(--muted);font-weight:700">'+esc(p.position||"—")+'</div>'
           +'<div class="pname-block"><div class="pname">'+esc(p.name)+(p.number?' <small style="color:var(--muted)">#'+esc(String(p.number))+'</small>':'')+'</div></div>'
-          +(threesPlus?'':('<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
+          +(threesPlus?'':yesNo?('<div class="prow-actions"><div class="ou" id="'+rid+'_ou" role="group" aria-label="Double Double"><button data-s="Over" class="on">Yes</button><button data-s="Under">No</button></div>'):('<div class="linectl"><input type="range" min="0" max="'+mx+'" step="0.5" value="'+def+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="0.5" value="'+def+'" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +'<div class="prow-actions"><div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'))
           +(threesPlus?'<div class="prow-actions">':'')
+          +TBEspnProps.periodSelectHtml(rid)
           +'<input id="'+rid+'_odds" type="number" step="0.01" min="1.01" placeholder="Odds" title="Leg odds (optional)" style="width:72px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit">'
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
@@ -674,15 +680,16 @@
         if(ou) ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
         addBtn.onclick=()=>{
           const oddsRaw=parseFloat(($(rid+"_odds")||{}).value);
+          const period=($(rid+"_q")||{}).value||"";
           if(threes){
             const leg=TBEspnProps.buildThreesLeg({player:p, team:nm, mode:threesPlus?"plus":"ou",
-              line:threesPlus?threesN:curLine(), side:side, league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw});
+              line:threesPlus?threesN:curLine(), side:side, league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw, period:period});
             if(leg) addLeg(leg);
             return;
           }
-          if(!sl||!vv)return;
-          addLeg(TBEspnProps.buildLeg({player:p, team:nm, prop:prop, line:curLine(), side:side,
-            league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw}));
+          if(!yesNo&&(!sl||!vv))return;
+          addLeg(TBEspnProps.buildLeg({player:p, team:nm, prop:prop, line:yesNo?prop.def:curLine(), side:side,
+            league:BUILD.espnLeague, eventId:BUILD.espnEvent.id, odds:oddsRaw, period:period}));
         };
       });
     });
@@ -1083,6 +1090,7 @@
           +'<div class="linectl-wrap"><div class="linectl"><input type="range" min="0" max="'+rangeMax+'" step="'+step+'" value="'+rowDef+'" id="'+rid+'_s"><input type="number" id="'+rid+'_v" min="0" step="'+step+'" value="'+rowDef+'" style="width:64px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);border-radius:var(--r-sm);padding:6px 8px;font:inherit;font-weight:800;font-size:var(--t-h3);text-align:center"></div>'
           +autoMeta+'</div>'
           +'<div class="prow-actions">'+cmp+'<div class="ou" id="'+rid+'_ou"><button data-s="Over" class="on">Over</button><button data-s="Under">Under</button></div>'
+          +TBEspnProps.periodSelectHtml(rid)
           +'<button class="addbtn" id="'+rid+'_a">Add</button></div></div>';
       });
       html+='</div>';
@@ -1107,7 +1115,12 @@
       ou.querySelectorAll("button").forEach(b=>b.onclick=()=>{side=b.dataset.s;ou.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");tint();});
       const cmpBtn=row.querySelector(".compare-btn");
       if(cmpBtn) cmpBtn.onclick=function(){ openPlayerCompare(p.name, curLine(), side); };
-      $(rid+"_a").onclick=()=>addLeg({player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side,assumed:teamAssumed});
+      $(rid+"_a").onclick=()=>{
+        const leg={player:p.name,number:p.number||null,team:nm,stat:BUILD.tab,line:curLine(),side,assumed:teamAssumed};
+        const period=TBEspnProps.normalizePeriod(($(rid+"_q")||{}).value);
+        if(period) leg.period=period;
+        addLeg(leg);
+      };
     });});
     if(BUILD.pendingComparePick) applyComparePick(BUILD.pendingComparePick);
   }
@@ -1129,6 +1142,7 @@
   function legText(l){
     if(l&&l.kind==="racing"&&window.TBRacingLegs) return TBRacingLegs.legLabel(l);
     if(l.desc)return l.desc;
+    if(l.period||(l.prop_key||l.prop)==="double_double") return TBEspnProps.propLegText(l);
     return l.player+" "+(l.side==="Over"?l.line+"+ ":"under "+l.line+" ")+l.stat;
   }
   function trayLegChip(l,i){
