@@ -34,8 +34,14 @@
     {key: "pa", stat: "Points + Assists", def: 24.5, max: 70},
     {key: "pr", stat: "Points + Rebounds", def: 24.5, max: 70},
     {key: "ra", stat: "Rebounds + Assists", def: 10.5, max: 40},
+    {key: "steals", stat: "Steals", def: 1.5, max: 8},
+    {key: "blocks", stat: "Blocks", def: 1.5, max: 8},
+    {key: "stocks", stat: "Steals + Blocks", def: 2.5, max: 12},
     // Yes = Over 0.5, No = Under 0.5. TipBot grades it 1/0 from the box score.
-    {key: "double_double", stat: "Double Double", def: 0.5, max: 1, yesNo: true}
+    {key: "double_double", stat: "Double Double", def: 0.5, max: 1, yesNo: true},
+    {key: "triple_double", stat: "Triple Double", def: 0.5, max: 1, yesNo: true},
+    // A pick: the player who scores the game's first points (NBA / WNBA play-by-play).
+    {key: "first_basket", stat: "First Basket", def: 0.5, max: 1, pick: true, leagues: {nba: 1, wnba: 1}}
   ];
   /** Q control on prop rows. Blank = full game (no period on the leg). */
   var PERIODS = ["Q1", "Q2", "Q3", "Q4", "H1", "H2"];
@@ -77,6 +83,27 @@
   }
   // "Double Double NO", "No Double Double", "To Record A Double Double", "Double Double - Yes".
   var DD_RE = /^(?:(yes|no)\s*[-:]?\s*)?(?:to\s+record\s+(?:a\s+)?)?(double[\s-]*doubles?)(?:\s*[-:(]?\s*(yes|no)\)?)?$/i;
+  /** {players, side, key, stat} for "A & B Double Double NO" or "A Triple Double YES"; null otherwise. */
+  function parseMilestoneLine(text) {
+    var t = String(text == null ? "" : text);
+    var dd = parseDoubleDoubleLine(t);
+    if (dd) return {players: dd.players, side: dd.side, key: "double_double", stat: "Double Double"};
+    if (!/triple[\s-]*double/i.test(t)) return null;
+    var td = parseDoubleDoubleLine(t.replace(/triple([\s-]*)doubles?/i, "double$1double"));
+    return td ? {players: td.players, side: td.side, key: "triple_double", stat: "Triple Double"} : null;
+  }
+  /** {key, stat, side} for "Double Double NO" / "Triple Double YES" / "To Record A Triple Double"; else null. */
+  function parseMilestone(text) {
+    var dd = parseDoubleDouble(text);
+    if (dd) return {key: "double_double", stat: "Double Double", side: dd.side};
+    var t = String(text == null ? "" : text);
+    var swapped = t.replace(/triple([\s-]*)doubles?/i, "double$1double");
+    if (swapped !== t) {
+      var td = parseDoubleDouble(swapped);
+      if (td) return {key: "triple_double", stat: "Triple Double", side: td.side};
+    }
+    return null;
+  }
   /** {side:"Over"|"Under"|""} when text is a Double Double market; null otherwise. */
   function parseDoubleDouble(text) {
     var t = String(text == null ? "" : text).replace(/\s+/g, " ").trim();
@@ -89,6 +116,7 @@
   /** "Cameron Boozer & Ty Jerome Double Double NO" -> {players:[...], side:"Under"}; null if not DD. */
   function parseDoubleDoubleLine(text) {
     var t = String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+    if (/triple[\s-]*double/i.test(t)) return null;   // parseMilestoneLine reads those
     var m = /^(.+?)\s+((?:(?:yes|no)\s+)?(?:to\s+record\s+(?:a\s+)?)?double[\s-]*doubles?.*)$/i.exec(t);
     if (!m) return null;
     var dd = parseDoubleDouble(m[2]);
@@ -108,6 +136,10 @@
   function isBasketball(league) { var k = lg(league); return k === "nba" || k === "wnba" || k === "nbl"; }
   /** Prop tabs for a league (NFL, else the shared basketball table). */
   function propTabs(league) { return lg(league) === "nfl" ? NFL_PROP_TABS : NBA_PROP_TABS; }
+  /** The tabs Build shows: a tab limited to some leagues (First Basket) only there. */
+  function shownTabs(league) {
+    return propTabs(league).filter(function (t) { return !t.leagues || t.leagues[lg(league)]; });
+  }
   /** TipBot roster URL. NFL keeps its original endpoint so older deploys still work. */
   function playersUrl(league, eventId) {
     var ev = encodeURIComponent(String(eventId == null ? "" : eventId));
@@ -207,7 +239,9 @@
   /** Leg text with the period and Yes/No wording ("Isaiah Jackson under 2.5 Q1 Points"). */
   function propLegText(l) {
     var stat = (l.period ? l.period + " " : "") + l.stat;
-    if ((l.prop_key || l.prop) === "double_double") return l.player + " " + stat + " " + (l.side === "Under" ? "No" : "Yes");
+    var key = l.prop_key || l.prop;
+    if (key === "double_double" || key === "triple_double") return l.player + " " + stat + " " + (l.side === "Under" ? "No" : "Yes");
+    if (key === "first_basket") return l.player + " " + stat;
     return l.player + " " + (l.side === "Over" ? l.line + "+ " : "under " + l.line + " ") + stat;
   }
   /** Prefer TipBot's labels when the roster response carries prop_markets. */
@@ -231,6 +265,17 @@
     if (market === "team_total") return t && n > 0 ? t + " Team Total " + sd + " " + n : "";
     return "";
   }
+  /** Leagues where quarter / half lines and totals grade (ESPN per-quarter scores; TipBot 0.70.31). */
+  var PERIOD_TEAM_LEAGUES = {nfl: true, nba: true, wnba: true, nbl: true};
+  function periodTeamMarkets(league) { return !!PERIOD_TEAM_LEAGUES[lg(league)]; }
+  /** The "First Team to Score" leg (NBA / WNBA play-by-play). */
+  function firstTeamLeg(team, o) {
+    var t = String(team || "").trim();
+    if (!t) return null;
+    return {kind: "team", market: "First Team to Score", stat: "First Team to Score", team: t,
+      desc: t + " to score first", league: lg(o && o.league), espn_event_id: String(o && o.eventId || ""),
+      game_id: String(o && o.eventId || "")};
+  }
   var LINE_LEAGUES = {nfl: true, nba: true, wnba: true, nbl: true};
   function hasLines(league) { return !!LINE_LEAGUES[lg(league)]; }
   var API = {
@@ -240,7 +285,8 @@
     buildLeg: buildLeg, buildThreesLeg: buildThreesLeg, THREES_PLUS_LINES: THREES_PLUS_LINES,
     snapHalfLine: snapHalfLine, applyMarketLabels: applyMarketLabels, NFL_POSITIONS: NFL_POSITIONS, posBucket: posBucket,
     PERIODS: PERIODS, PERIOD_OPTIONS: PERIOD_OPTIONS, normalizePeriod: normalizePeriod, splitPeriodText: splitPeriodText,
-    parseDoubleDouble: parseDoubleDouble, parseDoubleDoubleLine: parseDoubleDoubleLine, propLegText: propLegText, periodSelectHtml: periodSelectHtml, periodsGrade: periodsGrade
+    parseDoubleDouble: parseDoubleDouble, parseDoubleDoubleLine: parseDoubleDoubleLine, parseMilestone: parseMilestone, parseMilestoneLine: parseMilestoneLine,
+    shownTabs: shownTabs, periodTeamMarkets: periodTeamMarkets, firstTeamLeg: firstTeamLeg, propLegText: propLegText, periodSelectHtml: periodSelectHtml, periodsGrade: periodsGrade
   };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.TBEspnProps = API;

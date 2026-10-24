@@ -27,5 +27,13 @@
     ["Double Double", ""],
     ["Points", null],
     ["Triple Double", null]
+  ],
+  "milestone": [
+    ["Double Double NO", "double_double", "Under"],
+    ["Triple Double YES", "triple_double", "Over"],
+    ["No Triple Double", "triple_double", "Under"],
+    ["To Record A Triple Double", "triple_double", "Over"],
+    ["Triple Double", "triple_double", ""],
+    ["Points", null, null]
   ]
 }

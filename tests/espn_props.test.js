@@ -15,7 +15,10 @@ test("prop tables: NFL unchanged, NBA/WNBA share the five markets TipBot grades"
     "rushing_yards", "rushing_tds", "receiving_yards", "receptions", "receiving_tds", "anytime_td"]);
   assert.equal(P.NFL_PROP_TABS[0].def, 249.5);
   assert.deepEqual(P.propTabs("nba").map(t => t.key), ["points", "rebounds", "assists", "threes_made", "pra", "pa", "pr", "ra",
-    "double_double"]);
+    "steals", "blocks", "stocks", "double_double", "triple_double", "first_basket"]);
+  // First Basket grades from NBA / WNBA play-by-play only.
+  assert.ok(P.shownTabs("wnba").some(t => t.key === "first_basket"));
+  assert.ok(!P.shownTabs("nbl").some(t => t.key === "first_basket"));
   assert.equal(P.propTabs("WNBA"), P.propTabs("nba"));
   assert.equal(P.propTabs("nfl"), P.NFL_PROP_TABS);
   assert.ok(P.hasProps("nba") && P.hasProps("wnba") && P.hasProps("nfl"));
@@ -190,17 +193,17 @@ test("period and Double Double wording", () => {
 test("the builder wires Q into both prop rows and the free-text Double Double line", () => {
   assert.equal((APP.match(/TBEspnProps\.periodSelectHtml\(rid\)/g) || []).length, 2);
   // ESPN rows show Q only where quarters grade (NBA, WNBA) or with Manual bets on.
-  assert.match(APP, /\(TBEspnProps\.periodsGrade\(BUILD\.espnLeague\)\|\|\(typeof manualBets==="function"&&manualBets\(\)\)\?TBEspnProps\.periodSelectHtml\(rid\):''\)/);
+  assert.match(APP, /\(!pick&&\(TBEspnProps\.periodsGrade\(BUILD\.espnLeague\)\|\|\(typeof manualBets==="function"&&manualBets\(\)\)\)\?TBEspnProps\.periodSelectHtml\(rid\):''\)/);
   assert.deepEqual(["nba", "WNBA", "nbl", "nfl"].map(P.periodsGrade), [true, true, false, false]);
   assert.match(APP, /const period=TBEspnProps\.normalizePeriod\(\(\$\(rid\+"_q"\)\|\|\{\}\)\.value\);\n\s*if\(period\) leg\.period=period;/);
-  assert.match(APP, /TBEspnProps\.parseDoubleDoubleLine\(v\)/);
+  assert.match(APP, /TBEspnProps\.parseMilestoneLine\(v\)/);
   assert.doesNotMatch(APP + fs.readFileSync(path.join(__dirname, "..", "assets", "espn-props.js"), "utf8"), /target=["']?_blank/);
 });
 
 // Shared with TipBot tests/fixtures/period_vectors.json (same sha256 in tests/test_period_props.py).
 const VECTORS = fs.readFileSync(path.join(__dirname, "fixtures", "period_vectors.json"));
 test("period vectors file is the shared copy", () => {
-  assert.equal(require("node:crypto").createHash("sha256").update(VECTORS).digest("hex"), "c71725396d6956f2031998ba4c7b4cb39ee08a88f27ce5709527a6936adb9a03");
+  assert.equal(require("node:crypto").createHash("sha256").update(VECTORS).digest("hex"), "f821ac172d736148797f21aefe031c434e05d0b7e3921c202e8f2a8a97196253");
 });
 test("period and Double Double wording matches every shared vector", () => {
   const v = JSON.parse(VECTORS.toString("utf8"));
@@ -209,5 +212,9 @@ test("period and Double Double wording matches every shared vector", () => {
   for (const [raw, want] of v.double_double) {
     const got = P.parseDoubleDouble(raw);
     assert.equal(got ? got.side : null, want, raw);
+  }
+  for (const [raw, key, side] of v.milestone) {
+    const got = P.parseMilestone(raw);
+    assert.deepEqual(got ? [got.key, got.side] : [null, null], [key, side], raw);
   }
 });

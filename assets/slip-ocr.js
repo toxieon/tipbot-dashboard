@@ -60,6 +60,8 @@
     { stat: "Threes Made", re: /^(threes?(\s*made)?|3\s*pointers?(\s*made)?)$/i, sport: "BASKETBALL" },
     { stat: "Steals", re: /^steals?$/i, sport: "BASKETBALL" },
     { stat: "Blocks", re: /^blocks?$/i, sport: "BASKETBALL" },
+    { stat: "Steals + Blocks", re: /^(stocks|steals?\s*(\+|&|and)\s*blocks?)$/i, sport: "BASKETBALL" },
+    { stat: "First Basket", re: /^(first|1st)\s*basket(\s*scorer)?$/i, sport: "BASKETBALL" },
     { stat: "Points + Assists", re: /^(pa|p\s*\+\s*a|(points?|pts)\s*(\+|&|and)\s*(assists?|asts?))$/i, sport: "BASKETBALL" },
     { stat: "Points + Rebounds", re: /^(pr|p\s*\+\s*r|(points?|pts)\s*(\+|&|and)\s*(rebounds?|rebs?))$/i, sport: "BASKETBALL" },
     { stat: "Rebounds + Assists", re: /^(ra|r\s*\+\s*a|(rebounds?|rebs?)\s*(\+|&|and)\s*(assists?|asts?))$/i, sport: "BASKETBALL" },
@@ -374,8 +376,8 @@
       inner.period = sp.period;
       return inner;
     }
-    var dd = ep ? ep.parseDoubleDouble(squash(raw).replace(/\.+$/, "")) : null;
-    if (dd) return { stat: "Double Double", sport: "BASKETBALL", truncated: false, dd_side: dd.side };
+    var ms = ep && ep.parseMilestone ? ep.parseMilestone(squash(raw).replace(/\.+$/, "")) : null;
+    if (ms) return { stat: ms.stat, sport: "BASKETBALL", truncated: false, dd_side: ms.side };
     var s = low(raw).replace(/^alt(ernate)?\s+/, "").replace(/\s*(o\/u|over\s*\/\s*under)\s*$/i, "").replace(/\.+$/, "").trim();
     var comboEarly = canonCombo(s);
     if (comboEarly) {
@@ -541,6 +543,7 @@
       var ou = tl.match(/\b(over|under)\b\s*\(?\s*\+?\s*(\d+(?:\.\d+)?)?\s*\)?/i);
       if (ou) { leg.side = ou[1].charAt(0).toUpperCase() + ou[1].slice(1).toLowerCase(); leg.line = ou[2] != null ? parseFloat(ou[2]) : null; }
       else if (plus) { leg.side = "Over"; leg.line = parseFloat(plus[1]); leg.plus = true; }
+      else if (cs2.stat === "First Basket") { leg.side = "Over"; leg.line = 0.5; }   // a pick, no line
       if (leg.line == null) leg.flags.push({ field: "line", reason: "No line found" });
       if (cs2.unknown) leg.flags.push({ field: "stat", reason: "Unrecognised market \u201c" + cs2.stat + "\u201d" });
       // Title should name the same player (catches a paired-up wrong line).
@@ -570,25 +573,29 @@
     if (!ep) return null;
     var yn = function (x) { var m = /(?:^|\s)(yes|no)$/i.exec(squash(x)); return m ? (m[1].toLowerCase() === "no" ? "Under" : "Over") : ""; };
     var players = null, side = "";
-    var line = ep.parseDoubleDoubleLine(t);
-    if (line) { players = line.players; side = line.side || yn(s); }
-    else if (s && ep.parseDoubleDouble(s)) {
+    var stat = "Double Double";
+    var line = ep.parseMilestoneLine ? ep.parseMilestoneLine(t) : ep.parseDoubleDoubleLine(t);
+    var subMs = s && ep.parseMilestone ? ep.parseMilestone(s) : null;
+    if (line) { players = line.players; side = line.side || yn(s); stat = line.stat || stat; }
+    else if (subMs) {
       var who = squash(t).replace(/\s+(yes|no)$/i, "");
       players = who ? who.split(/\s+(?:&|and)\s+/i) : [];
-      side = ep.parseDoubleDouble(s).side || yn(t);
+      side = subMs.side || yn(t);
+      stat = subMs.stat;
     } else {
       var pm = String(s || "").match(/^(.+?)\s+[-–—]\s+(.+)$/);
-      var dd = pm ? ep.parseDoubleDouble(pm[2]) : null;
+      var dd = pm && ep.parseMilestone ? ep.parseMilestone(pm[2]) : null;
       if (!dd) return null;
       players = [squash(pm[1])];
       side = yn(t) || dd.side;
+      stat = dd.stat;
     }
     players = (players || []).map(squash).filter(Boolean);
-    var out = { kind: "player", player: players[0] || "", stat: "Double Double", stat_sport: "BASKETBALL",
+    var out = { kind: "player", player: players[0] || "", stat: stat, stat_sport: "BASKETBALL",
       line: 0.5, side: side, plus: false };
     if (players.length > 1) out.players = players;
     if (!out.player) out.flags = [{ field: "selection", reason: "Selection missing" }];
-    else if (!side) out.flags = [{ field: "side", reason: "Double Double: Yes or No not on the slip" }];
+    else if (!side) out.flags = [{ field: "side", reason: stat + ": Yes or No not on the slip" }];
     return out;
   }
   /** One leg per player when a Double Double names two ("A & B ... NO"). */
@@ -607,7 +614,7 @@
   function isSubLine(t) {
     var s = squash(t);
     var ep = EP();
-    if (ep && ep.parseDoubleDouble(s)) return true;
+    if (ep && (ep.parseMilestone ? ep.parseMilestone(s) : ep.parseDoubleDouble(s))) return true;
     if (RACE_MARKETS.test(s)) return true;
     if (H2H_MARKETS.some(function (h) { return h.re.test(s); })) return true;
     if (/^win$/i.test(s)) return true;
@@ -1237,7 +1244,8 @@
     "Points": "points", "Rebounds": "rebounds", "Assists": "assists", "Threes Made": "threes_made", "Threes": "threes_made",
     "Steals": "steals", "Blocks": "blocks", "Points + Rebounds + Assists": "pra", "PRA": "pra",
     "Points + Assists": "pa", "Points + Rebounds": "pr", "Rebounds + Assists": "ra",
-    "Double Double": "double_double"
+    "Double Double": "double_double", "Triple Double": "triple_double",
+    "Steals + Blocks": "stocks", "First Basket": "first_basket"
   };
   var AFL_STATS = { Disposals: 1, Goals: 1, Marks: 1, Tackles: 1, Kicks: 1, Handballs: 1, "Fantasy Points": 1 };
   var ESPN_PATH = { nfl: "football/nfl", nba: "basketball/nba", wnba: "basketball/wnba", nbl: "basketball/nbl" };
@@ -1252,7 +1260,8 @@
     if (leg.player && leg.stat) {
       if (leg.stat === "Anytime TD") return leg.player + " Anytime TD";
       var st = (leg.period ? leg.period + " " : "") + leg.stat;
-      if (leg.stat === "Double Double") return leg.player + " " + st + (leg.side === "Under" ? " No" : leg.side === "Over" ? " Yes" : "");
+      if (leg.stat === "Double Double" || leg.stat === "Triple Double") return leg.player + " " + st + (leg.side === "Under" ? " No" : leg.side === "Over" ? " Yes" : "");
+      if (leg.stat === "First Basket") return leg.player + " " + st;
       var ln = leg.line != null ? String(leg.line) : "?";
       if (leg.side === "Under") return leg.player + " Under " + ln + " " + st;
       if (leg.plus || leg.side !== "Over") return leg.player + " " + ln + "+ " + st;
@@ -1290,9 +1299,10 @@
       var cs = canonStat(sp.rest);
       leg = Object.assign({}, leg, { stat: cs.unknown ? sp.rest : cs.stat, market: cs.unknown ? sp.rest : cs.stat, period: sp.period });
     }
-    if (leg.stat && !BASKETBALL_PROP_KEYS[leg.stat] && ep && ep.parseDoubleDouble(leg.stat)) {
-      var ddSide = ep.parseDoubleDouble(leg.stat).side;
-      leg = Object.assign({}, leg, { stat: "Double Double", market: "Double Double", side: leg.side || ddSide,
+    var reviewMs = leg.stat && !BASKETBALL_PROP_KEYS[leg.stat] && ep && ep.parseMilestone ? ep.parseMilestone(leg.stat) : null;
+    if (reviewMs) {
+      var ddSide = reviewMs.side;
+      leg = Object.assign({}, leg, { stat: reviewMs.stat, market: reviewMs.stat, side: leg.side || ddSide,
         line: leg.line != null ? leg.line : 0.5 });
     }
     var out = { desc: legDescription(leg) };
