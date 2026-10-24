@@ -636,6 +636,18 @@
     }) || null;
   }
 
+  /** Tips on this server in the last week with these legs (TipBot /api/tips/duplicate-check). */
+  async function slipDuplicates(gid, legs) {
+    try {
+      var r = await api("/api/tips/duplicate-check", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ guild_id: gid, legs: legs }),
+      });
+      if (!r.ok) return [];
+      var j = await r.json();
+      return (j && Array.isArray(j.duplicates)) ? j.duplicates : [];
+    } catch (e) { return []; }   // an older bot or a blip never blocks the import
+  }
   async function applyToBuilder() {
     var err = $("slip-err");
     var reviewed = readReviewDraft();
@@ -710,6 +722,17 @@
         + "). " + (racing ? "Post races from Build → Racing, " : "Fix the market, skip the leg, ")
         + "or turn on Manual bets in Settings → Features.";
       return;
+    }
+    // Already on this server? Warn once; Apply again with the same legs adds it anyway.
+    var dupKey = JSON.stringify((state.legs || []).map(function (l) { return [l.player || l.team || "", l.stat || l.market || "", l.line, l.side, l.period || ""]; }));
+    if (SLIP.dupOk !== dupKey) {
+      var dups = await slipDuplicates(gid, state.legs || []);
+      if (dups.length) {
+        SLIP.dupOk = dupKey;
+        if (err) err.textContent = "Already posted: " + dups.map(function (d) { return d.display_id + (d.status && d.status !== "Pending" ? " (" + d.status + ")" : ""); }).join(", ")
+          + " has the same legs. Apply again to add it anyway.";
+        return;
+      }
     }
     BUILD.legs = state.legs;
     BUILD.custom = state.custom;
