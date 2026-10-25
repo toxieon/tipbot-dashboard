@@ -55,12 +55,22 @@
     }).catch(function () { if (el.isConnected) el.innerHTML = ""; });
   }
 
+  // Force a fresh paint so iOS Safari does not keep a stale, shorter layer.
+  function repaint(el) {
+    if (!el) return;
+    void el.offsetHeight;
+    el.style.transform = "translateZ(0)";
+    var raf = root.requestAnimationFrame || function (f) { return root.setTimeout(f, 16); };
+    raf(function () { raf(function () { el.style.transform = ""; void el.offsetHeight; }); });
+  }
+
   function renderConnectors(ctx) {
     var body = ctx && ctx.detail && ctx.detail.querySelector("#settings-body");
     if (!body) return;
     if (!(ctx && ctx.owner === true) || !sameServer(ctx)) { body.innerHTML = ""; return; }
     stop(ctx.detail);
     body.innerHTML = '<div data-cx-library></div><div data-cx-client></div><div data-cx-post></div><div data-cx-push></div><div data-cx-extra><div class="empty">Loading…</div></div>';
+    repaint(body);
     var library = body.querySelector("[data-cx-library]");
     var client = body.querySelector("[data-cx-client]");
     var post = body.querySelector("[data-cx-post]");
@@ -75,6 +85,7 @@
       if (!extra || !extra.isConnected) return;
       if (root.TBConnectorPanel && typeof root.TBConnectorPanel.mount === "function") root.TBConnectorPanel.mount(extra, ctx);
       else extra.innerHTML = "";
+      repaint(body);
     });
   }
 

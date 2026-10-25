@@ -284,7 +284,7 @@
       ".ps-modal .ps-actions{display:flex;flex-direction:column;gap:8px}",
       ".ps-modal .ps-actions .btn,.ps-modal .ps-actions .ghost{width:100%;min-height:44px}",
       ".ps-back{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));background:rgba(15,23,38,.45)}",
-      ".ps-sheet{width:min(420px,100%);max-height:min(80vh,640px);overflow:auto;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:16px}",
+      ".ps-sheet{width:min(420px,100%);max-height:min(80vh,640px);max-height:min(80dvh,640px);overflow:auto;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:16px}",
       "@media(max-width:420px){#ps-root .ps-go{width:100%}}",
       "@media(min-width:480px){.ps-modal .ps-actions{flex-direction:row}.ps-modal .ps-actions .ghost{width:auto;flex:1}}",
       "@media(min-width:641px){.ps-back{align-items:center}}"

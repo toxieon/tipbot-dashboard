@@ -122,8 +122,8 @@
     ".tbs-root.tbs-desktop{align-items:center;padding:24px}",
     ".tbs-desktop .tbs-card{border-radius:18px;border-bottom:1px solid var(--line);padding-bottom:0;box-shadow:0 24px 70px rgba(0,0,0,.45)}",
     ".tbs-desktop .tbs-grab{height:10px;cursor:default}.tbs-desktop .tbs-grab::before{display:none}",
-    "body.tbs-pushed .wrap{transition:transform .38s cubic-bezier(.22,1,.36,1),filter .3s ease;transform:scale(.965);filter:brightness(.85);border-radius:14px}",
-    "body.tbs-unpushing .wrap{transition:transform .3s cubic-bezier(.22,1,.36,1),filter .25s ease}",
+    "@media (hover:hover) and (pointer:fine){body.tbs-pushed .wrap{transition:transform .38s cubic-bezier(.22,1,.36,1),filter .3s ease;transform:scale(.965);filter:brightness(.85);border-radius:14px}",
+    "body.tbs-unpushing .wrap{transition:transform .3s cubic-bezier(.22,1,.36,1),filter .25s ease}}",
     "@media (prefers-reduced-motion:reduce){body.tbs-pushed .wrap{transform:none}}",
     /* action sheet */
     ".tbs-act h3{margin:2px 0 6px;font-size:1.0625rem;letter-spacing:-.01em;line-height:1.25}",
