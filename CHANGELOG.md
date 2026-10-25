@@ -1,3 +1,7 @@
+## 0.66.17 · 2026-10-25 · `update` · Update dashboard
+
+- Each connector row in Settings → Connectors has a Send test tip button. It asks first, then posts one TEST tip in the connector's channel and says where it landed. Needs the matching bot update; an older bot answers with a plain message.
+
 ## 0.66.16 · 2026-10-25 · `update` · Update dashboard
 
 - Maintenance / Internal updates.
