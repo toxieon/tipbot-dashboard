@@ -5,7 +5,9 @@
    storage, and it is never sent to a log.
    Dry run: POST /api/connectors/{id}/push-dry-run {payload} checks a pasted
    push body (validation, race match, each-way split, Late, post preview).
-   Nothing is posted or stored. */
+   Nothing is posted or stored.
+   Send test tip: POST /api/connectors/{id}/test-tip posts one TEST racing tip
+   (horse TipBot, random silk) in the connector's channel. Nothing is saved. */
 (function (root) {
   "use strict";
 
@@ -93,8 +95,52 @@
     return withGuild("/api/connectors/" + enc(id) + "/push-dry-run", gid);
   }
 
+  function testTipPath(id, gid) {
+    return withGuild("/api/connectors/" + enc(id) + "/test-tip", gid);
+  }
+
   function paths(id, gid) {
-    return { list: listPath(gid), status: statusPath(id, gid), generate: generatePath(id, gid), dryRun: dryRunPath(id, gid) };
+    return { list: listPath(gid), status: statusPath(id, gid), generate: generatePath(id, gid), dryRun: dryRunPath(id, gid), testTip: testTipPath(id, gid) };
+  }
+
+  function channelLabel(name) {
+    var text = String(name == null ? "" : name).trim().replace(/^#/, "");
+    return text ? "#" + text : "";
+  }
+
+  function testTipConfirm(c) {
+    var where = channelLabel(c && (c.channel_name || c.channel_label)) || "this connector's channel";
+    return {
+      title: "Send a test tip?",
+      message: "Posts one TEST racing tip (horse TipBot) in " + where + ". It isn't saved or graded.",
+      confirmLabel: "Send test tip"
+    };
+  }
+
+  // Plain words for what the bot answered. 404 = an older bot without the route.
+  function testTipOutcome(status, body) {
+    body = body && typeof body === "object" ? body : {};
+    if (status === 404) return { ok: false, notYet: true, message: "The bot doesn't have Send test tip yet. It needs the next update." };
+    if (status === 429) {
+      var wait = Number(body.retry_after);
+      return { ok: false, message: wait > 0 ? "Wait " + Math.ceil(wait) + "s before sending another test tip." : "Wait a few seconds before sending another test tip." };
+    }
+    if (status >= 200 && status < 300 && body.ok !== false && Number(body.posted) > 0) {
+      var chan = channelLabel(body.channel_name);
+      return { ok: true, message: "Test tip posted" + (chan ? " in " + chan : "") + "." };
+    }
+    return { ok: false, message: String(body.message || body.error || "Couldn't send the test tip.") };
+  }
+
+  async function runTestTip(ctx, id) {
+    var res = await ctx.api(testTipPath(id, ctx.gid), {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: "{}"
+    });
+    if (unauth(res, null, ctx)) return { ok: false, unauth: true, message: "" };
+    var body = await readJson(res);
+    return testTipOutcome(res ? res.status : 0, body);
   }
 
   // Parse the pasted body before sending, so a typo is caught on the phone.
@@ -217,7 +263,8 @@
       + '<div class="ps-status"' + (failed ? "" : ' aria-live="polite"') + '>' + esc(status) + '</div>'
       + '<span class="ps-msg" data-ps-msg role="status"></span></div>'
       + '<div class="ps-btns"><button type="button" class="' + (set && !failed ? "ghost" : "btn") + ' ps-go" data-ps-go>' + esc(failed ? "Retry" : label) + '</button>'
-      + '<button type="button" class="ghost ps-go" data-ps-dry>Dry run</button></div>'
+      + '<button type="button" class="ghost ps-go" data-ps-dry>Dry run</button>'
+      + '<button type="button" class="ghost ps-go" data-ps-test>Send test tip</button></div>'
       + '</section>';
   }
 
@@ -441,6 +488,10 @@
           if (cid) openDryRun(cid, labelOf(c || { id: cid }));
         };
       });
+      var testButtons = rootEl.querySelectorAll("[data-ps-test]");
+      Array.prototype.forEach.call(testButtons, function (btn) {
+        btn.onclick = function () { onTestTip(btn); };
+      });
       var idCopies = rootEl.querySelectorAll("[data-ps-copy-id]");
       Array.prototype.forEach.call(idCopies, function (btn) {
         btn.onclick = function () {
@@ -556,6 +607,44 @@
       bind(back, close);
     }
 
+    var testing = {};
+
+    function say(id, text, isErr) {
+      var toast = typeof ctx.toast === "function" ? ctx.toast : (typeof root.toast === "function" ? root.toast : null);
+      if (toast) {
+        try { toast(text, isErr ? "error" : "success"); return; } catch (e) {}
+      }
+      setMsg(id, text, isErr);
+    }
+
+    async function onTestTip(btn) {
+      var row = btn.closest ? btn.closest("[data-ps-id]") : null;
+      var id = row ? row.getAttribute("data-ps-id") : "";
+      if (!id || testing[id] || btn.disabled) return;
+      testing[id] = true;
+      btn.disabled = true;
+      setMsg(id, "", false);
+      var c = null;
+      state.list.forEach(function (item) { if (String(item.id) === id) c = item; });
+      try {
+        var ok = true;
+        if (typeof ctx.confirm === "function") ok = await ctx.confirm(testTipConfirm(c));
+        if (!ok) return;
+        setMsg(id, "Sending\u2026", false);
+        var out = await runTestTip(ctx, id);
+        if (out.unauth) return;
+        setMsg(id, "", false);
+        say(id, out.message, !out.ok);
+      } catch (e) {
+        if (unauth(null, e, ctx)) return;
+        setMsg(id, "", false);
+        say(id, "Couldn't reach the bot.", true);
+      } finally {
+        testing[id] = false;
+        if (btn.isConnected) btn.disabled = false;
+      }
+    }
+
     async function onGo(btn) {
       var row = btn.closest ? btn.closest("[data-ps-id]") : null;
       var id = row ? row.getAttribute("data-ps-id") : "";
@@ -604,6 +693,11 @@
     statusPath: statusPath,
     generatePath: generatePath,
     dryRunPath: dryRunPath,
+    testTipPath: testTipPath,
+    testTipConfirm: testTipConfirm,
+    testTipOutcome: testTipOutcome,
+    runTestTip: runTestTip,
+    channelLabel: channelLabel,
     parsePayload: parsePayload,
     resultHtml: resultHtml,
     tipHtml: tipHtml,
