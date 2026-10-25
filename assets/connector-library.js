@@ -213,7 +213,7 @@
       ".cl-modal .cl-note{color:var(--faint);font-size:13px;line-height:1.45;margin-top:8px}",
       ".cl-modal .cl-made{font-size:14px;margin-bottom:6px}",
       ".cl-back{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));background:rgba(15,23,38,.45)}",
-      ".cl-sheet{width:min(460px,100%);max-height:min(86vh,720px);overflow:auto;-webkit-overflow-scrolling:touch;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:16px}",
+      ".cl-sheet{width:min(460px,100%);max-height:min(86vh,720px);max-height:min(86dvh,720px);overflow:auto;-webkit-overflow-scrolling:touch;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;padding:16px}",
       "@media(min-width:641px){.cl-back{align-items:center}}"
     ].join("");
     (doc.head || doc.documentElement).appendChild(style);
@@ -256,7 +256,19 @@
         st.secret = "";
         var input = sheetCard && sheetCard.querySelector("[data-cl-secret]");
         if (input) input.value = "";
-        if (st.created && typeof ctx.onAdded === "function") ctx.onAdded(st.created);
+        if (st.created && typeof ctx.onAdded === "function") {
+          var created = st.created, fired = false, wrap = doc.querySelector(".wrap"), timer = null;
+          var fire = function () {
+            if (fired) return;
+            fired = true;
+            if (timer) root.clearTimeout(timer);
+            if (wrap) wrap.removeEventListener("transitionend", fire);
+            ctx.onAdded(created);
+          };
+          // Re-render the panel only after the sheet and page have settled.
+          if (wrap) wrap.addEventListener("transitionend", fire);
+          timer = root.setTimeout(fire, 450);
+        }
       }
 
       function read() {
