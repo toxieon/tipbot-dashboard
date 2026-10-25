@@ -504,15 +504,25 @@
   .addbtn{background:rgba(46,175,98,.16);color:#5fd48c;border:1px solid rgba(46,175,98,.4);border-radius:var(--r-sm);padding:8px 14px;cursor:pointer;font:inherit;font-weight:700;flex:none;white-space:nowrap}
   .addbtn:hover{background:rgba(46,175,98,.26)}
   @media(max-width:640px){
-    .prow{gap:10px;padding:12px}
+    .prow{gap:12px;padding:12px}
     .pname{min-width:0;flex:1 1 100%}
     .linectl{flex:1 1 100%;gap:10px}
     .linectl-wrap{flex:1 1 100%}
-    .prow-actions{flex:1 1 100%;justify-content:space-between}
+    /* Row 1: Compare / Over-Under toggle at full width. Row 2: period, Odds (flexible), Add.
+       The toggle used to be flex:1 with a 0 basis and overflow:hidden, so the row never wrapped and Under was clipped. */
+    .prow-actions{flex:1 1 100%;justify-content:flex-start;align-items:stretch;gap:12px}
     .ou{flex:1}
     .ou button{flex:1;padding:9px 10px}
+    .prow-actions .ou{flex:1 1 100%;min-width:0}
+    .prow-actions .ou button{min-height:44px}
+    .prow-actions .compare-btn{order:-1;flex:1 1 100%}
+    .prow-actions .qlbl{flex:0 0 auto}
+    .prow-actions .qsel{min-height:44px;padding:6px 8px!important}
+    .prow-actions input[type=number]{flex:1 1 0;min-width:72px;width:auto!important;min-height:44px;box-sizing:border-box}
+    .prow-actions .addbtn{flex:0 0 auto;min-width:88px;min-height:44px;padding:9px 16px}
+    .prow-actions .qlbl + .addbtn,.prow-actions .compare-btn + .addbtn{flex:1 1 auto}
     .addbtn{min-height:44px;padding:9px 16px}
-    .compare-btn{order:-1;flex:1 1 100%;min-height:44px;padding:10px 14px;justify-content:center}
+    .compare-btn{min-height:44px;padding:10px 14px;justify-content:center}
     .builder-tools #psearch,.builder-tools #psort{min-width:0!important;width:100%}
     .builder-tools{flex-direction:column}
     .builder-tools #psearch,.builder-tools #psort{flex:0 0 auto!important} /* 0.43.1: flex-basis 160px became a 160px-tall search box in the column layout */

@@ -1,3 +1,7 @@
+## 0.66.18
+
+Build tab player rows are roomier on phones, and Under is no longer cut off.
+
 ## 0.66.17
 
 Maintenance / Internal updates.
