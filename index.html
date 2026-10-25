@@ -7622,7 +7622,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       TBOwnerServer.attach({
         detail:detail, owner:true, gid:s.guild_id, api:api, apiBase:API,
         onUnauth:function(){ renderLogin("Session expired."); },
-        confirm:tbConfirm, when:fmtDate,
+        confirm:tbConfirm, when:fmtDate, toast:toast,
         fetchRaw:function(path,opts){
           opts=opts||{};
           const headers=Object.assign({Authorization:"Bearer "+getToken()}, opts.headers||{});
