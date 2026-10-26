@@ -305,7 +305,7 @@
   .fl-score{position:absolute;left:14px;right:14px;bottom:8px;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
   .fl-team{font-size:var(--t-sub);color:color-mix(in srgb,var(--txt) 68%,transparent);font-weight:600;min-width:0}.fl-team b{display:block;color:var(--txt);font-size:2.25rem;font-weight:800;letter-spacing:-.03em;line-height:1}
   .fl-team-r{text-align:right}
-  .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}
+  .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}.fl-clock .fl-starts{color:color-mix(in srgb,var(--txt) 82%,transparent)}
   .fl-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:16px 2px 2px}.fl-sec h2{margin:0;font-size:1.35rem;font-weight:750;letter-spacing:-.02em}.fl-sec span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-note{margin:8px 0;color:var(--muted);font-size:var(--t-foot)}
   .fl-demo{position:absolute;z-index:4;top:calc(max(10px, env(safe-area-inset-top, 0px)) + 44px);left:50%;transform:translateX(-50%);display:flex;gap:6px;width:max-content;max-width:calc(100% - 20px)}
@@ -843,6 +843,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .tb-swatch[data-tb-theme="apex-ochre"] {--preview-bg:#17110c;--preview-accent:#e0a04a;}
 .tb-setting {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:var(--t-sub);}
 .tb-setting input[type="checkbox"] {width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
+.tb-setting select {min-height:36px;max-width:52%;padding:0 8px;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-xs);font:inherit;font-size:var(--t-foot);}
 .tb-setting input[type="color"] {height:30px;width:44px;padding:2px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-xs);cursor:pointer;}
 .tb-text-button {background:none;border:0;color:var(--txt);font:inherit;font-size:var(--t-foot);text-decoration:underline;cursor:pointer;padding:6px 0;min-height:44px;}
 .tb-text-button:disabled {color:var(--muted);cursor:default;text-decoration:none;}
@@ -1430,6 +1431,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           <label class="tb-setting tb-gv-anim" id="dd-gv-anim" title="Cartoon players running on the ground in Game view during a live game">
             <span>Player animations<small>Players run on the Game view ground during live AFL games. Off by default</small></span>
             <input type="checkbox" id="dd-gv-anim-on">
+          </label>
+          <label class="tb-setting tb-gv-tz" id="dd-gv-tz" for="dd-gv-tz-pick" title="Game start times show in this time zone">
+            <span>Game times<small>Start times in Game view. Melbourne (AEST/AEDT) unless you pick another</small></span>
+            <select id="dd-gv-tz-pick"></select>
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
           <div class="dd-label" id="dd-version">tipdash v__TD_VERSION__</div>
@@ -2658,6 +2663,32 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const mp=$("dd-marketplace"); if(mp){ mp.onclick=openMarketplace; mp.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMarketplace(); } }; } }
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
+  // Settings → Game times: the zone Game view start times show in, per device.
+  // Unset is Melbourne; "device" follows this device. FollowerLive formats with it.
+  const GV_ZONES=[["", "Melbourne (AEST/AEDT)"], ["device", "This device"], ["Australia/Sydney", "Sydney"],
+    ["Australia/Brisbane", "Brisbane"], ["Australia/Adelaide", "Adelaide"], ["Australia/Darwin", "Darwin"],
+    ["Australia/Perth", "Perth"], ["Australia/Hobart", "Hobart"], ["Pacific/Auckland", "Auckland"],
+    ["Asia/Singapore", "Singapore"], ["Europe/London", "London"], ["America/New_York", "New York"],
+    ["America/Los_Angeles", "Los Angeles"], ["UTC", "UTC"]];
+  function deviceZone(){ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(_){ return ""; } }
+  function gvZoneStore(){ try{ return window.localStorage; }catch(_){ return null; } }
+  function applyGvZone(){
+    if(!window.FollowerLive||!FollowerLive.setZone) return;
+    FollowerLive.setZone(FollowerLive.viewerZone(gvZoneStore(), deviceZone()));
+  }
+  applyGvZone();
+  { const tz=$("dd-gv-tz-pick"); if(tz){
+      let saved=""; try{ saved=localStorage.getItem("tipdash_tz")||""; }catch(_){}
+      const here=deviceZone();
+      tz.innerHTML=GV_ZONES.map(z=>'<option value="'+esc(z[0])+'">'+esc(z[0]==="device"&&here?z[1]+" ("+here.replace(/_/g," ")+")":z[1])+'</option>').join("");
+      if(saved&&!GV_ZONES.some(z=>z[0]===saved)) tz.insertAdjacentHTML("beforeend",'<option value="'+esc(saved)+'">'+esc(saved.replace(/_/g," "))+'</option>');
+      tz.value=saved;
+      tz.onchange=()=>{
+        try{ if(tz.value) localStorage.setItem("tipdash_tz", tz.value); else localStorage.removeItem("tipdash_tz"); }catch(_){}
+        applyGvZone();
+        try{ window.dispatchEvent(new Event("tipdash-tz")); }catch(_){}
+      };
+  } }
   function racingExtraPlacesOn(){ try{ return localStorage.getItem("tipdash_racing_extra_places")==="1"; }catch(_){ return false; } }
   { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
   { const ga=$("dd-gv-anim-on"); if(ga){
@@ -5744,6 +5775,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     img.parentNode.appendChild(pop);
     setTimeout(function(){ pop.remove(); }, 3200);
   }
+  // Settings → Game times changed: repaint the open game with the new zone.
+  window.addEventListener("tipdash-tz", function(){ if(FLIVE&&FLIVE.board) flivePaint(FLIVE.board); });
   function flivePaint(data){
     const grid=$("flive-grid"), score=$("flive-score"), sum=$("flive-sum"), pill=$("flive-pill"), note=$("flive-note");
     if(!grid||!window.FollowerLive) return;

@@ -48,16 +48,66 @@
     return "Live";
   }
 
+  // TipBot stores UTC. A timestamp with no zone ("2026-09-27 09:30:00") is UTC too,
+  // as in tbtime.js, never the viewer's device time.
+  function utcMs(v) {
+    if (v == null || v === "") return null;
+    if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
+    var text = String(v).trim();
+    var m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)$/.exec(text);
+    var n = Date.parse(m ? m[1] + "T" + m[2] + "Z" : text);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function gameStartMs(game) {
     if (!game) return null;
     var v = game.starts_at != null ? game.starts_at
       : (game.start_time != null ? game.start_time
       : (game.game_start != null ? game.game_start
-      : (game.kickoff != null ? game.kickoff : game.commence_time)));
-    if (v == null || v === "") return null;
-    if (typeof v === "number" && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
-    var n = Date.parse(v);
-    return Number.isFinite(n) ? n : null;
+      : (game.kickoff != null ? game.kickoff : (game.commence_time != null ? game.commence_time : game.start))));
+    return utcMs(v);
+  }
+
+  // Game times show in the viewer's chosen zone (Settings → Game times), per device.
+  // Unset is Melbourne (AEST/AEDT); "device" follows this device's own zone.
+  var TZ_KEY = "tipdash_tz";
+  var DEFAULT_TZ = "Australia/Melbourne";
+  var zoneNow = DEFAULT_TZ;
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  function validZone(zone) {
+    if (!zone || typeof zone !== "string") return false;
+    try { new Intl.DateTimeFormat("en-AU", {timeZone: zone}); return true; } catch (e) { return false; }
+  }
+
+  function viewerZone(storage, deviceZone) {
+    var v = null;
+    try { v = storage && storage.getItem ? storage.getItem(TZ_KEY) : null; } catch (e) { v = null; }
+    if (v === "device") return validZone(deviceZone) ? deviceZone : DEFAULT_TZ;
+    return validZone(v) ? v : DEFAULT_TZ;
+  }
+
+  function setZone(zone) {
+    zoneNow = validZone(zone) ? zone : DEFAULT_TZ;
+    return zoneNow;
+  }
+
+  /** "Sat 1 Nov · 7:30 pm" in ``zone`` (default: the viewer's zone), plus its short name when asked. */
+  function timeLabel(ms, zone, withZone) {
+    if (ms == null) return "";
+    var tz = validZone(zone) ? zone : zoneNow;
+    var opts = {timeZone: tz, weekday: "short", day: "numeric", month: "numeric", hour: "numeric", minute: "2-digit", hour12: true};
+    if (withZone) opts.timeZoneName = "short";
+    var parts = {};
+    try {
+      new Intl.DateTimeFormat("en-AU", opts).formatToParts(new Date(ms)).forEach(function (p) { parts[p.type] = p.value; });
+    } catch (e) {
+      return "";
+    }
+    var ap = String(parts.dayPeriod || "").toLowerCase().replace(/\./g, "");
+    var month = MONTHS[Number(parts.month) - 1] || parts.month;
+    var out = parts.weekday + " " + parts.day + " " + month + " · " + parts.hour + ":" + parts.minute + (ap ? " " + ap : "");
+    return withZone && parts.timeZoneName ? out + " " + parts.timeZoneName : out;
   }
 
   function gameNotStarted(game, now) {
@@ -182,18 +232,7 @@
   }
 
   function bounceLabel(game) {
-    var ms = gameStartMs(game);
-    if (ms == null) return "";
-    var d = new Date(ms);
-    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    var hour = d.getUTCHours();
-    var minute = d.getUTCMinutes();
-    var ap = hour >= 12 ? "pm" : "am";
-    var hr = hour % 12;
-    if (hr === 0) hr = 12;
-    var min = minute < 10 ? "0" + minute : String(minute);
-    return days[d.getUTCDay()] + " " + d.getUTCDate() + " " + months[d.getUTCMonth()] + " · " + hr + ":" + min + " " + ap;
+    return timeLabel(gameStartMs(game), zoneNow, false);
   }
 
   function legTitle(leg, game) {
@@ -341,8 +380,12 @@
       return '<div class="fl-team' + (right ? " fl-team-r" : "") + '"><span>'
         + esc(team.name || "") + "</span><b>" + esc(sc) + "</b>" + qs + "</div>";
     }
+    // Before the start, the middle says when it starts in the viewer's zone.
+    var starts = gameNotStarted(game) ? timeLabel(gameStartMs(game), zoneNow, true) : "";
     return side(home, false)
-      + '<div class="fl-clock"><b>' + esc(phase) + "</b><span>" + esc(venue) + "</span></div>"
+      + '<div class="fl-clock"><b>' + esc(phase) + "</b>"
+      + (starts ? '<span class="fl-starts">Starts ' + esc(starts) + "</span>" : "")
+      + "<span>" + esc(venue) + "</span></div>"
       + side(away, true);
   }
 
@@ -1159,6 +1202,12 @@
     render: render,
     groupLegs: groupLegs,
     scoreHtml: scoreHtml,
+    gameStartMs: gameStartMs,
+    timeLabel: timeLabel,
+    viewerZone: viewerZone,
+    setZone: setZone,
+    TZ_KEY: TZ_KEY,
+    DEFAULT_TZ: DEFAULT_TZ,
     fallbackFromFeed: fallbackFromFeed,
     liveNowGames: liveNowGames,
     liveNowHtml: liveNowHtml,

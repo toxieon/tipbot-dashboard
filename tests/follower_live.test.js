@@ -84,7 +84,8 @@ test("an upcoming game shows unsettled legs as Upcoming, with no bar and no Now"
   assert.match(pending, /Z\. Quill 25\+ disposals/);
   assert.match(pending, /Bounce/);
   assert.match(pending, /1 Jan/);
-  assert.match(pending, /5:00 am/);
+  // 05:00 UTC is 4:00 pm in Melbourne (the default zone), not the UTC clock.
+  assert.match(pending, /4:00 pm/);
   assert.match(out, /fl-card hit/);
   assert.match(out, />Hit</);
   assert.match(out, />Final</);
