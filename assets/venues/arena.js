@@ -28,8 +28,8 @@ export var ARENA_CAMERAS = [
 ];
 export var ARENA_CHIPS = {ends: "Baseline", blimp: "Overhead"};
 export var COURT = {w: 28, d: 15, hoopX: 12.8, rimY: 3.05};
-// Studio logos are laid out on the AFL oval. On the court the same layout is scaled
-// down evenly so every logo keeps its shape and stays on the floor (kit.logoPlacement).
+// Studio logos are laid out on the AFL oval. On the court that layout is scaled down
+// evenly (kit.logoPlacement) until the owner places the logo on the court itself.
 export var COURT_LOGO_SCALE = logoScale(COURT);
 
 /** Court position and size (metres) for one studio logo: {x, z, w, d, rot}. */

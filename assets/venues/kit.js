@@ -237,16 +237,23 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
 }
 
 // ── Sponsor floor logos ────────────────────────────────────────────────────────
-// Studio logos are laid out on the AFL oval (boundary 84 x 71.5 m). On another
-// ground the same layout is scaled down evenly into its playing area, so every
-// logo keeps its shape and stays on the field.
+// Studio logos are laid out on the AFL oval (boundary 84 x 71.5 m). A logo the owner
+// placed on this ground in the studio arrives with ``pose: true``: it is already in
+// this ground's metres and is drawn as is. Any other logo keeps the old behaviour:
+// the AFL layout scaled down evenly into the playing area, so it keeps its shape and
+// stays on the field.
 var OVAL = {x: 84, z: 71.5};
 export function logoScale(field) {
   return Math.min((field.w / 2) / OVAL.x, (field.d / 2) / OVAL.z);
 }
-/** Field position and size (metres) for one studio logo: {x, z, w, d, rot}. */
+function clampAngle(value) {
+  var angle = Number(value);
+  if (!isFinite(angle)) angle = 0;
+  return Math.max(0, Math.min(80, angle));
+}
+/** Field position and size (metres) for one studio logo: {x, z, w, d, rot, angle}. */
 export function logoPlacement(logo, field) {
-  var k = logoScale(field);
+  var k = logo && logo.pose ? 1 : logoScale(field);
   var w = Number(logo && (logo.w || logo.width_m)) || 14;
   var d = Number(logo && (logo.d || logo.depth_m || logo.h)) || 4.7;
   return {
@@ -254,8 +261,16 @@ export function logoPlacement(logo, field) {
     z: (field.z || 0) + (Number(logo && logo.z) || 0) * k,
     w: Math.max(0.2, w * k),
     d: Math.max(0.2, d * k),
-    rot: Number(logo && (logo.rot || logo.rotation)) || 0
+    rot: Number(logo && (logo.rot || logo.rotation)) || 0,
+    angle: clampAngle(logo && logo.angle)
   };
+}
+/** The floor axis a logo tips up around so its face turns toward the camera at ``cam``
+    ([x, y, z]), as assets/mcg/mount.js placeLogo does for the AFL broadcast camera. */
+export function logoTiltAxis(at, cam) {
+  var dx = (cam[0] || 0) - at.x, dz = (cam[2] || 0) - at.z;
+  var len = Math.hypot(dx, dz) || 1;
+  return [dz / len, 0, -dx / len];
 }
 
 function glContext(canvas) {
@@ -453,6 +468,20 @@ export async function mountVenue(host, opts, def) {
           new T.MeshBasicMaterial({map: tex, transparent: true, opacity: 0.9, depthWrite: false}));
         mesh.rotation.set(-Math.PI / 2, 0, -at.rot * Math.PI / 180);
         mesh.position.set(at.x, 0.03, at.z);   // just above the field plane (y 0.01)
+        if (at.angle) {
+          // Tilt toward this ground's broadcast camera; the near edge stays on the floor.
+          // A rigid turn: these cameras sit close, so the MCG's far-edge taper isn't used.
+          var axis = logoTiltAxis(at, first.pos);
+          mesh.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(
+            new T.Vector3(axis[0], axis[1], axis[2]), at.angle * Math.PI / 180));
+          mesh.updateMatrixWorld(true);
+          var vtx = mesh.geometry.attributes.position, v3 = new T.Vector3(), minY = Infinity;
+          for (var vi = 0; vi < vtx.count; vi++) {
+            v3.fromBufferAttribute(vtx, vi).applyMatrix4(mesh.matrixWorld);
+            if (v3.y < minY) minY = v3.y;
+          }
+          mesh.position.y += 0.03 - minY;
+        }
         logoGroup.add(mesh);
       });
       if (alive && renderer) renderer.render(scene, camera);

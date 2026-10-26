@@ -1,3 +1,7 @@
+## 0.66.19 · 2026-10-27 · `update` · Update dashboard
+
+- Maintenance / Internal updates.
+
 ## 0.66.18 · 2026-10-25 · `update` · Update dashboard
 
 - Build tab player rows on phones: Over/Under (or Yes/No) now gets its own full-width row, and period, Odds and Add sit on the next row with proper spacing. Under is no longer clipped.
