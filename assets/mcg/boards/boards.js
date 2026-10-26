@@ -3,6 +3,18 @@ import * as T from '../../vendor/three/three.module.min.js';
 // back faces sample the emissive map with u flipped, so text reads correctly from both sides
 export function ledTwoSided(m){m.onBeforeCompile=sh=>{sh.uniforms.ledOff={get value(){return m.emissiveMap?m.emissiveMap.offset.x:0;}};sh.fragmentShader='uniform float ledOff;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
  '#ifdef USE_EMISSIVEMAP\n vec2 eUv=vEmissiveMapUv; if(!gl_FrontFacing) eUv.x=2.0*ledOff-eUv.x;\n totalEmissiveRadiance*=texture2D(emissiveMap,eUv).rgb;\n#endif');};m.customProgramCacheKey=()=>'led2s2';return m;}
+// One slide's picture on the board canvas. Fitted to the strip height (80% for house
+// slides, full for sponsor banners), centred, then the banner's studio frame: pan in
+// fractions of half the canvas, rotation in degrees and scale around that centre.
+// Scale 1, rotation 0 and no pan is the exact old drawImage call (same pixels).
+export function slideImage(x,im,s,cw,ch){
+ const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;let h=ch*(s.fill?1:0.8),w=h*iw/ih;if(w>cw){w=cw;h=w*ih/iw;}
+ const sc=s.scale==null?1:Number(s.scale)||1,rot=Number(s.rot)||0,px=Number(s.pan_x)||0,py=Number(s.pan_y)||0;
+ if(sc===1&&!rot&&!px&&!py){x.drawImage(im,(cw-w)/2,(ch-h)/2,w,h);return;}
+ x.save();x.translate(cw/2+px*cw/2,ch/2+py*ch/2);x.rotate(rot*Math.PI/180);x.scale(sc,sc);x.drawImage(im,-w/2,-h/2,w,h);x.restore();}
+// The fields a slide keeps from the scene: duration and scroll, plus the banner frame.
+export function sponsorSlide(s){return {image:s.image,duration:Math.max(2,Number(s.duration)||8),scroll:Number(s.scroll)||0,bg:s.bg||'#000',fill:true,
+ scale:s.scale==null?1:Number(s.scale)||1,rot:Number(s.rot)||0,pan_x:Number(s.pan_x)||0,pan_y:Number(s.pan_y)||0};}
 const SZ=74/86.5, RX=86.5;
 export async function addBoards(scene,{rx=88.5,rz=75.7,cfgUrl='boards/boards.json',night=false}={}){
  const cfg=await (await fetch(cfgUrl+'?'+Date.now())).json(); const H=cfg.height||1.4;
@@ -22,7 +34,7 @@ export async function addBoards(scene,{rx=88.5,rz=75.7,cfgUrl='boards/boards.jso
  // frame/back
  let si=0,tIn=0;
  function draw(){const s=cfg.slides[si],im=imgs[si];x.fillStyle=s.bg||'#000';x.fillRect(0,0,cv.width,cv.height);
-  if(im){const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;let h=cv.height*(s.fill?1:0.8),w=h*iw/ih;if(w>cv.width){w=cv.width;h=w*ih/iw;}x.drawImage(im,(cv.width-w)/2,(cv.height-h)/2,w,h);}
+  if(im)slideImage(x,im,s,cv.width,cv.height);
   x.fillStyle='rgba(0,0,0,0.18)';for(let y=0;y<cv.height;y+=3)x.fillRect(0,y,cv.width,1); // LED scanlines
   tex.needsUpdate=true;}
  draw();
@@ -32,6 +44,6 @@ export async function addBoards(scene,{rx=88.5,rz=75.7,cfgUrl='boards/boards.jso
   const want=(list||[]).filter(s=>s&&s.image);
   if(!want.length){cfg.slides=house;imgs.length=0;houseImgs.forEach(i=>imgs.push(i));si=0;tIn=0;draw();return;}
   const loaded=await Promise.all(want.map(s=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=s.image;})));
-  cfg.slides=want.map(s=>({image:s.image,duration:Math.max(2,Number(s.duration)||8),scroll:Number(s.scroll)||0,bg:s.bg||'#000',fill:true}));
+  cfg.slides=want.map(sponsorSlide);
   imgs.length=0;loaded.forEach(i=>imgs.push(i));si=0;tIn=0;tex.offset.x=0;draw();}
  return {mesh,setSlides,update(dt){tIn+=dt;const s=cfg.slides[si];tex.offset.x-=(s.scroll||0)*dt;if(tIn>=s.duration){tIn=0;si=(si+1)%cfg.slides.length;draw();}}};}

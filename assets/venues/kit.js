@@ -7,7 +7,7 @@
    No orbit controls and no player models (player animation is a separate feature).
    If WebGL can't start, the venue's still (a render from its broadcast camera) stays. */
 import * as T from "../vendor/three/three.module.min.js";
-import { ledTwoSided } from "../mcg/boards/boards.js";
+import { ledTwoSided, slideImage, sponsorSlide } from "../mcg/boards/boards.js";
 import { camerasFor, findCamera, cameraAt, tweenProgress, effectiveFov, TWEEN_MS, storageKeyFor } from "../mcg/cameras.js";
 
 export { T };
@@ -185,12 +185,7 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
     var s = slides[si] || {}, im = imgs[si];
     x.fillStyle = s.bg || "#000";
     x.fillRect(0, 0, cv.width, cv.height);
-    if (im) {
-      var iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
-      var h = cv.height * (s.fill ? 1 : 0.8), w = h * iw / ih;
-      if (w > cv.width) { w = cv.width; h = w * ih / iw; }
-      x.drawImage(im, (cv.width - w) / 2, (cv.height - h) / 2, w, h);
-    }
+    if (im) slideImage(x, im, s, cv.width, cv.height);
     x.fillStyle = "rgba(0,0,0,0.18)";
     for (var y = 0; y < cv.height; y += 3) x.fillRect(0, y, cv.width, 1);
     tex.needsUpdate = true;
@@ -222,7 +217,7 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
     var want = (list || []).filter(function (s) { return s && s.image; });
     if (!want.length) { slides = house.slice(); imgs = houseImgs.slice(); si = 0; tIn = 0; draw(); return; }
     var loaded = await Promise.all(want.map(function (s) { return loadImage(s.image); }));
-    slides = want.map(function (s) { return {image: s.image, duration: Math.max(2, Number(s.duration) || 8), scroll: Number(s.scroll) || 0, bg: s.bg || "#000", fill: true}; });
+    slides = want.map(sponsorSlide);
     imgs = loaded; si = 0; tIn = 0; tex.offset.x = 0; draw();
   }
   return {
