@@ -15,6 +15,18 @@ export function slideImage(x,im,s,cw,ch){
 // The fields a slide keeps from the scene: duration and scroll, plus the banner frame.
 export function sponsorSlide(s){return {image:s.image,duration:Math.max(2,Number(s.duration)||8),scroll:Number(s.scroll)||0,bg:s.bg||'#000',fill:true,
  scale:s.scale==null?1:Number(s.scale)||1,rot:Number(s.rot)||0,pan_x:Number(s.pan_x)||0,pan_y:Number(s.pan_y)||0};}
+// Sponsor slides with TipBot's own (house) slides as one row of the playing order.
+// row = scene "house" {on, seconds, position}: when on, the house slides go in at
+// position (sponsor slides before them) and share row.seconds in their own
+// proportions, keeping their scroll. No row (an older bot) or off: sponsors only.
+export function withHouse(sponsors,sponsorImgs,houseSlides,houseImgs,row){
+ const slides=sponsors.slice(),imgs=sponsorImgs.slice();
+ if(!row||row.on===false||!houseSlides.length)return {slides,imgs};
+ const total=houseSlides.reduce((a,s)=>a+(Number(s.duration)||6),0)||1,secs=Math.max(1,Number(row.seconds)||8);
+ const at=Math.max(0,Math.min(slides.length,Math.round(Number(row.position)))),pos=isFinite(at)?at:slides.length;
+ slides.splice(pos,0,...houseSlides.map(s=>Object.assign({},s,{duration:secs*(Number(s.duration)||6)/total})));
+ imgs.splice(pos,0,...houseImgs);
+ return {slides,imgs};}
 const SZ=74/86.5, RX=86.5;
 export async function addBoards(scene,{rx=88.5,rz=75.7,cfgUrl='boards/boards.json',night=false}={}){
  const cfg=await (await fetch(cfgUrl+'?'+Date.now())).json(); const H=cfg.height||1.4;
@@ -40,10 +52,11 @@ export async function addBoards(scene,{rx=88.5,rz=75.7,cfgUrl='boards/boards.jso
  draw();
  const house=cfg.slides.slice(), houseImgs=imgs.slice();
  // Sponsor banners replace the house slides. An empty list brings the house slides back.
- async function setSlides(list){
+ async function setSlides(list,row){
   const want=(list||[]).filter(s=>s&&s.image);
   if(!want.length){cfg.slides=house;imgs.length=0;houseImgs.forEach(i=>imgs.push(i));si=0;tIn=0;draw();return;}
   const loaded=await Promise.all(want.map(s=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=s.image;})));
-  cfg.slides=want.map(sponsorSlide);
-  imgs.length=0;loaded.forEach(i=>imgs.push(i));si=0;tIn=0;tex.offset.x=0;draw();}
+  const mixed=withHouse(want.map(sponsorSlide),loaded,house,houseImgs,row);
+  cfg.slides=mixed.slides;
+  imgs.length=0;mixed.imgs.forEach(i=>imgs.push(i));si=0;tIn=0;tex.offset.x=0;draw();}
  return {mesh,setSlides,update(dt){tIn+=dt;const s=cfg.slides[si];tex.offset.x-=(s.scroll||0)*dt;if(tIn>=s.duration){tIn=0;si=(si+1)%cfg.slides.length;draw();}}};}

@@ -7,7 +7,7 @@
    No orbit controls and no player models (player animation is a separate feature).
    If WebGL can't start, the venue's still (a render from its broadcast camera) stays. */
 import * as T from "../vendor/three/three.module.min.js";
-import { ledTwoSided, slideImage, sponsorSlide } from "../mcg/boards/boards.js";
+import { ledTwoSided, slideImage, sponsorSlide, withHouse } from "../mcg/boards/boards.js";
 import { camerasFor, findCamera, cameraAt, tweenProgress, effectiveFov, TWEEN_MS, storageKeyFor } from "../mcg/cameras.js";
 
 export { T };
@@ -213,12 +213,13 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
     mesh.name = "VenueLED";
     scene.add(mesh);
   });
-  async function setSlides(list) {
+  async function setSlides(list, row) {
     var want = (list || []).filter(function (s) { return s && s.image; });
     if (!want.length) { slides = house.slice(); imgs = houseImgs.slice(); si = 0; tIn = 0; draw(); return; }
     var loaded = await Promise.all(want.map(function (s) { return loadImage(s.image); }));
-    slides = want.map(sponsorSlide);
-    imgs = loaded; si = 0; tIn = 0; tex.offset.x = 0; draw();
+    var mixed = withHouse(want.map(sponsorSlide), loaded, house, houseImgs, row);
+    slides = mixed.slides;
+    imgs = mixed.imgs; si = 0; tIn = 0; tex.offset.x = 0; draw();
   }
   return {
     setSlides: setSlides,
@@ -528,9 +529,9 @@ export async function mountVenue(host, opts, def) {
       resize: resize,
       setLogos: setLogos,
       celebrate: function () { return false; },
-      setBoards: function (list) {
+      setBoards: function (list, row) {
         if (!led || !led.setSlides) return Promise.resolve();
-        return led.setSlides(list).then(function () { if (alive && renderer) renderer.render(scene, camera); });
+        return led.setSlides(list, row).then(function () { if (alive && renderer) renderer.render(scene, camera); });
       },
       stop: function () {
         alive = false;

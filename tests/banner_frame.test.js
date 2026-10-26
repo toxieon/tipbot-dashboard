@@ -63,10 +63,10 @@ test("both slide copies and the game view use the frame", () => {
   const kit = fs.readFileSync(path.join(root, "assets/venues/kit.js"), "utf8");
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert.match(boards, /if\(im\)slideImage\(x,im,s,cv\.width,cv\.height\);/);
-  assert.match(boards, /cfg\.slides=want\.map\(sponsorSlide\);/);
-  assert.match(kit, /import \{ ledTwoSided, slideImage, sponsorSlide \} from "\.\.\/mcg\/boards\/boards\.js";/);
+  assert.match(boards, /withHouse\(want\.map\(sponsorSlide\),/);
+  assert.match(kit, /import \{ ledTwoSided, slideImage, sponsorSlide, withHouse \} from "\.\.\/mcg\/boards\/boards\.js";/);
   assert.match(kit, /if \(im\) slideImage\(x, im, s, cv\.width, cv\.height\);/);
-  assert.match(kit, /slides = want\.map\(sponsorSlide\);/);
+  assert.match(kit, /withHouse\(want\.map\(sponsorSlide\), /);
   assert.match(html, /duration:b\.seconds, scroll:b\.scroll, scale:b\.scale, rot:b\.rot, pan_x:b\.pan_x, pan_y:b\.pan_y\}/);
 });
 
