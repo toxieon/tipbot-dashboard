@@ -5067,6 +5067,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return !!(flags[key]===true||flags[key]===1);
   }
   // Owner-only detail (server switch per sport) lives in ext.js; customers see nothing extra.
+  // One line of help under a Features toggle, for every admin (owner tools add their own notes).
+  const FEATURE_HELP={
+    "feat.results_dm":"When all of a tipster's open bets have settled, TipBot DMs them a copy-paste results list with the total units."
+  };
+  function featureHelp(key){ return Object.prototype.hasOwnProperty.call(FEATURE_HELP, key)?FEATURE_HELP[key]:""; }
   function ftGradeRowNote(data, key){
     const o=window.TBOwner;
     return (o&&typeof o.ftGradeRowNote==="function")?String(o.ftGradeRowNote(data, key)||""):"";
@@ -7916,10 +7921,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const on=flags[k]!==false&&flags[k]!==0;
       const lab=ftGradeLabel(k, labels[k]);
       const note=ftGradeRowNote(d, k);
+      const help=featureHelp(k);
       html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card2)">'
         +'<input type="checkbox" class="feat-cb" data-k="'+k+'" '+(on?'checked':'')+' style="width:16px;height:16px">'
         +'<span style="flex:1"><span style="font-weight:600;font-size:var(--t-sub)">'+esc(lab)+'</span>'
         +'<span style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(k)+'</span>'
+        +(help?'<span class="feat-help" style="display:block;color:var(--muted);font-size:var(--t-cap);margin-top:2px">'+esc(help)+'</span>':'')
         +(note?'<span class="ft-grade-note" style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(note)+'</span>':'')
         +'</span></label>';
      });
