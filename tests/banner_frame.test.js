@@ -67,5 +67,16 @@ test("both slide copies and the game view use the frame", () => {
   assert.match(kit, /import \{ ledTwoSided, slideImage, sponsorSlide \} from "\.\.\/mcg\/boards\/boards\.js";/);
   assert.match(kit, /if \(im\) slideImage\(x, im, s, cv\.width, cv\.height\);/);
   assert.match(kit, /slides = want\.map\(sponsorSlide\);/);
-  assert.match(html, /duration:b\.seconds, scale:b\.scale, rot:b\.rot, pan_x:b\.pan_x, pan_y:b\.pan_y\}/);
+  assert.match(html, /duration:b\.seconds, scroll:b\.scroll, scale:b\.scale, rot:b\.rot, pan_x:b\.pan_x, pan_y:b\.pan_y\}/);
+});
+
+test("a banner's scroll reaches both slide clocks; 0 stays still", async () => {
+  const B = await import("../assets/mcg/boards/boards.js");
+  assert.equal(B.sponsorSlide({ image: "x", scroll: 0.35 }).scroll, 0.35);
+  assert.equal(B.sponsorSlide({ image: "x", scroll: -0.5 }).scroll, -0.5);
+  assert.equal(B.sponsorSlide({ image: "x" }).scroll, 0);
+  const boards = fs.readFileSync(path.join(root, "assets/mcg/boards/boards.js"), "utf8");
+  const kit = fs.readFileSync(path.join(root, "assets/venues/kit.js"), "utf8");
+  assert.match(boards, /tex\.offset\.x-=\(s\.scroll\|\|0\)\*dt;/);
+  assert.match(kit, /tex\.offset\.x -= \(s\.scroll \|\| 0\) \* dt;/);
 });

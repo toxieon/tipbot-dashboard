@@ -5588,7 +5588,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   async function fliveUseScene(d, handle, seq, fromCache){
     const ground=await Promise.all(sceneLogosFor(d, FLIVE.venue).map(async function(g){ return Object.assign({}, g, {url:await fliveBlob(g.url)}); }));
-    const boards=await Promise.all((d.boards||[]).map(async function(b){ return {image:await fliveBlob(b.url), duration:b.seconds, scale:b.scale, rot:b.rot, pan_x:b.pan_x, pan_y:b.pan_y}; }));
+    const boards=await Promise.all((d.boards||[]).map(async function(b){ return {image:await fliveBlob(b.url), duration:b.seconds, scroll:b.scroll, scale:b.scale, rot:b.rot, pan_x:b.pan_x, pan_y:b.pan_y}; }));
     const ball=d.ball?await fliveBlob(d.ball.url):"";
     if(seq!==FLIVE.seq) return;
     FLIVE.sponsors={ground:ground.filter(function(g){ return g.url; }), boards:boards.filter(function(b){ return b.image; })};
