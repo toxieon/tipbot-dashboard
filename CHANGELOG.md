@@ -1,3 +1,7 @@
+## 0.66.25 · 2026-10-27 · `update` · Update dashboard
+
+- Maintenance / Internal updates.
+
 ## 0.66.24 · 2026-10-27 · `update` · Update dashboard
 
 - Maintenance / Internal updates.

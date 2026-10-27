@@ -2202,6 +2202,25 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){}
   }
   const SERVER_STAT_KEYS=["queued","won","lost","profit_units","roi"];
+  // Server owners and admins: TipBot DMs them this server's bets list (open bets, live 🔴,
+  // results ✅ ❌, then units staked and profit/loss), the same list as the Results DM.
+  async function dmBetsList(btn){
+    if(btn.disabled) return;
+    const label=btn.textContent;
+    btn.disabled=true; btn.textContent="Sending…";
+    let note="";
+    try{
+      const r=await api("/api/bets-list/dm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.getAttribute("data-gid")})});
+      let j={}; try{ j=await r.json(); }catch(_){ j={}; }
+      if(r.status===404) note="Only this server's owner and admins can do this.";
+      else note=(j&&j.ok)?(j.message||"Sent to your Discord DMs."):((j&&(j.error||j.message))||"Couldn't send the list.");
+    }catch(e){
+      if(e&&e.unauth){ renderLogin("Session expired."); return; }
+      note="Couldn't reach TipBot.";
+    }
+    btn.textContent=label; btn.disabled=false;
+    if(typeof toast==="function") toast(note); else alert(note);
+  }
   function keepServerStats(data, prev){
     if(!data || data.lite===false || !Array.isArray(data.servers)) return data;
     const by={}; (prev||[]).forEach(function(s){ if(s&&s.guild_id!=null) by[String(s.guild_id)]=s; });
@@ -7595,7 +7614,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
       +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button>'+((s.can_admin&&!STATE.viewAs)?'<button type="button" class="ghost" id="betslistbtn" data-gid="'+esc(String(s.guild_id))+'" title="TipBot DMs you every open bet in this server and today's results, ready to copy">✉ DM me the bets list</button>':'')+'<button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
@@ -7614,6 +7633,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     { const gv=$("gameviewbtn"); if(gv) gv.onclick=()=>openGameView(); }
     { const ldb=$("livedemobtn"); if(ldb){ ldb.hidden=!ownerSettingsAllowed(); if(!ldb.hidden) ldb.onclick=()=>openFollowerDemo(); } }
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
+    { const bl=$("betslistbtn"); if(bl) bl.onclick=()=>dmBetsList(bl); }
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     if(!guildFeature(s.guild_id,"livestats")){ const lp=$("live-tips-panel"); if(lp) lp.remove(); }   // Live stats off
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
