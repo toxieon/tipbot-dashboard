@@ -16,7 +16,7 @@ test("game view reads one sponsor scene and polls hits for that game", () => {
   assert.match(html, /function fliveHitsPoll/);
   assert.match(html, /function fliveQueueHit/);
   assert.match(html, /setTimeout\(next, 1500\)/);
-  assert.match(html, /handle\.setBoards\(FLIVE\.sponsors\.boards\)/);
+  assert.match(html, /handle\.setBoards\(FLIVE\.sponsors\.boards, FLIVE\.sponsors\.house\)/);
   assert.match(html, /window\.TBLiveFx\.ballSkin=ball/);
   // hits already settled when the page opens are marked seen, not replayed
   assert.match(html, /\(d\.hits\|\|\[\]\)\.forEach\(function\(h\)\{ FLIVE\.hitSeen\[h\.id\]=1; \}\)/);

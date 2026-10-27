@@ -7,7 +7,7 @@
    No orbit controls and no player models (player animation is a separate feature).
    If WebGL can't start, the venue's still (a render from its broadcast camera) stays. */
 import * as T from "../vendor/three/three.module.min.js";
-import { ledTwoSided } from "../mcg/boards/boards.js";
+import { ledTwoSided, slideImage, sponsorSlide, withHouse } from "../mcg/boards/boards.js";
 import { camerasFor, findCamera, cameraAt, tweenProgress, effectiveFov, TWEEN_MS, storageKeyFor } from "../mcg/cameras.js";
 
 export { T };
@@ -185,12 +185,7 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
     var s = slides[si] || {}, im = imgs[si];
     x.fillStyle = s.bg || "#000";
     x.fillRect(0, 0, cv.width, cv.height);
-    if (im) {
-      var iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
-      var h = cv.height * (s.fill ? 1 : 0.8), w = h * iw / ih;
-      if (w > cv.width) { w = cv.width; h = w * ih / iw; }
-      x.drawImage(im, (cv.width - w) / 2, (cv.height - h) / 2, w, h);
-    }
+    if (im) slideImage(x, im, s, cv.width, cv.height);
     x.fillStyle = "rgba(0,0,0,0.18)";
     for (var y = 0; y < cv.height; y += 3) x.fillRect(0, y, cv.width, 1);
     tex.needsUpdate = true;
@@ -218,12 +213,13 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
     mesh.name = "VenueLED";
     scene.add(mesh);
   });
-  async function setSlides(list) {
+  async function setSlides(list, row) {
     var want = (list || []).filter(function (s) { return s && s.image; });
     if (!want.length) { slides = house.slice(); imgs = houseImgs.slice(); si = 0; tIn = 0; draw(); return; }
     var loaded = await Promise.all(want.map(function (s) { return loadImage(s.image); }));
-    slides = want.map(function (s) { return {image: s.image, duration: Math.max(2, Number(s.duration) || 8), scroll: Number(s.scroll) || 0, bg: s.bg || "#000", fill: true}; });
-    imgs = loaded; si = 0; tIn = 0; tex.offset.x = 0; draw();
+    var mixed = withHouse(want.map(sponsorSlide), loaded, house, houseImgs, row);
+    slides = mixed.slides;
+    imgs = mixed.imgs; si = 0; tIn = 0; tex.offset.x = 0; draw();
   }
   return {
     setSlides: setSlides,
@@ -237,16 +233,23 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
 }
 
 // ── Sponsor floor logos ────────────────────────────────────────────────────────
-// Studio logos are laid out on the AFL oval (boundary 84 x 71.5 m). On another
-// ground the same layout is scaled down evenly into its playing area, so every
-// logo keeps its shape and stays on the field.
+// Studio logos are laid out on the AFL oval (boundary 84 x 71.5 m). A logo the owner
+// placed on this ground in the studio arrives with ``pose: true``: it is already in
+// this ground's metres and is drawn as is. Any other logo keeps the old behaviour:
+// the AFL layout scaled down evenly into the playing area, so it keeps its shape and
+// stays on the field.
 var OVAL = {x: 84, z: 71.5};
 export function logoScale(field) {
   return Math.min((field.w / 2) / OVAL.x, (field.d / 2) / OVAL.z);
 }
-/** Field position and size (metres) for one studio logo: {x, z, w, d, rot}. */
+function clampAngle(value) {
+  var angle = Number(value);
+  if (!isFinite(angle)) angle = 0;
+  return Math.max(0, Math.min(80, angle));
+}
+/** Field position and size (metres) for one studio logo: {x, z, w, d, rot, angle}. */
 export function logoPlacement(logo, field) {
-  var k = logoScale(field);
+  var k = logo && logo.pose ? 1 : logoScale(field);
   var w = Number(logo && (logo.w || logo.width_m)) || 14;
   var d = Number(logo && (logo.d || logo.depth_m || logo.h)) || 4.7;
   return {
@@ -254,8 +257,16 @@ export function logoPlacement(logo, field) {
     z: (field.z || 0) + (Number(logo && logo.z) || 0) * k,
     w: Math.max(0.2, w * k),
     d: Math.max(0.2, d * k),
-    rot: Number(logo && (logo.rot || logo.rotation)) || 0
+    rot: Number(logo && (logo.rot || logo.rotation)) || 0,
+    angle: clampAngle(logo && logo.angle)
   };
+}
+/** The floor axis a logo tips up around so its face turns toward the camera at ``cam``
+    ([x, y, z]), as assets/mcg/mount.js placeLogo does for the AFL broadcast camera. */
+export function logoTiltAxis(at, cam) {
+  var dx = (cam[0] || 0) - at.x, dz = (cam[2] || 0) - at.z;
+  var len = Math.hypot(dx, dz) || 1;
+  return [dz / len, 0, -dx / len];
 }
 
 function glContext(canvas) {
@@ -453,6 +464,20 @@ export async function mountVenue(host, opts, def) {
           new T.MeshBasicMaterial({map: tex, transparent: true, opacity: 0.9, depthWrite: false}));
         mesh.rotation.set(-Math.PI / 2, 0, -at.rot * Math.PI / 180);
         mesh.position.set(at.x, 0.03, at.z);   // just above the field plane (y 0.01)
+        if (at.angle) {
+          // Tilt toward this ground's broadcast camera; the near edge stays on the floor.
+          // A rigid turn: these cameras sit close, so the MCG's far-edge taper isn't used.
+          var axis = logoTiltAxis(at, first.pos);
+          mesh.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(
+            new T.Vector3(axis[0], axis[1], axis[2]), at.angle * Math.PI / 180));
+          mesh.updateMatrixWorld(true);
+          var vtx = mesh.geometry.attributes.position, v3 = new T.Vector3(), minY = Infinity;
+          for (var vi = 0; vi < vtx.count; vi++) {
+            v3.fromBufferAttribute(vtx, vi).applyMatrix4(mesh.matrixWorld);
+            if (v3.y < minY) minY = v3.y;
+          }
+          mesh.position.y += 0.03 - minY;
+        }
         logoGroup.add(mesh);
       });
       if (alive && renderer) renderer.render(scene, camera);
@@ -504,9 +529,9 @@ export async function mountVenue(host, opts, def) {
       resize: resize,
       setLogos: setLogos,
       celebrate: function () { return false; },
-      setBoards: function (list) {
+      setBoards: function (list, row) {
         if (!led || !led.setSlides) return Promise.resolve();
-        return led.setSlides(list).then(function () { if (alive && renderer) renderer.render(scene, camera); });
+        return led.setSlides(list, row).then(function () { if (alive && renderer) renderer.render(scene, camera); });
       },
       stop: function () {
         alive = false;

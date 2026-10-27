@@ -785,9 +785,9 @@ export async function mount(host, opts) {
       resize: resize,
       setLogos: setLogos,
       celebrate: celebrate,
-      setBoards: function (slides) {
+      setBoards: function (slides, row) {
         if (!boards || !boards.setSlides) return Promise.resolve();
-        return boards.setSlides(slides).then(function () { if (alive && renderer) renderer.render(scene, camera); });
+        return boards.setSlides(slides, row).then(function () { if (alive && renderer) renderer.render(scene, camera); });
       },
       stop: function () {
         alive = false;

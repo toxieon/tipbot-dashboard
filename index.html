@@ -305,7 +305,7 @@
   .fl-score{position:absolute;left:14px;right:14px;bottom:8px;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
   .fl-team{font-size:var(--t-sub);color:color-mix(in srgb,var(--txt) 68%,transparent);font-weight:600;min-width:0}.fl-team b{display:block;color:var(--txt);font-size:2.25rem;font-weight:800;letter-spacing:-.03em;line-height:1}
   .fl-team-r{text-align:right}
-  .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}
+  .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}.fl-clock .fl-starts{color:color-mix(in srgb,var(--txt) 82%,transparent)}
   .fl-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:16px 2px 2px}.fl-sec h2{margin:0;font-size:1.35rem;font-weight:750;letter-spacing:-.02em}.fl-sec span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-note{margin:8px 0;color:var(--muted);font-size:var(--t-foot)}
   .fl-demo{position:absolute;z-index:4;top:calc(max(10px, env(safe-area-inset-top, 0px)) + 44px);left:50%;transform:translateX(-50%);display:flex;gap:6px;width:max-content;max-width:calc(100% - 20px)}
@@ -843,6 +843,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .tb-swatch[data-tb-theme="apex-ochre"] {--preview-bg:#17110c;--preview-accent:#e0a04a;}
 .tb-setting {display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;font-size:var(--t-sub);}
 .tb-setting input[type="checkbox"] {width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
+.tb-setting select {min-height:36px;max-width:52%;padding:0 8px;background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:var(--r-xs);font:inherit;font-size:var(--t-foot);}
 .tb-setting input[type="color"] {height:30px;width:44px;padding:2px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-xs);cursor:pointer;}
 .tb-text-button {background:none;border:0;color:var(--txt);font:inherit;font-size:var(--t-foot);text-decoration:underline;cursor:pointer;padding:6px 0;min-height:44px;}
 .tb-text-button:disabled {color:var(--muted);cursor:default;text-decoration:none;}
@@ -1430,6 +1431,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
           <label class="tb-setting tb-gv-anim" id="dd-gv-anim" title="Cartoon players running on the ground in Game view during a live game">
             <span>Player animations<small>Players run on the Game view ground during live AFL games. Off by default</small></span>
             <input type="checkbox" id="dd-gv-anim-on">
+          </label>
+          <label class="tb-setting tb-gv-tz" id="dd-gv-tz" for="dd-gv-tz-pick" title="Game start times show in this time zone">
+            <span>Game times<small>Start times in Game view. Melbourne (AEST/AEDT) unless you pick another</small></span>
+            <select id="dd-gv-tz-pick"></select>
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
           <div class="dd-label" id="dd-version">tipdash v__TD_VERSION__</div>
@@ -2197,6 +2202,25 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){}
   }
   const SERVER_STAT_KEYS=["queued","won","lost","profit_units","roi"];
+  // Server owners and admins: TipBot DMs them this server's bets list (open bets, live 🔴,
+  // results ✅ ❌, then units staked and profit/loss), the same list as the Results DM.
+  async function dmBetsList(btn){
+    if(btn.disabled) return;
+    const label=btn.textContent;
+    btn.disabled=true; btn.textContent="Sending…";
+    let note="";
+    try{
+      const r=await api("/api/bets-list/dm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:btn.getAttribute("data-gid")})});
+      let j={}; try{ j=await r.json(); }catch(_){ j={}; }
+      if(r.status===404) note="Only this server's owner and admins can do this.";
+      else note=(j&&j.ok)?(j.message||"Sent to your Discord DMs."):((j&&(j.error||j.message))||"Couldn't send the list.");
+    }catch(e){
+      if(e&&e.unauth){ renderLogin("Session expired."); return; }
+      note="Couldn't reach TipBot.";
+    }
+    btn.textContent=label; btn.disabled=false;
+    if(typeof toast==="function") toast(note); else alert(note);
+  }
   function keepServerStats(data, prev){
     if(!data || data.lite===false || !Array.isArray(data.servers)) return data;
     const by={}; (prev||[]).forEach(function(s){ if(s&&s.guild_id!=null) by[String(s.guild_id)]=s; });
@@ -2658,6 +2682,32 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   { const mp=$("dd-marketplace"); if(mp){ mp.onclick=openMarketplace; mp.onkeydown=ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMarketplace(); } }; } }
   { const nd=$("nav-dash"); if(nd) nd.onclick=ev=>{ if(ev.metaKey||ev.ctrlKey||ev.shiftKey) return; ev.preventDefault(); enterHome(); }; }
   { const gu=$("dd-grade-undo-on"); if(gu){ gu.checked=gradeUndoOn(); gu.onchange=()=>{ try{ localStorage.setItem("tipdash_grade_undo", gu.checked?"1":"0"); }catch(_){} }; } }
+  // Settings → Game times: the zone Game view start times show in, per device.
+  // Unset is Melbourne; "device" follows this device. FollowerLive formats with it.
+  const GV_ZONES=[["", "Melbourne (AEST/AEDT)"], ["device", "This device"], ["Australia/Sydney", "Sydney"],
+    ["Australia/Brisbane", "Brisbane"], ["Australia/Adelaide", "Adelaide"], ["Australia/Darwin", "Darwin"],
+    ["Australia/Perth", "Perth"], ["Australia/Hobart", "Hobart"], ["Pacific/Auckland", "Auckland"],
+    ["Asia/Singapore", "Singapore"], ["Europe/London", "London"], ["America/New_York", "New York"],
+    ["America/Los_Angeles", "Los Angeles"], ["UTC", "UTC"]];
+  function deviceZone(){ try{ return Intl.DateTimeFormat().resolvedOptions().timeZone||""; }catch(_){ return ""; } }
+  function gvZoneStore(){ try{ return window.localStorage; }catch(_){ return null; } }
+  function applyGvZone(){
+    if(!window.FollowerLive||!FollowerLive.setZone) return;
+    FollowerLive.setZone(FollowerLive.viewerZone(gvZoneStore(), deviceZone()));
+  }
+  applyGvZone();
+  { const tz=$("dd-gv-tz-pick"); if(tz){
+      let saved=""; try{ saved=localStorage.getItem("tipdash_tz")||""; }catch(_){}
+      const here=deviceZone();
+      tz.innerHTML=GV_ZONES.map(z=>'<option value="'+esc(z[0])+'">'+esc(z[0]==="device"&&here?z[1]+" ("+here.replace(/_/g," ")+")":z[1])+'</option>').join("");
+      if(saved&&!GV_ZONES.some(z=>z[0]===saved)) tz.insertAdjacentHTML("beforeend",'<option value="'+esc(saved)+'">'+esc(saved.replace(/_/g," "))+'</option>');
+      tz.value=saved;
+      tz.onchange=()=>{
+        try{ if(tz.value) localStorage.setItem("tipdash_tz", tz.value); else localStorage.removeItem("tipdash_tz"); }catch(_){}
+        applyGvZone();
+        try{ window.dispatchEvent(new Event("tipdash-tz")); }catch(_){}
+      };
+  } }
   function racingExtraPlacesOn(){ try{ return localStorage.getItem("tipdash_racing_extra_places")==="1"; }catch(_){ return false; } }
   { const rp=$("dd-racing-places-on"); if(rp){ rp.checked=racingExtraPlacesOn(); rp.onchange=()=>{ try{ localStorage.setItem("tipdash_racing_extra_places", rp.checked?"1":"0"); }catch(_){} if(window.TBRacingLegs)TBRacingLegs.setExtraPlacesOn(rp.checked); }; } }
   { const ga=$("dd-gv-anim-on"); if(ga){
@@ -5067,6 +5117,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return !!(flags[key]===true||flags[key]===1);
   }
   // Owner-only detail (server switch per sport) lives in ext.js; customers see nothing extra.
+  // One line of help under a Features toggle, for every admin (owner tools add their own notes).
+  const FEATURE_HELP={
+    "feat.results_dm":"When all of a tipster's open bets have settled, TipBot DMs them a copy-paste results list with the total units."
+  };
+  function featureHelp(key){ return Object.prototype.hasOwnProperty.call(FEATURE_HELP, key)?FEATURE_HELP[key]:""; }
   function ftGradeRowNote(data, key){
     const o=window.TBOwner;
     return (o&&typeof o.ftGradeRowNote==="function")?String(o.ftGradeRowNote(data, key)||""):"";
@@ -5584,14 +5639,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function fliveApplyHandle(handle){
     if(!handle||handle.fallback||!FLIVE.sponsors) return;
     if(handle.setLogos) handle.setLogos(FLIVE.sponsors.ground);
-    if(handle.setBoards) handle.setBoards(FLIVE.sponsors.boards);
+    if(handle.setBoards) handle.setBoards(FLIVE.sponsors.boards, FLIVE.sponsors.house);
   }
   async function fliveUseScene(d, handle, seq, fromCache){
     const ground=await Promise.all(sceneLogosFor(d, FLIVE.venue).map(async function(g){ return Object.assign({}, g, {url:await fliveBlob(g.url)}); }));
-    const boards=await Promise.all((d.boards||[]).map(async function(b){ return {image:await fliveBlob(b.url), duration:b.seconds}; }));
+    const boards=await Promise.all((d.boards||[]).map(async function(b){ return {image:await fliveBlob(b.url), duration:b.seconds, scroll:b.scroll, scale:b.scale, rot:b.rot, pan_x:b.pan_x, pan_y:b.pan_y}; }));
     const ball=d.ball?await fliveBlob(d.ball.url):"";
     if(seq!==FLIVE.seq) return;
-    FLIVE.sponsors={ground:ground.filter(function(g){ return g.url; }), boards:boards.filter(function(b){ return b.image; })};
+    // house: TipBot's own banner row (on, seconds, position) from the studio; null on an older bot.
+    FLIVE.sponsors={ground:ground.filter(function(g){ return g.url; }), boards:boards.filter(function(b){ return b.image; }), house:d.house||null};
     window.TBLiveFx=window.TBLiveFx||{};
     window.TBLiveFx.ballSkin=ball||"";
     if(!fromCache){
@@ -5738,6 +5794,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     img.parentNode.appendChild(pop);
     setTimeout(function(){ pop.remove(); }, 3200);
   }
+  // Settings → Game times changed: repaint the open game with the new zone.
+  window.addEventListener("tipdash-tz", function(){ if(FLIVE&&FLIVE.board) flivePaint(FLIVE.board); });
   function flivePaint(data){
     const grid=$("flive-grid"), score=$("flive-score"), sum=$("flive-sum"), pill=$("flive-pill"), note=$("flive-note");
     if(!grid||!window.FollowerLive) return;
@@ -7556,7 +7614,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
       +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button><button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button>'+((s.can_admin&&!STATE.viewAs)?'<button type="button" class="ghost" id="betslistbtn" data-gid="'+esc(String(s.guild_id))+'" title="TipBot DMs you every open bet in this server and the latest results, ready to copy">✉ DM me the bets list</button>':'')+'<button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div>'
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
@@ -7575,6 +7633,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     { const gv=$("gameviewbtn"); if(gv) gv.onclick=()=>openGameView(); }
     { const ldb=$("livedemobtn"); if(ldb){ ldb.hidden=!ownerSettingsAllowed(); if(!ldb.hidden) ldb.onclick=()=>openFollowerDemo(); } }
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
+    { const bl=$("betslistbtn"); if(bl) bl.onclick=()=>dmBetsList(bl); }
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     if(!guildFeature(s.guild_id,"livestats")){ const lp=$("live-tips-panel"); if(lp) lp.remove(); }   // Live stats off
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
@@ -7915,10 +7974,12 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const on=flags[k]!==false&&flags[k]!==0;
       const lab=ftGradeLabel(k, labels[k]);
       const note=ftGradeRowNote(d, k);
+      const help=featureHelp(k);
       html+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card2)">'
         +'<input type="checkbox" class="feat-cb" data-k="'+k+'" '+(on?'checked':'')+' style="width:16px;height:16px">'
         +'<span style="flex:1"><span style="font-weight:600;font-size:var(--t-sub)">'+esc(lab)+'</span>'
         +'<span style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(k)+'</span>'
+        +(help?'<span class="feat-help" style="display:block;color:var(--muted);font-size:var(--t-cap);margin-top:2px">'+esc(help)+'</span>':'')
         +(note?'<span class="ft-grade-note" style="display:block;color:var(--faint);font-size:var(--t-cap);margin-top:2px">'+esc(note)+'</span>':'')
         +'</span></label>';
      });
