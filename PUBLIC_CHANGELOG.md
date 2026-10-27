@@ -1,3 +1,7 @@
+## 0.66.26
+
+Server cards show the server's picture, or the owner's avatar when the server has none.
+
 ## 0.66.25
 
 Maintenance / Internal updates.

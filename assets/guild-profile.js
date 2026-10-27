@@ -1,5 +1,7 @@
-/* Server name and icon from /api/servers and /api/server.
- * Paint the cached copy first. A later response replaces the name and icon.
+/* Server name and picture from /api/servers and /api/server.
+ * Paint the cached copy first. A later response replaces the name and picture.
+ * Picture order: server icon, else the server owner's avatar, else the monogram.
+ * Only https://cdn.discordapp.com image URLs are ever used.
  * Browser global window.GuildProfile + CommonJS for node --test.
  */
 (function (root) {
@@ -7,6 +9,8 @@
 
   var STALE_MS = 60 * 1000;
   var ICON_KEYS = ["icon_url", "guild_icon", "icon"];
+  var OWNER_KEYS = ["owner_avatar_url", "owner_id"];
+  var CDN_HOST = "cdn.discordapp.com";
 
   function hasOwn(obj, key) {
     return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
@@ -27,17 +31,55 @@
     return fallback == null ? "" : String(fallback);
   }
 
+  /* The URL when it is https on cdn.discordapp.com (no credentials, no other
+   * port), else "". Any other host, scheme or shape is ignored. */
+  function cdnUrl(value) {
+    var raw = text(value).trim();
+    if (!raw || /[\s\\]/.test(raw) || typeof URL !== "function") return "";
+    var u;
+    try { u = new URL(raw); } catch (e) { return ""; }
+    if (u.protocol !== "https:" || u.hostname !== CDN_HOST) return "";
+    if (u.username || u.password || (u.port && u.port !== "443")) return "";
+    if (u.hash) return "";
+    return raw;
+  }
+
   function guildIconUrl(row) {
     if (!row || typeof row !== "object") return "";
-    var direct = text(row.icon_url).trim() || text(row.guild_icon).trim();
-    if (/^https?:\/\//i.test(direct)) return direct;
+    var direct = cdnUrl(row.icon_url) || cdnUrl(row.guild_icon);
+    if (direct) return direct;
     var icon = text(row.icon).trim();
-    if (/^https?:\/\//i.test(icon)) return icon;
+    if (cdnUrl(icon)) return icon;
     if (icon && row.guild_id != null && /^[A-Za-z0-9_]+$/.test(icon)) {
       var ext = icon.slice(0, 2) === "a_" ? ".gif" : ".png";
-      return "https://cdn.discordapp.com/icons/" + encodeURIComponent(String(row.guild_id)) + "/" + icon + ext;
+      return "https://" + CDN_HOST + "/icons/" + encodeURIComponent(String(row.guild_id)) + "/" + icon + ext;
     }
     return "";
+  }
+
+  function ownerAvatarUrl(row) {
+    if (!row || typeof row !== "object") return "";
+    return cdnUrl(row.owner_avatar_url);
+  }
+
+  /* Pictures to try, best first: server icon, then owner avatar. An empty list
+   * means the monogram. */
+  function avatarSources(row) {
+    var out = [];
+    var icon = guildIconUrl(row);
+    var owner = ownerAvatarUrl(row);
+    if (icon) out.push(icon);
+    if (owner && owner !== icon) out.push(owner);
+    return out;
+  }
+
+  /* Next step after the picture at `index` failed to load: the next picture,
+   * or "" for the monogram. */
+  function nextSource(sources, index) {
+    var list = Array.isArray(sources) ? sources : [];
+    var i = Number(index);
+    if (!(i >= -1)) return "";
+    return list[i + 1] || "";
   }
 
   function initials(name) {
@@ -58,6 +100,7 @@
     if (!dst || !src || typeof dst !== "object" || typeof src !== "object") return false;
     var beforeName = guildName(dst);
     var beforeIcon = guildIconUrl(dst);
+    var beforeOwner = ownerAvatarUrl(dst);
     if (hasOwn(src, "display_name")) dst.display_name = src.display_name;
     else if (hasOwn(src, "name") && !text(dst.display_name).trim()) dst.name = src.name;
     if (iconTouched(src)) {
@@ -66,7 +109,10 @@
         else delete dst[k];
       });
     }
-    return guildName(dst) !== beforeName || guildIconUrl(dst) !== beforeIcon;
+    OWNER_KEYS.forEach(function (k) {
+      if (hasOwn(src, k)) dst[k] = src[k];
+    });
+    return guildName(dst) !== beforeName || guildIconUrl(dst) !== beforeIcon || ownerAvatarUrl(dst) !== beforeOwner;
   }
 
   /* Fill icon (and name) holes on a fresh row from the previous copy. */
@@ -78,6 +124,9 @@
         if (hasOwn(prevRow, k)) freshRow[k] = prevRow[k];
       });
     }
+    OWNER_KEYS.forEach(function (k) {
+      if (!hasOwn(freshRow, k) && hasOwn(prevRow, k)) freshRow[k] = prevRow[k];
+    });
     return freshRow;
   }
 
@@ -108,6 +157,10 @@
     STALE_MS: STALE_MS,
     guildName: guildName,
     guildIconUrl: guildIconUrl,
+    ownerAvatarUrl: ownerAvatarUrl,
+    avatarSources: avatarSources,
+    nextSource: nextSource,
+    cdnUrl: cdnUrl,
     initials: initials,
     applyIdentity: applyIdentity,
     keepMissingIdentity: keepMissingIdentity,
