@@ -2390,20 +2390,34 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(window.GuildProfile) return GuildProfile.guildName(row, fallback);
     return (row&&(row.display_name||row.name))||(fallback==null?"":fallback);
   }
-  function guildIconUrl(row){
-    if(window.GuildProfile) return GuildProfile.guildIconUrl(row);
-    const direct=row&&(row.icon_url||row.guild_icon)||"";
-    return /^https?:\/\//i.test(String(direct))?String(direct):"";
+  function serverAvatarSources(row){
+    return window.GuildProfile?GuildProfile.avatarSources(row):[];
   }
+  // Picture order: server icon, else owner avatar, else the letter monogram.
+  // Only cdn.discordapp.com images are used (see GuildProfile.cdnUrl).
   function serverAvatarHtml(row, label, large){
     const name=guildName(row, label||"");
-    const url=guildIconUrl(row);
+    const srcs=serverAvatarSources(row);
     const init=(window.GuildProfile&&GuildProfile.initials(name))||((String(name||"?").trim().slice(0,2)||"?").toUpperCase());
     const cls="s-av"+(large?" lg":"");
     const px=large?44:36;
-    if(url) return '<img class="'+cls+'" src="'+esc(url)+'" alt="" width="'+px+'" height="'+px+'" loading="lazy">';
+    if(srcs.length) return '<img class="'+cls+'" src="'+esc(srcs[0])+'" alt="" width="'+px+'" height="'+px+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-srcs="'+esc(srcs.join(" "))+'" data-i="0" data-init="'+esc(init)+'">';
     return '<span class="'+cls+'" aria-hidden="true">'+esc(init)+'</span>';
   }
+  // A picture that fails to load moves to the next one, then to the monogram.
+  document.addEventListener("error",function(e){
+    const im=e.target;
+    if(!im||im.tagName!=="IMG"||!im.classList.contains("s-av")||!window.GuildProfile) return;
+    const srcs=(im.getAttribute("data-srcs")||"").split(" ").filter(Boolean);
+    const i=Number(im.getAttribute("data-i"))||0;
+    const nx=GuildProfile.nextSource(srcs,i);
+    if(nx){ im.setAttribute("data-i",String(i+1)); im.src=nx; return; }
+    const sp=document.createElement("span");
+    sp.className=im.className;
+    sp.setAttribute("aria-hidden","true");
+    sp.textContent=im.getAttribute("data-init")||"?";
+    im.replaceWith(sp);
+  },true);
   function patchBootIdentity(gid, src){
     if(!window.GuildProfile) return;
     const boot=readBootCache();

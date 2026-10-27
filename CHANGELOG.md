@@ -1,3 +1,9 @@
+## 0.66.26 · 2026-10-27 · `update` · Update dashboard
+
+- Server cards on the servers list now show a picture instead of the letters: the Discord server icon when the server has one, else the server owner's avatar (`owner_avatar_url` from `/api/servers`), else the letter monogram. Same circle and size as before, `loading="lazy"`, `referrerpolicy="no-referrer"`. A picture that fails to load falls to the next one, then to the monogram.
+- Only `https://cdn.discordapp.com` image URLs are used (`GuildProfile.cdnUrl`). The old rule that let any http(s) icon URL through is gone.
+- New `scripts/live-diagnostic.mjs`: checks the page's API base is TipBot, that `/healthz` and `/api/servers` answer, and with `TIPDASH_SESSION_TOKEN` set that `/api/me` and `/api/servers` succeed with a real session. Tests: `tests/server_avatar.test.js`, `tests/live_diagnostic.test.js`.
+
 ## 0.66.25 · 2026-10-27 · `update` · Update dashboard
 
 - Maintenance / Internal updates.
