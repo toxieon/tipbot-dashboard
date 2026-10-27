@@ -13,3 +13,9 @@ test("the button shows only for server owners and admins, and posts to the bot",
   assert.match(html, /api\("\/api\/bets-list\/dm",\{method:"POST"/);
   assert.match(html, /if\(r\.status===404\) note="Only this server's owner and admins can do this\.";/);
 });
+
+test("the server page script still parses", () => {
+  const line = html.split("\n").find((l) => l.includes('id="betslistbtn"'));
+  assert.ok(line);
+  assert.doesNotMatch(line, /today's/);
+});
