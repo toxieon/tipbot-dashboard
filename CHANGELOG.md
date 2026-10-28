@@ -1,3 +1,7 @@
+## 0.66.27 · 2026-10-28 · `update` · Update dashboard
+
+- The server page button that has TipBot DM you the bets list is now "✉ DM me today's bets". Its tooltip says it sends only the bets logged today, Sydney time (TipBot 0.70.53 does the filtering). The old label said every open bet and the latest results, which is no longer what it sends. Test updated in `tests/bets_list_button.test.js`.
+
 ## 0.66.26 · 2026-10-27 · `update` · Update dashboard
 
 - Server cards on the servers list now show a picture instead of the letters: the Discord server icon when the server has one, else the server owner's avatar (`owner_avatar_url` from `/api/servers`), else the letter monogram. Same circle and size as before, `loading="lazy"`, `referrerpolicy="no-referrer"`. A picture that fails to load falls to the next one, then to the monogram.
