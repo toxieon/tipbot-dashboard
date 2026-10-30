@@ -34,6 +34,10 @@
      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="oh-q" type="search" placeholder="Search track or race (e.g. Flemington, R7, BM78)" autocomplete="off" style="flex:1;min-width:220px">'
      +'<select id="oh-race" style="flex:2;min-width:260px"><option value="">Loading races…</option></select></div>'
      +'<div id="oh-msg" class="muted" role="status" style="margin:8px 0"></div>'
+     +'<div id="oh-assume" style="display:none;margin:0 0 8px;padding:6px 10px;border-radius:8px;background:#1f2937;color:#fff;font-weight:600"></div>'
+     +'<div id="oh-sortrow" style="display:none;margin:0 0 6px"><label for="oh-sort" class="muted">Sort by </label><select id="oh-sort">'
+     +'<option value="position">Predicted finish</option><option value="price">Price</option><option value="score">Score</option>'
+     +'<option value="place">Place chance</option><option value="number">Number</option><option value="barrier">Barrier</option></select></div>'
      +'<div id="oh-runners"></div>'
      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
      +'<select id="oh-horse" disabled style="min-width:220px"><option value="">Pick a horse</option></select>'
@@ -52,24 +56,50 @@
       try{ races=(await getJson(call,"/api/owner/horse/races")).races||[]; fill(); }
       catch(e){ $("oh-msg").textContent=e.message; if(e.unauth&&opt.onUnauth) opt.onUnauth(); }
     }
+    const SORT={position:r=>[r.predicted_position],price:r=>[r.price||1e9],score:r=>[-r.overall_score,r.predicted_position],
+      place:r=>[-r.p_place,r.predicted_position],number:r=>[r.number||99],barrier:r=>[r.barrier||99]};
+    function cmp(f){ return (a,b)=>{ const x=f(a),y=f(b); for(let i=0;i<x.length;i++){ if(x[i]!==y[i]) return x[i]<y[i]?-1:1; } return 0; }; }
+    function table(){
+      if(!pred) return;
+      const rows=pred.runners.slice().sort(cmp(SORT[$("oh-sort").value]||SORT.position));
+      $("oh-runners").innerHTML='<table class="tbl" style="width:100%"><thead><tr><th>Pred</th><th>Runner and reasoning <span class="muted" style="font-weight:400">(+ helps, − hurts; weights 0, order = market)</span></th><th>Price</th><th>Win</th><th>Place</th><th>Score</th></tr></thead><tbody>'
+        +rows.map(r=>'<tr><td><b>'+r.predicted_position+'</b></td><td><b>#'+esc(r.number)+' '+esc(r.name)+'</b> <span class="muted">b'+esc(r.barrier)+'</span>'
+          +'<div class="muted" style="font-size:.85em">'+esc(r.summary||"")+'</div>'
+          +'<ul class="muted" style="font-size:.82em;margin:2px 0 0;padding-left:2px;list-style:none">'+(r.reasons||[]).slice(1).map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></td>'
+          +'<td>'+(r.price?"$"+r.price:H)+(r.price_moves?'<div class="muted" style="font-size:.8em">'+esc(r.price_moves)+'</div>':"")+'</td>'
+          +'<td>'+(100*r.p_win).toFixed(1)+'%</td><td>'+(100*r.p_place).toFixed(0)+'%</td><td><b>'+r.overall_score+'</b></td></tr>').join("")
+        +'</tbody></table>';
+    }
+    const memo={}; let seq=0;
     async function loadRunners(id){
-      pred=null; $("oh-runners").innerHTML=""; $("oh-horse").disabled=$("oh-profile").disabled=$("oh-predict").disabled=true;
-      if(!id) return;
-      $("oh-msg").textContent="Loading runners, weather and model…";
+      const my=++seq;
+      pred=null; $("oh-runners").innerHTML=""; $("oh-assume").style.display=$("oh-sortrow").style.display="none";
+      $("oh-horse").disabled=$("oh-profile").disabled=$("oh-predict").disabled=true;
+      if(!id){ $("oh-msg").textContent=""; return; }
+      const hit=memo[id];
+      if(!hit||Date.now()-hit.at>45000) $("oh-msg").textContent="Loading runners, weather and model…";
       try{
-        pred=await getJson(call,"/api/owner/horse/predict?event_id="+encodeURIComponent(id));
-        $("oh-msg").innerHTML='<b>'+esc(pred.assuming)+'</b> · '+esc(pred.label);
-        $("oh-runners").innerHTML='<table class="tbl" style="width:100%"><thead><tr><th>Pred</th><th>Runner</th><th>Win</th><th>Place</th><th>Score</th></tr></thead><tbody>'
-          +pred.runners.map(r=>'<tr><td>'+r.predicted_position+'</td><td>#'+esc(r.number)+' '+esc(r.name)+'<div class="muted" style="font-size:.85em">'+esc((r.reasons||[]).slice(1,4).join("; "))+'</div></td><td>'+(100*r.p_win).toFixed(1)+'%</td><td>'+(100*r.p_place).toFixed(0)+'%</td><td>'+r.overall_score+'</td></tr>').join("")
-          +'</tbody></table>';
+        const j=(hit&&Date.now()-hit.at<45000)?hit.j:await getJson(call,"/api/owner/horse/predict?event_id="+encodeURIComponent(id));
+        if(my!==seq) return;               // a newer race was picked while this one loaded
+        memo[id]={at:hit&&hit.j===j?hit.at:Date.now(),j:j}; pred=j;
+        $("oh-assume").textContent=pred.assuming; $("oh-assume").style.display="";
+        $("oh-msg").textContent=pred.label+" · prices as at "+when(pred.built_at);
+        $("oh-sortrow").style.display=""; table();
         $("oh-horse").innerHTML='<option value="">Pick a horse</option>'+pred.runners.map(r=>'<option value="'+esc(r.id)+'">#'+esc(r.number)+' '+esc(r.name)+'</option>').join("");
         $("oh-horse").disabled=false; $("oh-predict").disabled=false;
-      }catch(e){ $("oh-msg").textContent=e.message; if(e.unauth&&opt.onUnauth) opt.onUnauth(); }
+      }catch(e){ if(my!==seq) return; $("oh-msg").textContent=e.message; if(e.unauth&&opt.onUnauth) opt.onUnauth(); }
     }
     $("oh-q").oninput=()=>{ clearTimeout(t); t=setTimeout(fill,120); };
     $("oh-race").onchange=()=>loadRunners($("oh-race").value);
     $("oh-horse").onchange=()=>{ $("oh-profile").disabled=!$("oh-horse").value; };
-    $("oh-predict").onclick=()=>{ if(pred) printHtml(pred.html,"Race prediction"); };
+    $("oh-sort").onchange=table;
+    $("oh-predict").onclick=async()=>{
+      if(!pred) return;
+      const sort=$("oh-sort").value||"position";
+      if(sort==="position"){ printHtml(pred.html,"Race prediction"); return; }
+      try{ const j=await getJson(call,"/api/owner/horse/predict?event_id="+encodeURIComponent($("oh-race").value)+"&sort="+encodeURIComponent(sort)); printHtml(j.html,"Race prediction"); }
+      catch(e){ $("oh-msg").textContent=e.message; }
+    };
     $("oh-profile").onclick=async()=>{
       const rid=$("oh-horse").value, eid=$("oh-race").value; if(!rid||!eid) return;
       $("oh-profile").disabled=true;

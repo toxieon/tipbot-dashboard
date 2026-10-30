@@ -16,3 +16,10 @@ test("owner horse tools label every report as a prediction", () => {
   assert.match(src, /\/api\/owner\/horse\/profile/);
   assert.match(src, /TD\.loaded\["owner-horse"\]=true/);
 });
+test("predictor offers sorting, the assuming line and a stale-response guard", () => {
+  for (const k of ["position", "price", "score", "place", "number", "barrier"]) assert.match(src, new RegExp('value="' + k + '"'));
+  assert.match(src, /oh-assume/);
+  assert.match(src, /pred\.assuming/);
+  assert.match(src, /my!==seq/);
+  assert.match(src, /&sort=/);
+});
