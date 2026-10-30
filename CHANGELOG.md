@@ -1,3 +1,7 @@
+## 0.67.1 · 2026-10-31 · `feature` · Owner horse profile and race predictor in Settings
+
+- Owner-only Settings card (`assets/owner-horse.js`, lazy loaded, kept out of the public build) for TipBot 0.71.1: search upcoming thoroughbred races, see the race predictor with an "Assuming <going> track / <weather>" banner, per-runner reasoning, sorting (finish, price, score, place, number, barrier) and T-10/T-2 price moves, and download the race prediction or a horse profile as a PDF (browser Save as PDF). Labelled "Prediction only — not betting advice". Tests in `tests/owner_horse.test.js`.
+
 ## 0.66.27 · 2026-10-28 · `update` · Update dashboard
 
 - The server page button that has TipBot DM you the bets list is now "✉ DM me today's bets". Its tooltip says it sends only the bets logged today, Sydney time (TipBot 0.70.53 does the filtering). The old label said every open bet and the latest results, which is no longer what it sends. Test updated in `tests/bets_list_button.test.js`.
