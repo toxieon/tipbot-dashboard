@@ -1,3 +1,7 @@
+## 0.67.1
+
+Maintenance / Internal updates.
+
 ## 0.66.27
 
 The server page button that DMs you your bets is now "DM me today's bets" and sends only bets logged today.
