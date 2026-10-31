@@ -1,3 +1,12 @@
+## 0.69.1 · 2026-11-01 · `fix` · Slip scanner: no phantom leg from the game header, review diagnostics
+
+- Sportsbet's game header ("Philadelphia 76ers At Charlotte Hornets") is read as the event, not a leg. Before this, it added an extra leg, so a 2-leg Same Game Multi read as 3 and singles read as 2-leg multis.
+- A market line repeated under its title ("20+ Points & Rebounds" then "Points & Rebounds") stays with that leg.
+- The "Slip says N legs but M were read" check is unchanged and still warns on a mismatch.
+- When "Review imported slip" opens, one diagnostics report is sent per import (keyed by an import id, not per re-render). It carries the slip image, the legs, odds and warnings that were read. TipBot posts it server-side.
+- The four NBA prop screenshots were added as image fixtures next to their text fixtures, with an SGM text fixture for the header case.
+- Tests in `tests/slip_review_diag.test.js`.
+
 ## 0.69.0 · 2026-10-31 · `feature` · Slip scanner: more NBA prop layouts and bulk import
 
 - Under/Over bets that print the line in brackets, e.g. "Maxey Under (+4.5)", read as the prop line with the Under side kept. It is not treated as a handicap or an Over.
