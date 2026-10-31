@@ -2699,7 +2699,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const extOk=await ensureExt();
     if(extOk && window.TBOwner && typeof TBOwner.ensureSettingsMarkup==="function") TBOwner.ensureSettingsMarkup($("settings"));
     refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow();
-    TD.load("owner-horse").then(function(){ if(ownerSettingsAllowed()&&window.TBOwnerHorse) TBOwnerHorse.mount($("settings"),{call:api,onUnauth:function(){ renderLogin("Session expired."); }}); }).catch(function(){});
+    // TipBot 0.72.3 sends TBOwnerHorse with the owner extras; TD.load is the fallback.
+    (window.TBOwnerHorse?Promise.resolve():TD.load("owner-horse")).then(function(){ if(ownerSettingsAllowed()&&window.TBOwnerHorse) TBOwnerHorse.mount($("settings"),{call:api,onUnauth:function(){ renderLogin("Session expired."); }}); }).catch(function(){});
     window.scrollTo(0,0);
   }
   if(window.TBGlobalFlags && typeof TBGlobalFlags.onChange==="function"){

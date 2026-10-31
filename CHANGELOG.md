@@ -1,3 +1,7 @@
+## 0.68.2 · 2026-10-31 · `fix` · Horse predictor shows in owner Settings
+
+- Owner Settings mounts the horse predictor from the owner extras TipBot sends (TipBot 0.72.3). The public site is unchanged.
+
 ## 0.68.1 · 2026-10-31 · `feature` · Sportsbet link paste button
 
 - When a server has **Sportsbet link** on (TipBot 0.72.1, `settings.features.sportsbet_link`), pending Sportsbet tips get a "🔗 Sportsbet link" button on their bet card. Paste the betslip's share link and it's saved through `POST /api/sportsbet/paste`, so the Discord post gets a **Bet on Sportsbet** button. Hidden unless the feature is explicitly on. The Features page has a help line for the new toggle.
