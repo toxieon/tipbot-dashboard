@@ -751,6 +751,82 @@
      {"who": "Keyonte George", "stat": "Rebounds + Assists", "line": 10.5, "side": "Under"}
     ]
    }
+  },
+  {
+   "id": "p06",
+   "file": "text/nba-maxey-rebounds-under-plusline.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.72,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "PHI v CHA",
+    "date_time": "Sun 1 Nov 10:10",
+    "bookie": "ladbrokes",
+    "stake_dollars": 100,
+    "returns_dollars": 172,
+    "legs": [
+     {"who": "Maxey", "stat": "Rebounds", "line": 4.5, "side": "Under"}
+    ]
+   }
+  },
+  {
+   "id": "p07",
+   "file": "text/nba-flemings-points-under-plusline.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.91,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "ATL v NOP",
+    "date_time": "Sun 1 Nov 11:10",
+    "bookie": "ladbrokes",
+    "stake_dollars": 50,
+    "returns_dollars": 95.5,
+    "legs": [
+     {"who": "Kingston Flemings", "stat": "Points", "line": 7.5, "side": "Under"}
+    ]
+   }
+  },
+  {
+   "id": "p08",
+   "file": "text/nba-jaquez-points-rebounds-plus.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.86,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "CLE Cavaliers v MIL Bucks",
+    "date_time": "Sun 1 Nov 11:00",
+    "bookie": "bet365",
+    "stake_dollars": 100,
+    "returns_dollars": 186,
+    "legs": [
+     {"who": "Jaime Jaquez Jr.", "stat": "Points + Rebounds", "line": 20, "side": "Over"}
+    ]
+   }
+  },
+  {
+   "id": "p09",
+   "file": "text/nba-allen-pra-under.txt",
+   "synthetic": false,
+   "expect": {
+    "bet_type": "Single",
+    "odds": 1.9,
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "CLE v MIL",
+    "date_time": "Sun 1 Nov 11:00",
+    "bookie": "ladbrokes",
+    "stake_dollars": 100,
+    "returns_dollars": 190,
+    "legs": [
+     {"who": "Jarrett Allen", "stat": "Points + Rebounds + Assists", "line": 24.5, "side": "Under"}
+    ]
+   }
   }
  ]
 }
