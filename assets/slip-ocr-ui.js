@@ -233,6 +233,41 @@
     } catch (_e) {}
   }
 
+  // Review diagnostics: one post per import (keyed by import id, not per render) so every
+  // "Review imported slip" can be checked against the slip. Separate from the failure cap.
+  var reviewSent = {};
+  function SLIP_STATE() { return SLIP; }
+  function newImportId() { return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); }
+  function reportReviewShown(st) {
+    var SLIP = st || SLIP_STATE();
+    try {
+      var id = SLIP.importId;
+      if (!id || reviewSent[id] || typeof fetch !== "function" || typeof FormData !== "function") return;
+      if (typeof getToken !== "function" || typeof API === "undefined" || !getToken()) return;
+      reviewSent[id] = true;
+      var p = SLIP.parsed || {};
+      var legs = (SLIP.parsedLegs && SLIP.parsedLegs.length ? SLIP.parsedLegs : p.legs || []);
+      var summary = { bet_type: p.bet_type, odds: p.odds, leg_count: p.leg_count, sport: p.sport, bookie: p.bookie,
+        event: p.event, legs: legs, flags: p.flags || [] };
+      var fd = new FormData();
+      fd.append("kind", "review_shown");
+      fd.append("import_id", id);
+      try { fd.append("parsed", JSON.stringify(summary).slice(0, 200000)); } catch (_e) {}
+      fd.append("guild_id", SLIP.guildId || "");
+      fd.append("client_ts", new Date().toISOString());
+      var file = SLIP.file;
+      if (file && file.size && file.size <= 8 * 1024 * 1024 && /^image\//.test(file.type || "")) fd.append("image", file, "slip");
+      setTimeout(function () {
+        try {
+          fetch(API + "/api/diagnostics/slip", {
+            method: "POST", body: fd, credentials: "include", cache: "no-store",
+            headers: { Authorization: "Bearer " + getToken() },
+          }).catch(function () {});
+        } catch (_e) {}
+      }, 0);
+    } catch (_e) {}
+  }
+
   // ── Bulk import: several screenshots, one tip each, reviewed and scheduled one by one ──
   var BATCH_MAX = 20;
   function batchLeft() {
@@ -240,7 +275,7 @@
   }
   /** OCR + parse one image into a self-contained entry. Never throws. */
   async function readSlipEntry(file) {
-    var entry = { file: file, status: "reading", ocr: null, parsed: null, parsedLegs: [], fixtures: [], fixtureSport: "", draft: null, imageData: null, ocrText: "", error: "" };
+    var entry = { importId: newImportId(), file: file, status: "reading", ocr: null, parsed: null, parsedLegs: [], fixtures: [], fixtureSport: "", draft: null, imageData: null, ocrText: "", error: "" };
     try {
       await ensureSlipOcr();
       entry.ocr = await runOcr(file);
@@ -270,6 +305,7 @@
   function loadBatchEntry(idx) {
     var e = SLIP.batch[idx];
     SLIP.batchIdx = idx;
+    SLIP.importId = e.importId;
     SLIP.file = e.file;
     SLIP.ocr = e.ocr;
     SLIP.ocrText = e.ocrText;
@@ -341,6 +377,7 @@
     SLIP.batch = null;
     SLIP.batchIdx = -1;
     diagSent = 0;
+    SLIP.importId = newImportId();
     SLIP.ocr = null;
     SLIP.parsed = null;
     SLIP.file = file;
@@ -536,6 +573,7 @@
     var d = SLIP.draft || {};
     var legs = (SLIP.parsedLegs && SLIP.parsedLegs.length ? SLIP.parsedLegs : d.parsed_legs || []).slice();
     var multiEvent = (SLIP.parsed && SLIP.parsed.bet_type) === "Multi" && TBSlipOcr.uniqueEvents(legs).length > 1;
+    reportReviewShown();
     panel("builder");
     $("builder").innerHTML =
       '<div class="back" id="slip-back">← Back</div>' +
@@ -893,6 +931,6 @@
   }
 
   window.openSlipImport = openSlipImport;
-  window.TDSlipDiag = { report: reportDiagnostics };
+  window.TDSlipDiag = { report: reportDiagnostics, reviewShown: reportReviewShown, newImportId: newImportId };
   TD.loaded["slip-ocr-ui"] = true;
 })();
