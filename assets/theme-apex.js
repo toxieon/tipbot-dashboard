@@ -18,7 +18,19 @@
   var tabsNav = null;
   var resizeQueued = false;
 
+  // Apex motion is opt-in (0.68.3). Turn it on with <html data-apex-motion="on">
+  // or localStorage.setItem("tb_apex_motion", "on"). Off = fully visible, no entrances.
+  function motionOn() {
+    var de = doc && doc.documentElement;
+    if (!de) return false;
+    if (de.dataset.apexMotion === "on") return true;
+    var v = null;
+    try { v = root.localStorage && root.localStorage.getItem("tb_apex_motion"); } catch (e) {}
+    if (v === "on") { de.dataset.apexMotion = "on"; return true; }
+    return false;
+  }
   function reduced() {
+    if (!motionOn()) return true;
     try { return !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches); }
     catch (e) { return false; }
   }
@@ -1317,6 +1329,7 @@
   root.ApexTheme = {
     boot: boot,
     reduced: reduced,
+    motionOn: motionOn,
     syncTone: syncTone,
     fmtUnits: fmtUnits,
     sparkD: sparkD,

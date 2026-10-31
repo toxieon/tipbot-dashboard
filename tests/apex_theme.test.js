@@ -105,7 +105,8 @@ test("apex motion is deferred and keeps a local choice the server dropped", () =
   vm.createContext(ctx);
   vm.runInContext(js, ctx);
   assert.equal(typeof ctx.ApexTheme.boot, "function");
-  assert.equal(ctx.ApexTheme.reduced(), false);
+  // Motion is opt-in: off by default, so reduced() is true.
+  assert.equal(ctx.ApexTheme.reduced(), true);
   ctx.ApexTheme.boot();
   assert.match(js, /startViewTransition/);
   assert.match(js, /IntersectionObserver/);
@@ -127,9 +128,11 @@ function ys(d) {
   return d.split(/[ML]/).filter(Boolean).map((part) => Number(part.trim().split(/\s+/)[1]));
 }
 
-function loadApex() {
+function loadApex(opts) {
   const js = read("assets/theme-apex.js");
+  const motion = !opts || opts.motion !== false;
   const ctx = {
+    document: { documentElement: { dataset: motion ? { apexMotion: "on" } : {} }, readyState: "complete" },
     matchMedia: function () { return { matches: false }; },
     setTimeout: setTimeout,
     clearTimeout: clearTimeout,
@@ -300,4 +303,21 @@ test("reduced-motion handling in countEl and stamp", () => {
   };
   ctx.ApexTheme.stamp(card);
   assert.notEqual(card.className, "apex-flip");
+});
+
+test("apex entrance motion is off by default and gated behind data-apex-motion", () => {
+  assert.equal(loadApex({ motion: false }).reduced(), true);
+  assert.equal(loadApex().reduced(), false);
+  const css = read("assets/theme-apex.css");
+  const re = /@media \(prefers-reduced-motion:\s*no-preference\)\s*\{([\s\S]*?)\n\}/g;
+  let m, n = 0;
+  while ((m = re.exec(css))) {
+    n++;
+    for (const sel of m[1].split("{").slice(0, -1)) {
+      const s = sel.split("}").pop().trim();
+      if (s) assert.match(s, /data-apex-motion="on"/, s);
+    }
+  }
+  assert.ok(n >= 10);
+  assert.match(css, /html\[data-theme="apex"\]:not\(\[data-apex-motion="on"\]\) \.apex-rise:not\(\.apex-in\)\{opacity:1/);
 });
