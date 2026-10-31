@@ -2,6 +2,7 @@
 
 - When a server has **Sportsbet link** on (TipBot 0.72.1, `settings.features.sportsbet_link`), pending Sportsbet tips get a "🔗 Sportsbet link" button on their bet card. Paste the betslip's share link and it's saved through `POST /api/sportsbet/paste`, so the Discord post gets a **Bet on Sportsbet** button. Hidden unless the feature is explicitly on. The Features page has a help line for the new toggle.
 - Tests in `tests/sportsbet_link.test.js`.
+- For the owner, the per-server Sportsbet link switch is listed under Settings → Features → Owner with the other owner switches. Server admins still see it under Tips.
 
 ## 0.67.1 · 2026-10-31 · `feature` · Owner horse profile and race predictor in Settings
 
