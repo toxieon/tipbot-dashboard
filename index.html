@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.67.1-640ff0f" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.67.1-640ff0f" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.67.1-640ff0f" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.67.1-640ff0f">
+<link rel="icon" href="./assets/favicon.ico?v=0.68.1-1d5025d" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.68.1-1d5025d" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.68.1-1d5025d" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.68.1-1d5025d">
 <link rel="preload" as="image" href="./assets/mcg/fallback.png">
 <link rel="preload" as="fetch" href="./assets/mcg/mcg.glb" crossorigin>
-<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.67.1-640ff0f" crossorigin>
+<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.68.1-1d5025d" crossorigin>
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.67.1-640ff0f"></script>
+<script src="./assets/tbtime.js?v=0.68.1-1d5025d"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -1383,13 +1383,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.67.1-640ff0f">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.68.1-1d5025d">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.67.1-640ff0f" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.68.1-1d5025d" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1400,7 +1400,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.67.1-640ff0f" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.68.1-1d5025d" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1409,7 +1409,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.67.1-640ff0f" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.68.1-1d5025d" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1437,7 +1437,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <select id="dd-gv-tz-pick"></select>
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.67.1-640ff0f</div>
+          <div class="dd-label" id="dd-version">tipdash v0.68.1-1d5025d</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1463,35 +1463,35 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/logo_frame.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/light-data.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/lines.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/racing-legs.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/afl-guernseys.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/compare-ui.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/sport-keywords.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/sport-marks.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/discover-sports.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/global-flags.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/routing.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/tip-tiers.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/scheduled-tips.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/auto-recaps.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/emoji-picker.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/upcoming-split.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/espn-props.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/tb-motion.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/form-badges.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/tb-charts.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/guild-profile.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/server-view.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/follower-live.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/venues/select.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/follower-units.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/legal-md.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/terms-gate.js?v=0.67.1-640ff0f"></script>
-<script src="./assets/cookie-consent.js?v=0.67.1-640ff0f"></script>
+<script src="./assets/req-pool.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/logo_frame.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/light-data.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/lines.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/racing-legs.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/afl-guernseys.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/compare-ui.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/sport-keywords.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/sport-marks.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/discover-sports.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/global-flags.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/routing.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/tip-tiers.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/scheduled-tips.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/auto-recaps.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/emoji-picker.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/upcoming-split.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/espn-props.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/tb-motion.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/form-badges.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/tb-charts.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/guild-profile.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/server-view.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/follower-live.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/venues/select.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/follower-units.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/legal-md.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/terms-gate.js?v=0.68.1-1d5025d"></script>
+<script src="./assets/cookie-consent.js?v=0.68.1-1d5025d"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1838,10 +1838,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The tip builder (assets/builder.js) and Admin Tools' Paste sheet (assets/admin.js) aren't
   // fetched on first load; TD.load() adds them the first time they're opened. They are plain
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
-  // changes. TD.version is the cache-bust token. Source keeps 0.67.1-640ff0f.
+  // changes. TD.version is the cache-bust token. Source keeps 0.68.1-1d5025d.
   // The main-branch build replaces that token in the built site only.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.67.1-640ff0f";
+  TD.version="0.68.1-1d5025d";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -1878,6 +1878,24 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function guildFeature(guildId, name){
     const f=GUILD_FEATURES[String(guildId==null?"":guildId)];
     return !f||!(name in f)||f[name]!==false;
+  }
+  // Default-off features (Sportsbet link) need an explicit true; unknown = hidden.
+  function sportsbetLinkOn(guildId){
+    const f=GUILD_FEATURES[String(guildId==null?"":guildId)];
+    return !!(f&&f.sportsbet_link===true);
+  }
+  async function pasteSportsbetLink(tipId, btn){
+    const url=(window.prompt("Paste the Sportsbet share link (Share in the Sportsbet betslip):")||"").trim();
+    if(!url) return;
+    if(!/^https:\/\/(www\.)?sportsbet\.com\.au\/share-bet\?data=/i.test(url)){ toast("That isn't a Sportsbet share link.","err"); return; }
+    if(btn) btn.disabled=true;
+    try{
+      const r=await api("/api/sportsbet/paste",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip_id:tipId,url:url})});
+      const j=await r.json().catch(function(){return {};});
+      if(r.ok&&j.ok) toast("Saved "+j.legs+" Sportsbet leg"+(j.legs===1?"":"s")+". The post shows Bet on Sportsbet on its next update.","ok");
+      else toast((j&&j.error)||"Couldn't save the link.","err");
+    }catch(_e){ toast("Couldn't save the link.","err"); }
+    finally{ if(btn) btn.disabled=false; }
   }
   function tipGuildId(tipId){ return String(tipId||"").split(":")[0]; }
   function guildUnitSize(guildId){
@@ -3321,7 +3339,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.67.1-640ff0f"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.68.1-1d5025d"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -3786,6 +3804,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const fix=(!isSettled&&godOn()&&tid&&window.TBOwner&&typeof TBOwner.fixLegs==="function")?'<button type="button" class="fixlegs ghost" data-tip="'+tid+'" title="Fix legs" style="padding:5px 9px;font-size:var(--t-foot);flex:none">✎ Legs</button>':'';
     if(fix) FIX_LEGS[t.tip_id]=t._fullLegs||usableLegs(t.legs)||[];
     const del=canDel?'<button type="button" class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(isSettled?"1":"0")+'" title="'+esc(delTitle)+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:var(--r-sm);padding:5px 9px;cursor:pointer;font:inherit;font-size:var(--t-foot);flex:none" aria-label="'+esc(delTitle)+'">✕</button>':'';
+    // Sportsbet link (TipBot 0.72.1): paste the betslip's share link; the Discord post gets "Bet on Sportsbet".
+    const sbOn=!isSettled&&tid&&/^sportsbet$/i.test(String(t.bookmaker||"").trim())&&sportsbetLinkOn(tipGuildId(t.tip_id));
+    const sbBtn=sbOn?'<button type="button" class="sblink ghost" data-tip="'+tid+'" title="Paste a Sportsbet share link for this tip" style="padding:5px 9px;font-size:var(--t-foot);flex:none">🔗 Sportsbet link</button>':'';
     const bookie=t.bookmaker
       ?('<span class="betcard-bookie">'+TB.bookie.render(t.bookmaker,20)+'<span class="bk-name">'+esc(String(t.bookmaker).trim())+'</span></span>')
       :('<span class="betcard-bookie"><span class="bk-name" style="color:var(--faint)">No bookie</span></span>');
@@ -3825,7 +3846,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return '<div class="'+cls+'"'+attrs+'>'
       +title
       +gameCta
-      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+fix+del+'</div></div>'
+      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+sbBtn+fix+del+'</div></div>'
       +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
       +'<div class="betcard-type">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units!=null?(" · "+t.units+"u"):"")+'</div>'
       +tags+body+'</div>';
@@ -3836,6 +3857,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function wireTipRows(box,gid){
     if(!box)return;
     box.querySelectorAll(".delbet").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); deleteBet(gid,b.dataset.tip,b.dataset.name,b); });
+    box.querySelectorAll(".sblink").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); pasteSportsbetLink(b.dataset.tip,b); });
     box.querySelectorAll(".fixlegs").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); if(window.TBOwner&&TBOwner.fixLegs) TBOwner.fixLegs(gid,b.dataset.tip,FIX_LEGS[b.dataset.tip]||[]); });
     wireFliveOpens(box, gid);
     box.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{
@@ -5134,6 +5156,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // Owner-only detail (server switch per sport) lives in ext.js; customers see nothing extra.
   // One line of help under a Features toggle, for every admin (owner tools add their own notes).
   const FEATURE_HELP={
+    "feat.sportsbet_link":"Sportsbet tips get a Bet on Sportsbet button that opens the bet in Sportsbet. Paste the betslip's share link on the tip (🔗 Sportsbet link or /sportsbet-link).",
     "feat.results_dm":"When all of a tipster's open bets have settled, TipBot DMs them a copy-paste results list with the total units."
   };
   function featureHelp(key){ return Object.prototype.hasOwnProperty.call(FEATURE_HELP, key)?FEATURE_HELP[key]:""; }
@@ -7785,7 +7808,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.67.1-640ff0f');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.68.1-1d5025d');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);
@@ -7953,6 +7976,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(FEAT_MEM[key]&&FEAT_MEM[key].flags) return;
     refreshFeatures(key);
   }
+  /** Owner view (the bot sends an "Owner" group only to the owner): the per-server
+   *  Sportsbet link switch sits with the other owner switches instead of under Tips.
+   *  One checkbox only, so Save still sends the flag once. */
+  function ownerPlaceSportsbet(groups){
+    const K="feat.sportsbet_link";
+    const owner=groups.find(g=>g.name==="Owner");
+    const from=groups.find(g=>g!==owner&&g.keys.indexOf(K)>=0);
+    if(!owner||!from) return groups;
+    from.keys=from.keys.filter(k=>k!==K);
+    if(!from.keys.length) groups.splice(groups.indexOf(from),1);
+    owner.keys.unshift(K);
+    return groups;
+  }
   /** [{name, keys}] in category order; one unnamed group when the bot sends no categories. */
   function featureGroups(keys, categories, order){
     if(!categories||typeof categories!=="object") return [{name:"", keys:keys}];
@@ -7979,6 +8015,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     let placed=false;
     // TipBot 0.70.29 groups the toggles (Tips, Grading, Live, ...). Older bots: one list.
     const groups=featureGroups(keys, mem.categories, mem.categoryOrder);
+    ownerPlaceSportsbet(groups);
     groups.forEach(g=>{
      if(g.name) html+='<h4 class="feat-cat" style="margin:10px 0 2px;font-size:var(--t-foot);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">'+esc(g.name)+'</h4>';
      g.keys.forEach(k=>{
