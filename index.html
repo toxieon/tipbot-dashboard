@@ -7976,6 +7976,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(FEAT_MEM[key]&&FEAT_MEM[key].flags) return;
     refreshFeatures(key);
   }
+  /** Owner view (the bot sends an "Owner" group only to the owner): the per-server
+   *  Sportsbet link switch sits with the other owner switches instead of under Tips.
+   *  One checkbox only, so Save still sends the flag once. */
+  function ownerPlaceSportsbet(groups){
+    const K="feat.sportsbet_link";
+    const owner=groups.find(g=>g.name==="Owner");
+    const from=groups.find(g=>g!==owner&&g.keys.indexOf(K)>=0);
+    if(!owner||!from) return groups;
+    from.keys=from.keys.filter(k=>k!==K);
+    if(!from.keys.length) groups.splice(groups.indexOf(from),1);
+    owner.keys.unshift(K);
+    return groups;
+  }
   /** [{name, keys}] in category order; one unnamed group when the bot sends no categories. */
   function featureGroups(keys, categories, order){
     if(!categories||typeof categories!=="object") return [{name:"", keys:keys}];
@@ -8002,6 +8015,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     let placed=false;
     // TipBot 0.70.29 groups the toggles (Tips, Grading, Live, ...). Older bots: one list.
     const groups=featureGroups(keys, mem.categories, mem.categoryOrder);
+    ownerPlaceSportsbet(groups);
     groups.forEach(g=>{
      if(g.name) html+='<h4 class="feat-cat" style="margin:10px 0 2px;font-size:var(--t-foot);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">'+esc(g.name)+'</h4>';
      g.keys.forEach(k=>{
