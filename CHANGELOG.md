@@ -1,3 +1,9 @@
+## 0.68.3 · 2026-10-31 · `fix` · Apex renders fully visible, motion is opt-in
+
+- Apex entrance, stagger, reveal-on-scroll, card-flip and tab view-transition animations are now off by default. Cards and tabs render fully visible on load. Hover colour changes are unchanged.
+- The animation code is kept behind `<html data-apex-motion="on">` (or `localStorage.tb_apex_motion = "on"`) so it can be turned back on.
+- Fixes black/cut-off patches: below-the-fold cards waited at `opacity:0` for an IntersectionObserver that could miss them, tab switches snapshotted pages through View Transitions, and the always-on `will-change` glow and blurred rail added extra compositing layers. All are off by default.
+
 ## 0.68.2 · 2026-10-31 · `fix` · Horse predictor shows in owner Settings
 
 - Owner Settings mounts the horse predictor from the owner extras TipBot sends (TipBot 0.72.3). The public site is unchanged.
