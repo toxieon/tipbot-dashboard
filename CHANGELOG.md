@@ -1,3 +1,8 @@
+## 0.68.1 · 2026-10-31 · `feature` · Sportsbet link paste button
+
+- When a server has **Sportsbet link** on (TipBot 0.72.1, `settings.features.sportsbet_link`), pending Sportsbet tips get a "🔗 Sportsbet link" button on their bet card. Paste the betslip's share link and it's saved through `POST /api/sportsbet/paste`, so the Discord post gets a **Bet on Sportsbet** button. Hidden unless the feature is explicitly on. The Features page has a help line for the new toggle.
+- Tests in `tests/sportsbet_link.test.js`.
+
 ## 0.67.1 · 2026-10-31 · `feature` · Owner horse profile and race predictor in Settings
 
 - Owner-only Settings card (`assets/owner-horse.js`, lazy loaded, kept out of the public build) for TipBot 0.71.1: search upcoming thoroughbred races, see the race predictor with an "Assuming <going> track / <weather>" banner, per-runner reasoning, sorting (finish, price, score, place, number, barrier) and T-10/T-2 price moves, and download the race prediction or a horse profile as a PDF (browser Save as PDF). Labelled "Prediction only — not betting advice". Tests in `tests/owner_horse.test.js`.
