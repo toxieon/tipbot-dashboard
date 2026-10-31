@@ -1879,6 +1879,24 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const f=GUILD_FEATURES[String(guildId==null?"":guildId)];
     return !f||!(name in f)||f[name]!==false;
   }
+  // Default-off features (Sportsbet link) need an explicit true; unknown = hidden.
+  function sportsbetLinkOn(guildId){
+    const f=GUILD_FEATURES[String(guildId==null?"":guildId)];
+    return !!(f&&f.sportsbet_link===true);
+  }
+  async function pasteSportsbetLink(tipId, btn){
+    const url=(window.prompt("Paste the Sportsbet share link (Share in the Sportsbet betslip):")||"").trim();
+    if(!url) return;
+    if(!/^https:\/\/(www\.)?sportsbet\.com\.au\/share-bet\?data=/i.test(url)){ toast("That isn't a Sportsbet share link.","err"); return; }
+    if(btn) btn.disabled=true;
+    try{
+      const r=await api("/api/sportsbet/paste",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tip_id:tipId,url:url})});
+      const j=await r.json().catch(function(){return {};});
+      if(r.ok&&j.ok) toast("Saved "+j.legs+" Sportsbet leg"+(j.legs===1?"":"s")+". The post shows Bet on Sportsbet on its next update.","ok");
+      else toast((j&&j.error)||"Couldn't save the link.","err");
+    }catch(_e){ toast("Couldn't save the link.","err"); }
+    finally{ if(btn) btn.disabled=false; }
+  }
   function tipGuildId(tipId){ return String(tipId||"").split(":")[0]; }
   function guildUnitSize(guildId){
     const pools=[].concat(STATE.servers||[], STATE.followerServers||[]);
@@ -3786,6 +3804,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const fix=(!isSettled&&godOn()&&tid&&window.TBOwner&&typeof TBOwner.fixLegs==="function")?'<button type="button" class="fixlegs ghost" data-tip="'+tid+'" title="Fix legs" style="padding:5px 9px;font-size:var(--t-foot);flex:none">✎ Legs</button>':'';
     if(fix) FIX_LEGS[t.tip_id]=t._fullLegs||usableLegs(t.legs)||[];
     const del=canDel?'<button type="button" class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(isSettled?"1":"0")+'" title="'+esc(delTitle)+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:var(--r-sm);padding:5px 9px;cursor:pointer;font:inherit;font-size:var(--t-foot);flex:none" aria-label="'+esc(delTitle)+'">✕</button>':'';
+    // Sportsbet link (TipBot 0.72.1): paste the betslip's share link; the Discord post gets "Bet on Sportsbet".
+    const sbOn=!isSettled&&tid&&/^sportsbet$/i.test(String(t.bookmaker||"").trim())&&sportsbetLinkOn(tipGuildId(t.tip_id));
+    const sbBtn=sbOn?'<button type="button" class="sblink ghost" data-tip="'+tid+'" title="Paste a Sportsbet share link for this tip" style="padding:5px 9px;font-size:var(--t-foot);flex:none">🔗 Sportsbet link</button>':'';
     const bookie=t.bookmaker
       ?('<span class="betcard-bookie">'+TB.bookie.render(t.bookmaker,20)+'<span class="bk-name">'+esc(String(t.bookmaker).trim())+'</span></span>')
       :('<span class="betcard-bookie"><span class="bk-name" style="color:var(--faint)">No bookie</span></span>');
@@ -3825,7 +3846,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return '<div class="'+cls+'"'+attrs+'>'
       +title
       +gameCta
-      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+fix+del+'</div></div>'
+      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+sbBtn+fix+del+'</div></div>'
       +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
       +'<div class="betcard-type">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units!=null?(" · "+t.units+"u"):"")+'</div>'
       +tags+body+'</div>';
@@ -3836,6 +3857,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function wireTipRows(box,gid){
     if(!box)return;
     box.querySelectorAll(".delbet").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); deleteBet(gid,b.dataset.tip,b.dataset.name,b); });
+    box.querySelectorAll(".sblink").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); pasteSportsbetLink(b.dataset.tip,b); });
     box.querySelectorAll(".fixlegs").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); if(window.TBOwner&&TBOwner.fixLegs) TBOwner.fixLegs(gid,b.dataset.tip,FIX_LEGS[b.dataset.tip]||[]); });
     wireFliveOpens(box, gid);
     box.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{
@@ -5134,6 +5156,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // Owner-only detail (server switch per sport) lives in ext.js; customers see nothing extra.
   // One line of help under a Features toggle, for every admin (owner tools add their own notes).
   const FEATURE_HELP={
+    "feat.sportsbet_link":"Sportsbet tips get a Bet on Sportsbet button that opens the bet in Sportsbet. Paste the betslip's share link on the tip (🔗 Sportsbet link or /sportsbet-link).",
     "feat.results_dm":"When all of a tipster's open bets have settled, TipBot DMs them a copy-paste results list with the total units."
   };
   function featureHelp(key){ return Object.prototype.hasOwnProperty.call(FEATURE_HELP, key)?FEATURE_HELP[key]:""; }
@@ -7953,6 +7976,19 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(FEAT_MEM[key]&&FEAT_MEM[key].flags) return;
     refreshFeatures(key);
   }
+  /** Owner view (the bot sends an "Owner" group only to the owner): the per-server
+   *  Sportsbet link switch sits with the other owner switches instead of under Tips.
+   *  One checkbox only, so Save still sends the flag once. */
+  function ownerPlaceSportsbet(groups){
+    const K="feat.sportsbet_link";
+    const owner=groups.find(g=>g.name==="Owner");
+    const from=groups.find(g=>g!==owner&&g.keys.indexOf(K)>=0);
+    if(!owner||!from) return groups;
+    from.keys=from.keys.filter(k=>k!==K);
+    if(!from.keys.length) groups.splice(groups.indexOf(from),1);
+    owner.keys.unshift(K);
+    return groups;
+  }
   /** [{name, keys}] in category order; one unnamed group when the bot sends no categories. */
   function featureGroups(keys, categories, order){
     if(!categories||typeof categories!=="object") return [{name:"", keys:keys}];
@@ -7979,6 +8015,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     let placed=false;
     // TipBot 0.70.29 groups the toggles (Tips, Grading, Live, ...). Older bots: one list.
     const groups=featureGroups(keys, mem.categories, mem.categoryOrder);
+    ownerPlaceSportsbet(groups);
     groups.forEach(g=>{
      if(g.name) html+='<h4 class="feat-cat" style="margin:10px 0 2px;font-size:var(--t-foot);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">'+esc(g.name)+'</h4>';
      g.keys.forEach(k=>{
