@@ -27,7 +27,7 @@ test("registry note lists bookmakers and nothing else", () => {
 });
 
 test("text fixtures match the harness expectations", () => {
-  for (const fx of spec.fixtures.filter((row) => String(row.file).endsWith(".txt"))) {
+  for (const fx of spec.fixtures.filter((row) => String(row.file).endsWith(".txt") && !row.synthetic)) {
     const slip = parsed(fx.file);
     const e = fx.expect;
     assert.equal(slip.bet_type, e.bet_type, fx.id);

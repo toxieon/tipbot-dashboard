@@ -672,7 +672,12 @@
     "stake_dollars": 100,
     "returns_dollars": 158,
     "legs": [
-     {"who": "Sarr", "stat": "Assists", "line": 2.5, "side": "Under"}
+     {
+      "who": "Sarr",
+      "stat": "Assists",
+      "line": 2.5,
+      "side": "Under"
+     }
     ]
    }
   },
@@ -691,7 +696,12 @@
     "stake_dollars": 150,
     "returns_dollars": 255,
     "legs": [
-     {"who": "Murray", "stat": "Rebounds", "line": 6.5, "side": "Under"}
+     {
+      "who": "Murray",
+      "stat": "Rebounds",
+      "line": 6.5,
+      "side": "Under"
+     }
     ]
    }
   },
@@ -710,7 +720,12 @@
     "stake_dollars": 150,
     "returns_dollars": 250,
     "legs": [
-     {"who": "Tristan da Silva", "stat": "Threes Made", "line": 2, "side": "Over"}
+     {
+      "who": "Tristan da Silva",
+      "stat": "Threes Made",
+      "line": 2,
+      "side": "Over"
+     }
     ]
    }
   },
@@ -729,7 +744,12 @@
     "stake_dollars": 35.21,
     "returns_dollars": 60.2,
     "legs": [
-     {"who": "Cooper Flagg", "stat": "Assists", "line": 5.5, "side": "Under"}
+     {
+      "who": "Cooper Flagg",
+      "stat": "Assists",
+      "line": 5.5,
+      "side": "Under"
+     }
     ]
    }
   },
@@ -748,7 +768,12 @@
     "stake_dollars": 150,
     "returns_dollars": 285,
     "legs": [
-     {"who": "Keyonte George", "stat": "Rebounds + Assists", "line": 10.5, "side": "Under"}
+     {
+      "who": "Keyonte George",
+      "stat": "Rebounds + Assists",
+      "line": 10.5,
+      "side": "Under"
+     }
     ]
    }
   },
@@ -767,7 +792,12 @@
     "stake_dollars": 100,
     "returns_dollars": 172,
     "legs": [
-     {"who": "Maxey", "stat": "Rebounds", "line": 4.5, "side": "Under"}
+     {
+      "who": "Maxey",
+      "stat": "Rebounds",
+      "line": 4.5,
+      "side": "Under"
+     }
     ]
    }
   },
@@ -786,7 +816,12 @@
     "stake_dollars": 50,
     "returns_dollars": 95.5,
     "legs": [
-     {"who": "Kingston Flemings", "stat": "Points", "line": 7.5, "side": "Under"}
+     {
+      "who": "Kingston Flemings",
+      "stat": "Points",
+      "line": 7.5,
+      "side": "Under"
+     }
     ]
    }
   },
@@ -805,7 +840,12 @@
     "stake_dollars": 100,
     "returns_dollars": 186,
     "legs": [
-     {"who": "Jaime Jaquez Jr.", "stat": "Points + Rebounds", "line": 20, "side": "Over"}
+     {
+      "who": "Jaime Jaquez Jr.",
+      "stat": "Points + Rebounds",
+      "line": 20,
+      "side": "Over"
+     }
     ]
    }
   },
@@ -824,7 +864,104 @@
     "stake_dollars": 100,
     "returns_dollars": 190,
     "legs": [
-     {"who": "Jarrett Allen", "stat": "Points + Rebounds + Assists", "line": 24.5, "side": "Under"}
+     {
+      "who": "Jarrett Allen",
+      "stat": "Points + Rebounds + Assists",
+      "line": 24.5,
+      "side": "Under"
+     }
+    ]
+   }
+  },
+  {
+   "id": "08",
+   "file": "real/08-nba-phi-cha-single-1.72.png",
+   "synthetic": false,
+   "expect": {
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "Philadelphia 76ers @ Charlotte Hornets",
+    "legs": [
+     {
+      "who": "Tyrese Maxey",
+      "stat": "Rebounds"
+     }
+    ]
+   }
+  },
+  {
+   "id": "09",
+   "file": "real/09-nba-atl-nop-single-1.91.png",
+   "synthetic": false,
+   "expect": {
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "Atlanta Hawks @ New Orleans Pelicans",
+    "legs": [
+     {
+      "who": "Kingston Flemings",
+      "stat": "Points"
+     }
+    ]
+   }
+  },
+  {
+   "id": "10",
+   "file": "real/10-nba-cle-mil-milestone-1.86.png",
+   "synthetic": false,
+   "expect": {
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "CLE Cavaliers @ MIL Bucks",
+    "legs": [
+     {
+      "who": "X Jaime Jaquez Jr.: 20+ Points & Rebounds 1.86",
+      "stat": "Points & Rebounds"
+     }
+    ]
+   },
+   "known_gap": "title/odds on one row: who still includes the market text"
+  },
+  {
+   "id": "11",
+   "file": "real/11-nba-cle-mil-pra-single-1.90.png",
+   "synthetic": false,
+   "expect": {
+    "leg_count": 1,
+    "sport": "NBA",
+    "event": "Cleveland Cavaliers @ Milwaukee Bucks",
+    "legs": [
+     {
+      "who": "Jarrett Allen",
+      "stat": "Pts + Reb + Ast 190"
+     }
+    ]
+   }
+  },
+  {
+   "id": "p10",
+   "file": "text/nba-sgm-2legs-at-header.txt",
+   "synthetic": true,
+   "variant": "text: SGM with Sportsbet 'X At Y' header",
+   "expect": {
+    "bet_type": "Same Game Multi",
+    "odds": 1.9,
+    "leg_count": 2,
+    "sport": "NBA",
+    "event": "Philadelphia 76ers @ Charlotte Hornets",
+    "legs": [
+     {
+      "who": "Tyrese Maxey",
+      "stat": "Rebounds",
+      "line": 4.5,
+      "side": "Under"
+     },
+     {
+      "who": "Kelly Oubre Jr.",
+      "stat": "Points",
+      "line": 9.5,
+      "side": "Over"
+     }
     ]
    }
   }

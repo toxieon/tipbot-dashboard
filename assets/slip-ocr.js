@@ -41,6 +41,13 @@
   var TITLE_AT_RE = /^(.+?)\s*@\s*(\d+(?:[.,]\d+)?)\s*$/;
   var RACE_EVENT_RE = /^(.+?)\s*(?:[•·\-–—*]|\.)?\s*\bRace\s*(\d{1,2})\b\s*$/i;
   var EVENT_RE = /^(.+?)\s+(v|vs\.?|@)\s+(.+)$/i;
+  // Sportsbet's game header: "Philadelphia 76ers At Charlotte Hornets" (capital "At" only, so
+  // "Over at" never matches). Read as a leg, it added a phantom leg to every slip.
+  var EVENT_AT_RE = /^([A-Z0-9].+?)\s+(At)\s+([A-Z0-9].+)$/;
+  function eventMatch(t) {
+    var s = String(t || "").replace(/^[^A-Za-z0-9]+/, "");
+    return s.match(EVENT_RE) || s.match(EVENT_AT_RE);
+  }
   var RUNNER_RE = /^(\d{1,2})\s*[.)]\s*(.+)$/;
   var MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
   var DOW = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
@@ -238,16 +245,16 @@
     var s = String(t || "");
     if (TITLE_AT_RE.test(s) || isDateLine(s)) return false;
     if (RACE_EVENT_RE.test(s)) return true;
-    var m = s.match(EVENT_RE);
+    var m = eventMatch(s);
     return !!(m && letters(m[1]) >= 3 && letters(m[3]) >= 3);
   }
   function canonicalEvent(t) {
     var s = squash(t);
     var r = s.match(RACE_EVENT_RE);
     if (r) return squash(r[1]).replace(/[•·\-–—*.]+$/, "").trim() + " R" + parseInt(r[2], 10);
-    var m = s.match(EVENT_RE);
+    var m = eventMatch(s);
     if (!m) return s;
-    var sep = m[2] === "@" ? "@" : "v";
+    var sep = m[2] === "@" || m[2] === "At" ? "@" : "v";
     return squash(m[1]) + " " + sep + " " + squash(m[3]);
   }
   function nearestYear(mon, day, now) {
@@ -741,7 +748,9 @@
         if (slip.leg_count == null && ln.text.length < 20 && /\b\d{1,2}\s*legs?\s*$/i.test(ln.text)) { slip.leg_count = parseInt(ln.text.match(/(\d{1,2})\s*legs?\s*$/i)[1], 10); continue; }
         // "Over 220.5" / "Total Points": the over line is the selection, not a player-prop subtitle.
         var totalTitle = /^(over|under)\s+\(?\+?\d+(?:\.\d+)?\)?\s*$/i.test(ln.text) && body[k + 1] && (TOTAL_MARKET_RE.test(body[k + 1].text) || TEAM_TOTAL_MARKET_RE.test(body[k + 1].text));
-        if (isSubLine(ln.text) && !totalTitle) {
+        // "Jaquez Jr.: 20+ Points & Rebounds 1.86" then "Points & Rebounds": the market repeated under its title.
+        var repeatsTitle = pendingTitle && ln.text.length >= 6 && low(pendingTitle.text).indexOf(low(squash(ln.text))) >= 0;
+        if ((isSubLine(ln.text) || repeatsTitle) && !totalTitle) {
           if (pendingTitle) { attach(legFromPair(pendingTitle, ln)); pendingTitle = null; }
           else { var orphan = legFromPair({ text: "", conf: ln.conf }, ln); orphan.flags.push({ field: "selection", reason: "Selection missing" }); attach(orphan); }
         } else {
