@@ -1,3 +1,11 @@
+## 0.69.0 · 2026-10-31 · `feature` · Slip scanner: more NBA prop layouts and bulk import
+
+- Under/Over bets that print the line in brackets, e.g. "Maxey Under (+4.5)", read as the prop line with the Under side kept. It is not treated as a handicap or an Over.
+- "Pts + Reb + Ast" reads as PRA. Points + Rebounds + Assists combos with three parts are recognised.
+- Four new NBA prop text fixtures (Under rebounds and points with a bracketed line, a 20+ Points & Rebounds milestone in another bookie layout, Under PRA). The screenshots will be added next to them later.
+- Build → Import from screenshot takes several images at once. Each screenshot becomes its own tip in a review list showing status, odds and event. Open a row to edit its fields and schedule it, go back to the list for the rest, or remove one. A single image goes straight to review as before. Up to 20 per batch.
+- Tests in `tests/slip_nba_props.test.js` and `tests/slip_bulk_import.test.js`.
+
 ## 0.68.3 · 2026-10-31 · `fix` · Apex renders fully visible, motion is opt-in
 
 - Apex entrance, stagger, reveal-on-scroll, card-flip and tab view-transition animations are now off by default. Cards and tabs render fully visible on load. Hover colour changes are unchanged.

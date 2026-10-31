@@ -137,21 +137,28 @@
       '<h1 style="margin:0 0 12px">Import from screenshot</h1>' +
       '<p style="color:var(--muted);margin:0 0 14px">Upload or paste a bookie slip image. We read it on your device, then you review every field before scheduling.</p>' +
       '<div class="panel">' +
-      '<div class="field"><label for="slip-file">Screenshot</label><input id="slip-file" type="file" accept="image/*"></div>' +
+      '<div class="field"><label for="slip-file">Screenshot</label><input id="slip-file" type="file" accept="image/*" multiple></div>' +
+      '<p style="color:var(--faint);font-size:var(--t-foot);margin:6px 0 0">Pick several screenshots to import them in one go. Each becomes its own tip to review and schedule.</p>' +
       '<div id="slip-paste-zone" tabindex="0" style="margin-top:10px;padding:14px;border:1px dashed var(--line);border-radius:var(--r-md);color:var(--muted);font-size:var(--t-sub)">Or paste an image here (⌘V / Ctrl+V)</div>' +
       '<p id="slip-supported" style="color:var(--faint);font-size:var(--t-foot);margin:12px 0 0">' +
       esc(window.TBSlipOcr && TBSlipOcr.supportedSlipsNote ? TBSlipOcr.supportedSlipsNote() : "") +
       "</p>" +
       '<div id="slip-status" style="margin-top:12px;font-size:var(--t-sub);color:var(--muted)"></div>' +
       '<div id="slip-preview" style="margin-top:10px"></div>' +
+      (SLIP.batch && SLIP.batch.length
+        ? '<p style="margin:12px 0 0"><a href="#" id="slip-batch-open">Back to your batch (' + esc(String(batchLeft())) + " of " + esc(String(SLIP.batch.length)) + " left) →</a></p>"
+        : "") +
       "</div>";
+    var bo = $("slip-batch-open");
+    if (bo) bo.onclick = function (e) { e.preventDefault(); renderBatchList(); };
     $("slip-back").onclick = function () {
       openSportsBuilder(SLIP.guildId, SLIP.serverName, true);
     };
     var fi = $("slip-file");
     if (fi) fi.onchange = function () {
-      var f = fi.files && fi.files[0];
-      if (f) startImport(f);
+      var files = Array.prototype.slice.call(fi.files || []).filter(function (x) { return x && /^image\//.test(x.type || "image/"); });
+      if (files.length > 1) startBatch(files);
+      else if (files[0]) startImport(files[0]);
     };
     var zone = $("slip-paste-zone");
     if (zone) {
@@ -226,7 +233,113 @@
     } catch (_e) {}
   }
 
+  // ── Bulk import: several screenshots, one tip each, reviewed and scheduled one by one ──
+  var BATCH_MAX = 20;
+  function batchLeft() {
+    return (SLIP.batch || []).filter(function (e) { return e.status !== "sent" && e.status !== "removed"; }).length;
+  }
+  /** OCR + parse one image into a self-contained entry. Never throws. */
+  async function readSlipEntry(file) {
+    var entry = { file: file, status: "reading", ocr: null, parsed: null, parsedLegs: [], fixtures: [], fixtureSport: "", draft: null, imageData: null, ocrText: "", error: "" };
+    try {
+      await ensureSlipOcr();
+      entry.ocr = await runOcr(file);
+      entry.ocrText = entry.ocr.text || "";
+      entry.parsed = TBSlipOcr.parseSlipLines(entry.ocr);
+      entry.fixtureSport = entry.parsed.sport || "";
+      try {
+        entry.fixtures = await loadFixtureGames(entry.parsed.sport, entry.parsed.start_local || entry.parsed.date_time, entry.parsed.event);
+      } catch (_e) { entry.fixtures = []; }
+      entry.parsedLegs = TBSlipOcr.attachFixtureMatches(entry.parsed.legs || [], entry.fixtures);
+      entry.parsed = Object.assign({}, entry.parsed, { legs: entry.parsedLegs });
+      entry.draft = TBSlipOcr.slipToTipDraft(entry.parsed);
+      entry.imageData = await compressImage(file);
+      var flagged = (entry.parsed.flags || []).length > 0;
+      entry.status = !entry.parsedLegs.length ? "failed" : (flagged ? "check" : "ready");
+      if (!entry.parsedLegs.length) {
+        entry.error = "No legs recognised.";
+        reportDiagnostics("nothing_recognised", entry.error, { file: file, ocr: entry.ocr, parsed: entry.parsed });
+      }
+    } catch (e) {
+      entry.status = "failed";
+      entry.error = "Couldn't read this screenshot.";
+      reportDiagnostics(entry.ocr ? "parse_failed" : "ocr_failed", e, { file: file, ocr: entry.ocr });
+    }
+    return entry;
+  }
+  function loadBatchEntry(idx) {
+    var e = SLIP.batch[idx];
+    SLIP.batchIdx = idx;
+    SLIP.file = e.file;
+    SLIP.ocr = e.ocr;
+    SLIP.ocrText = e.ocrText;
+    SLIP.parsed = e.parsed;
+    SLIP.parsedLegs = e.parsedLegs;
+    SLIP.fixtures = e.fixtures;
+    SLIP.fixtureSport = e.fixtureSport;
+    SLIP.draft = e.draft;
+    SLIP.imageData = e.imageData;
+    SLIP.dupOk = null;
+    SLIP.stakeMode = "";
+  }
+  async function startBatch(files) {
+    diagSent = 0;
+    var list = files.slice(0, BATCH_MAX);
+    SLIP.batch = list.map(function (f) { return { file: f, status: "queued" }; });
+    SLIP.batchIdx = -1;
+    renderBatchList(files.length > BATCH_MAX ? "Only the first " + BATCH_MAX + " screenshots were taken." : "");
+    for (var i = 0; i < list.length; i++) {
+      SLIP.batch[i].status = "reading";
+      if ($("slip-batch")) renderBatchList();
+      SLIP.batch[i] = await readSlipEntry(list[i]);
+      if ($("slip-batch")) renderBatchList();
+    }
+  }
+  var BATCH_LABEL = { queued: "Waiting", reading: "Reading…", ready: "Ready", check: "Check fields", failed: "Couldn't read", sent: "Sent to schedule", removed: "Removed" };
+  function batchRowHtml(e, i) {
+    if (e.status === "removed") return "";
+    var d = e.draft || {};
+    var leg = (d.legs || [])[0] || {};
+    var title = (d.legs || []).length > 1 ? (d.bet_type || "Multi") + " · " + d.legs.length + " legs" : (leg.desc || "");
+    var thumb = "";
+    try { if (e.file) thumb = URL.createObjectURL(e.file); } catch (_e) {}
+    var canOpen = e.status === "ready" || e.status === "check" || e.status === "sent";
+    return '<div class="slip-batch-row" data-i="' + i + '" style="display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)">' +
+      (thumb ? '<img src="' + escAttr(thumb) + '" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--line)">' : "") +
+      '<div style="flex:1;min-width:0"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(title || (e.file && e.file.name) || "Screenshot " + (i + 1)) + "</div>" +
+      '<div style="color:var(--muted);font-size:var(--t-sub)">' + esc([d.game_name, d.odds ? "@" + d.odds : "", d.bookmaker].filter(Boolean).join(" · ")) + "</div>" +
+      '<div style="font-size:var(--t-foot);color:' + (e.status === "failed" ? "var(--bad, #c0392b)" : e.status === "check" ? "var(--warn, #b7791f)" : "var(--faint)") + '">' + esc(BATCH_LABEL[e.status] || e.status) + (e.error ? " — " + esc(e.error) : "") + "</div></div>" +
+      (canOpen ? '<button class="btn" type="button" data-act="open" data-i="' + i + '">' + (e.status === "sent" ? "Open again" : "Review &amp; schedule") + "</button>" : "") +
+      (e.status !== "reading" ? '<button class="btn secondary" type="button" data-act="remove" data-i="' + i + '">Remove</button>' : "") +
+      "</div>";
+  }
+  function renderBatchList(note) {
+    panel("builder");
+    var b = SLIP.batch || [];
+    var reading = b.filter(function (e) { return e.status === "reading" || e.status === "queued"; }).length;
+    $("builder").innerHTML =
+      '<div class="back" id="slip-back">← Back</div>' +
+      '<h1 style="margin:0 0 12px">Import ' + esc(String(b.length)) + " screenshots</h1>" +
+      '<p style="color:var(--muted);margin:0 0 14px">Each screenshot is its own tip. Open one to check its fields, then schedule it; the rest wait here.</p>' +
+      (note ? '<p style="color:var(--faint)">' + esc(note) + "</p>" : "") +
+      '<div class="panel" id="slip-batch">' +
+      '<div style="font-size:var(--t-sub);color:var(--muted);margin-bottom:6px">' + (reading ? "Reading " + esc(String(reading)) + " more…" : esc(String(batchLeft())) + " left to schedule") + "</div>" +
+      b.map(batchRowHtml).join("") +
+      "</div>";
+    $("slip-back").onclick = function () { renderPickScreen(); };
+    Array.prototype.forEach.call($("builder").querySelectorAll("[data-act]"), function (btn) {
+      btn.onclick = function () {
+        var i = parseInt(btn.getAttribute("data-i"), 10);
+        if (btn.getAttribute("data-act") === "remove") { SLIP.batch[i].status = "removed"; renderBatchList(); return; }
+        loadBatchEntry(i);
+        renderReviewScreen();
+      };
+    });
+  }
+
   async function startImport(file) {
+    SLIP.batch = null;
+    SLIP.batchIdx = -1;
     diagSent = 0;
     SLIP.ocr = null;
     SLIP.parsed = null;
@@ -462,8 +575,10 @@
       '<button class="btn" type="button" id="slip-apply">Continue to schedule →</button></div>' +
       '<div id="slip-err" class="err" style="margin-top:10px"></div>' +
       "</div>";
-    $("slip-back").onclick = renderPickScreen;
-    $("slip-retry").onclick = renderPickScreen;
+    var inBatch = SLIP.batch && SLIP.batchIdx >= 0;
+    $("slip-back").onclick = inBatch ? function () { renderBatchList(); } : renderPickScreen;
+    $("slip-retry").onclick = inBatch ? function () { renderBatchList(); } : renderPickScreen;
+    if (inBatch) $("slip-retry").textContent = "Back to batch";
     $("slip-apply").onclick = applyToBuilder;
     wireLegFixturePickers();
     wireStakeField();
@@ -767,6 +882,12 @@
         escAttr(BUILD.image) +
         '" style="max-height:120px;border-radius:var(--r-sm);border:1px solid var(--line)"> <span style="color:var(--faint);font-size:var(--t-foot)">attached from screenshot</span>';
     }
+    if (SLIP.batch && SLIP.batchIdx >= 0 && SLIP.batch[SLIP.batchIdx]) {
+      SLIP.batch[SLIP.batchIdx].status = "sent";
+      var left = batchLeft();
+      toast("Slip imported — schedule it, then return to Import for the " + left + " still waiting.", "success");
+      return;
+    }
     toast("Slip imported — check legs and schedule when ready.", "success");
   }
 
@@ -786,6 +907,8 @@
     SLIP.fixtureSport = "";
     SLIP.ocrText = "";
     SLIP.stakeMode = "";
+    if (SLIP.batchGuild !== guildId) { SLIP.batch = null; SLIP.batchIdx = -1; }
+    SLIP.batchGuild = guildId;
     await TD.load("builder");
     await ensureSlipOcr();
     renderPickScreen();

@@ -1,3 +1,7 @@
+## 0.69.0
+
+Import from screenshot now takes several screenshots at once: each becomes its own tip in a list you review, edit and schedule one by one. NBA prop slips that show an Under line in brackets, like "Under (+4.5)", and "Pts + Reb + Ast" markets now read correctly.
+
 ## 0.67.1
 
 Maintenance / Internal updates.

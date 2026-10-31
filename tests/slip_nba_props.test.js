@@ -167,3 +167,25 @@ test("full-game slips are unchanged by the period reader", () => {
   assert.equal(slip.legs[0].period, undefined);
   assert.equal("period" in Ocr.legToBuilderLeg(Object.assign({}, slip.legs[0], { sport: "NBA" })), false);
 });
+
+test("an Under bet printed with a (+x) line keeps the line and the Under side", () => {
+  for (const [file, who, stat, line] of [
+    ["text/nba-maxey-rebounds-under-plusline.txt", "Maxey", "Rebounds", 4.5],
+    ["text/nba-flemings-points-under-plusline.txt", "Kingston Flemings", "Points", 7.5]
+  ]) {
+    const slip = parsed(file);
+    assert.equal(slip.legs.length, 1, file);
+    const leg = slip.legs[0];
+    assert.deepEqual([leg.player, leg.stat, leg.line, leg.side], [who, stat, line, "Under"], file);
+    const tip = Ocr.slipToTipDraft(slip);
+    assert.equal(tip.legs[0].side, "Under", file);
+    assert.doesNotMatch(tip.legs[0].desc || tip.legs[0].stat, /\+\s*\d|handicap|line \+/i, file);
+  }
+});
+
+test("Pts + Reb + Ast reads as PRA", () => {
+  const tip = Ocr.slipToTipDraft(parsed("text/nba-allen-pra-under.txt"));
+  assert.equal(tip.legs[0].prop, "pra");
+  assert.equal(tip.legs[0].line, 24.5);
+  assert.equal(tip.legs[0].side, "Under");
+});

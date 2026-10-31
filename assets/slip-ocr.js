@@ -131,6 +131,8 @@
       .replace(/[|]/g, "I")
       .replace(/[\u2018\u2019]/g, "'")
       .replace(/\u2026/g, "...")
+      // Some books print the line on an Under/Over bet as "(+4.5)". It is the prop line, not a handicap.
+      .replace(/\b(over|under)\s*\(\s*\+?\s*(\d+(?:[.,]\d+)?)\s*\)/gi, "$1 $2")
       .trim();
   }
   function squash(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
@@ -350,7 +352,12 @@
   }
   /** "Assists + Rebounds" and "Rebounds + Assists" are the same sum. */
   function canonCombo(s) {
-    var parts = String(s || "").split(/\s*(?:\+|\/|&|\band\b)\s*/);
+    var parts = String(s || "").replace(/^player\s+/i, "").split(/\s*(?:\+|\/|&|\band\b)\s*/);
+    if (parts.length === 3) {
+      var tri = { points: 1, pts: 1, point: 1, rebounds: 2, rebound: 2, rebs: 2, reb: 2, assists: 3, assist: 3, asts: 3, ast: 3 };
+      var seen = parts.map(function (x) { return tri[x] || 0; }).sort().join("");
+      return seen === "123" ? "Points + Rebounds + Assists" : "";
+    }
     if (parts.length !== 2) return "";
     var map = {
       points: "points", pts: "points", point: "points",
@@ -838,10 +845,10 @@
     return "Supported slips: " + SLIP_REGISTRY.map(function (row) { return row.label; }).join(", ") + ".";
   }
   function looksLikeNbaProp(text) {
-    var s = low(text);
+    var s = low(normalizeText(text));
     if (/\b(same\s*game\s*multi|sgm|\d+\s*legs?\b|multi(?:\s*bet)?)\b/.test(s)) return false;
     var prop = /(\d+(?:\.\d+)?\s*\+\s*(?:threes?(?:\s*made)?|points|rebounds?|assists?|steals?|blocks?))|((?:over|under)\s+\d+(?:\.\d+)?)|((?:over|under)\s+\d+(?:\.\d+)?\s+\S+)/.test(s);
-    var stat = /(assists?|rebounds?|points|threes?(?:\s*made)?|steals?|blocks?)/.test(s);
+    var stat = /(assists?|rebounds?|points|threes?(?:\s*made)?|steals?|blocks?|\bpts\b|\breb\b|\bast\b|\bpra\b)/.test(s);
     return prop && stat;
   }
   function confMap(input) {
