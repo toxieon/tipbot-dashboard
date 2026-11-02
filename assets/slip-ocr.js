@@ -475,6 +475,28 @@
   }
 
   // ── Leg builder ───────────────────────────────────────────────────────────
+  // Market words that some bookies print on the player's own line ("Jaime Jaquez Jr. To Score
+  // 20+ Points & Rebounds", "Name - Points + Rebounds", "Name Over 19.5 Pts + Reb"). Never part of a name.
+  var NAME_MARKET_TAIL = /\s+(?:[-\u2013\u2014:]\s*)?(?:(?:to\s+(?:score|get|have|record)\s+)?\d+(?:\.\d+)?\s*\+|(?:over|under)\b|to\s+(?:score|get|have|record)\b|(?:player\s+)?(?:points|pts|rebounds|reb|assists|ast|disposals|goals?|marks|tackles|threes|3pm|made\s+threes|steals|blocks)\b).*$/i;
+  function cleanPlayerName(name) {
+    var n = squash(name);
+    var cut = n.replace(NAME_MARKET_TAIL, "");
+    return letters(cut) >= 3 ? squash(cut.replace(/\s+[-\u2013\u2014:]$/, "")) : n;
+  }
+  // One-line player prop on the title itself: "<Player> [To Score] 20+ <Stat>" or "<Player> Over 19.5 <Stat>".
+  function singleLineProp(t) {
+    var m = t.match(/^(.+?)\s+(?:[-\u2013\u2014]\s*)?(?:to\s+(?:score|get|have|record)\s+)?(\d+(?:\.\d+)?)\s*\+\s*(.+)$/i);
+    var side = "Over", plus = true;
+    if (!m) {
+      m = t.match(/^(.+?)\s+(?:[-\u2013\u2014]\s*)?(over|under)\s+(\d+(?:\.\d+)?)\s+(.+)$/i);
+      if (!m) return null;
+      side = wordCap(m[2]); plus = false; m = [m[0], m[1], m[3], m[4]];
+    }
+    var cs = canonStat(m[3]);
+    if (cs.unknown || letters(m[1]) < 3) return null;
+    return { kind: "player", player: cleanPlayerName(m[1]), stat: cs.stat, stat_sport: cs.sport, period: cs.period,
+      line: parseFloat(m[2]), side: side, plus: plus };
+  }
   function legFromPair(title, sub) {
     var t = squash(title && title.text), s = squash(sub && sub.text);
     var conf = [title && title.conf, sub && sub.conf].filter(function (c) { return typeof c === "number"; });
@@ -532,14 +554,14 @@
       return leg;
     }
     if (/^any\s*time\s*(touchdown|td)\s*(scorer)?$/i.test(s) || /^anytime\s*(touchdown|td)/i.test(s)) {
-      leg.kind = "player"; leg.player = t; leg.stat = "Anytime TD"; leg.stat_sport = "NFL";
+      leg.kind = "player"; leg.player = cleanPlayerName(t); leg.stat = "Anytime TD"; leg.stat_sport = "NFL";
       leg.line = 1; leg.side = "Over"; leg.plus = true; return leg;
     }
     // "To Score 15+ Points", "15+ Disposals", "1+ Goal"
     m = s.match(/^(?:to\s+(?:score|get|have|record)\s+)?(\d+(?:\.\d+)?)\s*\+\s*(.+)$/i);
     if (m) {
       var cs = canonStat(m[2]);
-      leg.kind = "player"; leg.player = t; leg.stat = cs.stat; leg.stat_sport = cs.sport;
+      leg.kind = "player"; leg.player = cleanPlayerName(t); leg.stat = cs.stat; leg.stat_sport = cs.sport;
       leg.line = parseFloat(m[1]); leg.side = "Over"; leg.plus = true;
       if (cs.period) leg.period = cs.period;
       if (cs.unknown) leg.flags.push({ field: "stat", reason: "Unrecognised market \u201c" + cs.stat + "\u201d" });
@@ -568,12 +590,18 @@
       m = s.match(/^(over|under)\s*\(?\+?(\d+(?:\.\d+)?)\)?\s*(.*)$/i);
       if (m) {
         var cs3 = canonStat(m[3] || "");
-        leg.kind = "player"; leg.player = t; leg.side = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+        leg.kind = "player"; leg.player = cleanPlayerName(t); leg.side = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
         leg.line = parseFloat(m[2]); leg.stat = cs3.stat; leg.stat_sport = cs3.sport;
         if (cs3.period) leg.period = cs3.period;
         if (cs3.unknown) leg.flags.push({ field: "stat", reason: "Unrecognised market" });
         return leg;
       }
+    }
+    var one = singleLineProp(t);
+    if (one) {
+      Object.keys(one).forEach(function (k) { if (one[k] !== undefined) leg[k] = one[k]; });
+      leg.selection = t; leg.market = one.stat;
+      return leg;
     }
     leg.kind = "unknown";
     leg.flags.push({ field: "market", reason: "Couldn't work out this market \u2014 check it" });
@@ -889,7 +917,22 @@
     if (at) { tag.kind = "odds"; tag.odds = num(at[1]); return tag; }
     var ouTitle = t.match(/^(.+?)\s+(over|under)\s+(\d+(?:\.\d+)?)$/i);
     if (ouTitle && letters(ouTitle[1]) >= 2 && !isMarketLabel(ouTitle[1])) {
-      tag.kind = "ouTitle"; tag.player = squash(ouTitle[1]); tag.side = wordCap(ouTitle[2]); tag.line = parseFloat(ouTitle[3]); return tag;
+      tag.kind = "ouTitle"; tag.side = wordCap(ouTitle[2]); tag.line = parseFloat(ouTitle[3]);
+      // "Jaime Jaquez Jr. Points + Rebounds Over 19.5": the market rides on the name line.
+      var lead = squash(ouTitle[1]), cut = cleanPlayerName(lead);
+      tag.player = cut;
+      if (cut !== lead) {
+        var tail = squash(lead.slice(cut.length).replace(/^\s*[-\u2013\u2014:]\s*/, ""));
+        if (tail && !canonStat(tail).unknown) tag.statRaw = tail;
+      }
+      return tag;
+    }
+    // One line, name first: "Jaime Jaquez Jr. 20+ Points & Rebounds" / "... Over 19.5 Pts + Reb".
+    var one = letters(t) >= 6 ? singleLineProp(t) : null;
+    if (one && one.player && !isMarketLabel(one.player)) {
+      var rawStat = squash(t.replace(/^.*?(?:\d+(?:\.\d+)?\s*\+|(?:over|under)\s+\d+(?:\.\d+)?)\s*/i, ""));
+      tag.kind = one.plus ? "plus" : "ouStat"; tag.player = one.player; tag.side = one.side; tag.line = one.line;
+      tag.statRaw = rawStat; return tag;
     }
     var ouStat = t.match(/^(over|under)\s+(\d+(?:\.\d+)?)\s+(.+)$/i);
     if (ouStat) { tag.kind = "ouStat"; tag.side = wordCap(ouStat[1]); tag.line = parseFloat(ouStat[2]); tag.statRaw = squash(ouStat[3]); return tag; }
@@ -942,10 +985,12 @@
         player = tag.player; side = tag.side; line = tag.line; playerConf = tag.conf;
         var nxt = tags[idx + 1];
         if (nxt && nxt.kind === "market") { statRaw = nxt.statRaw; statConf = nxt.conf; }
+        else if (tag.statRaw) { statRaw = tag.statRaw; statConf = tag.conf; }
         return;
       }
       if (tag.kind === "ouStat" || tag.kind === "plus") {
-        if (!player && nameBefore) { player = nameBefore.name; playerConf = nameBefore.conf; }
+        if (!player && tag.player) { player = tag.player; playerConf = tag.conf; }
+        if (!player && nameBefore) { player = cleanPlayerName(nameBefore.name); playerConf = nameBefore.conf; }
         side = tag.kind === "plus" ? "Over" : tag.side;
         line = tag.line;
         plus = tag.kind === "plus";
