@@ -1,3 +1,9 @@
+## 0.69.2 · 2026-11-03 · `fix` · Slip scanner: market text no longer leaks into the player name
+
+- Non-Sportsbet slips (bet365, Ladbrokes, PointsBet) that print the market on the player's line now split it: "Jaime Jaquez Jr. Points + Rebounds Over 19.5", "Jaime Jaquez Jr. 20+ Points & Rebounds" and "Jaime Jaquez Jr. To Score 20+ Points & Rebounds" all read player "Jaime Jaquez Jr.", market Points + Rebounds, the right line and Over.
+- Generic multi-leg slips: a one-line "<Player> 20+ <Stat>" or "<Player> Over 19.5 <Stat>" leg is read instead of flagged as an unknown market, and market words are trimmed off player names.
+- Four new text fixtures and `tests/slip_name_market_leak.test.js`. Slip harness unchanged (real 307/307, synthetic 230/231).
+
 ## 0.69.1 · 2026-11-01 · `fix` · Slip scanner: no phantom leg from the game header, review diagnostics
 
 - Sportsbet's game header ("Philadelphia 76ers At Charlotte Hornets") is read as the event, not a leg. Before this, it added an extra leg, so a 2-leg Same Game Multi read as 3 and singles read as 2-leg multis.
