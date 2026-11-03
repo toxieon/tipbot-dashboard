@@ -476,6 +476,7 @@
     { id: "upcoming", label: "Upcoming", d: "M7 3v2M17 3v2M4 8h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1z" },
     { id: "live", label: "Live", d: "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-4v2m0 14v2M3 12H1m22 0h-2" },
     { id: "build", label: "Build", d: "M12 5v14M5 12h14" },
+    { id: "predictor", label: "Predictor", d: "M4 19h16M6 16l4-5 3 3 5-7" },
     { id: "settings", label: "Settings", d: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8 4-2.1-.6a6 6 0 0 0-.5-1.2l1.2-1.8-1.4-1.4-1.8 1.2a6 6 0 0 0-1.2-.5L12 4l-.6 2.1a6 6 0 0 0-1.2.5L8.4 5.4 7 6.8l1.2 1.8a6 6 0 0 0-.5 1.2L4 12l2.1.6a6 6 0 0 0 .5 1.2L5.4 15.6 6.8 17l1.8-1.2a6 6 0 0 0 1.2.5L12 20l.6-2.1a6 6 0 0 0 1.2-.5l1.8 1.2 1.4-1.4-1.2-1.8a6 6 0 0 0 .5-1.2z" }
   ];
   var TABS = ["home", "build", "upcoming"];
@@ -500,8 +501,17 @@
       return true;
     });
   }
+  // Owner only: the item exists only after TipBot's owner check put #dd-predictor in the menu and the page
+  // un-hid it (ops session, not viewing as someone else). Followers never get the item, the tab or the route.
+  function ownerPredictor() {
+    var el = doc.getElementById("dd-predictor");
+    return !!(el && !el.hidden);
+  }
+  function withOwner(ids) {
+    return ownerPredictor() ? ids.concat(["predictor"]) : ids;
+  }
   function railIds() {
-    return visibleNavIds(hasServerContext() ? TABS : RAIL_NO_SERVER);
+    return withOwner(visibleNavIds(hasServerContext() ? TABS : RAIL_NO_SERVER));
   }
   function navKey(ids) {
     return ids.join(",") + "|" + flagBadge("build_tips_enabled");
@@ -560,7 +570,7 @@
     catch (e) { fn(); }
   }
   function namePages() {
-    var ids = ["overview", "detail", "builder", "upcoming", "followers", "follower", "mytips", "discover", "settings"];
+    var ids = ["overview", "detail", "builder", "upcoming", "followers", "follower", "mytips", "discover", "settings", "predictor"];
     var i, el, named = false;
     for (i = 0; i < ids.length; i++) {
       el = doc.getElementById(ids[i]);
@@ -581,6 +591,7 @@
   function go(id) {
     if (id === "build" && !hasServerContext()) return;
     if (id === "build" && !flagShown("build_tips_enabled")) return;
+    if (id === "predictor" && !ownerPredictor()) return;
     picked = id;
     paintNav();
     if (!onDash()) {
@@ -616,6 +627,10 @@
         if (b) b.click();
         else { pending = "build"; pendingFired = false; }
       } else if (id === "settings") clickSel("#gear");
+      else if (id === "predictor") {
+        if (typeof root.TBOpenPredictor === "function") { try { root.TBOpenPredictor(); } catch (e4) {} }
+        else clickSel("#dd-predictor");
+      }
     });
   }
   function flushPending() {
@@ -700,6 +715,8 @@
     if (livePath() && !onDash()) return "live";
     var builder = doc.getElementById("builder");
     if (builder && !builder.hidden) return "build";
+    var pred = doc.getElementById("predictor");
+    if (pred && !pred.hidden) return "predictor";
     var upc = doc.getElementById("upcoming");
     if (upc && !upc.hidden) return "upcoming";
     var dd = doc.getElementById("dropdown");
@@ -714,7 +731,7 @@
   function buttonRow(items, extra) {
     return items.map(function (item) {
       var cls = "apex-navbtn" + (item.id === "build" ? " apex-tab-build" : "") + (extra || "");
-      var badge = item.id === "build" ? flagBadge("build_tips_enabled") : "";
+      var badge = item.id === "build" ? flagBadge("build_tips_enabled") : item.id === "predictor" ? "Owner" : "";
       if (badge) cls += " has-gf-badge";
       var badgeHtml = badge ? '<span class="gf-badge">' + String(badge).replace(/[&<>]/g, "") + "</span>" : "";
       var label = item.label + (badge ? ", " + badge : "");
@@ -723,9 +740,10 @@
   }
   function syncPhoneTabNav() {
     if (!tabsNav) return;
-    var ids = visibleNavIds(TABS);
+    var ids = withOwner(visibleNavIds(TABS));
     var key = navKey(ids);
     tabsNav.classList.toggle("apex-tabs-nobuild", ids.indexOf("build") < 0);
+    tabsNav.classList.toggle("apex-tabs-owner", ids.indexOf("predictor") >= 0);
     if (tabsNav.dataset.apexTabIds === key) return;
     tabsNav.dataset.apexTabIds = key;
     var ind = tabsNav.querySelector(".apex-indicator");

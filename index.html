@@ -1456,6 +1456,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     <div id="flive" hidden></div>
     <div id="builder" hidden></div>
     <div id="settings" hidden></div>
+    <div id="predictor" hidden></div>
     <div id="ops" hidden></div>
     <footer class="legal-foot" aria-label="Legal"><nav class="legal-links"><a href="/terms/">Terms</a> · <a href="/privacy/">Privacy</a> · <a href="/refund/">Refunds</a> · <a href="/renewal/">Renewals</a> · <a href="/cookies/">Cookies</a> · <a href="/accessibility/">Accessibility</a> · <a href="/age/">Age Policy</a> · <a href="/content-licence/">Content Licence</a></nav><div id="terms-ver" class="terms-ver" hidden></div></footer>
   </div>
@@ -1910,7 +1911,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!(unitSize>0)||!(dollars>0))return 0; return roundHalfUp(dollars/unitSize,2); }
 
   const show=s=>{for(const x of ["login","loading","app"])$(x).hidden=(x!==s);};
-  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","marketplace","stats","builder","upcoming","settings","ops","flive"])$(x).hidden=(x!==p); if(p!=="flive"&&window.FollowerLivePage)FollowerLivePage.stop(); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome; if(p!=="stats"&&window.TBHorseResults&&typeof TBHorseResults.stop==="function")TBHorseResults.stop();};
+  const panel=p=>{for(const x of ["overview","detail","followers","follower","mytips","discover","marketplace","stats","builder","upcoming","settings","predictor","ops","flive"])$(x).hidden=(x!==p); if(p!=="flive"&&window.FollowerLivePage)FollowerLivePage.stop(); if(p!=="builder"){ const lt=$("tray"); if(lt&&!lt.hidden){ lt.hidden=true; try{ syncTrayStack(); }catch(_){} } } if(p!=="follower"&&typeof unmountFollowerPromoChip==="function")unmountFollowerPromoChip(); const hc=(STATE.servers||[]).length+(STATE.followerServers||[]).length; const isHome=p==="overview"||(hc<=1&&(p==="detail"||p==="follower")); $("gear").hidden=!isHome; if(p!=="stats"&&window.TBHorseResults&&typeof TBHorseResults.stop==="function")TBHorseResults.stop();};
 
   // ── Back button / swipe-back stays in the app (0.43.1) ───────────────────────────
   // Every view opener calls navNote(hash, restore). We track the browser history with our
@@ -1965,6 +1966,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(m[0]==="marketplace"){ if(!marketplaceShown()) return enterHome(), true; let mid=""; try{ mid=m[1]?decodeURIComponent(m[1]):""; }catch(_){ mid=""; } return openMarketplace(mid), true; }
     if(m[0]==="following") return openFollowerAllView(), true;
     if(m[0]==="settings") return openOwnerSettings(), true;
+    if(m[0]==="predictor") return openPredictor(), true;
     if(m[0]==="ops") return openOps(), true;
     return false;
   }
@@ -2004,7 +2006,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     };
   }
   function swipeBackPanel(){
-    const ids=["overview","stats","detail","followers","follower","mytips","discover","marketplace","upcoming","builder","settings","ops","flive"];
+    const ids=["overview","stats","detail","followers","follower","mytips","discover","marketplace","upcoming","builder","settings","predictor","ops","flive"];
     for(const id of ids){ const p=$(id); if(p&&!p.hidden) return p; }
     return null;
   }
@@ -2600,7 +2602,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // instead of crowding the gear menu ("common path first, advanced one level deeper").
   // The rows are moved (not copied), so their ids and wiring are unchanged.
   function ownerSettingsAllowed(){ return STATE.ops===true && !STATE.viewAs; }
-  function paintOwnerSettingsEntry(){ const e=$("dd-extra-settings"); if(e) e.hidden=!ownerSettingsAllowed(); }
+  function paintOwnerSettingsEntry(){ const ok=ownerSettingsAllowed(); for(const id of ["dd-extra-settings","dd-predictor"]){ const e=$(id); if(e) e.hidden=!ok; } }
   function buildTipsShown(){
     return !(window.TBGlobalFlags && typeof TBGlobalFlags.shown==="function" && !TBGlobalFlags.shown("build_tips_enabled"));
   }
@@ -2691,6 +2693,16 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="empty">'+(lid?"This listing isn\'t available yet.":"Nothing is listed yet.")+'</div>';
     const back=$("mp-back"); if(back) back.onclick=()=>navBack(()=>enterHome());
   }
+  async function openPredictor(){
+    if(!ownerSettingsAllowed()) return enterHome();
+    navNote("#/predictor", ()=>openPredictor());
+    $("dropdown").hidden=true; $("gear").setAttribute("aria-expanded","false");
+    panel("predictor"); show("app");
+    await ensureExt();
+    (window.TBOwnerHorse?Promise.resolve():TD.load("owner-horse")).then(function(){ if(ownerSettingsAllowed()&&window.TBOwnerHorse) TBOwnerHorse.mount($("predictor"),{call:api,landing:true,onUnauth:function(){ renderLogin("Session expired."); }}); }).catch(function(){});
+    window.scrollTo(0,0);
+  }
+  window.TBOpenPredictor=()=>openPredictor();
   async function openOwnerSettings(){
     if(!ownerSettingsAllowed()) return enterHome();
     navNote("#/settings", ()=>openOwnerSettings());
@@ -2700,7 +2712,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(extOk && window.TBOwner && typeof TBOwner.ensureSettingsMarkup==="function") TBOwner.ensureSettingsMarkup($("settings"));
     refreshOddsQuotaOnSettingsOpen(); refreshOddsMarketsOnSettingsOpen(); wireSignupGateRow(); paintSignupGateRow();
     // TipBot 0.72.3 sends TBOwnerHorse with the owner extras; TD.load is the fallback.
-    (window.TBOwnerHorse?Promise.resolve():TD.load("owner-horse")).then(function(){ if(ownerSettingsAllowed()&&window.TBOwnerHorse) TBOwnerHorse.mount($("settings"),{call:api,onUnauth:function(){ renderLogin("Session expired."); }}); }).catch(function(){});
+    // The predictor has its own menu section when TipBot sends the Predictor item; older TipBot keeps it here.
+    if(!$("dd-predictor")) (window.TBOwnerHorse?Promise.resolve():TD.load("owner-horse")).then(function(){ if(ownerSettingsAllowed()&&window.TBOwnerHorse) TBOwnerHorse.mount($("settings"),{call:api,onUnauth:function(){ renderLogin("Session expired."); }}); }).catch(function(){});
     window.scrollTo(0,0);
   }
   if(window.TBGlobalFlags && typeof TBGlobalFlags.onChange==="function"){
@@ -2709,7 +2722,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The session script adds its own menu rows and nav link; the page only hands it the openers.
   function mountOwnerChrome(){
     if(!(window.TBOwner && typeof TBOwner.mountChrome==="function")) return;
-    TBOwner.mountChrome({ openOps: ()=>openOps(), openSettings: ()=>openOwnerSettings(),
+    TBOwner.mountChrome({ openOps: ()=>openOps(), openSettings: ()=>openOwnerSettings(), openPredictor: ()=>openPredictor(),
       paint: ()=>{ paintOpsTab(); paintOwnerSettingsEntry(); } });
   }
   window.addEventListener("hashchange", function(){ if(/^#\/marketplace(?:\/|$)/.test(location.hash||"")) navRoute(location.hash); });

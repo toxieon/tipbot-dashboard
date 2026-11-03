@@ -1,3 +1,11 @@
+## 0.70.0 · 2026-11-03 · `feat` · Race predictor gets its own menu section
+
+- New "Race predictor" item in the account menu, next to Settings, opening `#/predictor`. Only the TipBot operator account sees it; anyone else is sent home.
+- The predictor panel (picks, results sheet, model compare, pub sheet, best pick preview) now mounts there instead of inside Settings. If TipBot hasn't sent the menu item yet, Settings keeps showing it as before.
+- Apex (main theme): Predictor sits in the desktop rail and as a 4th phone tab, both with an Owner badge, only when the menu item is present.
+- The section opens on a landing card: today's best pick plus Results, Final stats, Compare and Pub sheet shortcuts, with both disclaimer lines.
+- Tests in `tests/predictor_section.test.js`.
+
 ## 0.69.2 · 2026-11-03 · `fix` · Slip scanner: market text no longer leaks into the player name
 
 - Non-Sportsbet slips (bet365, Ladbrokes, PointsBet) that print the market on the player's line now split it: "Jaime Jaquez Jr. Points + Rebounds Over 19.5", "Jaime Jaquez Jr. 20+ Points & Rebounds" and "Jaime Jaquez Jr. To Score 20+ Points & Rebounds" all read player "Jaime Jaquez Jr.", market Points + Rebounds, the right line and Over.
