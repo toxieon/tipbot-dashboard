@@ -1,3 +1,8 @@
+## 0.93.0 · 2026-11-07 · `feature` · Meme Pike card
+
+- Backend-authorized Meme Pike card on the server page, deliberately hot pink within Apex, labelled MEME PICK and “For laughs only. Not a tip.”
+- Shows the current horse, meeting and race without wagering performance fields. No generic secret or post editor for this builtin.
+
 ## 0.70.0 · 2026-11-03 · `feat` · Race predictor gets its own menu section
 
 - New "Race predictor" item in the account menu, next to Settings, opening `#/predictor`. Only the TipBot operator account sees it; anyone else is sent home.

@@ -1,0 +1,19 @@
+/* Deliberately NOT a serious tipster card. Scoped, including within Apex. */
+.meme-pike-card, html[data-theme="apex"] .meme-pike-card {
+  background: #FF2D95; color: #210615; border: 3px solid #210615;
+  border-radius: 20px; padding: 24px; max-width: 580px;
+  box-shadow: 7px 7px 0 #210615; font-family: system-ui, sans-serif;
+}
+.meme-pike-card h2, .meme-pike-card h3, .meme-pike-card p {
+  color: #210615; margin: 10px 0;
+}
+.meme-pike-card h2 { font-size: 32px; font-weight: 900; }
+.meme-pike-card h3 { font-size: 24px; font-weight: 800; }
+.meme-pike-card .mp-label {
+  display: inline-block; padding: 6px 10px; background: #210615; color: #fff;
+  font-size: 16px; font-weight: 900; letter-spacing: .08em; border-radius: 5px;
+}
+.meme-pike-card .mp-disclaimer {
+  border-top: 2px solid #210615; padding-top: 14px; font-size: 20px; font-weight: 900;
+}
+.meme-pike-card .mp-provisional { font-size: 14px; }
