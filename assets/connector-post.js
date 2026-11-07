@@ -428,7 +428,7 @@
         if (!alive() || token !== gen) return;
         if (unauth(res, null, ctx)) return;
         var body = await readJson(res);
-        var list = body && Array.isArray(body.connectors) ? body.connectors : [];
+        var list = body && Array.isArray(body.connectors) ? body.connectors.filter(function(c){return c && c.type !== "meme-pike";}) : [];
         state.list = list.filter(Boolean);
         state.settings = {};
         state.list.forEach(function (c) {

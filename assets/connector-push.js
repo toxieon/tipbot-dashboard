@@ -34,9 +34,9 @@
 
   function listFrom(body) {
     if (!body || typeof body !== "object") return [];
-    if (Array.isArray(body.connectors)) return body.connectors.filter(Boolean);
-    if (body.connector && typeof body.connector === "object") return [body.connector];
-    if (body.id != null && body.id !== "") return [body];
+    if (Array.isArray(body.connectors)) return body.connectors.filter(function(c){ return c && c.type !== "meme-pike"; });
+    if (body.connector && typeof body.connector === "object") return body.connector.type === "meme-pike" ? [] : [body.connector];
+    if (body.id != null && body.id !== "") return body.type === "meme-pike" ? [] : [body];
     return [];
   }
 
