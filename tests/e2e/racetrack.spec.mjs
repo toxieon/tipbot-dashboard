@@ -129,7 +129,7 @@ test("Flemington: course model, whole field in silks on Cinna's jockeys, billboa
   await expect(legend).toContainText("Flemington R7");
   await expect(legend.locator("li.fl-rr")).toHaveCount(10);
   await expect(legend.locator("li.fl-rr.is-tip")).toContainText("Example Runner 4");
-  await shot(page, "flemington-v2");
+  await shot(page, "flemington-v3");
   await blimp(page, "flemington-blimp");
   expect(errors).toEqual([]);
 });
@@ -142,7 +142,7 @@ test("unknown course falls back to the generic ellipse with its billboards", asy
   expect(slots.filter((s) => /^led_/.test(s)).sort()).toEqual(["led_1", "led_2", "led_3", "led_4", "led_5", "led_6"]);
   expect(slots).toEqual(expect.arrayContaining(["rooftop_A", "rooftop_B", "infield_C", "led_1", "led_6", "rail_1", "tall_1.main", "finish_1.front"]));
   await expect(page.locator("#flive-race")).toContainText("Randwick R7");
-  await shot(page, "generic-v2");
+  await shot(page, "generic-v3");
   await blimp(page, "generic-blimp");
   expect(errors).toEqual([]);
 });
@@ -166,7 +166,7 @@ for (const [meeting, course, ev] of [["Caulfield", "caulfield", "evt-caul"], ["M
     await settled(page, course, 8);
     const slots = await page.evaluate(() => document.getElementById("flive-mcg")._mcg.billboardSlots());
     expect(slots).toEqual(expect.arrayContaining(["rooftop_A", "rooftop_B", "infield_C", "led_1", "rail_1", "tall_1.main", "finish_1.front"]));
-    await shot(page, course + "-v2");
+    await shot(page, course + "-v3");
     expect(errors).toEqual([]);
   });
 }

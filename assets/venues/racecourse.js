@@ -104,7 +104,7 @@ export function makePath(points, outward, width) {
     }};
 }
 
-function genericPath() {
+export function genericPath() {
   var pts = ellPath(A - WD / 2, B - WD / 2, 256);
   pts.push(pts[0].slice());
   // ellPath runs with the angle; its right-hand normal points inwards, so flip it.
@@ -526,24 +526,34 @@ function inside(pts, x, z) {
   return c;
 }
 
-/** Where infield_C goes on a named course: the generic spot (43.7, 75.1) is ~22 m inside
-    the inside rail in front of the stand, so take the course's inside rail nearest that
-    stretch and step the same distance into its infield (checked against the rail
-    polygon; deeper steps, then the infield centroid, if the course is narrow there). */
-export function infieldSpot(path) {
+/** Where infield_C stands, picked by projecting the board and the parade field through
+    the Grandstand camera (.harness/infield.mjs): deep enough in the infield that it never
+    covers the horses. Named courses run anticlockwise, so at (18, 75) the board stays
+    clear of the field for the whole lap. The generic loop runs clockwise, so the field
+    rounds the far turn behind any infield spot; (-20, 72) keeps the parade clear for its
+    first ~10 s and the board readable. */
+export var INFIELD_BOARD = {named: {x: 18, z: 75}, generic: {x: -20, z: 72}};
+
+/** infield_C's spot for a track: the preferred point if it lies inside the rail outline,
+    else step in from the inside rail nearest it, else the infield centroid. Faces the
+    Grandstand camera. */
+export function infieldSpot(path, want) {
+  want = want || INFIELD_BOARD.named;
+  var cam = RACECOURSE_CAMERAS[0].pos, pts = path.points || [];
+  function at(x, z) { return {x: x, z: z, rotationY: Math.atan2(cam[0] - x, cam[2] - z)}; }
+  if (!pts.length || inside(pts, want.x, want.z)) return at(want.x, want.z);
   var best = 0, bd = Infinity, n = 600;
   for (var i = 0; i < n; i++) {
-    var sx = path.len * i / n, p = path.at(sx), d = Math.hypot(p.x - 43.7, p.z - (B - WD / 2));
+    var sx = path.len * i / n, p = path.at(sx), d = Math.hypot(p.x - want.x, p.z - want.z);
     if (d < bd) { bd = d; best = sx; }
   }
-  var pts = path.points || [];
   for (var lat = -22; lat >= -52; lat -= 10) {
     var q = path.place(best, lat);
-    if (!pts.length || inside(pts, q.x, q.z)) return {x: q.x, z: q.z, rotationY: 2.17};
+    if (inside(pts, q.x, q.z)) return at(q.x, q.z);
   }
   var cx = 0, cz = 0;
   pts.forEach(function (p) { cx += p[0]; cz += p[1]; });
-  return {x: cx / Math.max(1, pts.length), z: cz / Math.max(1, pts.length), rotationY: 2.17};
+  return at(cx / Math.max(1, pts.length), cz / Math.max(1, pts.length));
 }
 
 async function addFollowerBillboards(scene, base, slots, infield) {
@@ -559,8 +569,8 @@ async function addFollowerBillboards(scene, base, slots, infield) {
     obj.name = p.name;
     obj.position.fromArray(p.position);
     obj.rotation.y = p.rotationY;
-    // Rooftop boards ride the shared stand on every track; the infield board moves into a
-    // named course's own infield.
+    // Rooftop boards ride the shared stand on every track; the infield board goes to the
+    // track's own clear infield spot (infieldSpot).
     if (infield && p.name === "infield_C") { obj.position.set(infield.x, 0, infield.z); obj.rotation.y = infield.rotationY; }
     obj.scale.setScalar(p.scale);
     obj.traverse(function (n) {
@@ -686,7 +696,7 @@ export async function buildRacecourse(scene, opts) {
     } catch (e) {}
     try {
       await addFollowerBillboards(scene, opts.billboardsBase || new URL("./billboards/", import.meta.url).href, boards.slots,
-        named ? infieldSpot(path) : null);
+        infieldSpot(path, named ? INFIELD_BOARD.named : INFIELD_BOARD.generic));
     } catch (e) {}
   }
   var field = Field(scene, path, {silkLoader: opts.silkLoader, rider: opts.rider, onChange: opts.onChange,

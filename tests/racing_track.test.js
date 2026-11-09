@@ -173,22 +173,51 @@ test("billboard-slots.json (TipBot's Studio list) is exactly what each track bui
   }
 });
 
-test("named courses: the infield board sits inside each course's inside rail, boards scaled up", async () => {
-  const {infieldSpot, coursePath, courseFit, NAMED_BOARD_SCALE} = await rc();
+// Project infield_C's box and the parade field (12 runners, 3 lanes) through the
+// Grandstand camera at the 390 px card's aspect; screen rects must never meet.
+async function boardClearOfField(path, spot, secs) {
+  const T = await import("../assets/vendor/three/three.module.min.js");
+  const {RACECOURSE_CAMERAS, paradeStart} = await rc();
+  const c = RACECOURSE_CAMERAS[0], cam = new T.PerspectiveCamera(c.fov, 780 / 496, 0.5, 2000);
+  cam.position.fromArray(c.pos); cam.lookAt(...c.look); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+  // Anything behind the camera (or past the far plane) is off screen: an empty rect.
+  const rect = (pts) => pts.map((p) => new T.Vector3(...p).project(cam)).reduce((r, v) =>
+    Math.abs(v.z) > 1 || r[0] === 9 && r[2] === 9 ? [9, 9, 9, 9]
+      : [Math.min(r[0], v.x), Math.min(r[1], v.y), Math.max(r[2], v.x), Math.max(r[3], v.y)], [8, 8, -8, -8]);
+  const cs = Math.cos(spot.rotationY), sn = Math.sin(spot.rotationY), corners = [];
+  for (const lx of [-6.45, 6.45]) for (const lz of [-3.5, 1.9]) for (const y of [0, 10.1])
+    corners.push([spot.x + lx * cs + lz * sn, y, spot.z - lx * sn + lz * cs]);
+  const board = rect(corners), lead = paradeStart(path);
+  for (let t = 0; t <= secs; t += 0.5) for (let i = 0; i < 12; i++) for (const lane of [0.22, 0.48, 0.74]) {
+    const p = path.place(lead + 9 * t - i * 5.6, path.width * lane);
+    const h = rect([[p.x - 2.5, 0, p.z - 2.5], [p.x + 2.5, 6, p.z + 2.5], [p.x + 2.5, 0, p.z - 2.5], [p.x - 2.5, 6, p.z + 2.5]]);
+    if (board[0] < h[2] && h[0] < board[2] && board[1] < h[3] && h[1] < board[3]) return {t, board};
+  }
+  return null;
+}
+const insideRail = (pts, x, z) => {
+  let c = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const a = pts[i], b = pts[j];
+    if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) c = !c;
+  }
+  return c;
+};
+
+test("infield board: inside the rail and never in front of the parade field from the Grandstand camera", async () => {
+  const {infieldSpot, coursePath, courseFit, genericPath, INFIELD_BOARD, NAMED_BOARD_SCALE} = await rc();
   assert.ok(NAMED_BOARD_SCALE > 1);
   for (const id of Object.keys(STUDIO)) {
     const def = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/courses", id + ".json"), "utf8"));
-    const fit = courseFit(def), p = coursePath(def, fit), spot = infieldSpot(p);
-    let inside = false;
-    const pts = p.points;
-    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-      const a = pts[i], b = pts[j];
-      if ((a[1] > spot.z) !== (b[1] > spot.z) && spot.x < (b[0] - a[0]) * (spot.z - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
-    }
-    assert.ok(inside, id + " infield_C inside the rail");
-    assert.ok(spot.z > 40 && spot.z < 110, id + " in front of the stand: " + spot.z);
+    const fit = courseFit(def), p = coursePath(def, fit), spot = infieldSpot(p, INFIELD_BOARD.named);
+    assert.deepEqual([spot.x, spot.z], [INFIELD_BOARD.named.x, INFIELD_BOARD.named.z], id + " uses the preferred spot");
+    assert.ok(insideRail(p.points, spot.x, spot.z), id + " infield_C inside the rail");
+    assert.equal(await boardClearOfField(p, spot, 170), null, id + ": clear for a whole lap");
     assert.ok(fit.s * NAMED_BOARD_SCALE >= 0.6, id + " boards at least 0.6 x real size");
   }
+  const g = genericPath(), gs = infieldSpot(g, INFIELD_BOARD.generic);
+  assert.ok(insideRail(g.points, gs.x, gs.z), "generic infield_C inside the rail");
+  assert.equal(await boardClearOfField(g, gs, 8), null, "generic: clear of the parade on load");
 });
 
 test("billboards: patches matched by prefix keep the LED's own emissive, frames merge", async () => {
