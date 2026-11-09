@@ -1,3 +1,7 @@
+## 0.72.1
+
+- Maintenance / Internal updates
+
 ## 0.69.2
 
 Import from screenshot reads player names cleanly on bet365, Ladbrokes and PointsBet slips that put the market on the same line as the player.
