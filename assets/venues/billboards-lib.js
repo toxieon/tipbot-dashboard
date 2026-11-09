@@ -86,11 +86,11 @@ function resolveFace(def, rule, pt, mount, standPt, extra = {}) {
 // ---------- placement ----------
 // One placement object (shared by placeBillboards and placeBillboardsEllipse). scale (optional, default 1) uniformly scales the built board.
 function placementObject(type, n, pt, lateral, face, meta = {}) {
-  const ty = TYPES[type], mount = meta.mount || ty.mount, sc = meta.scale ?? 1;
+  const ty = TYPES[type], mount = meta.mount || ty.mount, sc = meta.scale ?? 1, wf = meta.width_frac ?? 1;
   const h = Math.max(...ty.slots.map(s => (s.y0 || 0) + s.h)), top = ty.bottom_m + (type === 'tall' ? 4.05 : h);
   const o = { id: nodeName(type, n), type, n, code: ty.code, label: `${ty.code}-${n}`, mount, position: { x: pt.x, y: 0, z: pt.z }, yaw_rad: Math.atan2(face[0], face[1]), face: face, lateral_m: lateral, s_m: pt.s_m, togo_m: meta.togo_m ?? null,
-    slots: ty.slots.map(sl => ({ slot_id: slotId(type, n, sl.key), key: sl.key, w: sl.w, h: sl.h, px: sl.px, aspect: sl.px.join(':'), backing: sl.backing, safe: SAFE, face: sl.face || null })),
-    size_m: { w: +(Math.max(...ty.slots.map(s => s.w)) * sc).toFixed(3), h: +(h * sc).toFixed(3), top_m: +(top * sc).toFixed(2) }, ...meta.extra };
+    slots: ty.slots.map(sl => ({ slot_id: slotId(type, n, sl.key), key: sl.key, w: wf === 1 ? sl.w : +(sl.w * wf).toFixed(4), h: sl.h, px: sl.px, aspect: sl.px.join(':'), backing: sl.backing, safe: SAFE, face: sl.face || null, ...(wf === 1 ? {} : { fit: 'contain' }) })),
+    size_m: { w: +(Math.max(...ty.slots.map(s => s.w)) * wf * sc).toFixed(3), h: +(h * sc).toFixed(3), top_m: +(top * sc).toFixed(2) }, ...meta.extra };
   if (meta.scale != null) o.scale = sc;
   return o;
 }
@@ -120,7 +120,7 @@ export function placeBillboards(def, userCfg = {}, opts = {}) {
       const a = i * per, b = Math.min(stalls.length, a + per) - 1, lat = (stalls[a].lateral_offset_m + stalls[b].lateral_offset_m) / 2, w = distanceToWorld(def, 0, lat, { start: st });
       const h = w.heading_rad, back = B.depth_m, pt = { x: w.x - Math.cos(h) * back, z: w.z - Math.sin(h) * back, tx: Math.cos(h), tz: Math.sin(h), nx: 0, nz: 0, s_m: null };
       const o = distanceToWorld(def, 0, lat + 1, { start: st }), nxz = norm(o.x - w.x, o.z - w.z); pt.nx = nxz[0]; pt.nz = nxz[1];
-      make('gate', i + 1, pt, lat, T.gate, { mount: 'gate', extra: { start_id: st.id, stalls: [a + 1, b + 1], width_m: (b - a + 1) * B.spacing_m } });
+      make('gate', i + 1, pt, lat, T.gate, { mount: 'gate', ...((b - a + 1) < per ? { width_frac: (b - a + 1) / per } : {}), extra: { start_id: st.id, stalls: [a + 1, b + 1], width_m: (b - a + 1) * B.spacing_m } });
     }
   }
   for (const p of out) for (const s of p.slots) s.sponsor = cfg.assignments[s.slot_id] || null;
@@ -149,7 +149,10 @@ export function buildBillboard(THREE, pl, opts = {}) {
     for (const [w, h, x, y] of [[sl.w + rim * 2, rim, 0, cy + sl.h / 2 + rim / 2], [sl.w + rim * 2, rim, 0, cy - sl.h / 2 - rim / 2], [rim, sl.h, -sl.w / 2 - rim / 2, cy], [rim, sl.h, sl.w / 2 + rim / 2, cy]]) bx(w, h, d + 0.02, x, y, 0.005, alu);
     const mat = sl.backing && sl.backing === COL.backing && ty.slots[0].emissive ? new THREE.MeshStandardMaterial({ map: tex || null, color: tex ? 0xffffff : sl.backing, emissive: 0xffffff, emissiveMap: tex || null, emissiveIntensity: opts.night ? 1.25 : 0.55, roughness: 0.35, toneMapped: false }) : new THREE.MeshStandardMaterial({ map: tex || null, color: tex ? 0xffffff : sl.backing, roughness: 0.55, emissive: 0xffffff, emissiveMap: tex || null, emissiveIntensity: opts.night ? 0.4 : 0.5 });
     mat.name = materialName(sl.key);
-    const plane = new THREE.Mesh(new THREE.PlaneGeometry(sl.w, sl.h), mat); plane.name = patchName(sl.key); plane.position.set(0, cy, d / 2 + 0.002); plane.userData = { slot_id: sl.slot_id, w_m: sl.w, h_m: sl.h, px: sl.px, safe: SAFE }; sub.add(plane);
+    // fit 'contain': texture px stay the same; the image is scaled uniformly to fit the (narrower) panel, centred, on the plain backing (no stretch)
+    let iw = sl.w, ih = sl.h; if (sl.fit === 'contain') { const ta = sl.px[0] / sl.px[1]; if (sl.w / sl.h < ta) ih = sl.w / ta; else iw = sl.h * ta;
+      const bk = new THREE.Mesh(new THREE.PlaneGeometry(sl.w, sl.h), new THREE.MeshStandardMaterial({ color: sl.backing, roughness: 0.55, emissive: sl.backing, emissiveIntensity: 0.5 })); bk.name = 'Backing'; bk.position.set(0, cy, d / 2 + 0.001); sub.add(bk); }
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(iw, ih), mat); plane.name = patchName(sl.key); plane.position.set(0, cy, d / 2 + 0.002); plane.userData = { slot_id: sl.slot_id, w_m: sl.w, h_m: sl.h, px: sl.px, safe: SAFE, ...(sl.fit ? { fit: sl.fit, image_w_m: iw, image_h_m: ih } : {}) }; sub.add(plane);
     if (ty.slots[0].emissive && opts.night !== undefined) { // night glow: additive halo + ground spill
       const gt = (opts.glowTex ||= softRect(THREE)), gm = new THREE.MeshBasicMaterial({ map: gt, color: COL.led_glow, transparent: true, opacity: opts.night ? 0.42 : 0.16, blending: THREE.AdditiveBlending, depthWrite: false });
       const halo = new THREE.Mesh(new THREE.PlaneGeometry(sl.w + 2.2, sl.h + 1.5), gm); halo.name = 'Glow'; halo.position.set(0, cy, -d / 2 - 0.03); sub.add(halo);
