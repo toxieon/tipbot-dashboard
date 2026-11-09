@@ -31,9 +31,11 @@ import * as T from "../vendor/three/three.module.min.js";
 import { GLTFLoader } from "../vendor/three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "../vendor/three/addons/libs/meshopt_decoder.module.js";
 import { box, mat, ellPath, crowdMat, facadeMat, ledRibbons, rng, mountVenue } from "./kit.js";
-import { placeBillboards, makeEllipseLoop, placeBillboardsEllipse, addBillboards as addLibBillboards } from "./billboards-lib.js";
+import { placeBillboards, makeEllipseLoop, placeBillboardsEllipse, addBillboards as addLibBillboards, loopToWorld, TYPES as BOARD_TYPES } from "./billboards-lib.js";
 import { syncGallop, FALLBACK_SILK } from "./riders/jockey-silk.js";
 import { mergeGeometries } from "../vendor/three/addons/utils/BufferGeometryUtils.js";
+import { distanceToWorld, barrierStalls, resolveStart } from "./racecourse-lib.js";
+import { racePlan, seedOf } from "./sim-race.js";
 
 export var VENUE = "racecourse";
 export var FALLBACK_URL = new URL("./racecourse-fallback.png", import.meta.url).href;
@@ -41,7 +43,8 @@ var A = 260, B = 110, WD = 24;
 // Floor logos sit in the infield, inside the inner rail.
 export var INFIELD = {w: 380, d: 150};
 export var RACECOURSE_CAMERAS = [
-  {id: "broadcast", label: "Grandstand", fov: 46, pos: [70, 18, 70], look: [0, 2, 110], minAspect: 1.3},
+  // Look-at raised from y 2 to 10 (0.72.0) so the stand-top boards fit the 390 px hero.
+  {id: "broadcast", label: "Grandstand", fov: 46, pos: [70, 18, 70], look: [0, 10, 110], minAspect: 1.3},
   {id: "goals-north", label: "Turn", fov: 50, pos: [-150, 30, 60], look: [-250, 0, 0], minAspect: 1.3},
   {id: "goals-south", label: "Turn", fov: 50, pos: [150, 30, 60], look: [250, 0, 0], minAspect: 1.3},
   {id: "wing", label: "Back straight", fov: 46, pos: [0, 30, -40], look: [0, 2, -110], minAspect: 1.3},
@@ -164,9 +167,13 @@ function herd(scene, n, scale) {
   }
   PARTS.forEach(function (p) { if (meshes[p.key].instanceColor) meshes[p.key].instanceColor.needsUpdate = true; });
   if (legs.instanceColor) legs.instanceColor.needsUpdate = true;
-  var root = new T.Matrix4(), local = new T.Matrix4(), out = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), one = new T.Vector3(1, 1, 1), sc = new T.Vector3(scale, scale, scale);
+  var root = new T.Matrix4(), local = new T.Matrix4(), out = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), one = new T.Vector3(1, 1, 1), sc = new T.Vector3(scale, scale, scale), base = scale;
   return {
-    set: function (i, x, z, yaw, bob, stride) {
+    setScale: function (k) { base = k; },
+    // k: this horse's scale (the race grows them out of the gates); default the herd's.
+    set: function (i, x, z, yaw, bob, stride, k) {
+      k = k || base;
+      sc.set(k, k, k);
       e.set(0, yaw, 0); q.setFromEuler(e);
       root.compose(v.set(x, 0, z), q, sc);
       PARTS.forEach(function (p) {
@@ -326,9 +333,120 @@ function demoField() {
   });
 }
 
+/* ---------- the simulated race: where a run of (metres, lateral) sits on this track ---------- */
+// Lanes horses settle into after the break (metres from the inside rail, by finishing place).
+export var RACE_LANES = {first: 1.2, step: 1.6, count: 4};
+
+// The box horse runs from 1.1 behind its origin to 2.03 ahead (head), 0.9 wide (x scale).
+export var HORSE_EXTENT = {back: 1.1, front: 2.03, width: 0.9};
+/** Horse scale (scene units) that fits a barrier stall: 85% of the stall width, 90% of its
+    depth. ``s`` = scene units per course metre. */
+export function stallScale(spacing, depth, s) {
+  var len = HORSE_EXTENT.back + HORSE_EXTENT.front;
+  return Math.min(spacing * s * 0.85 / HORSE_EXTENT.width, depth * s * 0.9 / len);
+}
+/** Course metres behind the start line where a horse of scale k stands so its body is
+    centred in the stall (the start line is the stall front). */
+export function stallBack(depth, k, s) {
+  return depth / 2 + (HORSE_EXTENT.front - HORSE_EXTENT.back) / 2 * k / s;
+}
+
+/** The course start for a race distance: the exact start, else the nearest one. */
+export function startFor(def, distance) {
+  var list = (def && def.starts) || [], d = +distance || (def && def.default_start_m) || 1200, best = null;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].distance_m === d) return list[i];
+    if (!best || Math.abs(list[i].distance_m - d) < Math.abs(best.distance_m - d)) best = list[i];
+  }
+  return best;
+}
+
+/** Winning post on the generic loop: the inside-rail point in front of the stand. */
+export function genericPost(path) {
+  var best = 0, bd = Infinity, n = 720;
+  for (var i = 0; i < n; i++) {
+    var s = path.len * i / n, p = path.at(s), d = Math.hypot(p.x, p.z - (B - WD / 2));
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+
+/**
+ * Maps a run onto this track. Named courses: the start's own route (chute included) from
+ * racecourse-lib's distanceToWorld in the course frame, fitted into the scene; past the
+ * post the horses pull up along the main loop. Generic ellipse: the race starts
+ * ``distance`` metres before the post (world metres, laps wrap) and runs to it.
+ * raceScale shrinks the horses so neighbouring barrier stalls don't overlap.
+ */
+export function raceTrack(named, path) {
+  var cur = null;
+  if (named) {
+    var def = named.def, fit = named.fit, Bd = def.barriers || {first_stall_offset_m: 0.75, spacing_m: 1.5, max_stalls: 20, depth_m: 3};
+    return {
+      kind: "named", lanes: RACE_LANES,
+      raceScale: Math.max(0.45, Math.min(1.3, Bd.spacing_m * fit.s / 0.9 * 0.95)),
+      gateScale: stallScale(Bd.spacing_m, Bd.depth_m || 3, fit.s),
+      gateBack: function (k) { return stallBack(Bd.depth_m || 3, k, fit.s); },
+      start: function (distance) {
+        var st = startFor(def, distance);
+        cur = {st: resolveStart(def, st.id)};
+        return {distance: st.distance_m, start: st.id};
+      },
+      stallLat: function (b) {
+        var n = (cur && cur.st.stalls_available) || Bd.max_stalls || 20;
+        return Bd.first_stall_offset_m + ((Math.max(1, b) - 1) % n) * Bd.spacing_m;
+      },
+      stalls: function () { return cur ? barrierStalls(def, cur.st) : []; },
+      toWorld: function (d, lat) {
+        var D = cur.st.distance_m;
+        if (d < 0) {   // in the stalls, behind the start line: straight back along the route's start
+          var a = this.toWorld(0, lat), b = this.toWorld(1, lat);
+          return {x: a.x + (b.x - a.x) * d, z: a.z + (b.z - a.z) * d};
+        }
+        if (d <= D) {
+          var w = distanceToWorld(def, Math.max(0, d), lat, {start: cur.st}), f = fitPoint(fit, w.x, w.z);
+          return {x: f[0], z: f[1]};
+        }
+        var p = path.place((d - D) * fit.s, lat * fit.s);
+        return {x: p.x, z: p.z};
+      }
+    };
+  }
+  var post = genericPost(path);
+  return {
+    kind: "generic", lanes: RACE_LANES, raceScale: 1.55,
+    gateScale: stallScale(1.5, 3, 1),
+    gateBack: function (k) { return stallBack(3, k, 1); },
+    start: function (distance) {
+      var D = Math.max(400, Math.min(4000, +distance || 1200));
+      cur = {D: D};
+      return {distance: D, start: "generic-" + D};
+    },
+    stallLat: function (b) { return 0.75 + ((Math.max(1, b) - 1) % 20) * 1.5; },
+    stalls: function () { return []; },
+    toWorld: function (d, lat) { var p = path.place(post - cur.D + d, lat); return {x: p.x, z: p.z}; }
+  };
+}
+
+/** Follow-camera for the leader: outside the track, alongside and a touch behind. */
+export function followCamera(track, pose) {
+  if (!pose) return null;
+  var k = pose.scale / 1.3;
+  var a = track.toWorld(pose.d, pose.lat), b = track.toWorld(pose.d, pose.lat + 10), c = track.toWorld(pose.d + 5, pose.lat);
+  var nx = b.x - a.x, nz = b.z - a.z, nl = Math.hypot(nx, nz) || 1;
+  var hx = c.x - a.x, hz = c.z - a.z, hl = Math.hypot(hx, hz) || 1;
+  nx /= nl; nz /= nl; hx /= hl; hz /= hl;
+  // Broadcast-style tracking shot: alongside, a touch behind, so the chasers trail off to one side.
+  return {pos: [pose.x + nx * 34 * k - hx * 8 * k, 14 * k, pose.z + nz * 34 * k - hz * 8 * k],
+    look: [pose.x - hx * 4 * k, 1.5 * k, pose.z - hz * 4 * k]};
+}
+
+function grow(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+
 function Field(scene, path, opts) {
   var horses = null, riders = [], markers = [], runners = [], lead = paradeStart(path), t = 0, gen = 0;
   var scale = opts.horseScale || 1.6;
+  var track = opts.track || null, race = null;   // race: {spec, info, plan, t, scale} after the jump
   var markerGeo = new T.ConeGeometry(0.9, 1.8, 10), markerMat = new T.MeshBasicMaterial({color: ACCENT});
   markerGeo.rotateX(Math.PI);
   function clear() {
@@ -353,7 +471,7 @@ function Field(scene, path, opts) {
       }
       makeRider(rn, {rider: opts.rider, count: runners.length, phone: opts.phone}).then(function (rider) {
         if (my !== gen) { rider.dispose(); return; }
-        rider.obj.scale.setScalar(scale);
+        rider.obj.scale.setScalar(race ? race.scale : scale);
         scene.add(rider.obj);
         riders[i] = rider;
         if (rn.silk_url && opts.silkLoader) {
@@ -368,11 +486,73 @@ function Field(scene, path, opts) {
         if (opts.onChange) opts.onChange();
       });
     });
+    // A new field mid-race (a late scratching) re-runs the same race from where it was.
+    if (race) { var at = race.t; setRace(race.spec); race.t = at; }
     update(0);
+  }
+  function raceUpdate(dt) {
+    var R = race, k = R.scale;
+    R.t = Math.min(R.t + dt, R.plan.duration);
+    var moving = R.t > 0 && R.t < R.plan.duration;
+    runners.forEach(function (rn, i) {
+      var q = R.plan.at(i, R.t);
+      var w = track.toWorld(q.d, q.lat), ahead = track.toWorld(q.d + 1, q.lat);
+      var dx = ahead.x - w.x, dz = ahead.z - w.z;
+      var p = {x: w.x, z: w.z, yaw: Math.abs(dx) + Math.abs(dz) > 1e-6 ? Math.atan2(dx, dz) : (rn._p ? rn._p.yaw : 0)};
+      // Gallop while running, slow to a canter after the post, stand still in the gates.
+      rn._stride = (rn._stride || 0) + dt * (moving && R.t > 0 ? (q.done ? 4 : 11) : 0);
+      // Stall-sized in the gates, race size once clear of them (over the first 60 m).
+      var ki = R.gateScale + (k - R.gateScale) * grow(q.d / 60);
+      var stride = rn._stride + i * 0.7, bob = moving ? Math.abs(Math.sin(stride)) * 0.1 * ki : 0;
+      horses.set(i, p.x, p.z, p.yaw, bob, stride, ki);
+      var r = riders[i];
+      if (r) {
+        r.obj.scale.setScalar(ki);
+        r.obj.position.set(p.x, 0, p.z);
+        r.obj.rotation.set(0, p.yaw, 0);
+        r.update(dt, stride, bob);
+      }
+      rn._p = p; rn._q = q;
+    });
+  }
+  function applyScale(k) {
+    if (horses) horses.setScale(k);
+    riders.forEach(function (r) { if (r) r.obj.scale.setScalar(k); });
+  }
+  /** spec: {distance, order: [saddle numbers, winner first], key, source}; null = parade. */
+  function setRace(spec) {
+    if (!spec || !track || !runners.length) {
+      if (race) { race = null; applyScale(scale); }
+      return null;
+    }
+    var idx = {}, order = [];
+    runners.forEach(function (rn, i) { if (rn.number != null) idx[rn.number] = i; });
+    (spec.order || []).forEach(function (n) { if (idx[n] != null && order.indexOf(idx[n]) < 0) order.push(idx[n]); });
+    runners.forEach(function (rn, i) { if (order.indexOf(i) < 0) order.push(i); });   // not placed: behind, field order
+    var stalls = runners.map(function (rn, i) { return track.stallLat(rn.barrier || i + 1); });
+    var info = track.start(spec.distance);
+    var run = Math.min(scale, track.raceScale), gate = Math.min(run, track.gateScale);
+    race = {spec: spec, info: info, t: -1, scale: run, gateScale: gate,
+      plan: racePlan({distance: info.distance, order: order, stalls: stalls, lanes: track.lanes,
+        gateBack: track.gateBack(gate), seed: seedOf(spec.key || order.join(","))})};
+    applyScale(race.scale);
+    raceUpdate(0);
+    return info;
   }
   function update(dt) {
     if (!horses) return;
     t += dt;
+    if (race) raceUpdate(dt);
+    else paradeUpdate(dt);
+    var k = race ? race.scale : scale;
+    markers.forEach(function (m) {
+      var p = runners[m.userData.i]._p;
+      m.scale.setScalar(k / scale);
+      m.position.set(p.x, (7.5 + Math.sin(t * 3) * 0.4 * 1.6 / scale) * k / 1.6, p.z);
+    });
+    horses.flush();
+  }
+  function paradeUpdate(dt) {
     lead += CANTER * dt;
     var lanes = [0.22, 0.48, 0.74];
     runners.forEach(function (rn, i) {
@@ -390,13 +570,36 @@ function Field(scene, path, opts) {
       }
       runners[i]._p = p;
     });
-    markers.forEach(function (m) {
-      var p = runners[m.userData.i]._p;
-      m.position.set(p.x, 7.5 * scale / 1.6 + Math.sin(t * 3) * 0.4, p.z);
-    });
-    horses.flush();
+  }
+  function raceState() {
+    if (!race) return {phase: "parade"};
+    var rn = runners[race.plan.leader(Math.max(0, race.t))] || {};
+    return {phase: race.t >= race.plan.duration ? "finished" : "race", t: race.t, duration: race.plan.duration,
+      distance: race.info.distance, start: race.info.start, source: race.spec.source || "",
+      leader: rn.number == null ? null : rn.number, winnerAt: race.plan.finishAt[race.plan.order[0]],
+      order: race.plan.order.map(function (i) { return runners[i].number; })};
+  }
+  function leaderPose() {
+    if (!race) return null;
+    var rn = runners[race.plan.leader(Math.max(0, race.t))];
+    return rn && rn._p ? {x: rn._p.x, z: rn._p.z, yaw: rn._p.yaw, d: rn._q.d, lat: rn._q.lat, scale: race.scale} : null;
   }
   return {set: set, update: update, count: function () { return runners.length; },
+    setRace: setRace, raceState: raceState, leaderPose: leaderPose,
+    // Jump the run to playback time t (seconds; -1 = in the gates). Tests and screenshots.
+    seek: function (at) {
+      if (!race) return false;
+      race.t = Math.max(-1, Math.min(+at || 0, race.plan.duration));
+      raceUpdate(0);
+      return true;
+    },
+    replay: function () {
+      if (!race) return false;
+      race.t = -1;
+      runners.forEach(function (rn) { rn._stride = 0; });
+      raceUpdate(0);
+      return true;
+    },
     riderKinds: function () { return riders.map(function (r) { return r ? r.kind : ""; }); },
     dispose: function () { clear(); markerGeo.dispose(); markerMat.dispose(); }};
 }
@@ -494,6 +697,8 @@ async function courseRules(base, id) {
 
 // Each SponsorPatch* mesh (prefix match) under root, by slot id; remembers its backing so a
 // cleared slot goes back to plain. flipY: true for PlaneGeometry boards, false for glTF UVs.
+export var EMPTY_BACKING = 0x0d1419;
+var DARK_EMPTY = /^(rail|tall|finish)_/;
 function indexPatches(root, slots, flipY, slotOf) {
   root.traverse(function (n) {
     if (!n.isMesh || !/^SponsorPatch/.test(n.name || "")) return;
@@ -504,6 +709,10 @@ function indexPatches(root, slots, flipY, slotOf) {
     // A dark backing (the LED strip) that glows with no image shows as a grey slab; an
     // empty dark slot stays dark until it has sponsor art. Intensity is never touched.
     var dark = !!(m.color && (m.color.r + m.color.g + m.color.b) / 3 < 0.2 && !m.map);
+    // Published view: empty rail, tall and finish panels show the LED's dark backing, not
+    // a white slab ("YOUR LOGO HERE" lives in the Sponsor Studio editor only).
+    var backed = DARK_EMPTY.test(id) && m.color && !m.map;
+    if (backed && !dark) { m.color.set(EMPTY_BACKING); dark = true; }
     n.userData.patch = {flipY: flipY, color: m.color ? m.color.clone() : null, map: m.map || null, emissiveMap: m.emissiveMap || null,
       glow: glow, emissive: glow ? m.emissive.getHex() : 0, darkEmpty: glow && dark};
     if (glow && dark && !m.emissiveMap) { m.emissive.setHex(0x000000); m.needsUpdate = true; }
@@ -511,11 +720,43 @@ function indexPatches(root, slots, flipY, slotOf) {
   });
 }
 
-// Named-course board size in the course's own frame. The models are fitted at 0.39-0.56
-// scene units per metre, so 1.6 gives boards ~0.63-0.9 x real size, a touch above the
-// generic ellipse (0.57) so they read from the Grandstand camera. Gate banners stay 1:1
-// (they span barrier stalls and would overlap their neighbours).
+// Named-course board size in the course's own frame (pl.scale; texture px never change).
+// The models are fitted at 0.39-0.56 scene units per metre, so 1.6 gives boards ~0.63-0.9 x
+// real size so they read from the Grandstand camera. Cinna's floor for rail, LED and tall is
+// 1.35 (NAMED_BOARD_MIN); 1.6 already clears it, so it stays. Finish keeps its 0.71.0 size;
+// gate banners stay 1:1 (they span barrier stalls and would overlap their neighbours).
 export var NAMED_BOARD_SCALE = 1.6;
+export var NAMED_BOARD_MIN = 1.35;
+export var NAMED_BOARD_SCALES = {rail: 1.6, led: 1.6, tall: 1.6, finish: 1.6, gate: 1};
+
+/** A placed board's footprint corners (course metres) and their lateral offsets (from the
+    inside rail, + towards the outer rail) at its site. */
+export function boardFootprint(def, p) {
+  var k = p.scale || 1, w = Math.max.apply(null, BOARD_TYPES[p.type].slots.map(function (sl) { return sl.w; })) * k;
+  var d = BOARD_TYPES[p.type].depth_m * k + 0.3, c = Math.cos(p.yaw_rad), sn = Math.sin(p.yaw_rad), pts = [];
+  [-w / 2, w / 2].forEach(function (sx) { [-d / 2, d / 2].forEach(function (sz) {
+    pts.push([p.position.x + c * sx + sn * sz, p.position.z - sn * sx + c * sz]);
+  }); });
+  var o = p.s_m == null ? null : loopToWorld(def, p.s_m, p.lateral_m);
+  return {pts: pts, lat: o ? pts.map(function (q) { return p.lateral_m + (q[0] - o.x) * o.nx + (q[1] - o.z) * o.nz; }) : null};
+}
+
+/** Named-course board sizes (NAMED_BOARD_SCALES), then the LED strips, which turn up to 25
+    degrees towards the stand, step back into the infield until no corner crosses the inside
+    rail (at 1.6 x a turned 12.8 m strip would poke ~3 m onto the track). */
+export function scaleNamedBoards(def, placed) {
+  placed.forEach(function (p) {
+    var k = NAMED_BOARD_SCALES[p.type];
+    if (k && k !== 1) p.scale = k;
+    if (p.type !== "led" || p.s_m == null) return;
+    var over = Math.max.apply(null, boardFootprint(def, p).lat) + 0.2;
+    if (over <= 0) return;
+    var o = loopToWorld(def, p.s_m, p.lateral_m);
+    p.position = {x: p.position.x - o.nx * over, y: 0, z: p.position.z - o.nz * over};
+    p.lateral_m -= over;
+  });
+  return placed;
+}
 
 function inside(pts, x, z) {
   var c = false;
@@ -532,7 +773,7 @@ function inside(pts, x, z) {
     clear of the field for the whole lap. The generic loop runs clockwise, so the field
     rounds the far turn behind any infield spot; (-20, 72) keeps the parade clear for its
     first ~10 s and the board readable. */
-export var INFIELD_BOARD = {named: {x: 18, z: 75}, generic: {x: -20, z: 72}};
+export var INFIELD_BOARD = {named: {x: 18, z: 75}, generic: {x: 5, z: 75}};
 
 /** infield_C's spot for a track: the preferred point if it lies inside the rail outline,
     else step in from the inside rail nearest it, else the infield centroid. Faces the
@@ -556,6 +797,10 @@ export function infieldSpot(path, want) {
   return at(cx / Math.max(1, pts.length), cz / Math.max(1, pts.length));
 }
 
+// Stand-top boards: 2 m lower (legs into the roof) and rooftop_A 4 m along the roof, so with
+// the Grandstand look-at both clear the hero's top edge (~12 px) and the back button at 390 px.
+export var ROOFTOP_NUDGE = {rooftop_A: [-4, -2, 0], rooftop_B: [0, -2, 0]};
+
 async function addFollowerBillboards(scene, base, slots, infield) {
   var res = await fetch(new URL("placements.json", base).href);
   if (!res.ok) return;
@@ -568,6 +813,7 @@ async function addFollowerBillboards(scene, base, slots, infield) {
     var obj = (await cache[key]).scene.clone(true);
     obj.name = p.name;
     obj.position.fromArray(p.position);
+    if (ROOFTOP_NUDGE[p.name]) obj.position.add(new T.Vector3().fromArray(ROOFTOP_NUDGE[p.name]));
     obj.rotation.y = p.rotationY;
     // Rooftop boards ride the shared stand on every track; the infield board goes to the
     // track's own clear infield spot (infieldSpot).
@@ -665,7 +911,8 @@ function Billboards(onChange) {
 
 export async function buildRacecourse(scene, opts) {
   opts = opts || {};
-  box(scene, 700, 0.2, 400, 0x2f5b2c, 0, -0.1, 0);
+  // Wide enough for the chute starts the simulated race uses (Flemington's straight runs off the fitted box).
+  box(scene, 1600, 0.2, 1000, 0x2f5b2c, 0, -0.1, 0);
   var path = null, course = "", named = null;
   var want = COURSES.indexOf(opts.course) >= 0 ? opts.course : "";
   if (want) {
@@ -689,7 +936,7 @@ export async function buildRacecourse(scene, opts) {
     try {
       var rules = named ? await courseRules(named.base, course) : null;
       var placed = billboardPlacements(named ? {def: named.def, rules: rules.rules, start_m: rules.start_m} : null);
-      if (named) placed.forEach(function (p) { if (p.type !== "gate") p.scale = NAMED_BOARD_SCALE; });
+      if (named) scaleNamedBoards(named.def, placed);
       var root = addLibBillboards({THREE: T, group: named ? named.group : scene}, placed, {});
       indexPatches(root, boards.slots, true);
       bakeFrames(root);
@@ -699,11 +946,15 @@ export async function buildRacecourse(scene, opts) {
         infieldSpot(path, named ? INFIELD_BOARD.named : INFIELD_BOARD.generic));
     } catch (e) {}
   }
+  var rtrack = raceTrack(named, path);
   var field = Field(scene, path, {silkLoader: opts.silkLoader, rider: opts.rider, onChange: opts.onChange,
-    horseScale: course ? 1.3 : 1.6});
+    horseScale: course ? 1.3 : 1.6, track: rtrack});
   field.set(opts.field || null);
   return {led: led, update: field.update, course: course, path: path,
     setField: function (list) { field.set(list || null); }, fieldCount: field.count, riderKinds: field.riderKinds,
+    // Simulated race after the jump: spec {distance, order, key, source}; null = parade.
+    setRace: field.setRace, raceState: field.raceState, replayRace: field.replay, seekRace: field.seek,
+    follow: function () { return followCamera(rtrack, field.leaderPose()); },
     billboardSlots: function () { return Object.keys(boards.slots); },
     // map: the scene's "billboards" ({course: {slot: {url}}}); this track's rows apply.
     setBillboards: function (map) { return boards.set((map || {})[course || "generic"] || {}); },

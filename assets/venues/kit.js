@@ -485,6 +485,20 @@ export async function mountVenue(host, opts, def) {
       });
       if (alive && renderer) renderer.render(scene, camera);
     }
+    // Racecourse: while a simulated race runs, the Grandstand view follows the leader
+    // (eased); back to the preset when the race is cleared. Other presets stay put.
+    var following = false;
+    function stepFollow(dt) {
+      var f = built.follow && camId === "broadcast" && !camTween ? built.follow() : null;
+      if (!f) {
+        if (following) { following = false; var pr = findCamera(cams, camId); if (pr && !camTween) applyCam(camTarget(pr)); }
+        return;
+      }
+      var k = following && dt > 0 ? Math.min(1, dt * 3) : 1, cur = camNow;
+      following = true;
+      applyCam({pos: [0, 1, 2].map(function (j) { return cur.pos[j] + (f.pos[j] - cur.pos[j]) * k; }),
+        look: [0, 1, 2].map(function (j) { return cur.look[j] + (f.look[j] - cur.look[j]) * k; }), fov: cur.fov});
+    }
     var last = 0;
     function draw(now) {
       if (!alive || !renderer) return;
@@ -495,6 +509,7 @@ export async function mountVenue(host, opts, def) {
         if (built.update) built.update(dt);
       }
       stepCam(now);
+      stepFollow(dt);
       renderer.render(scene, camera);
       if (!still) raf = requestAnimationFrame(draw);
     }
@@ -540,6 +555,26 @@ export async function mountVenue(host, opts, def) {
         return true;
       },
       fieldCount: function () { return built.fieldCount ? built.fieldCount() : 0; },
+      // Simulated race (racecourse only). Reduced motion shows the finish straight away.
+      setRace: function (spec) {
+        if (!alive || !built.setRace) return null;
+        var info = built.setRace(spec || null);
+        if (still && renderer) { if (built.update) built.update(1e6); stepFollow(0); renderer.render(scene, camera); }
+        return info;
+      },
+      replayRace: function () {
+        if (!alive || !built.replayRace) return false;
+        var ok = built.replayRace();
+        if (still && renderer) { if (built.update) built.update(1e6); stepFollow(0); renderer.render(scene, camera); }
+        return ok;
+      },
+      raceState: function () { return built.raceState ? built.raceState() : {phase: "parade"}; },
+      seekRace: function (t) {
+        if (!alive || !built.seekRace || !built.seekRace(t)) return false;
+        stepFollow(0);
+        if (renderer) renderer.render(scene, camera);
+        return true;
+      },
       riderKinds: function () { return built.riderKinds ? built.riderKinds() : []; },
       billboardSlots: function () { return built.billboardSlots ? built.billboardSlots() : []; },
       setBillboards: function (map) {
