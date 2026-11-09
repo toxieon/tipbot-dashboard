@@ -96,7 +96,7 @@ export function makePath(points, outward, width) {
     var tx = (b[0] - a[0]) / seg, tz = (b[1] - a[1]) / seg;
     return {x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, tx: tx, tz: tz};
   }
-  return {len: len, width: width, at: at,
+  return {len: len, width: width, at: at, points: points,
     // Point ``lat`` metres out from the inside rail at arc position s, and the heading.
     place: function (s, lat) {
       var p = at(s), nx = -p.tz * outward, nz = p.tx * outward;
@@ -123,7 +123,7 @@ export function courseFit(def) {
 }
 function fitPoint(fit, x, z) { return [(x + fit.dx) * fit.s, OUTER_Z + (z + fit.dz) * fit.s]; }
 
-function coursePath(def, fit) {
+export function coursePath(def, fit) {
   var sign = def.direction === "clockwise" ? -1 : 1;
   var off = -(def.measure_offset_m || 0) * fit.s;   // measured line -> inside rail
   var raw = def.main.points.map(function (p) { return fitPoint(fit, p[0], p[1]); });
@@ -511,7 +511,42 @@ function indexPatches(root, slots, flipY, slotOf) {
   });
 }
 
-async function addFollowerBillboards(scene, base, slots) {
+// Named-course board size in the course's own frame. The models are fitted at 0.39-0.56
+// scene units per metre, so 1.6 gives boards ~0.63-0.9 x real size, a touch above the
+// generic ellipse (0.57) so they read from the Grandstand camera. Gate banners stay 1:1
+// (they span barrier stalls and would overlap their neighbours).
+export var NAMED_BOARD_SCALE = 1.6;
+
+function inside(pts, x, z) {
+  var c = false;
+  for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    var a = pts[i], b = pts[j];
+    if ((a[1] > z) !== (b[1] > z) && x < (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]) + a[0]) c = !c;
+  }
+  return c;
+}
+
+/** Where infield_C goes on a named course: the generic spot (43.7, 75.1) is ~22 m inside
+    the inside rail in front of the stand, so take the course's inside rail nearest that
+    stretch and step the same distance into its infield (checked against the rail
+    polygon; deeper steps, then the infield centroid, if the course is narrow there). */
+export function infieldSpot(path) {
+  var best = 0, bd = Infinity, n = 600;
+  for (var i = 0; i < n; i++) {
+    var sx = path.len * i / n, p = path.at(sx), d = Math.hypot(p.x - 43.7, p.z - (B - WD / 2));
+    if (d < bd) { bd = d; best = sx; }
+  }
+  var pts = path.points || [];
+  for (var lat = -22; lat >= -52; lat -= 10) {
+    var q = path.place(best, lat);
+    if (!pts.length || inside(pts, q.x, q.z)) return {x: q.x, z: q.z, rotationY: 2.17};
+  }
+  var cx = 0, cz = 0;
+  pts.forEach(function (p) { cx += p[0]; cz += p[1]; });
+  return {x: cx / Math.max(1, pts.length), z: cz / Math.max(1, pts.length), rotationY: 2.17};
+}
+
+async function addFollowerBillboards(scene, base, slots, infield) {
   var res = await fetch(new URL("placements.json", base).href);
   if (!res.ok) return;
   var placements = (await res.json()).placements || [];
@@ -524,6 +559,9 @@ async function addFollowerBillboards(scene, base, slots) {
     obj.name = p.name;
     obj.position.fromArray(p.position);
     obj.rotation.y = p.rotationY;
+    // Rooftop boards ride the shared stand on every track; the infield board moves into a
+    // named course's own infield.
+    if (infield && p.name === "infield_C") { obj.position.set(infield.x, 0, infield.z); obj.rotation.y = infield.rotationY; }
     obj.scale.setScalar(p.scale);
     obj.traverse(function (n) {
       if (n.isMesh && /^SponsorPatch/.test(n.name)) {
@@ -641,13 +679,15 @@ export async function buildRacecourse(scene, opts) {
     try {
       var rules = named ? await courseRules(named.base, course) : null;
       var placed = billboardPlacements(named ? {def: named.def, rules: rules.rules, start_m: rules.start_m} : null);
+      if (named) placed.forEach(function (p) { if (p.type !== "gate") p.scale = NAMED_BOARD_SCALE; });
       var root = addLibBillboards({THREE: T, group: named ? named.group : scene}, placed, {});
       indexPatches(root, boards.slots, true);
       bakeFrames(root);
     } catch (e) {}
-    if (!course) {
-      try { await addFollowerBillboards(scene, opts.billboardsBase || new URL("./billboards/", import.meta.url).href, boards.slots); } catch (e) {}
-    }
+    try {
+      await addFollowerBillboards(scene, opts.billboardsBase || new URL("./billboards/", import.meta.url).href, boards.slots,
+        named ? infieldSpot(path) : null);
+    } catch (e) {}
   }
   var field = Field(scene, path, {silkLoader: opts.silkLoader, rider: opts.rider, onChange: opts.onChange,
     horseScale: course ? 1.3 : 1.6});

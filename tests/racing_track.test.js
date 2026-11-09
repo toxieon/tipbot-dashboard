@@ -158,6 +158,39 @@ test("named course billboards match the Sponsor Studio slot list", async () => {
   }
 });
 
+const FOLLOWER = ["rooftop_A", "rooftop_B", "infield_C"];
+test("billboard-slots.json (TipBot's Studio list) is exactly what each track builds", async () => {
+  const {billboardPlacements} = await rc();
+  const shared = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/billboard-slots.json"), "utf8"));
+  const rules = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/billboards.json"), "utf8")).courses;
+  const follower = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/billboards/placements.json"), "utf8")).placements.map((p) => p.name);
+  assert.deepEqual(follower, FOLLOWER);
+  const uniq = (pl) => [...new Set(pl.flatMap((p) => p.slots.map((s) => s.slot_id)))];
+  assert.deepEqual(shared.courses.generic, uniq(billboardPlacements(null)).concat(FOLLOWER));
+  for (const id of Object.keys(STUDIO)) {
+    const def = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/courses", id + ".json"), "utf8"));
+    assert.deepEqual(shared.courses[id], uniq(billboardPlacements({def, rules: rules[id].rules, start_m: rules[id].start_m})).concat(FOLLOWER), id);
+  }
+});
+
+test("named courses: the infield board sits inside each course's inside rail, boards scaled up", async () => {
+  const {infieldSpot, coursePath, courseFit, NAMED_BOARD_SCALE} = await rc();
+  assert.ok(NAMED_BOARD_SCALE > 1);
+  for (const id of Object.keys(STUDIO)) {
+    const def = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/courses", id + ".json"), "utf8"));
+    const fit = courseFit(def), p = coursePath(def, fit), spot = infieldSpot(p);
+    let inside = false;
+    const pts = p.points;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const a = pts[i], b = pts[j];
+      if ((a[1] > spot.z) !== (b[1] > spot.z) && spot.x < (b[0] - a[0]) * (spot.z - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+    }
+    assert.ok(inside, id + " infield_C inside the rail");
+    assert.ok(spot.z > 40 && spot.z < 110, id + " in front of the stand: " + spot.z);
+    assert.ok(fit.s * NAMED_BOARD_SCALE >= 0.6, id + " boards at least 0.6 x real size");
+  }
+});
+
 test("billboards: patches matched by prefix keep the LED's own emissive, frames merge", async () => {
   const T = await import("../assets/vendor/three/three.module.min.js");
   const {buildBillboard, placeBillboardsEllipse, makeEllipseLoop} = await bb();

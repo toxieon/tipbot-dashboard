@@ -112,7 +112,7 @@ async function blimp(page, name) {
 }
 
 const SCENE = { billboards: {
-  flemington: { led_3: { sponsor: "Sample", url: "/api/ground/files/board-led.png" }, "tall_1.main": { sponsor: "Sample", url: "/api/ground/files/board-tall.png" },
+  flemington: { rooftop_A: { sponsor: "Sample", url: "/api/ground/files/board-rooftop.png" }, led_3: { sponsor: "Sample", url: "/api/ground/files/board-led.png" }, "tall_1.main": { sponsor: "Sample", url: "/api/ground/files/board-tall.png" },
     rail_2: { sponsor: "Sample", url: "/api/ground/files/board-rail.png" } },
   generic: { led_6: { sponsor: "Sample", url: "/api/ground/files/board-led.png" }, led_2: { sponsor: "Sample", url: "/api/ground/files/board-led.png" },
     rooftop_A: { sponsor: "Sample", url: "/api/ground/files/board-rooftop.png" }, "tall_2.main": { sponsor: "Sample", url: "/api/ground/files/board-tall.png" } },
@@ -124,12 +124,12 @@ test("Flemington: course model, whole field in silks on Cinna's jockeys, billboa
   await settled(page, "flemington", 10);
   const info = await page.evaluate(() => { const m = document.getElementById("flive-mcg")._mcg; return { kinds: m.riderKinds(), slots: m.billboardSlots() }; });
   expect(info.kinds.every((k) => k === "gltf")).toBe(true);
-  expect(info.slots).toEqual(expect.arrayContaining(["led_3", "rail_2", "tall_1.main", "finish_1.front", "gate_1"]));
+  expect(info.slots).toEqual(expect.arrayContaining(["led_3", "rail_2", "tall_1.main", "finish_1.front", "gate_1", "rooftop_A", "rooftop_B", "infield_C"]));
   const legend = page.locator("#flive-race");
   await expect(legend).toContainText("Flemington R7");
   await expect(legend.locator("li.fl-rr")).toHaveCount(10);
   await expect(legend.locator("li.fl-rr.is-tip")).toContainText("Example Runner 4");
-  await shot(page, "flemington");
+  await shot(page, "flemington-v2");
   await blimp(page, "flemington-blimp");
   expect(errors).toEqual([]);
 });
@@ -142,7 +142,7 @@ test("unknown course falls back to the generic ellipse with its billboards", asy
   expect(slots.filter((s) => /^led_/.test(s)).sort()).toEqual(["led_1", "led_2", "led_3", "led_4", "led_5", "led_6"]);
   expect(slots).toEqual(expect.arrayContaining(["rooftop_A", "rooftop_B", "infield_C", "led_1", "led_6", "rail_1", "tall_1.main", "finish_1.front"]));
   await expect(page.locator("#flive-race")).toContainText("Randwick R7");
-  await shot(page, "generic");
+  await shot(page, "generic-v2");
   await blimp(page, "generic-blimp");
   expect(errors).toEqual([]);
 });
@@ -159,3 +159,14 @@ test("a scratching takes its horse off the track and the legend", async ({ page 
   await shot(page, "scratching-after");
   expect(errors).toEqual([]);
 });
+
+for (const [meeting, course, ev] of [["Caulfield", "caulfield", "evt-caul"], ["Moonee Valley", "moonee-valley", "evt-mv"], ["Sandown Hillside", "sandown-hillside", "evt-san"]]) {
+  test(`${meeting}: course model with the rooftop and infield boards`, async ({ page }) => {
+    const { errors } = await openRace(page, { meeting, eventId: ev, n: 8, scene: SCENE });
+    await settled(page, course, 8);
+    const slots = await page.evaluate(() => document.getElementById("flive-mcg")._mcg.billboardSlots());
+    expect(slots).toEqual(expect.arrayContaining(["rooftop_A", "rooftop_B", "infield_C", "led_1", "rail_1", "tall_1.main", "finish_1.front"]));
+    await shot(page, course + "-v2");
+    expect(errors).toEqual([]);
+  });
+}
