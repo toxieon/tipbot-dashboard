@@ -698,7 +698,9 @@ async function courseRules(base, id) {
 // Each SponsorPatch* mesh (prefix match) under root, by slot id; remembers its backing so a
 // cleared slot goes back to plain. flipY: true for PlaneGeometry boards, false for glTF UVs.
 export var EMPTY_BACKING = 0x0d1419;
-var DARK_EMPTY = /^(rail|tall|finish)_/;
+// Published view: every empty slot (rail, LED, tall, finish, gate, rooftop, infield) shows
+// the dark #0D1419 backing, not a white slab. "YOUR LOGO HERE" stays in Sponsor Studio only.
+var DARK_EMPTY = /^(rail|led|tall|finish|gate)_|^(rooftop_|infield_)/;
 function indexPatches(root, slots, flipY, slotOf) {
   root.traverse(function (n) {
     if (!n.isMesh || !/^SponsorPatch/.test(n.name || "")) return;
@@ -709,8 +711,6 @@ function indexPatches(root, slots, flipY, slotOf) {
     // A dark backing (the LED strip) that glows with no image shows as a grey slab; an
     // empty dark slot stays dark until it has sponsor art. Intensity is never touched.
     var dark = !!(m.color && (m.color.r + m.color.g + m.color.b) / 3 < 0.2 && !m.map);
-    // Published view: empty rail, tall and finish panels show the LED's dark backing, not
-    // a white slab ("YOUR LOGO HERE" lives in the Sponsor Studio editor only).
     var backed = DARK_EMPTY.test(id) && m.color && !m.map;
     if (backed && !dark) { m.color.set(EMPTY_BACKING); dark = true; }
     n.userData.patch = {flipY: flipY, color: m.color ? m.color.clone() : null, map: m.map || null, emissiveMap: m.emissiveMap || null,
@@ -732,7 +732,9 @@ export var NAMED_BOARD_SCALES = {rail: 1.6, led: 1.6, tall: 1.6, finish: 1.6, ga
 /** A placed board's footprint corners (course metres) and their lateral offsets (from the
     inside rail, + towards the outer rail) at its site. */
 export function boardFootprint(def, p) {
-  var k = p.scale || 1, w = Math.max.apply(null, BOARD_TYPES[p.type].slots.map(function (sl) { return sl.w; })) * k;
+  var k = p.scale || 1;
+  var slotW = (p.slots && p.slots.length) ? p.slots : BOARD_TYPES[p.type].slots;
+  var w = Math.max.apply(null, slotW.map(function (sl) { return sl.w; })) * k;
   var d = BOARD_TYPES[p.type].depth_m * k + 0.3, c = Math.cos(p.yaw_rad), sn = Math.sin(p.yaw_rad), pts = [];
   [-w / 2, w / 2].forEach(function (sx) { [-d / 2, d / 2].forEach(function (sz) {
     pts.push([p.position.x + c * sx + sn * sz, p.position.z - sn * sx + c * sz]);
@@ -769,11 +771,13 @@ function inside(pts, x, z) {
 
 /** Where infield_C stands, picked by projecting the board and the parade field through
     the Grandstand camera (.harness/infield.mjs): deep enough in the infield that it never
-    covers the horses. Named courses run anticlockwise, so at (18, 75) the board stays
+    covers the horses. Named courses run anticlockwise, so at (18, 71) the board stays
     clear of the field for the whole lap. The generic loop runs clockwise, so the field
     rounds the far turn behind any infield spot; (-20, 72) keeps the parade clear for its
     first ~10 s and the board readable. */
-export var INFIELD_BOARD = {named: {x: 18, z: 75}, generic: {x: 5, z: 75}};
+// Named spot is ~4 m further into the infield than 0.72.0's (18, 75), so at 390 px the
+// board's bottom edge clears the R7 label; still inside the rail and clear of the field.
+export var INFIELD_BOARD = {named: {x: 18, z: 71}, generic: {x: 5, z: 75}};
 
 /** infield_C's spot for a track: the preferred point if it lies inside the rail outline,
     else step in from the inside rail nearest it, else the infield centroid. Faces the

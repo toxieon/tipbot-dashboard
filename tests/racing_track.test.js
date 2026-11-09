@@ -315,10 +315,10 @@ test("named board sizes: rail, LED and tall at least 1.35 x, finish 1.6 x, gate 
       if (p.type === "rail") assert.ok(lo > W - 0.5 && hi < W + 0.5, `${id} ${p.id} on the outer rail fence (${lo.toFixed(2)}..${hi.toFixed(2)})`);
       else assert.ok(hi < 0, `${id} ${p.id} stays inside the inside rail (${hi.toFixed(2)} m)`);
     });
-    // Gate banners are Cinna's (unchanged in 0.72.0); a short last banner can butt into its
-    // neighbour (Moonee Valley's 3-stall gate_4), so gate pairs are left to her.
+    // 0.72.1: partial gate banners shrink (stalls_covered / per x 6.0 m), so gate pairs no
+    // longer overlap either (Moonee Valley gate_4 was the leftover 0.75 m clash).
     for (let i = 0; i < placed.length; i++) for (let j = i + 1; j < placed.length; j++)
-      if (placed[i].type !== "gate" || placed[j].type !== "gate") assert.ok(apart(fp[i].pts, fp[j].pts), `${id}: ${placed[i].id} overlaps ${placed[j].id}`);
+      assert.ok(apart(fp[i].pts, fp[j].pts), `${id}: ${placed[i].id} overlaps ${placed[j].id}`);
   }
 });
 
@@ -352,9 +352,66 @@ test("stand-top boards fit the 390 px hero: 12 px clear at the top and clear of 
   }
 });
 
-test("published view: empty rail, tall and finish panels show the dark LED backing", () => {
+test("published view: empty rail, tall, finish, gate, rooftop and infield panels show the dark LED backing", () => {
   const src = fs.readFileSync(path.join(ROOT, "assets/venues/racecourse.js"), "utf8");
   assert.match(src, /EMPTY_BACKING = 0x0d1419/);
-  assert.match(src, /DARK_EMPTY = \/\^\(rail\|tall\|finish\)_\//);
+  assert.match(src, /DARK_EMPTY = \/\^\(rail\|led\|tall\|finish\|gate\)_\|\^\(rooftop_\|infield_\)\//);
   assert.doesNotMatch(src.replace(/\/\/.*$/gm, ""), /YOUR LOGO HERE/i, "the placeholder is Sponsor Studio's, not the published view's");
+});
+
+test("partial gate banners: Moonee Valley gate_4 is 4.5 m and generic gate_5 is 1.5 m (fitted, not stretched)", async () => {
+  const { billboardPlacements } = await rc();
+  const { placeBillboards, TYPES, buildBillboard } = await bb();
+  const T = await import("../assets/vendor/three/three.module.min.js");
+  const G = TYPES.gate.slots[0];
+  const rules = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/billboards.json"), "utf8")).courses;
+  const mvDef = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/courses/moonee-valley.json"), "utf8"));
+  const mv = billboardPlacements({ def: mvDef, rules: rules["moonee-valley"].rules, start_m: rules["moonee-valley"].start_m }).filter((p) => p.type === "gate");
+  const mv4 = mv.find((p) => p.n === 4);
+  assert.ok(mv4, "Moonee Valley has gate_4");
+  assert.deepEqual(mv4.stalls, [13, 15]);
+  assert.equal(mv4.slots[0].w, 4.5);
+  assert.equal(mv4.slots[0].h, G.h);
+  assert.deepEqual(mv4.slots[0].px, G.px);
+  assert.equal(mv4.slots[0].fit, "contain");
+  assert.ok(Math.abs(mv4.size_m.w - 4.5) < 1e-3);
+
+  const genDef = JSON.parse(fs.readFileSync(path.join(ROOT, "tests/fixtures/generic-synthetic-oval.json"), "utf8"));
+  const gen = placeBillboards(genDef, {}, { start: genDef.default_start_m }).filter((p) => p.type === "gate");
+  const g5 = gen.find((p) => p.n === 5);
+  assert.ok(g5, "generic synthetic oval has gate_5");
+  assert.deepEqual(g5.stalls, [17, 17]);
+  assert.equal(g5.slots[0].w, 1.5);
+  assert.equal(g5.slots[0].fit, "contain");
+  assert.deepEqual(g5.slots[0].px, G.px);
+
+  // All named courses: width = 6.0 x covered / per; neighbouring banners do not overlap.
+  for (const id of Object.keys(STUDIO)) {
+    const def = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/courses", id + ".json"), "utf8"));
+    const gates = billboardPlacements({ def, rules: rules[id].rules, start_m: rules[id].start_m }).filter((p) => p.type === "gate");
+    const per = 4;
+    for (const g of gates) {
+      const cov = g.stalls[1] - g.stalls[0] + 1, s = g.slots[0];
+      assert.ok(Math.abs(s.w - G.w * cov / per) < 1e-9, `${id} ${g.id} w=${s.w}`);
+      assert.equal(s.h, G.h);
+      assert.deepEqual(s.px, G.px);
+      assert.equal(s.fit, cov < per ? "contain" : undefined);
+    }
+    for (let i = 1; i < gates.length; i++) {
+      const a = gates[i - 1], b = gates[i], gap = (b.lateral_m - b.slots[0].w / 2) - (a.lateral_m + a.slots[0].w / 2);
+      assert.ok(gap > -1e-6, `${id}: ${a.id} overlaps ${b.id} by ${(-gap).toFixed(3)} m`);
+    }
+  }
+
+  // Builder letterboxes a partial banner (uniform scale, full width, centred on backing).
+  const built = buildBillboard(T, g5, {});
+  const patch = built.getObjectByName("SponsorPatch"), back = built.getObjectByName("Backing");
+  assert.ok(patch && back, "partial gate has SponsorPatch + Backing");
+  const pw = patch.geometry.parameters, bw = back.geometry.parameters;
+  assert.ok(Math.abs(bw.width - 1.5) < 1e-9 && Math.abs(bw.height - G.h) < 1e-9);
+  assert.ok(Math.abs(pw.width / pw.height - G.px[0] / G.px[1]) < 1e-9, "image keeps the texture aspect");
+  assert.ok(pw.width <= bw.width + 1e-9 && pw.height <= bw.height + 1e-9 && Math.abs(pw.width - bw.width) < 1e-9, "fits inside, full width");
+  const full = buildBillboard(T, mv.find((p) => p.n === 1), {});
+  assert.equal(full.getObjectByName("Backing"), undefined);
+  assert.equal(full.getObjectByName("SponsorPatch").geometry.parameters.width, G.w);
 });

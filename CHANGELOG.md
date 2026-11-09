@@ -1,3 +1,10 @@
+## 0.72.1 · 2026-11-10 · `fix` · Empty boards dark, partial gate trim, Flemington infield nudge
+
+- Published (follower) Game view: empty stand-top (`rooftop_A`/`rooftop_B`) and infield boards, plus empty gate panels, use the dark `#0D1419` backing like the empty LEDs, rail, tall and finish panels already did. "YOUR LOGO HERE" stays in the Sponsor Studio editor only.
+- Partial barrier-stall gate banners: panel width = `6.0 m × stalls_covered / stalls_per_banner`, centred on those stalls, same texture px; the image is fitted (not stretched) onto the backing. Moonee Valley `gate_4` is 4.5 m; a 17-stall generic start's `gate_5` is 1.5 m. Removes the leftover 0.75 m overlap.
+- Flemington (and every named course) infield board moves ~4 m further into the infield (`(18, 71)`), so at 390 px its bottom edge clears the R7 label while staying in frame and clear of the race leader and tipped horse.
+- Tests: empty-slot dark backing covers every slot type; partial gate widths and letterboxing; gate pairs no longer overlap on the four named courses.
+
 ## 0.72.0 · 2026-11-10 · `feat` · Simulated race after the jump
 
 - Before the jump the field still parades. Once the race has jumped (a post-jump status, or the start time passing; a timer fires at the start time), the horses break from their barrier stalls and run the race distance: on a named course along the matching start's own route (chute included) via `racecourse-lib.js` `distanceToWorld` / `barrierStalls`, the nearest start when the distance has none; on the generic ellipse the race starts that many metres before the post. Past the post they pull up in finishing order. Abandoned races don't run.
