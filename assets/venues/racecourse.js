@@ -34,6 +34,8 @@ import { box, mat, ellPath, crowdMat, facadeMat, ledRibbons, rng, mountVenue } f
 import { placeBillboards, makeEllipseLoop, placeBillboardsEllipse, addBillboards as addLibBillboards } from "./billboards-lib.js";
 import { syncGallop, FALLBACK_SILK } from "./riders/jockey-silk.js";
 import { mergeGeometries } from "../vendor/three/addons/utils/BufferGeometryUtils.js";
+import { distanceToWorld, barrierStalls, resolveStart } from "./racecourse-lib.js";
+import { racePlan, seedOf } from "./sim-race.js";
 
 export var VENUE = "racecourse";
 export var FALLBACK_URL = new URL("./racecourse-fallback.png", import.meta.url).href;
@@ -166,6 +168,7 @@ function herd(scene, n, scale) {
   if (legs.instanceColor) legs.instanceColor.needsUpdate = true;
   var root = new T.Matrix4(), local = new T.Matrix4(), out = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), one = new T.Vector3(1, 1, 1), sc = new T.Vector3(scale, scale, scale);
   return {
+    setScale: function (k) { sc.set(k, k, k); },
     set: function (i, x, z, yaw, bob, stride) {
       e.set(0, yaw, 0); q.setFromEuler(e);
       root.compose(v.set(x, 0, z), q, sc);
@@ -326,9 +329,96 @@ function demoField() {
   });
 }
 
+/* ---------- the simulated race: where a run of (metres, lateral) sits on this track ---------- */
+// Lanes horses settle into after the break (metres from the inside rail, by finishing place).
+export var RACE_LANES = {first: 1.2, step: 1.6, count: 4};
+
+/** The course start for a race distance: the exact start, else the nearest one. */
+export function startFor(def, distance) {
+  var list = (def && def.starts) || [], d = +distance || (def && def.default_start_m) || 1200, best = null;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].distance_m === d) return list[i];
+    if (!best || Math.abs(list[i].distance_m - d) < Math.abs(best.distance_m - d)) best = list[i];
+  }
+  return best;
+}
+
+/** Winning post on the generic loop: the inside-rail point in front of the stand. */
+export function genericPost(path) {
+  var best = 0, bd = Infinity, n = 720;
+  for (var i = 0; i < n; i++) {
+    var s = path.len * i / n, p = path.at(s), d = Math.hypot(p.x, p.z - (B - WD / 2));
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+
+/**
+ * Maps a run onto this track. Named courses: the start's own route (chute included) from
+ * racecourse-lib's distanceToWorld in the course frame, fitted into the scene; past the
+ * post the horses pull up along the main loop. Generic ellipse: the race starts
+ * ``distance`` metres before the post (world metres, laps wrap) and runs to it.
+ * raceScale shrinks the horses so neighbouring barrier stalls don't overlap.
+ */
+export function raceTrack(named, path) {
+  var cur = null;
+  if (named) {
+    var def = named.def, fit = named.fit, Bd = def.barriers || {first_stall_offset_m: 0.75, spacing_m: 1.5, max_stalls: 20};
+    return {
+      kind: "named", lanes: RACE_LANES,
+      raceScale: Math.max(0.45, Math.min(1.3, Bd.spacing_m * fit.s / 0.9 * 0.95)),
+      start: function (distance) {
+        var st = startFor(def, distance);
+        cur = {st: resolveStart(def, st.id)};
+        return {distance: st.distance_m, start: st.id};
+      },
+      stallLat: function (b) {
+        var n = (cur && cur.st.stalls_available) || Bd.max_stalls || 20;
+        return Bd.first_stall_offset_m + ((Math.max(1, b) - 1) % n) * Bd.spacing_m;
+      },
+      stalls: function () { return cur ? barrierStalls(def, cur.st) : []; },
+      toWorld: function (d, lat) {
+        var D = cur.st.distance_m;
+        if (d <= D) {
+          var w = distanceToWorld(def, Math.max(0, d), lat, {start: cur.st}), f = fitPoint(fit, w.x, w.z);
+          return {x: f[0], z: f[1]};
+        }
+        var p = path.place((d - D) * fit.s, lat * fit.s);
+        return {x: p.x, z: p.z};
+      }
+    };
+  }
+  var post = genericPost(path);
+  return {
+    kind: "generic", lanes: RACE_LANES, raceScale: 1.55,
+    start: function (distance) {
+      var D = Math.max(400, Math.min(4000, +distance || 1200));
+      cur = {D: D};
+      return {distance: D, start: "generic-" + D};
+    },
+    stallLat: function (b) { return 0.75 + ((Math.max(1, b) - 1) % 20) * 1.5; },
+    stalls: function () { return []; },
+    toWorld: function (d, lat) { var p = path.place(post - cur.D + d, lat); return {x: p.x, z: p.z}; }
+  };
+}
+
+/** Follow-camera for the leader: outside the track, alongside and a touch behind. */
+export function followCamera(track, pose) {
+  if (!pose) return null;
+  var k = pose.scale / 1.3;
+  var a = track.toWorld(pose.d, pose.lat), b = track.toWorld(pose.d, pose.lat + 10), c = track.toWorld(pose.d + 5, pose.lat);
+  var nx = b.x - a.x, nz = b.z - a.z, nl = Math.hypot(nx, nz) || 1;
+  var hx = c.x - a.x, hz = c.z - a.z, hl = Math.hypot(hx, hz) || 1;
+  nx /= nl; nz /= nl; hx /= hl; hz /= hl;
+  // Broadcast-style tracking shot: alongside, a touch behind, so the chasers trail off to one side.
+  return {pos: [pose.x + nx * 34 * k - hx * 8 * k, 14 * k, pose.z + nz * 34 * k - hz * 8 * k],
+    look: [pose.x - hx * 4 * k, 1.5 * k, pose.z - hz * 4 * k]};
+}
+
 function Field(scene, path, opts) {
   var horses = null, riders = [], markers = [], runners = [], lead = paradeStart(path), t = 0, gen = 0;
   var scale = opts.horseScale || 1.6;
+  var track = opts.track || null, race = null;   // race: {spec, info, plan, t, scale} after the jump
   var markerGeo = new T.ConeGeometry(0.9, 1.8, 10), markerMat = new T.MeshBasicMaterial({color: ACCENT});
   markerGeo.rotateX(Math.PI);
   function clear() {
@@ -353,7 +443,7 @@ function Field(scene, path, opts) {
       }
       makeRider(rn, {rider: opts.rider, count: runners.length, phone: opts.phone}).then(function (rider) {
         if (my !== gen) { rider.dispose(); return; }
-        rider.obj.scale.setScalar(scale);
+        rider.obj.scale.setScalar(race ? race.scale : scale);
         scene.add(rider.obj);
         riders[i] = rider;
         if (rn.silk_url && opts.silkLoader) {
@@ -368,11 +458,69 @@ function Field(scene, path, opts) {
         if (opts.onChange) opts.onChange();
       });
     });
+    // A new field mid-race (a late scratching) re-runs the same race from where it was.
+    if (race) { var at = race.t; setRace(race.spec); race.t = at; }
     update(0);
+  }
+  function raceUpdate(dt) {
+    var R = race, k = R.scale;
+    R.t = Math.min(R.t + dt, R.plan.duration);
+    var moving = R.t > 0 && R.t < R.plan.duration;
+    runners.forEach(function (rn, i) {
+      var q = R.plan.at(i, R.t);
+      var w = track.toWorld(q.d, q.lat), ahead = track.toWorld(q.d + 1, q.lat);
+      var dx = ahead.x - w.x, dz = ahead.z - w.z;
+      var p = {x: w.x, z: w.z, yaw: Math.abs(dx) + Math.abs(dz) > 1e-6 ? Math.atan2(dx, dz) : (rn._p ? rn._p.yaw : 0)};
+      // Gallop while running, slow to a canter after the post, stand still in the gates.
+      rn._stride = (rn._stride || 0) + dt * (moving && R.t > 0 ? (q.done ? 4 : 11) : 0);
+      var stride = rn._stride + i * 0.7, bob = moving ? Math.abs(Math.sin(stride)) * 0.1 * k : 0;
+      horses.set(i, p.x, p.z, p.yaw, bob, stride);
+      var r = riders[i];
+      if (r) {
+        r.obj.position.set(p.x, 0, p.z);
+        r.obj.rotation.set(0, p.yaw, 0);
+        r.update(dt, stride, bob);
+      }
+      rn._p = p; rn._q = q;
+    });
+  }
+  function applyScale(k) {
+    if (horses) horses.setScale(k);
+    riders.forEach(function (r) { if (r) r.obj.scale.setScalar(k); });
+  }
+  /** spec: {distance, order: [saddle numbers, winner first], key, source}; null = parade. */
+  function setRace(spec) {
+    if (!spec || !track || !runners.length) {
+      if (race) { race = null; applyScale(scale); }
+      return null;
+    }
+    var idx = {}, order = [];
+    runners.forEach(function (rn, i) { if (rn.number != null) idx[rn.number] = i; });
+    (spec.order || []).forEach(function (n) { if (idx[n] != null && order.indexOf(idx[n]) < 0) order.push(idx[n]); });
+    runners.forEach(function (rn, i) { if (order.indexOf(i) < 0) order.push(i); });   // not placed: behind, field order
+    var stalls = runners.map(function (rn, i) { return track.stallLat(rn.barrier || i + 1); });
+    var info = track.start(spec.distance);
+    race = {spec: spec, info: info, t: -1, scale: Math.min(scale, track.raceScale),
+      plan: racePlan({distance: info.distance, order: order, stalls: stalls, lanes: track.lanes,
+        seed: seedOf(spec.key || order.join(","))})};
+    applyScale(race.scale);
+    raceUpdate(0);
+    return info;
   }
   function update(dt) {
     if (!horses) return;
     t += dt;
+    if (race) raceUpdate(dt);
+    else paradeUpdate(dt);
+    var k = race ? race.scale : scale;
+    markers.forEach(function (m) {
+      var p = runners[m.userData.i]._p;
+      m.scale.setScalar(k / scale);
+      m.position.set(p.x, (7.5 + Math.sin(t * 3) * 0.4 * 1.6 / scale) * k / 1.6, p.z);
+    });
+    horses.flush();
+  }
+  function paradeUpdate(dt) {
     lead += CANTER * dt;
     var lanes = [0.22, 0.48, 0.74];
     runners.forEach(function (rn, i) {
@@ -390,13 +538,36 @@ function Field(scene, path, opts) {
       }
       runners[i]._p = p;
     });
-    markers.forEach(function (m) {
-      var p = runners[m.userData.i]._p;
-      m.position.set(p.x, 7.5 * scale / 1.6 + Math.sin(t * 3) * 0.4, p.z);
-    });
-    horses.flush();
+  }
+  function raceState() {
+    if (!race) return {phase: "parade"};
+    var rn = runners[race.plan.leader(Math.max(0, race.t))] || {};
+    return {phase: race.t >= race.plan.duration ? "finished" : "race", t: race.t, duration: race.plan.duration,
+      distance: race.info.distance, start: race.info.start, source: race.spec.source || "",
+      leader: rn.number == null ? null : rn.number, winnerAt: race.plan.finishAt[race.plan.order[0]],
+      order: race.plan.order.map(function (i) { return runners[i].number; })};
+  }
+  function leaderPose() {
+    if (!race) return null;
+    var rn = runners[race.plan.leader(Math.max(0, race.t))];
+    return rn && rn._p ? {x: rn._p.x, z: rn._p.z, yaw: rn._p.yaw, d: rn._q.d, lat: rn._q.lat, scale: race.scale} : null;
   }
   return {set: set, update: update, count: function () { return runners.length; },
+    setRace: setRace, raceState: raceState, leaderPose: leaderPose,
+    // Jump the run to playback time t (seconds; -1 = in the gates). Tests and screenshots.
+    seek: function (at) {
+      if (!race) return false;
+      race.t = Math.max(-1, Math.min(+at || 0, race.plan.duration));
+      raceUpdate(0);
+      return true;
+    },
+    replay: function () {
+      if (!race) return false;
+      race.t = -1;
+      runners.forEach(function (rn) { rn._stride = 0; });
+      raceUpdate(0);
+      return true;
+    },
     riderKinds: function () { return riders.map(function (r) { return r ? r.kind : ""; }); },
     dispose: function () { clear(); markerGeo.dispose(); markerMat.dispose(); }};
 }
@@ -665,7 +836,8 @@ function Billboards(onChange) {
 
 export async function buildRacecourse(scene, opts) {
   opts = opts || {};
-  box(scene, 700, 0.2, 400, 0x2f5b2c, 0, -0.1, 0);
+  // Wide enough for the chute starts the simulated race uses (Flemington's straight runs off the fitted box).
+  box(scene, 1600, 0.2, 1000, 0x2f5b2c, 0, -0.1, 0);
   var path = null, course = "", named = null;
   var want = COURSES.indexOf(opts.course) >= 0 ? opts.course : "";
   if (want) {
@@ -699,11 +871,15 @@ export async function buildRacecourse(scene, opts) {
         infieldSpot(path, named ? INFIELD_BOARD.named : INFIELD_BOARD.generic));
     } catch (e) {}
   }
+  var rtrack = raceTrack(named, path);
   var field = Field(scene, path, {silkLoader: opts.silkLoader, rider: opts.rider, onChange: opts.onChange,
-    horseScale: course ? 1.3 : 1.6});
+    horseScale: course ? 1.3 : 1.6, track: rtrack});
   field.set(opts.field || null);
   return {led: led, update: field.update, course: course, path: path,
     setField: function (list) { field.set(list || null); }, fieldCount: field.count, riderKinds: field.riderKinds,
+    // Simulated race after the jump: spec {distance, order, key, source}; null = parade.
+    setRace: field.setRace, raceState: field.raceState, replayRace: field.replay, seekRace: field.seek,
+    follow: function () { return followCamera(rtrack, field.leaderPose()); },
     billboardSlots: function () { return Object.keys(boards.slots); },
     // map: the scene's "billboards" ({course: {slot: {url}}}); this track's rows apply.
     setBillboards: function (map) { return boards.set((map || {})[course || "generic"] || {}); },

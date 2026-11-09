@@ -308,6 +308,8 @@
   .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}.fl-clock .fl-starts{color:color-mix(in srgb,var(--txt) 82%,transparent)}
   .fl-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:16px 2px 2px}.fl-sec h2{margin:0;font-size:1.35rem;font-weight:750;letter-spacing:-.02em}.fl-sec span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-note{margin:8px 0;color:var(--muted);font-size:var(--t-foot)}
+  .fl-sim{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:var(--t-foot);color:var(--muted)}
+  .fl-sim-replay{flex:none;min-height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
   .fl-race{padding:14px 2px 2px}.fl-race-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.fl-race-head h2{margin:0;font-size:1.15rem;font-weight:750;letter-spacing:-.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl-race-head span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-race-list{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
   .fl-rr{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font-size:var(--t-foot)}
@@ -5632,6 +5634,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   function fliveRaceStop(){
     if(FLIVE.raceTimer){ clearTimeout(FLIVE.raceTimer); FLIVE.raceTimer=null; }
+    if(FLIVE.race&&FLIVE.race.jumpTimer){ clearTimeout(FLIVE.race.jumpTimer); FLIVE.race.jumpTimer=null; }
     FLIVE.race=null;
     const el=$("flive-race"); if(el){ el.hidden=true; el.innerHTML=""; }
   }
@@ -5647,8 +5650,34 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const el=$("flive-race"), race=FLIVE.race;
     if(!el) return;
     if(!race||!window.TBRacingTrack){ el.hidden=true; el.innerHTML=""; return; }
-    el.innerHTML=TBRacingTrack.legendHtml(race.ref, race.event, race.field||[]);
+    const bar=TBRacingTrack.raceBarHtml?TBRacingTrack.raceBarHtml(race.sim):"";
+    el.innerHTML=(bar?'<div class="fl-sim" id="flive-sim">'+bar+'</div>':"")+TBRacingTrack.legendHtml(race.ref, race.event, race.field||[]);
     el.hidden=false;
+    const btn=el.querySelector(".fl-sim-replay");
+    if(btn) btn.onclick=function(){ const host=$("flive-mcg"), h=host&&host._mcg; if(h&&h.replayRace&&!h.fallback) h.replayRace(); };
+  }
+  /* Simulated race (0.72.0): before the jump the field parades; after it the horses
+     break from the barrier stalls and run the trip, finishing in result order once
+     results are in, else the With-price model rank, else barrier order. The Grandstand
+     view follows the leader; Replay re-runs it. A new order (results landing) re-runs. */
+  function fliveRaceSim(){
+    const race=FLIVE.race;
+    if(!race||!window.TBRacingTrack||!TBRacingTrack.simFromEvent) return;
+    if(race.jumpTimer){ clearTimeout(race.jumpTimer); race.jumpTimer=null; }
+    const sim=race.event&&race.field?TBRacingTrack.simFromEvent(race.event, race.field, Date.now()):{phase:"parade"};
+    race.sim=sim;
+    const host=$("flive-mcg"), h=host&&host._mcg;
+    if(h&&h.setRace&&!h.fallback){
+      const want=sim.phase==="race"?sim.key:"";
+      if(race.simHandle!==h||(race.simKey||"")!==want){
+        race.simHandle=h; race.simKey=want;
+        h.setRace(sim.phase==="race"?{distance:sim.distance, order:sim.order, key:sim.key, source:sim.source}:null);
+      }
+    }
+    if(sim.phase!=="race"&&sim.jumpAt&&sim.jumpAt>Date.now()&&sim.jumpAt-Date.now()<2147000000){
+      race.jumpTimer=setTimeout(function(){ race.jumpTimer=null; if(FLIVE.race===race){ fliveRaceSim(); fliveRaceRead(race); } }, sim.jumpAt-Date.now()+500);
+    }
+    fliveRacePaint();
   }
   function fliveRaceSync(ref){
     if(!ref){ if(FLIVE.race) fliveRaceStop(); return; }
@@ -5677,6 +5706,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!race||FLIVE.venue!=="racecourse"||!handle||handle.fallback) return;
     if((race.mountedCourse||"")!==(race.course||"")&&!race.remounted){ race.remounted=true; fliveRemountGround(); return; }
     if(race.field&&handle.setField&&race.mountedField!==race.field){ race.mountedField=race.field; handle.setField(race.field); }
+    fliveRaceSim();
   }
   function fliveRemountGround(){
     const host=$("flive-mcg");
@@ -5712,7 +5742,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             const host=$("flive-mcg"), h=host&&host._mcg;
             if(h&&h.setField&&!h.fallback){ race.mountedField=field; h.setField(field); }
           }
-          fliveRacePaint();
+          fliveRaceSim();
           done=/^(final|resulted|official|abandoned)$/i.test(String(ev.status||"").trim());
         }
       }

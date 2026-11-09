@@ -1,3 +1,13 @@
+## 0.72.0 · 2026-11-10 · `feat` · Simulated race after the jump
+
+- Before the jump the field still parades. Once the race has jumped (a post-jump status, or the start time passing; a timer fires at the start time), the horses break from their barrier stalls and run the race distance: on a named course along the matching start's own route (chute included) via `racecourse-lib.js` `distanceToWorld` / `barrierStalls`, the nearest start when the distance has none; on the generic ellipse the race starts that many metres before the post. Past the post they pull up in finishing order. Abandoned races don't run.
+- Finish order: results/positions once any are in (`results` rows by runner number or id, or a runner's own `result`), else the Predictor's With-price `model_rank` (TipBot 0.92.24+), else barrier order. Scratched runners never run. When results land on a later read the race re-runs in result order.
+- The run (`assets/venues/sim-race.js`, pure): race pace 16.5 m/s at 2x playback (1200 m in ~37 s), a standing start, a bounded seeded mid-race reshuffle (same race on every replay), each runner passing the post at its place's time.
+- The Grandstand view follows the leader with a side-on tracking shot (eased); other camera presets stay put. During the race horses are drawn at a size where neighbouring stalls don't overlap.
+- A bar above the runner list says which order is running (Result / Model / Barrier order) with a Replay button. Reduced motion shows the finish straight away.
+- The shared ground is larger so chute starts (Flemington's straight) sit on grass.
+- Tests: `tests/sim_race.test.js` (order, jump, run maths, start routes and stalls on all four courses, the generic mapping) and `tests/e2e/simrace.spec.mjs` (390 px, mocked API: model order with a scratching, results replacing the model, parade before the jump and the generic loop).
+
 ## 0.71.0 · 2026-11-10 · `feat` · Game view racetrack for followed races
 
 - A followed racing tip opens its race on the Game view track. The race comes from the leg's `event_id` / `meeting_name` / `race_number` / `runner_number` (TipBot 0.92.20+); an older bot falls back to the meeting in the game name. The meeting picks the course model: Flemington, Caulfield, Moonee Valley or Sandown Hillside (`TBVenues.courseFor`, with aliases such as "The Valley"). Any other meeting, or a course that fails to load, gets the generic ellipse.
