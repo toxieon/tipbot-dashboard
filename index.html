@@ -308,6 +308,14 @@
   .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}.fl-clock .fl-starts{color:color-mix(in srgb,var(--txt) 82%,transparent)}
   .fl-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:16px 2px 2px}.fl-sec h2{margin:0;font-size:1.35rem;font-weight:750;letter-spacing:-.02em}.fl-sec span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-note{margin:8px 0;color:var(--muted);font-size:var(--t-foot)}
+  .fl-race{padding:14px 2px 2px}.fl-race-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.fl-race-head h2{margin:0;font-size:1.15rem;font-weight:750;letter-spacing:-.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl-race-head span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
+  .fl-race-list{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+  .fl-rr{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font-size:var(--t-foot)}
+  .fl-rr.is-tip{border-color:color-mix(in srgb,var(--accent) 70%,transparent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+  .fl-rr-silk{flex:none;width:26px;height:26px;border-radius:8px;background:var(--bg);display:grid;place-items:center;overflow:hidden}.fl-rr-silk img{width:24px;height:24px}.fl-rr-silk i{display:block;width:16px;height:16px;border-radius:5px}
+  .fl-rr-no{flex:none;min-width:18px;font-weight:800}.fl-rr-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl-rr.is-tip .fl-rr-name{font-weight:750}
+  .fl-rr-tip{font-style:normal;margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--accent);color:#fff;font-size:.72em;font-weight:800;vertical-align:1px}
+  .fl-rr-bar{flex:none;color:var(--muted)}.fl-rr-empty{margin:8px 0 0;color:var(--muted);font-size:var(--t-foot)}
   .fl-demo{position:absolute;z-index:4;top:calc(max(10px, env(safe-area-inset-top, 0px)) + 44px);left:50%;transform:translateX(-50%);display:flex;gap:6px;width:max-content;max-width:calc(100% - 20px)}
   .fl-demo button{flex:none;min-height:34px;height:34px;padding:0 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--txt) 22%,transparent);background:color-mix(in srgb,#070b14 70%,transparent);color:var(--txt);font:inherit;font-weight:700;font-size:var(--t-foot);cursor:pointer}
   .fl-demo button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 28%,#070b14)}
@@ -1469,6 +1477,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/light-data.js?v=__TD_VERSION__"></script>
 <script src="./assets/lines.js?v=__TD_VERSION__"></script>
 <script src="./assets/racing-legs.js?v=__TD_VERSION__"></script>
+<script src="./assets/racing-track.js?v=__TD_VERSION__"></script>
 <script src="./assets/afl-guernseys.js?v=__TD_VERSION__"></script>
 <script src="./assets/compare-ui.js?v=__TD_VERSION__"></script>
 <script src="./assets/sport-keywords.js?v=__TD_VERSION__"></script>
@@ -5490,6 +5499,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     FLIVE.mcg=false;
     FLIVE.anyLive=false;
     FLIVE.lastGame=null;
+    fliveRaceStop();
+    FLIVE.raceRefSingle=null;
     fliveUnfit();
   }
   window.FollowerLivePage={
@@ -5532,6 +5543,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="fl-score" id="flive-score"></div></div>'
       +'<div class="fl-switch" id="flive-switch" role="tablist" hidden></div></div>'
       +'<div class="fl-scroll" id="flive-scroll">'
+      +'<div class="fl-race" id="flive-race" hidden></div>'
       +'<div class="fl-sec"><h2>Your bets</h2><span id="flive-sum"></span></div>'
       +'<div id="flive-note" class="fl-note" hidden></div>'
       +'<div id="flive-grid">'+loading+'</div>'
@@ -5580,7 +5592,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(seq!==FLIVE.seq||mseq!==FLIVE.mountSeq) return null;
       if(venue==="mcg") FLIVE.mcgMod=mod;
       fliveSponsors(null);
-      return mod.mount(host, {night: true, onLogoTap: fliveLogoTap}).then(function(handle){ return {mod:mod, handle:handle}; });
+      const mopts={night: true, onLogoTap: fliveLogoTap};
+      if(venue==="racecourse"){
+        const race=FLIVE.race;
+        mopts.course=race&&race.course||"";
+        mopts.field=race&&race.field||null;
+        mopts.silkLoader=fliveSilk;
+        if(race) race.mountedCourse=mopts.course;
+      }
+      return mod.mount(host, mopts).then(function(handle){ return {mod:mod, handle:handle}; });
     }).then(function(res){
       if(!res||!res.handle) return;
       const handle=res.handle;
@@ -5591,10 +5611,136 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         return;
       }
       host._mcg=handle;
+      try{ host.dataset.course=handle.course||""; }catch(e){}
       fliveSponsors(handle);
+      fliveRaceAfterMount(handle);
       if(handle.resize) handle.resize();
       try{ if(res.mod&&res.mod.mountCameraChips) res.mod.mountCameraChips(host, handle); }catch(e){}
     }).catch(function(){ if(mseq===FLIVE.mountSeq) FLIVE.mcg=false; FLIVE.expectLogos=0; fliveSponsors(); fliveNoteGround(); });
+  }
+  /* ---------- Racing on the Game view track ----------
+     A followed racing tip carries its race (event_id, meeting_name, runner_number on
+     its legs, TipBot 0.92.20+). The meeting picks the course model (TBVenues.courseFor;
+     anything else is the generic track), /api/racing/event/<id> gives the field, read
+     every 60 s while the page is shown, and scratched runners drop out. Silks come
+     through TipBot's /api/racing/silk proxy. Missing fields: generic track, demo field. */
+  const FLIVE_RACE_MS=(window.TBRacingTrack&&TBRacingTrack.POLL_MS)||60000;
+  function fliveSilk(url){
+    const p=window.TBRacingTrack?TBRacingTrack.silkPath(url):"";
+    if(!p) return Promise.resolve(null);
+    return api(p,{retries:0,timeoutMs:8000}).then(function(r){ return r&&r.ok&&typeof r.blob==="function"?r.blob():null; }).catch(function(){ return null; });
+  }
+  function fliveRaceStop(){
+    if(FLIVE.raceTimer){ clearTimeout(FLIVE.raceTimer); FLIVE.raceTimer=null; }
+    FLIVE.race=null;
+    const el=$("flive-race"); if(el){ el.hidden=true; el.innerHTML=""; }
+  }
+  function fliveRaceRef(){
+    if(!window.TBRacingTrack) return null;
+    if(FLIVE.mode==="own"){
+      const g=(FLIVE.games||[]).find(function(x){ return x.key===FLIVE.gameKey; });
+      return g&&g.race_tips?TBRacingTrack.raceRef(g.race_tips, g.game_name):null;
+    }
+    return FLIVE.raceRefSingle||null;
+  }
+  function fliveRacePaint(){
+    const el=$("flive-race"), race=FLIVE.race;
+    if(!el) return;
+    if(!race||!window.TBRacingTrack){ el.hidden=true; el.innerHTML=""; return; }
+    el.innerHTML=TBRacingTrack.legendHtml(race.ref, race.event, race.field||[]);
+    el.hidden=false;
+  }
+  function fliveRaceSync(ref){
+    if(!ref){ if(FLIVE.race) fliveRaceStop(); return; }
+    const key=(ref.event_id||"")+"|"+(ref.meeting_name||"")+"|"+(ref.race_number||"")+"|"+(ref.tipped||[]).join(",");
+    if(FLIVE.race&&FLIVE.race.key===key) return;
+    fliveRaceStop();
+    const course=window.TBVenues&&TBVenues.courseFor?TBVenues.courseFor(ref.meeting_name):"";
+    FLIVE.race={key:key, ref:ref, course:course, event:null, field:null, remounted:false};
+    fliveRacePaint();
+    fliveRaceCourse();
+    if(ref.event_id) fliveRaceRead(FLIVE.race);
+  }
+  // Remount once when the shown ground was built for another course (or none).
+  function fliveRaceCourse(){
+    const host=$("flive-mcg"), race=FLIVE.race;
+    if(!host||!race||FLIVE.venue!=="racecourse") return;
+    const h=host._mcg;
+    if(!h){ return; }                       // mounting now: fliveRaceAfterMount checks it
+    if(h.fallback||(race.mountedCourse||"")===(race.course||"")) return;
+    if(race.remounted) return;
+    race.remounted=true;
+    fliveRemountGround();
+  }
+  function fliveRaceAfterMount(handle){
+    const race=FLIVE.race;
+    if(!race||FLIVE.venue!=="racecourse"||!handle||handle.fallback) return;
+    if((race.mountedCourse||"")!==(race.course||"")&&!race.remounted){ race.remounted=true; fliveRemountGround(); return; }
+    if(race.field&&handle.setField&&race.mountedField!==race.field){ race.mountedField=race.field; handle.setField(race.field); }
+  }
+  function fliveRemountGround(){
+    const host=$("flive-mcg");
+    if(!host) return;
+    FLIVE.mountSeq++;
+    if(host._mcg&&host._mcg.stop){ try{ host._mcg.stop(); }catch(e){} }
+    host._mcg=null;
+    FLIVE.mcg=false;
+    const old=host.querySelector(".fl-cams"); if(old) old.remove();
+    host.classList.remove("is-webgl");
+    fliveMount();
+  }
+  async function fliveRaceRead(race){
+    if(!race||FLIVE.race!==race||!race.ref.event_id||!window.TBRacingTrack) return;
+    if(FLIVE.raceTimer){ clearTimeout(FLIVE.raceTimer); FLIVE.raceTimer=null; }
+    let done=false;
+    try{
+      const r=await api("/api/racing/event/"+encodeURIComponent(race.ref.event_id),{retries:1,timeoutMs:10000});
+      if(FLIVE.race!==race) return;
+      if(r.ok){
+        const d=await r.json();
+        const ev=d&&d.event;
+        if(FLIVE.race!==race) return;
+        if(ev){
+          race.event=ev;
+          if(!race.course&&ev.meeting_name&&window.TBVenues&&TBVenues.courseFor){
+            const c=TBVenues.courseFor(ev.meeting_name);
+            if(c){ race.course=c; fliveRaceCourse(); }
+          }
+          const field=TBRacingTrack.fieldFromEvent(ev, race.ref.tipped);
+          if(!TBRacingTrack.sameField(race.field, field)){
+            race.field=field;
+            const host=$("flive-mcg"), h=host&&host._mcg;
+            if(h&&h.setField&&!h.fallback){ race.mountedField=field; h.setField(field); }
+          }
+          fliveRacePaint();
+          done=/^(final|resulted|official|abandoned)$/i.test(String(ev.status||"").trim());
+        }
+      }
+    }catch(e){
+      if(e&&e.unauth) return;
+    }
+    if(FLIVE.race!==race||done||document.hidden) return;
+    FLIVE.raceTimer=setTimeout(function(){ FLIVE.raceTimer=null; if(!document.hidden) fliveRaceRead(race); }, FLIVE_RACE_MS);
+  }
+  // Single-game route (#/s/<gid>/game/<name>): the game read has no legs, so the race
+  // comes from this server's follower feed (one read when the game is racing).
+  async function fliveRaceSingle(seq, gid, game){
+    if(!window.TBRacingTrack||!gid) return;
+    let ref=null;
+    try{
+      const r=await api("/api/follower?guild_id="+encodeURIComponent(gid));
+      if(seq!==FLIVE.seq) return;
+      if(r.ok){
+        const d=await r.json();
+        const want=String(game||"").trim().toLowerCase();
+        const tips=((d&&d.feed)||[]).filter(function(t){ return t&&String(t.game_name||"").trim().toLowerCase()===want; });
+        ref=TBRacingTrack.raceRef(FollowerLive.racingTips?FollowerLive.racingTips(tips):tips, game);
+      }
+    }catch(e){}
+    if(seq!==FLIVE.seq) return;
+    if(!ref) ref=TBRacingTrack.raceRef([{sport:"Racing", game_name:game}], game);
+    FLIVE.raceRefSingle=ref;
+    fliveRaceSync(ref);
   }
   // The ground follows the game's sport: an NBA/WNBA/NBL game swaps the MCG for the
   // indoor arena (and back). Only the chosen module is loaded.
@@ -5615,6 +5761,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const img=host.querySelector(".fl-mcg-fallback");
     if(img&&window.TBVenues) img.src=TBVenues.fallbackFor(venue);
     if(venue!=="mcg") flivePlayers(false);
+    if(venue!=="racecourse") fliveRaceStop();
     if(remount!==false) fliveMount();
     return true;
   }
@@ -5865,6 +6012,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       else { note.hidden=true; note.textContent=""; }
     }
     grid.innerHTML=FollowerLive.render(data);
+    fliveRaceSync(fliveRaceRef());
     fliveVenueFromGame(data&&data.game);
     flivePaintBox(data&&data.game);
     fliveSyncPlayers(data&&data.game);
@@ -5958,6 +6106,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     fliveWatchStadium();
     fliveMount();
     fliveLoad(false);
+    if(FLIVE.venue==="racecourse") fliveRaceSingle(FLIVE.seq, FLIVE.gid, game);
   }
   function fliveDemoButtons(playing){
     const play=$("flive-play"), pause=$("flive-pause");
@@ -6194,6 +6343,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!p||p.hidden) return;
     if(document.hidden){
       if(FLIVE.timer){ clearTimeout(FLIVE.timer); FLIVE.timer=null; }
+      if(FLIVE.raceTimer){ clearTimeout(FLIVE.raceTimer); FLIVE.raceTimer=null; }
       const host=document.getElementById("flive-mcg");
       if(host&&host._mcg&&host._mcg.stop){ try{ host._mcg.stop(); }catch(e){} host._mcg=null; }
       FLIVE.mcg=false;
@@ -6201,6 +6351,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     fliveMount();
     fliveLoad(true);
+    if(FLIVE.race&&FLIVE.race.ref&&FLIVE.race.ref.event_id) fliveRaceRead(FLIVE.race);
   });
   /* ---------- FOLLOWER SURFACE (read-only, #31 / #45) ---------- */
   // Lazy (job 03): the Followers view, the all-communities rollup, the promo chip and My Tips
