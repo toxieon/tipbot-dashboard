@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="./assets/favicon.ico?v=0.71.0-edc7187" sizes="any">
-<link rel="icon" href="./assets/favicon.svg?v=0.71.0-edc7187" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.71.0-edc7187" sizes="180x180">
-<link rel="manifest" href="./manifest.webmanifest?v=0.71.0-edc7187">
+<link rel="icon" href="./assets/favicon.ico?v=0.72.0-05a5dad" sizes="any">
+<link rel="icon" href="./assets/favicon.svg?v=0.72.0-05a5dad" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=0.72.0-05a5dad" sizes="180x180">
+<link rel="manifest" href="./manifest.webmanifest?v=0.72.0-05a5dad">
 <link rel="preload" as="image" href="./assets/mcg/fallback.png">
 <link rel="preload" as="fetch" href="./assets/mcg/mcg.glb" crossorigin>
-<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.71.0-edc7187" crossorigin>
+<link rel="modulepreload" href="./assets/mcg/mount.js?v=0.72.0-05a5dad" crossorigin>
 <meta name="apple-mobile-web-app-title" content="TipBot">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f1a">
 <title>TipBot Dashboard</title>
-<script src="./assets/tbtime.js?v=0.71.0-edc7187"></script>
+<script src="./assets/tbtime.js?v=0.72.0-05a5dad"></script>
 <script>
 /* Theme pre-paint: set data-theme before first paint to avoid a flash (Codex #1).
    Manual theme only; old automatic prefs migrate in assets/tbtime.js. */
@@ -308,6 +308,8 @@
   .fl-clock{text-align:center;font-size:var(--t-foot);color:var(--muted);font-weight:600;padding-bottom:2px}.fl-clock b{color:var(--txt);font-size:var(--t-body);display:block;font-weight:800;letter-spacing:-.01em}.fl-clock span{display:block;margin-top:1px}.fl-clock .fl-starts{color:color-mix(in srgb,var(--txt) 82%,transparent)}
   .fl-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:16px 2px 2px}.fl-sec h2{margin:0;font-size:1.35rem;font-weight:750;letter-spacing:-.02em}.fl-sec span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-note{margin:8px 0;color:var(--muted);font-size:var(--t-foot)}
+  .fl-sim{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:var(--t-foot);color:var(--muted)}
+  .fl-sim-replay{flex:none;min-height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
   .fl-race{padding:14px 2px 2px}.fl-race-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.fl-race-head h2{margin:0;font-size:1.15rem;font-weight:750;letter-spacing:-.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl-race-head span{font-size:var(--t-foot);color:var(--muted);white-space:nowrap}
   .fl-race-list{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
   .fl-rr{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:10px;font-size:var(--t-foot)}
@@ -1391,13 +1393,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
 }
 </style>
-<link rel="stylesheet" href="./assets/terms-gate.css?v=0.71.0-edc7187">
+<link rel="stylesheet" href="./assets/terms-gate.css?v=0.72.0-05a5dad">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
 <div class="wrap">
   <div id="login" class="center" hidden>
-    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.71.0-edc7187" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div><div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.72.0-05a5dad" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1><p id="loginmsg">Sign in with the Discord account that manages your server.</p>
     <a class="btn" id="loginbtn" href="#">Log in with Discord</a>
     <form id="signupform" class="signup-au" hidden>
@@ -1408,7 +1410,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     </form></div>
   </div>
   <div id="loading" class="center"><div class="tb-loadpanel">
-    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.71.0-edc7187" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
+    <div class="logo" style="margin:0 auto 14px;width:46px;height:46px;background:transparent"><img src="./assets/logo.svg?v=0.72.0-05a5dad" alt="TipBot" width="46" height="46" style="width:46px;height:46px;display:block"></div>
     <h1>TipBot Dashboard</h1>
     <p id="loadingmsg" class="tb-loadpanel-label">Starting…</p>
     <div class="tb-loadpanel-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="tb-loadpanel-bar"><i id="tb-loadpanel-fill"></i></div>
@@ -1417,7 +1419,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 
   <div id="app" hidden>
     <div class="top">
-      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.71.0-edc7187" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
+      <div class="brand"><span class="logo" id="homelogo" style="cursor:pointer;background:transparent" title="Home" role="button" tabindex="0"><img src="./assets/favicon.svg?v=0.72.0-05a5dad" alt="TipBot home" width="30" height="30" style="width:30px;height:30px;display:block"></span> TipBot <span class="sub" id="rolebadge"></span></div>
       <nav class="topnav" aria-label="Main"><a class="topnav-dash" href="./" id="nav-dash" aria-current="page">Dashboard</a><a class="topnav-live" href="./live/" title="Every live game, with your tips tracked player by player" hidden><span class="topnav-dot" aria-hidden="true"></span>Live</a></nav>
       <div class="menu"><button type="button" class="gear" id="gear" title="Settings" aria-label="Settings" aria-expanded="false" aria-controls="dropdown">⚙</button>
         <div class="dropdown" id="dropdown" hidden>
@@ -1445,7 +1447,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             <select id="dd-gv-tz-pick"></select>
           </label>
           <div class="dd-item danger" id="dd-logout">Log out</div>
-          <div class="dd-label" id="dd-version">tipdash v0.71.0-edc7187</div>
+          <div class="dd-label" id="dd-version">tipdash v0.72.0-05a5dad</div>
         </div></div>
     </div>
     <div id="viewas-banner" class="viewas" hidden>
@@ -1472,36 +1474,36 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <div id="tray" class="tray" hidden></div>
 <div id="batchtray" class="batchtray" hidden></div>
 
-<script src="./assets/req-pool.js?v=0.71.0-edc7187"></script>
-<script src="./assets/logo_frame.js?v=0.71.0-edc7187"></script>
-<script src="./assets/light-data.js?v=0.71.0-edc7187"></script>
-<script src="./assets/lines.js?v=0.71.0-edc7187"></script>
-<script src="./assets/racing-legs.js?v=0.71.0-edc7187"></script>
-<script src="./assets/racing-track.js?v=0.71.0-edc7187"></script>
-<script src="./assets/afl-guernseys.js?v=0.71.0-edc7187"></script>
-<script src="./assets/compare-ui.js?v=0.71.0-edc7187"></script>
-<script src="./assets/sport-keywords.js?v=0.71.0-edc7187"></script>
-<script src="./assets/sport-marks.js?v=0.71.0-edc7187"></script>
-<script src="./assets/discover-sports.js?v=0.71.0-edc7187"></script>
-<script src="./assets/global-flags.js?v=0.71.0-edc7187"></script>
-<script src="./assets/routing.js?v=0.71.0-edc7187"></script>
-<script src="./assets/tip-tiers.js?v=0.71.0-edc7187"></script>
-<script src="./assets/scheduled-tips.js?v=0.71.0-edc7187"></script>
-<script src="./assets/auto-recaps.js?v=0.71.0-edc7187"></script>
-<script src="./assets/emoji-picker.js?v=0.71.0-edc7187"></script>
-<script src="./assets/upcoming-split.js?v=0.71.0-edc7187"></script>
-<script src="./assets/espn-props.js?v=0.71.0-edc7187"></script>
-<script src="./assets/tb-motion.js?v=0.71.0-edc7187"></script>
-<script src="./assets/form-badges.js?v=0.71.0-edc7187"></script>
-<script src="./assets/tb-charts.js?v=0.71.0-edc7187"></script>
-<script src="./assets/guild-profile.js?v=0.71.0-edc7187"></script>
-<script src="./assets/server-view.js?v=0.71.0-edc7187"></script>
-<script src="./assets/follower-live.js?v=0.71.0-edc7187"></script>
-<script src="./assets/venues/select.js?v=0.71.0-edc7187"></script>
-<script src="./assets/follower-units.js?v=0.71.0-edc7187"></script>
-<script src="./assets/legal-md.js?v=0.71.0-edc7187"></script>
-<script src="./assets/terms-gate.js?v=0.71.0-edc7187"></script>
-<script src="./assets/cookie-consent.js?v=0.71.0-edc7187"></script>
+<script src="./assets/req-pool.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/logo_frame.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/light-data.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/lines.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/racing-legs.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/racing-track.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/afl-guernseys.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/compare-ui.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/sport-keywords.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/sport-marks.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/discover-sports.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/global-flags.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/routing.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/tip-tiers.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/scheduled-tips.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/auto-recaps.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/emoji-picker.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/upcoming-split.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/espn-props.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/tb-motion.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/form-badges.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/tb-charts.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/guild-profile.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/server-view.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/follower-live.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/venues/select.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/follower-units.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/legal-md.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/terms-gate.js?v=0.72.0-05a5dad"></script>
+<script src="./assets/cookie-consent.js?v=0.72.0-05a5dad"></script>
 <script>
 /* ===== Reusable UI assets (ND*) — inlined, self-contained ===== */
 /* =========================================================================
@@ -1848,10 +1850,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   // The tip builder (assets/builder.js) and Admin Tools' Paste sheet (assets/admin.js) aren't
   // fetched on first load; TD.load() adds them the first time they're opened. They are plain
   // scripts sharing this page's globals (BUILD, BATCH, STATE, $, esc, api …), so nothing else
-  // changes. TD.version is the cache-bust token. Source keeps 0.71.0-edc7187.
+  // changes. TD.version is the cache-bust token. Source keeps 0.72.0-05a5dad.
   // The main-branch build replaces that token in the built site only.
   const TD=(window.TD=window.TD||{});
-  TD.version="0.71.0-edc7187";
+  TD.version="0.72.0-05a5dad";
   TD.loaded=TD.loaded||{};
   TD.pending=TD.pending||{};
   TD.src=function(name){ return "./assets/"+name+".js?v="+encodeURIComponent(TD.version); };
@@ -3362,7 +3364,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function lazyScript(name){
     if(!LAZY_JS[name]) LAZY_JS[name]=new Promise(function(res){
       const s=document.createElement("script");
-      s.src="./assets/"+name+".js?v=0.71.0-edc7187"; s.async=true; s.setAttribute("data-lazy",name);
+      s.src="./assets/"+name+".js?v=0.72.0-05a5dad"; s.async=true; s.setAttribute("data-lazy",name);
       s.onload=function(){res(true);}; s.onerror=function(){delete LAZY_JS[name];s.remove();res(false);};
       document.head.appendChild(s);
     });
@@ -5632,6 +5634,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   function fliveRaceStop(){
     if(FLIVE.raceTimer){ clearTimeout(FLIVE.raceTimer); FLIVE.raceTimer=null; }
+    if(FLIVE.race&&FLIVE.race.jumpTimer){ clearTimeout(FLIVE.race.jumpTimer); FLIVE.race.jumpTimer=null; }
+    if(FLIVE.race&&FLIVE.race.phaseTimer){ clearInterval(FLIVE.race.phaseTimer); FLIVE.race.phaseTimer=null; }
     FLIVE.race=null;
     const el=$("flive-race"); if(el){ el.hidden=true; el.innerHTML=""; }
   }
@@ -5647,8 +5651,55 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const el=$("flive-race"), race=FLIVE.race;
     if(!el) return;
     if(!race||!window.TBRacingTrack){ el.hidden=true; el.innerHTML=""; return; }
-    el.innerHTML=TBRacingTrack.legendHtml(race.ref, race.event, race.field||[]);
+    const bar=TBRacingTrack.raceBarHtml?TBRacingTrack.raceBarHtml(race.sim):"";
+    el.innerHTML=(bar?'<div class="fl-sim" id="flive-sim">'+bar+'</div>':"")+TBRacingTrack.legendHtml(race.ref, race.event, race.field||[]);
     el.hidden=false;
+    const btn=el.querySelector(".fl-sim-replay");
+    if(btn) btn.onclick=function(){ const host=$("flive-mcg"), h=host&&host._mcg; if(h&&h.replayRace&&!h.fallback) h.replayRace(); };
+  }
+  /* Simulated race (0.72.0): before the jump the field parades; after it the horses
+     break from the barrier stalls and run the trip, finishing in result order once
+     results are in, else the With-price model rank, else barrier order. The Grandstand
+     view follows the leader; Replay re-runs it. A new order (results landing) re-runs. */
+  function fliveRaceSim(){
+    const race=FLIVE.race;
+    if(!race||!window.TBRacingTrack||!TBRacingTrack.simFromEvent) return;
+    if(race.jumpTimer){ clearTimeout(race.jumpTimer); race.jumpTimer=null; }
+    const sim=race.event&&race.field?TBRacingTrack.simFromEvent(race.event, race.field, Date.now()):{phase:"parade"};
+    race.sim=sim;
+    const host=$("flive-mcg"), h=host&&host._mcg;
+    if(h&&h.setRace&&!h.fallback){
+      const want=sim.phase==="race"?sim.key:"";
+      if(race.simHandle!==h||(race.simKey||"")!==want){
+        race.simHandle=h; race.simKey=want;
+        h.setRace(sim.phase==="race"?{distance:sim.distance, order:sim.order, key:sim.key, source:sim.source}:null);
+      }
+    }
+    if(sim.phase==="race"&&!race.phaseTimer) race.phaseTimer=setInterval(fliveRaceHeader, 400);
+    fliveRaceHeader();
+    if(sim.phase!=="race"&&sim.jumpAt&&sim.jumpAt>Date.now()&&sim.jumpAt-Date.now()<2147000000){
+      race.jumpTimer=setTimeout(function(){ race.jumpTimer=null; if(FLIVE.race===race){ fliveRaceSim(); fliveRaceRead(race); } }, sim.jumpAt-Date.now()+500);
+    }
+    fliveRacePaint();
+  }
+  /* Header while the simulated race is on: "Running" from the break to the post, "Result"
+     once it's home and pulled up. Driven by the sim's own state (never the game's live
+     flag); the parade before the jump keeps the game's own header. */
+  function fliveSimPhase(){
+    const race=FLIVE.race;
+    if(!race||!race.sim||race.sim.phase!=="race") return "";
+    const host=$("flive-mcg"), h=host&&host._mcg;
+    const st=h&&!h.fallback&&h.raceState?h.raceState():null;
+    if(!st) return "";
+    return st.phase==="race"?"Running":(st.phase==="finished"?"Result":"");
+  }
+  function fliveSimGame(game){
+    const label=fliveSimPhase();
+    return label&&game?Object.assign({}, game, {phase_label:label}):game;
+  }
+  function fliveRaceHeader(){
+    const label=fliveSimPhase(), b=document.querySelector("#flive-score .fl-clock b");
+    if(label&&b&&b.textContent!==label){ b.textContent=label; const st=b.parentNode.querySelector(".fl-starts"); if(st) st.remove(); }
   }
   function fliveRaceSync(ref){
     if(!ref){ if(FLIVE.race) fliveRaceStop(); return; }
@@ -5677,6 +5728,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!race||FLIVE.venue!=="racecourse"||!handle||handle.fallback) return;
     if((race.mountedCourse||"")!==(race.course||"")&&!race.remounted){ race.remounted=true; fliveRemountGround(); return; }
     if(race.field&&handle.setField&&race.mountedField!==race.field){ race.mountedField=race.field; handle.setField(race.field); }
+    fliveRaceSim();
   }
   function fliveRemountGround(){
     const host=$("flive-mcg");
@@ -5712,7 +5764,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             const host=$("flive-mcg"), h=host&&host._mcg;
             if(h&&h.setField&&!h.fallback){ race.mountedField=field; h.setField(field); }
           }
-          fliveRacePaint();
+          fliveRaceSim();
           done=/^(final|resulted|official|abandoned)$/i.test(String(ev.status||"").trim());
         }
       }
@@ -6024,7 +6076,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     FLIVE.board=data;
     flivePhotoLogos();
     if(won.length) fliveHitsPoll(FLIVE.seq);
-    if(score) score.innerHTML=FollowerLive.scoreHtml(data&&data.game);
+    if(score) score.innerHTML=FollowerLive.scoreHtml(fliveSimGame(data&&data.game));
     if(sum) sum.textContent=FollowerLive.summaryText(data);
     if(pill) pill.hidden=!(data&&data.game&&data.game.live);
     if(note){
@@ -7993,7 +8045,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }
     if(!apex||document.querySelector('script[data-apex]')) return;
     var s=document.createElement('script');
-    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.71.0-edc7187');
+    s.src='./assets/theme-apex.js?v='+(window.TD&&TD.version?encodeURIComponent(TD.version):'0.72.0-05a5dad');
     s.async=true;
     s.setAttribute('data-apex','1');
     document.head.appendChild(s);

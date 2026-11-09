@@ -167,7 +167,86 @@
     return out;
   }
 
+  /* ---------- the simulated race after the jump (0.72.0) ---------- */
+  var JUMPED = /^(closed|interim|final|resulted|official|paying|running|jumped|race ?off|off)$/i;
+  var NO_RACE = /^(abandoned|postponed|cancel+ed)$/i;
+
+  /** Saddle number -> finishing position from event.results ({runner_number | runner_id,
+      position}) or each runner's own result ({position | finish}). */
+  function positionsFrom(event) {
+    var out = {}, byId = {};
+    var runners = event && Array.isArray(event.runners) ? event.runners : [];
+    runners.forEach(function (r) {
+      if (!r) return;
+      var num = int(r.number != null ? r.number : r.runner_number);
+      if (num == null) return;
+      if (r.id != null) byId[String(r.id)] = num;
+      var res = r.result && typeof r.result === "object" ? r.result : null;
+      var pos = res ? int(res.position != null ? res.position : res.finish) : null;
+      if (pos) out[num] = pos;
+    });
+    (event && Array.isArray(event.results) ? event.results : []).forEach(function (row) {
+      if (!row) return;
+      var pos = int(row.position != null ? row.position : row.finish_position);
+      var num = int(row.runner_number != null ? row.runner_number : row.number);
+      if (num == null && row.runner_id != null) num = byId[String(row.runner_id)];
+      if (pos && num != null) out[num] = pos;
+    });
+    return out;
+  }
+
+  /** Finish order for the simulated run: results/positions once any are in, else the
+      With-price model rank (TipBot 0.92.24+), else barrier order. ``field`` is
+      fieldFromEvent's list (scratchings already out). Returns {order: [numbers], source}. */
+  function raceOrder(event, field) {
+    var list = (field || []).filter(function (r) { return r && r.number != null; });
+    var pos = positionsFrom(event), rank = {};
+    (event && Array.isArray(event.runners) ? event.runners : []).forEach(function (r) {
+      var num = r && int(r.number != null ? r.number : r.runner_number);
+      var mr = r && int(r.model_rank);
+      if (num != null && mr) rank[num] = mr;
+    });
+    var has = function (map) { return list.some(function (r) { return map[r.number] != null; }); };
+    var source = has(pos) ? "results" : has(rank) ? "model" : "barrier";
+    var key = source === "results" ? pos : source === "model" ? rank : {};
+    var sorted = list.slice().sort(function (a, b) {
+      var ka = key[a.number], kb = key[b.number];
+      if (ka != null || kb != null) { if (ka == null) return 1; if (kb == null) return -1; if (ka !== kb) return ka - kb; }
+      var ab = a.barrier == null ? 99 : a.barrier, bb = b.barrier == null ? 99 : b.barrier;
+      if (ab !== bb) return ab - bb;
+      return (a.number || 99) - (b.number || 99);
+    });
+    return {order: sorted.map(function (r) { return r.number; }), source: source};
+  }
+
+  /** Has the race jumped? A post-jump status, or the start time has passed. */
+  function jumped(event, now) {
+    var st = text(event && event.status);
+    if (NO_RACE.test(st)) return false;
+    if (JUMPED.test(st)) return true;
+    var t = Date.parse(text(event && event.start_time));
+    return isFinite(t) && (now == null ? Date.now() : now) >= t;
+  }
+
+  /** Before the jump (or abandoned / no field): {phase: "parade", jumpAt}. After it:
+      {phase: "race", distance, order, source, key}; ``key`` changes only when the run would. */
+  function simFromEvent(event, field, now) {
+    var jumpAt = Date.parse(text(event && event.start_time));
+    if (!event || !(field && field.length) || !jumped(event, now)) return {phase: "parade", jumpAt: isFinite(jumpAt) ? jumpAt : null};
+    var o = raceOrder(event, field), dist = int(event.distance) || 1200;
+    return {phase: "race", distance: dist, order: o.order, source: o.source,
+      key: [text(event.id), dist, o.source, o.order.join(".")].join("|")};
+  }
+
+  /** Small caption + replay button over the track once the race has run. */
+  function raceBarHtml(sim) {
+    if (!sim || sim.phase !== "race") return "";
+    var label = sim.source === "results" ? "Result order" : sim.source === "model" ? "Model order (no result yet)" : "Barrier order (no result yet)";
+    return '<span class="fl-sim-src">' + esc(label) + '</span><button type="button" class="fl-sim-replay" data-act="replay">Replay</button>';
+  }
+
   return {MAX_FIELD: MAX_FIELD, POLL_MS: POLL_MS, parseGameName: parseGameName, raceRef: raceRef,
     fieldFromEvent: fieldFromEvent, sameField: sameField, colourFor: colourFor, silkPath: silkPath,
-    legendHtml: legendHtml, paradeSlots: paradeSlots, isRacingSport: isRacingSport};
+    legendHtml: legendHtml, paradeSlots: paradeSlots, isRacingSport: isRacingSport,
+    positionsFrom: positionsFrom, raceOrder: raceOrder, jumped: jumped, simFromEvent: simFromEvent, raceBarHtml: raceBarHtml};
 });
