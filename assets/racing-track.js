@@ -139,7 +139,7 @@
     return (meet || "Race") + (rn ? " R" + rn : "");
   }
 
-  /** The runner legend under the track. Tipped runners first in bold with a Tip badge. */
+  /** The runner legend under the track, in barrier order; tipped runners in bold with a Tip badge. */
   function legendHtml(ref, event, field) {
     var list = field || [];
     var dist = int(event && event.distance);

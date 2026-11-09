@@ -5762,6 +5762,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(img&&window.TBVenues) img.src=TBVenues.fallbackFor(venue);
     if(venue!=="mcg") flivePlayers(false);
     if(venue!=="racecourse") fliveRaceStop();
+    // A deep link learns it is a race from the first payload: find the race then.
+    else if(FLIVE.mode!=="own"&&FLIVE.gid&&!FLIVE.raceRefSingle) fliveRaceSingle(FLIVE.seq, FLIVE.gid, FLIVE.game);
     if(remount!==false) fliveMount();
     return true;
   }
@@ -5839,6 +5841,23 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!handle||handle.fallback||!FLIVE.sponsors) return;
     if(handle.setLogos) handle.setLogos(FLIVE.sponsors.ground);
     if(handle.setBoards) handle.setBoards(FLIVE.sponsors.boards, FLIVE.sponsors.house);
+    if(handle.setBillboards){
+      const course=handle.course||"generic";
+      fliveBillboards(FLIVE.sponsors.billboards, course).then(function(map){
+        if(handle===((($("flive-mcg")||{})._mcg)||handle)) handle.setBillboards(map);
+      });
+    }
+  }
+  // Racetrack billboard slots from the scene ({course: {slot: {sponsor, url}}}) as blob
+  // URLs for the track on screen (its named course or "generic"); an empty slot is absent.
+  async function fliveBillboards(raw, course){
+    const rows=(raw&&typeof raw==="object"&&raw[course])||{};
+    const done={};
+    await Promise.all(Object.keys(rows).map(async function(slot){
+      const url=await fliveBlob(rows[slot]&&rows[slot].url);
+      if(url) done[slot]={sponsor:rows[slot].sponsor||"", url:url};
+    }));
+    return {[course]:done};
   }
   async function fliveUseScene(d, handle, seq, fromCache){
     const ground=await Promise.all(sceneLogosFor(d, FLIVE.venue).map(async function(g){ return Object.assign({}, g, {url:await fliveBlob(g.url)}); }));
@@ -5847,6 +5866,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(seq!==FLIVE.seq) return;
     // house: TipBot's own banner row (on, seconds, position) from the studio; null on an older bot.
     FLIVE.sponsors={ground:ground.filter(function(g){ return g.url; }), boards:boards.filter(function(b){ return b.image; }), house:d.house||null};
+    FLIVE.sponsors.billboards=(d.billboards&&typeof d.billboards==="object")?d.billboards:{};
     window.TBLiveFx=window.TBLiveFx||{};
     window.TBLiveFx.ballSkin=ball||"";
     if(!fromCache){

@@ -7,21 +7,33 @@
    - named (opts.course = "flemington" | "caulfield" | "moonee-valley" |
      "sandown-hillside"): Cinna's course model (./racecourses/<id>.glb, meshopt) and its
      definition (./racecourses/courses/<id>.json), fitted into the same frame so the
-     stand, cameras and still are shared. No billboards on named courses.
+     stand, cameras and still are shared.
    If a course fails to load, the generic track is built instead.
+
+   Billboards (Cinna's racetrack-billboards, ./billboards-lib.js): named courses place
+   them with placeBillboards(def, rules) from ./racecourses/billboards.json; the generic
+   ellipse uses makeEllipseLoop + placeBillboardsEllipse (same slot ids), plus the
+   follower rooftop / infield billboards (./billboards/). handle.setBillboards({course:
+   {slot: {url}}}) puts sponsor images (the /api/ground/scene "billboards", as blob URLs)
+   on the SponsorPatch* meshes by slot id; an empty slot keeps the plain backing.
 
    The field (opts.field, from assets/racing-track.js fieldFromEvent) parades at a
    canter before the jump, in barrier order; the tipped runner carries a marker.
    handle.setField(field) swaps the field in place (a scratching removes its horse).
    Horses are code-built boxes on shared, instanced geometry. Each horse's rider comes
-   from makeRider(runner): a box jockey in the runner's colour or silk now, or Cinna's
-   jockey GLB (root "Jockey", material "Silk", clips ride_gallop / ride_idle) once
-   RIDER.url is set. Silk images arrive through opts.silkLoader(url) -> Promise<Blob>
+   from makeRider(runner): Cinna's jockey GLB (./riders/jockey.glb, LOD1 on phones or
+   fields over 8; root "JockeyRoot", material "Silk", clips ride_gallop / ride_idle), seated
+   in horse-group space at (0, 2.05, -0.05) x 1.3 with the body bob, its gallop clip
+   locked to its own horse's stride (syncGallop). The box jockey is the fallback only
+   when the GLB fails to load. Silk images arrive through opts.silkLoader(url) -> Promise<Blob>
    (TipBot's /api/racing/silk proxy; the silk CDN has no CORS). */
 import * as T from "../vendor/three/three.module.min.js";
 import { GLTFLoader } from "../vendor/three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "../vendor/three/addons/libs/meshopt_decoder.module.js";
 import { box, mat, ellPath, crowdMat, facadeMat, ledRibbons, rng, mountVenue } from "./kit.js";
+import { placeBillboards, makeEllipseLoop, placeBillboardsEllipse, addBillboards as addLibBillboards } from "./billboards-lib.js";
+import { syncGallop, FALLBACK_SILK } from "./riders/jockey-silk.js";
+import { mergeGeometries } from "../vendor/three/addons/utils/BufferGeometryUtils.js";
 
 export var VENUE = "racecourse";
 export var FALLBACK_URL = new URL("./racecourse-fallback.png", import.meta.url).href;
@@ -40,7 +52,19 @@ export var COURSES = ["flemington", "caulfield", "moonee-valley", "sandown-hills
 // Cinna's jockey (assets/venues/riders/jockey.glb + jockey-lod1.glb). Empty until the
 // files land: set url / lod1Url then, and seat / scale from her SPEC.md. opts.rider
 // overrides any field for one mount.
-export var RIDER = {url: "", lod1Url: "", seat: [0, 2.3, 0.2], scale: 1, lod1Above: 12};
+export var RIDER = {url: new URL("./riders/jockey.glb", import.meta.url).href,
+  lod1Url: new URL("./riders/jockey-lod1.glb", import.meta.url).href,
+  seat: [0, 2.05, -0.05], scale: 1.3, lod1Above: 8};
+/** LOD1 on a phone-sized or touch-first screen, or a field over cfg.lod1Above. */
+export function useLod1(count, cfg, phone) {
+  cfg = cfg || RIDER;
+  if (!cfg.lod1Url) return false;
+  if (phone === undefined) {
+    try { phone = !!(globalThis.matchMedia && (matchMedia("(max-width: 820px)").matches || matchMedia("(pointer: coarse)").matches)); }
+    catch (e) { phone = false; }
+  }
+  return !!phone || (count || 0) > (cfg.lod1Above || 8);
+}
 var DEMO_SILKS = [0xc8202f, 0x1f4fbf, 0xf2c230, 0x13804a, 0xf07a1a, 0x7b3fbf, 0xffffff, 0x111111];
 var COATS = [0x6b3e1f, 0x3b2416, 0x8a5a30, 0x222222];
 var ACCENT = 0x5b8cff;
@@ -175,7 +199,7 @@ function sharedRiderGeo() {
 }
 
 // Silk icon -> canvas texture on the runner's colour (the icons are transparent round the jacket).
-function silkTexture(blob, colour, flipY) {
+export function silkTexture(blob, colour, flipY) {
   if (!blob || typeof createImageBitmap !== "function") return Promise.resolve(null);
   return createImageBitmap(blob).then(function (bmp) {
     var c = document.createElement("canvas");
@@ -197,13 +221,14 @@ function silkTexture(blob, colour, flipY) {
     puts the silk icon on the jacket and cap. */
 export function boxRider(runner) {
   var g = sharedRiderGeo();
-  var silk = new T.MeshStandardMaterial({color: new T.Color(runner && runner.colour || "#c8202f"), roughness: 0.6});
-  var obj = new T.Group();
-  var torso = new T.Mesh(g.torso, silk); torso.position.set(0, 2.3, 0.2); torso.rotation.x = 0.7; obj.add(torso);
-  var cap = new T.Mesh(g.cap, silk); cap.position.set(0, 2.65, 0.55); obj.add(cap);
-  return {obj: obj, flipY: true, material: silk,
+  var silk = new T.MeshStandardMaterial({color: new T.Color(runner && runner.colour || FALLBACK_SILK), roughness: 0.6});
+  var obj = new T.Group(), inner = new T.Group();
+  obj.add(inner);
+  var torso = new T.Mesh(g.torso, silk); torso.position.set(0, 2.3, 0.2); torso.rotation.x = 0.7; inner.add(torso);
+  var cap = new T.Mesh(g.cap, silk); cap.position.set(0, 2.65, 0.55); inner.add(cap);
+  return {obj: obj, kind: "box", flipY: true, material: silk,
     setSilk: function (tex) { if (!tex) return; silk.map = tex; silk.color.set(0xffffff); silk.needsUpdate = true; },
-    update: function () {},
+    update: function (dt, g2, bob) { inner.position.y = bob || 0; },
     dispose: function () { if (silk.map) silk.map.dispose(); silk.dispose(); }};
 }
 
@@ -233,12 +258,17 @@ function loadRiderModel(url) {
 }
 
 function gltfRider(model, runner, cfg) {
-  var src = model.gltf.scene.getObjectByName("Jockey") || model.gltf.scene;
-  var obj = model.SU.clone(src);
-  var seat = new T.Group();
-  seat.position.fromArray(cfg.seat || RIDER.seat);
+  // Clone the whole scene: the skinned meshes and their bones live under JockeyRoot, and
+  // cloning a mesh on its own would leave its skeleton behind.
+  var obj = model.SU.clone(model.gltf.scene);
+  obj.traverse(function (n) { if (n.isSkinnedMesh) n.frustumCulled = false; });
+  // Horse-group space: the outer group takes the horse's place, yaw and scale each frame;
+  // the seat sits at cfg.seat x cfg.scale and rises with the body bob.
+  var outer = new T.Group(), seat = new T.Group(), seatAt = (cfg.seat || RIDER.seat).slice();
+  seat.position.fromArray(seatAt);
   seat.scale.setScalar(cfg.scale || 1);
   seat.add(obj);
+  outer.add(seat);
   var base = findMaterial(obj, "Silk");
   var silk = base ? base.clone() : null;
   if (silk) {
@@ -248,16 +278,21 @@ function gltfRider(model, runner, cfg) {
       else if (n.material && n.material.name === "Silk") n.material = silk;
     });
     silk.map = null;
-    silk.color = new T.Color(runner && runner.colour || "#ffffff");
+    silk.color = new T.Color(runner && runner.colour || FALLBACK_SILK);
   }
   var mixer = new T.AnimationMixer(obj), clips = model.gltf.animations || [];
   var gallop = T.AnimationClip.findByName(clips, "ride_gallop");
   var idle = T.AnimationClip.findByName(clips, "ride_idle");
-  var act = gallop || idle;
-  if (act) mixer.clipAction(act).play();
-  return {obj: seat, flipY: false, material: silk,
+  var action = (gallop || idle) ? mixer.clipAction(gallop || idle) : null;
+  if (action) action.play();
+  return {obj: outer, kind: "gltf", flipY: false, material: silk,
     setSilk: function (tex) { if (!tex || !silk) return; silk.map = tex; silk.color.set(0xffffff); silk.needsUpdate = true; },
-    update: function (dt) { mixer.update(dt); },
+    // g: this horse's gallop phase (the same value that swings its legs); bob: body.y - 1.6.
+    update: function (dt, g, bob) {
+      seat.position.y = seatAt[1] + (bob || 0);
+      if (action && gallop && g != null) { syncGallop(action, g); mixer.update(0); }
+      else mixer.update(dt);
+    },
     dispose: function () { mixer.stopAllAction(); if (silk) { if (silk.map) silk.map.dispose(); silk.dispose(); } }};
 }
 
@@ -266,11 +301,22 @@ function gltfRider(model, runner, cfg) {
 export function makeRider(runner, opts) {
   var cfg = Object.assign({}, RIDER, (opts && opts.rider) || {});
   var count = (opts && opts.count) || 0;
-  var url = cfg.lod1Url && count > cfg.lod1Above ? cfg.lod1Url : cfg.url;
+  var url = useLod1(count, cfg, opts && opts.phone) ? cfg.lod1Url : cfg.url;
   return loadRiderModel(url).then(function (model) {
     if (model) { try { return gltfRider(model, runner, cfg); } catch (e) {} }
     return boxRider(runner);
   });
+}
+
+/** Where the parade's leader starts: on the home straight in front of the stand (the
+    Grandstand camera), so the field is in shot on load, then it canters round. */
+export function paradeStart(path) {
+  var best = 0, bd = Infinity, n = 400;
+  for (var i = 0; i < n; i++) {
+    var sx = path.len * i / n, p = path.at(sx), d = Math.hypot(p.x - 0, p.z - B);
+    if (d < bd) { bd = d; best = sx; }
+  }
+  return best + 25;
 }
 
 /* ---------- the field ---------- */
@@ -281,7 +327,7 @@ function demoField() {
 }
 
 function Field(scene, path, opts) {
-  var horses = null, riders = [], markers = [], runners = [], lead = path.len * 0.15, t = 0, gen = 0;
+  var horses = null, riders = [], markers = [], runners = [], lead = paradeStart(path), t = 0, gen = 0;
   var scale = opts.horseScale || 1.6;
   var markerGeo = new T.ConeGeometry(0.9, 1.8, 10), markerMat = new T.MeshBasicMaterial({color: ACCENT});
   markerGeo.rotateX(Math.PI);
@@ -305,9 +351,9 @@ function Field(scene, path, opts) {
         mk.userData.i = i;
         scene.add(mk); markers.push(mk);
       }
-      makeRider(rn, {rider: opts.rider, count: runners.length}).then(function (rider) {
+      makeRider(rn, {rider: opts.rider, count: runners.length, phone: opts.phone}).then(function (rider) {
         if (my !== gen) { rider.dispose(); return; }
-        rider.obj.scale.multiplyScalar(scale);
+        rider.obj.scale.setScalar(scale);
         scene.add(rider.obj);
         riders[i] = rider;
         if (rn.silk_url && opts.silkLoader) {
@@ -338,9 +384,9 @@ function Field(scene, path, opts) {
       horses.set(i, p.x, p.z, p.yaw, bob, stride);
       var r = riders[i];
       if (r) {
-        r.obj.position.set(p.x, bob * scale, p.z);
+        r.obj.position.set(p.x, 0, p.z);
         r.obj.rotation.set(0, p.yaw, 0);
-        r.update(dt);
+        r.update(dt, stride, bob);
       }
       runners[i]._p = p;
     });
@@ -351,6 +397,7 @@ function Field(scene, path, opts) {
     horses.flush();
   }
   return {set: set, update: update, count: function () { return runners.length; },
+    riderKinds: function () { return riders.map(function (r) { return r ? r.kind : ""; }); },
     dispose: function () { clear(); markerGeo.dispose(); markerMat.dispose(); }};
 }
 
@@ -402,10 +449,69 @@ async function namedTrack(scene, id, opts) {
   // The course's own terrain would cover the shared ground; keep it under the track.
   g.traverse(function (n) { if (n.isMesh) n.frustumCulled = true; });
   scene.add(g);
-  return {path: coursePath(def, fit), def: def, fit: fit};
+  return {path: coursePath(def, fit), def: def, fit: fit, group: g, base: base};
 }
 
-async function addBillboards(scene, base) {
+/* ---------- billboards ---------- */
+// Generic ellipse in Cinna's makeEllipseLoop terms: the inside rail (248 x 98 m), horses
+// run with the angle (clockwise in her convention), winning post at the stand (+z).
+export var GENERIC_LOOP = {cx: 0, cz: 0, a: A - WD / 2, b: B - WD / 2, direction: "clockwise", postAngleRad: Math.PI / 2};
+
+// The stand's front rows (z 132..154) on the centre line: tall boards turn to face it.
+export var GENERIC_CAMERA = {x: 0, z: 142};
+// The ellipse's LED strip is ~50 segments of 8 m x k; Sponsor Studio sells it as this many
+// runs. Each run is one slot id on consecutive segments, so its image repeats along the run.
+export var GENERIC_LED_SLOTS = 6;
+
+/** Map n LED segments (running order) onto ``slots`` runs: [1,1,..,2,2,..]. Pure. */
+export function ledRuns(n, slots) {
+  var out = [], k = Math.max(1, Math.min(slots || 1, n));
+  for (var i = 0; i < n; i++) out.push(Math.floor(i * k / n) + 1);
+  return out;
+}
+
+/** Slot placements for a track. Pure (no three.js). named = {def, rules, start_m} or null. */
+export function billboardPlacements(named) {
+  if (named && named.def) return placeBillboards(named.def, named.rules || {}, named.start_m != null ? {start: named.start_m} : {});
+  var pl = placeBillboardsEllipse(makeEllipseLoop(GENERIC_LOOP), {track_width_m: WD, cameraPoint: GENERIC_CAMERA});
+  var leds = pl.filter(function (p) { return p.type === "led"; }).sort(function (a, b) { return a.n - b.n; });
+  var runs = ledRuns(leds.length, GENERIC_LED_SLOTS);
+  leds.forEach(function (p, i) {
+    p.run = runs[i];
+    p.slots.forEach(function (sl) { sl.slot_id = "led_" + runs[i]; });   // node ids (Billboard_led_<n>) stay unique
+  });
+  return pl;
+}
+
+async function courseRules(base, id) {
+  try {
+    var res = await fetch(new URL("billboards.json", base).href);
+    if (!res.ok) return {};
+    var all = await res.json();
+    return (all && all.courses && all.courses[id]) || {};
+  } catch (e) { return {}; }
+}
+
+// Each SponsorPatch* mesh (prefix match) under root, by slot id; remembers its backing so a
+// cleared slot goes back to plain. flipY: true for PlaneGeometry boards, false for glTF UVs.
+function indexPatches(root, slots, flipY, slotOf) {
+  root.traverse(function (n) {
+    if (!n.isMesh || !/^SponsorPatch/.test(n.name || "")) return;
+    var id = (n.userData && n.userData.slot_id) || (slotOf && slotOf(n)) || "";
+    if (!id) return;
+    var m = n.material;
+    var glow = !!(m.emissive && m.emissive.getHex && m.emissive.getHex());
+    // A dark backing (the LED strip) that glows with no image shows as a grey slab; an
+    // empty dark slot stays dark until it has sponsor art. Intensity is never touched.
+    var dark = !!(m.color && (m.color.r + m.color.g + m.color.b) / 3 < 0.2 && !m.map);
+    n.userData.patch = {flipY: flipY, color: m.color ? m.color.clone() : null, map: m.map || null, emissiveMap: m.emissiveMap || null,
+      glow: glow, emissive: glow ? m.emissive.getHex() : 0, darkEmpty: glow && dark};
+    if (glow && dark && !m.emissiveMap) { m.emissive.setHex(0x000000); m.needsUpdate = true; }
+    (slots[id] = slots[id] || []).push(n);
+  });
+}
+
+async function addFollowerBillboards(scene, base, slots) {
   var res = await fetch(new URL("placements.json", base).href);
   if (!res.ok) return;
   var placements = (await res.json()).placements || [];
@@ -425,22 +531,100 @@ async function addBillboards(scene, base) {
         n.material.map = null;           // published view: plain panel until the studio sends a sponsor
         n.material.color && n.material.color.set(0xf4f6fa);
         n.material.needsUpdate = true;
+        n.userData.slot_id = p.name;     // Studio slot = placement name (rooftop_A, rooftop_B, infield_C)
       }
     });
     scene.add(obj);
+    indexPatches(obj, slots, false);
   }
+}
+
+/** Merge every billboard's frame, posts and backing (all but the SponsorPatch* faces and
+    the glow) into one mesh per material look, so ~70 boards cost a handful of draw calls
+    plus one per sponsor face. Returns the number of meshes merged. */
+export function bakeFrames(root) {
+  root.updateMatrixWorld(true);
+  var inv = new T.Matrix4().copy(root.matrixWorld).invert(), rel = new T.Matrix4();
+  var groups = {}, drop = [];
+  root.traverse(function (n) {
+    if (!n.isMesh || /^(SponsorPatch|Glow|GroundSpill)/.test(n.name || "")) return;
+    var m = n.material;
+    if (!m || Array.isArray(m)) return;
+    var key = [m.type, m.color ? m.color.getHex() : 0, m.roughness, m.metalness, m.toneMapped].join("|");
+    var g = n.geometry.index ? n.geometry.toNonIndexed() : n.geometry.clone();
+    Object.keys(g.attributes).forEach(function (a) { if (a !== "position" && a !== "normal") g.deleteAttribute(a); });
+    g.applyMatrix4(rel.multiplyMatrices(inv, n.matrixWorld));
+    (groups[key] = groups[key] || {mat: m, geos: []}).geos.push(g);
+    drop.push(n);
+  });
+  drop.forEach(function (n) { n.parent.remove(n); n.geometry.dispose(); });
+  Object.keys(groups).forEach(function (key) {
+    var merged = mergeGeometries(groups[key].geos, false);
+    groups[key].geos.forEach(function (g) { g.dispose(); });
+    if (!merged) return;
+    var mesh = new T.Mesh(merged, groups[key].mat);
+    mesh.name = "BillboardFrames";
+    root.add(mesh);
+  });
+  return drop.length;
+}
+
+function Billboards(onChange) {
+  var slots = {}, texCache = {}, want = {};
+  function tex(url, flipY) {
+    var key = (flipY ? "1|" : "0|") + url;
+    if (!texCache[key]) {
+      texCache[key] = new Promise(function (resolve) {
+        new T.TextureLoader().load(url, function (t) {
+          t.flipY = flipY; t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; t.needsUpdate = true; resolve(t);
+        }, undefined, function () { resolve(null); });
+      });
+    }
+    return texCache[key];
+  }
+  function paint(mesh, t) {
+    var m = mesh.material, b = mesh.userData.patch;
+    m.map = t || b.map;
+    if (m.color) { if (t) m.color.set(0xffffff); else if (b.color) m.color.copy(b.color); }
+    // The LED and lit boards keep their own emissive colour and intensity; the sponsor
+    // image only becomes the emissive map, so it glows instead of a flat white panel.
+    if (b.glow) {
+      m.emissiveMap = t || b.emissiveMap;
+      if (b.darkEmpty) m.emissive.setHex(t ? b.emissive : 0x000000);
+    }
+    m.needsUpdate = true;
+  }
+  return {
+    slots: slots,
+    set: function (rows) {
+      rows = rows || {};
+      var jobs = [];
+      Object.keys(slots).forEach(function (id) {
+        var url = rows[id] && rows[id].url || "";
+        want[id] = url;
+        slots[id].forEach(function (mesh) {
+          if (!url) { paint(mesh, null); return; }
+          jobs.push(tex(url, mesh.userData.patch.flipY).then(function (t) { if (want[id] === url) paint(mesh, t); }));
+        });
+      });
+      return Promise.all(jobs).then(function () { if (onChange) onChange(); });
+    },
+    dispose: function () {
+      Object.keys(texCache).forEach(function (k) { texCache[k].then(function (t) { if (t) t.dispose(); }); });
+    }
+  };
 }
 
 export async function buildRacecourse(scene, opts) {
   opts = opts || {};
   box(scene, 700, 0.2, 400, 0x2f5b2c, 0, -0.1, 0);
-  var path = null, course = "";
+  var path = null, course = "", named = null;
   var want = COURSES.indexOf(opts.course) >= 0 ? opts.course : "";
   if (want) {
     try {
-      var named = await namedTrack(scene, want, opts);
+      named = await namedTrack(scene, want, opts);
       path = named.path; course = want;
-    } catch (e) { path = null; course = ""; }
+    } catch (e) { path = null; course = ""; named = null; }
   }
   if (!path) { genericTrack(scene); path = genericPath(); }
   stand(scene);
@@ -450,15 +634,30 @@ export async function buildRacecourse(scene, opts) {
     if (!course) ribbons.push({pts: ellPath(A - WD / 2 - 1, B - WD / 2 - 1, 160), y: 0, h: 0.7, closed: true});
     led = await ledRibbons(scene, ribbons, false, opts.boardsUrl);
   } catch (e) { led = null; }
-  if (!course && opts.billboards !== false) {
-    try { await addBillboards(scene, opts.billboardsBase || new URL("./billboards/", import.meta.url).href); } catch (e) {}
+  var boards = Billboards(opts.onChange);
+  if (opts.billboards !== false) {
+    // Sponsor slots: named courses in the course's own frame (child of its model), the
+    // generic ellipse in the scene frame. A failure leaves the track without boards.
+    try {
+      var rules = named ? await courseRules(named.base, course) : null;
+      var placed = billboardPlacements(named ? {def: named.def, rules: rules.rules, start_m: rules.start_m} : null);
+      var root = addLibBillboards({THREE: T, group: named ? named.group : scene}, placed, {});
+      indexPatches(root, boards.slots, true);
+      bakeFrames(root);
+    } catch (e) {}
+    if (!course) {
+      try { await addFollowerBillboards(scene, opts.billboardsBase || new URL("./billboards/", import.meta.url).href, boards.slots); } catch (e) {}
+    }
   }
   var field = Field(scene, path, {silkLoader: opts.silkLoader, rider: opts.rider, onChange: opts.onChange,
     horseScale: course ? 1.3 : 1.6});
   field.set(opts.field || null);
   return {led: led, update: field.update, course: course, path: path,
-    setField: function (list) { field.set(list || null); }, fieldCount: field.count,
-    dispose: field.dispose};
+    setField: function (list) { field.set(list || null); }, fieldCount: field.count, riderKinds: field.riderKinds,
+    billboardSlots: function () { return Object.keys(boards.slots); },
+    // map: the scene's "billboards" ({course: {slot: {url}}}); this track's rows apply.
+    setBillboards: function (map) { return boards.set((map || {})[course || "generic"] || {}); },
+    dispose: function () { field.dispose(); boards.dispose(); }};
 }
 
 export var DEF = {venue: VENUE, fallbackUrl: FALLBACK_URL, cameras: RACECOURSE_CAMERAS, chips: RACECOURSE_CHIPS,

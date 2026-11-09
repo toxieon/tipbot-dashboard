@@ -539,6 +539,13 @@ export async function mountVenue(host, opts, def) {
         if (still && renderer) renderer.render(scene, camera);
         return true;
       },
+      fieldCount: function () { return built.fieldCount ? built.fieldCount() : 0; },
+      riderKinds: function () { return built.riderKinds ? built.riderKinds() : []; },
+      billboardSlots: function () { return built.billboardSlots ? built.billboardSlots() : []; },
+      setBillboards: function (map) {
+        if (!alive || !built.setBillboards) return Promise.resolve();
+        return built.setBillboards(map).then(function () { if (alive && renderer) renderer.render(scene, camera); });
+      },
       setBoards: function (list, row) {
         if (!led || !led.setSlides) return Promise.resolve();
         return led.setSlides(list, row).then(function () { if (alive && renderer) renderer.render(scene, camera); });
