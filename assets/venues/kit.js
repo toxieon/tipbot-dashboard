@@ -419,7 +419,10 @@ export async function mountVenue(host, opts, def) {
       if (t >= 1) camTween = null;
     }
 
-    var built = (await def.build(scene, {boardsUrl: opts.boardsUrl})) || {};
+    // Racecourse extras (course, field, silks, rider) ride along; other grounds ignore them.
+    var built = (await def.build(scene, {boardsUrl: opts.boardsUrl, course: opts.course, field: opts.field,
+      silkLoader: opts.silkLoader, rider: opts.rider,
+      onChange: function () { if (alive && still && renderer) renderer.render(scene, camera); }})) || {};
     if (!alive) { fail(); return fallbackHandle(def); }
     var led = built.led || null;
     var logoGroup = new T.Group();
@@ -529,6 +532,20 @@ export async function mountVenue(host, opts, def) {
       resize: resize,
       setLogos: setLogos,
       celebrate: function () { return false; },
+      course: built.course || "",
+      setField: function (list) {
+        if (!alive || !built.setField) return false;
+        built.setField(list);
+        if (still && renderer) renderer.render(scene, camera);
+        return true;
+      },
+      fieldCount: function () { return built.fieldCount ? built.fieldCount() : 0; },
+      riderKinds: function () { return built.riderKinds ? built.riderKinds() : []; },
+      billboardSlots: function () { return built.billboardSlots ? built.billboardSlots() : []; },
+      setBillboards: function (map) {
+        if (!alive || !built.setBillboards) return Promise.resolve();
+        return built.setBillboards(map).then(function () { if (alive && renderer) renderer.render(scene, camera); });
+      },
       setBoards: function (list, row) {
         if (!led || !led.setSlides) return Promise.resolve();
         return led.setSlides(list, row).then(function () { if (alive && renderer) renderer.render(scene, camera); });
@@ -538,6 +555,7 @@ export async function mountVenue(host, opts, def) {
         if (raf) cancelAnimationFrame(raf);
         if (watch) watch.disconnect();
         clearLogos();
+        if (built.dispose) { try { built.dispose(); } catch (eX) {} }
         if (renderer) { try { renderer.dispose(); } catch (e8) {} }
         renderer = null;
         if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
