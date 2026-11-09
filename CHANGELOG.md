@@ -6,7 +6,13 @@
 - The Grandstand view follows the leader with a side-on tracking shot (eased); other camera presets stay put. During the race horses are drawn at a size where neighbouring stalls don't overlap.
 - A bar above the runner list says which order is running (Result / Model / Barrier order) with a Replay button. Reduced motion shows the finish straight away.
 - The shared ground is larger so chute starts (Flemington's straight) sit on grass.
-- Tests: `tests/sim_race.test.js` (order, jump, run maths, start routes and stalls on all four courses, the generic mapping) and `tests/e2e/simrace.spec.mjs` (390 px, mocked API: model order with a scratching, results replacing the model, parade before the jump and the generic loop).
+- In the gates the horses stand inside their barrier stalls: stall-sized (85% of the stall width, 90% of its depth) and set back so each body is centred in its stall behind the start line, then they grow to race size over the first 60 m. All four named courses and the generic loop.
+- Header: "Running" from the break to the post and "Result" once the field is home and pulled up, from the sim's own state (never the game's live flag, so never "Upcoming" after the jump). A board refresh keeps it; the parade before the jump keeps the game's own header.
+- Named-course boards: sizes per type (`NAMED_BOARD_SCALES`): rail, LED and tall 1.6 x (floor 1.35), finish 1.6 x (as 0.71.0), gate banners 1:1; texture px unchanged. LED strips turned towards the stand step back into the infield until no corner crosses the inside rail (at 1.6 x a turned strip poked ~3 m onto the track).
+- Stand-top boards fit the 390 px hero: both 2 m lower, rooftop_A 4 m along the roof (clear of the back button), and the Grandstand look-at raised from y 2 to 10, so both sit fully in frame with at least 12 px clear at the top.
+- Published view: empty rail, tall and finish panels show the LED's dark backing (#0D1419) instead of a white slab; "YOUR LOGO HERE" stays in the Sponsor Studio editor.
+- Generic loop: the infield board moves to (5, 75) so it never hides a horse (leader, followed or tipped) during the sim race on any camera preset or the follow shot, nor a parading horse, and stays whole in the 390 px hero.
+- Tests: `tests/sim_race.test.js` (order, jump, run maths, start routes and stalls on all four courses, horses inside their stalls, the generic mapping, the infield board never hiding a sim-race horse), `tests/racing_track.test.js` (board sizes, nothing crossing a rail or overlapping on the four courses, stand-top boards in the 390 px hero, dark empty panels) and `tests/e2e/simrace.spec.mjs` (390 px, mocked API: model order with a scratching, results replacing the model, parade before the jump, the generic loop, Running/Result on all four courses).
 
 ## 0.71.0 · 2026-11-10 · `feat` · Game view racetrack for followed races
 

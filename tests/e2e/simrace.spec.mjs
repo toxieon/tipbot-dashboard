@@ -97,6 +97,7 @@ async function settled(page, course, n) {
   }, [course, n], { timeout: 60000 });
 }
 
+const header = (page) => page.locator("#flive-score .fl-clock b");
 const race = (page) => page.evaluate(() => document.getElementById("flive-mcg")._mcg.raceState());
 
 async function seekShot(page, t, name) {
@@ -120,6 +121,9 @@ test("Flemington after the jump: breaks from the stalls, runs to the model order
   const bar = page.locator("#flive-sim");
   await expect(bar).toContainText("Model order");
   await expect(bar.locator("button.fl-sim-replay")).toBeVisible();
+  // The header follows the sim, not the game's live flag (live: false here).
+  await expect(header(page)).toHaveText("Running");
+  await expect(page.locator("#flive-score")).not.toContainText("Upcoming");
 
   // In the gates: every horse sits in its own barrier stall (behind the start line).
   await seekShot(page, -1, "start");
@@ -135,11 +139,17 @@ test("Flemington after the jump: breaks from the stalls, runs to the model order
   st = await race(page);
   expect(st.phase).toBe("finished");
   expect(st.leader).toBe(6);
+  await expect(header(page)).toHaveText("Result");
+  await expect(page.locator("#flive-score")).not.toContainText("Upcoming");
+  // A board refresh repaints the header from the game; the sim's label stays.
+  await page.evaluate(() => flivePaint(FLIVE.board));
+  await expect(header(page)).toHaveText("Result");
 
   await bar.locator("button.fl-sim-replay").click();
   st = await race(page);
   expect(st.phase).toBe("race");
   expect(st.t).toBeLessThan(5);
+  await expect(header(page)).toHaveText("Running");
   expect(errors).toEqual([]);
 });
 
@@ -166,6 +176,7 @@ test("before the jump the field parades; unknown course runs on the generic loop
   await settled(page, "", 8);
   expect((await race(page)).phase).toBe("parade");
   await expect(page.locator("#flive-sim")).toHaveCount(0);
+  await expect(header(page)).toHaveText("Upcoming");   // the parade keeps the game's own header
   // The jump: the start time passes (the next read sees it).
   state.start = PAST;
   state.status = "Closed";
@@ -177,6 +188,24 @@ test("before the jump the field parades; unknown course runs on the generic loop
   // Barrier order: runner numbers sorted by barrier ((i*7)%8)+1.
   const want = [1, 2, 3, 4, 5, 6, 7, 8].sort((a, b) => ((a * 7) % 8) - ((b * 7) % 8));
   expect(st.order).toEqual(want);
+  await expect(header(page)).toHaveText("Running");
+  await seekShot(page, -1, "start-generic");
   await seekShot(page, st.duration * 0.45, "generic-mid");
   expect(errors).toEqual([]);
 });
+
+for (const [meeting, course] of [["Caulfield", "caulfield"], ["Moonee Valley", "moonee-valley"], ["Sandown", "sandown-hillside"]]) {
+  test(`${meeting} after the jump: in the stalls at the start, Running then Result`, async ({ page }) => {
+    const state = { status: "Closed", start: PAST, n: 10 };
+    const errors = await openRace(page, { meeting, eventId: "evt-sim-" + course, state });
+    await settled(page, course, 10);
+    await page.waitForFunction(() => document.getElementById("flive-mcg")._mcg.raceState().phase !== "parade", null, { timeout: 30000 });
+    await expect(header(page)).toHaveText("Running");
+    await seekShot(page, -1, "start-" + course);
+    const st = await race(page);
+    await page.evaluate((d) => document.getElementById("flive-mcg")._mcg.seekRace(d), st.duration);
+    await expect(header(page)).toHaveText("Result");
+    await expect(page.locator("#flive-score")).not.toContainText("Upcoming");
+    expect(errors).toEqual([]);
+  });
+}

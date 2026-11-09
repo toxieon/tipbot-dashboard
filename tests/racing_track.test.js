@@ -195,6 +195,40 @@ async function boardClearOfField(path, spot, secs) {
   }
   return null;
 }
+const BOARD_BOX = [[-6.45, 6.45], [-0.05, 10.1], [-3.5, 1.9]];   // infield_C GLB bounds
+function boardBlocks(spot, from, to) {
+  const cs = Math.cos(spot.rotationY), sn = Math.sin(spot.rotationY);
+  const loc = (p) => { const dx = p[0] - spot.x, dz = p[2] - spot.z; return [dx * cs - dz * sn, p[1], dx * sn + dz * cs]; };
+  const a = loc(from), b = loc(to); let t0 = 0, t1 = 1;
+  for (let i = 0; i < 3; i++) {
+    const [lo, hi] = BOARD_BOX[i], d = b[i] - a[i];
+    if (Math.abs(d) < 1e-9) { if (a[i] < lo || a[i] > hi) return false; continue; }
+    let u = (lo - a[i]) / d, v = (hi - a[i]) / d; if (u > v) [u, v] = [v, u];
+    t0 = Math.max(t0, u); t1 = Math.min(t1, v); if (t0 > t1) return false;
+  }
+  return true;
+}
+// The board in front of a parading horse (camera -> horse ray through the board).
+async function boardHidesParade(path, spot, secs) {
+  const {RACECOURSE_CAMERAS, paradeStart} = await rc(), c = RACECOURSE_CAMERAS[0], lead = paradeStart(path);
+  for (let t = 0; t <= secs; t += 0.5) for (let i = 0; i < 12; i++) for (const lane of [0.22, 0.48, 0.74]) {
+    const p = path.place(lead + 9 * t - i * 5.6, path.width * lane);
+    for (const y of [1, 3]) if (boardBlocks(spot, c.pos, [p.x, y, p.z])) return {t, i, lane};
+  }
+  return null;
+}
+async function boardOnScreen(spot, W, H) {
+  const T = await import("../assets/vendor/three/three.module.min.js");
+  const {RACECOURSE_CAMERAS} = await rc(), { effectiveFov } = await import("../assets/mcg/cameras.js"), c = RACECOURSE_CAMERAS[0];
+  const cam = new T.PerspectiveCamera(effectiveFov(c, W / H), W / H, 0.1, 1600);
+  cam.position.fromArray(c.pos); cam.lookAt(...c.look); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+  const cs = Math.cos(spot.rotationY), sn = Math.sin(spot.rotationY), xs = [], ys = [];
+  for (const lx of BOARD_BOX[0]) for (const y of BOARD_BOX[1]) for (const lz of BOARD_BOX[2]) {
+    const v = new T.Vector3(spot.x + lx * cs + lz * sn, y, spot.z - lx * sn + lz * cs).project(cam);
+    xs.push((v.x + 1) / 2 * W); ys.push((1 - v.y) / 2 * H);
+  }
+  return {left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys)};
+}
 const insideRail = (pts, x, z) => {
   let c = false;
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
@@ -215,9 +249,13 @@ test("infield board: inside the rail and never in front of the parade field from
     assert.equal(await boardClearOfField(p, spot, 170), null, id + ": clear for a whole lap");
     assert.ok(fit.s * NAMED_BOARD_SCALE >= 0.6, id + " boards at least 0.6 x real size");
   }
+  // Generic loop (0.72.0): horses may pass behind the board, never be hidden by it; the
+  // board sits in the 390 px hero (sim-race leader/tipped horse: tests/sim_race.test.js).
   const g = genericPath(), gs = infieldSpot(g, INFIELD_BOARD.generic);
   assert.ok(insideRail(g.points, gs.x, gs.z), "generic infield_C inside the rail");
-  assert.equal(await boardClearOfField(g, gs, 8), null, "generic: clear of the parade on load");
+  assert.equal(await boardHidesParade(g, gs, 170), null, "generic: never in front of the parade for a lap");
+  const r = await boardOnScreen(gs, 390, 248);
+  assert.ok(r.left >= 0 && r.right <= 390 && r.top >= 0 && r.bottom <= 248, "generic: whole board in the 390 px hero " + JSON.stringify(r));
 });
 
 test("billboards: patches matched by prefix keep the LED's own emissive, frames merge", async () => {
@@ -249,4 +287,74 @@ test("the racecourse wires slots to the scene and Game view passes them through"
   const page = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   assert.match(page, /handle\.setBillboards/);
   assert.match(page, /fliveBillboards\(/);
+});
+
+test("named board sizes: rail, LED and tall at least 1.35 x, finish 1.6 x, gate 1:1, nothing crosses a rail or overlaps", async () => {
+  const { billboardPlacements, scaleNamedBoards, boardFootprint, NAMED_BOARD_SCALES, NAMED_BOARD_MIN } = await rc();
+  for (const t of ["rail", "led", "tall"]) assert.ok(NAMED_BOARD_SCALES[t] >= NAMED_BOARD_MIN && NAMED_BOARD_MIN === 1.35, t);
+  assert.equal(NAMED_BOARD_SCALES.finish, 1.6);
+  assert.equal(NAMED_BOARD_SCALES.gate, 1);
+  const rules = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/billboards.json"), "utf8")).courses;
+  const apart = (A, B) => {   // separating axis on two rectangles (corner order 0,1,3,2)
+    for (const P of [A, B]) for (let i = 0; i < 4; i++) {
+      const o = [0, 1, 3, 2], a = P[o[i]], b = P[o[(i + 1) % 4]], n = [b[1] - a[1], a[0] - b[0]], l = Math.hypot(...n);
+      const pa = A.map((c) => (c[0] * n[0] + c[1] * n[1]) / l), pb = B.map((c) => (c[0] * n[0] + c[1] * n[1]) / l);
+      if (Math.max(...pa) <= Math.min(...pb) + 0.01 || Math.max(...pb) <= Math.min(...pa) + 0.01) return true;
+    }
+    return false;
+  };
+  for (const id of Object.keys(STUDIO)) {
+    const def = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/racecourses/courses", id + ".json"), "utf8"));
+    const placed = scaleNamedBoards(def, billboardPlacements({ def, rules: rules[id].rules, start_m: rules[id].start_m }));
+    const fp = placed.map((p) => boardFootprint(def, p)), W = def.width_m;
+    placed.forEach((p, i) => {
+      assert.equal(p.scale || 1, NAMED_BOARD_SCALES[p.type], `${id} ${p.id} scale`);
+      const lat = fp[i].lat;
+      if (!lat) return;   // gate banners sit behind the stalls (unchanged)
+      const lo = Math.min(...lat), hi = Math.max(...lat);
+      if (p.type === "rail") assert.ok(lo > W - 0.5 && hi < W + 0.5, `${id} ${p.id} on the outer rail fence (${lo.toFixed(2)}..${hi.toFixed(2)})`);
+      else assert.ok(hi < 0, `${id} ${p.id} stays inside the inside rail (${hi.toFixed(2)} m)`);
+    });
+    // Gate banners are Cinna's (unchanged in 0.72.0); a short last banner can butt into its
+    // neighbour (Moonee Valley's 3-stall gate_4), so gate pairs are left to her.
+    for (let i = 0; i < placed.length; i++) for (let j = i + 1; j < placed.length; j++)
+      if (placed[i].type !== "gate" || placed[j].type !== "gate") assert.ok(apart(fp[i].pts, fp[j].pts), `${id}: ${placed[i].id} overlaps ${placed[j].id}`);
+  }
+});
+
+test("stand-top boards fit the 390 px hero: 12 px clear at the top and clear of the back button", async () => {
+  const T = await import("../assets/vendor/three/three.module.min.js");
+  const { RACECOURSE_CAMERAS, ROOFTOP_NUDGE } = await rc();
+  const { effectiveFov } = await import("../assets/mcg/cameras.js");
+  const pl = JSON.parse(fs.readFileSync(path.join(ROOT, "assets/venues/billboards/placements.json"), "utf8")).placements;
+  const c = RACECOURSE_CAMERAS[0];
+  assert.equal(c.id, "broadcast");   // the default camera on every course (the stand is shared)
+  for (const [W, H] of [[390, 248], [430, 270]]) {
+    const cam = new T.PerspectiveCamera(effectiveFov(c, W / H), W / H, 0.1, 1600);
+    cam.position.fromArray(c.pos); cam.lookAt(...c.look); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+    const rects = {};
+    for (const name of ["rooftop_A", "rooftop_B"]) {
+      const p = pl.find((q) => q.name === name), n = ROOFTOP_NUDGE[name], k = p.scale;
+      const x0 = p.position[0] + n[0], y0 = p.position[1] + n[1], z0 = p.position[2] + n[2];
+      const cs = Math.cos(p.rotationY), sn = Math.sin(p.rotationY), xs = [], ys = [];
+      // Rooftop GLB bounds: 21 m wide, 21.7 m tall over its base, -5.6..0.5 m deep (x scale).
+      for (const lx of [-10.5, 10.5]) for (const y of [0, 21.7]) for (const lz of [-5.6, 0.5]) {
+        const v = new T.Vector3(x0 + (lx * cs + lz * sn) * k, y0 + y * k, z0 + (-lx * sn + lz * cs) * k).project(cam);
+        xs.push((v.x + 1) / 2 * W); ys.push((1 - v.y) / 2 * H);
+      }
+      const r = rects[name] = { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys) };
+      assert.ok(r.top >= 12, `${name} at ${W}px: ${r.top.toFixed(1)} px from the top`);
+      assert.ok(r.left > 50 || r.top > 50, `${name} at ${W}px: under the back button`);
+      assert.ok(r.right < W, `${name} at ${W}px: inside the right edge`);
+      assert.ok(y0 < p.position[1] && y0 >= p.position[1] - 2.5, `${name} about 2 m lower`);
+    }
+    assert.ok(rects.rooftop_A.right < rects.rooftop_B.left || rects.rooftop_B.right < rects.rooftop_A.left, "side by side");
+  }
+});
+
+test("published view: empty rail, tall and finish panels show the dark LED backing", () => {
+  const src = fs.readFileSync(path.join(ROOT, "assets/venues/racecourse.js"), "utf8");
+  assert.match(src, /EMPTY_BACKING = 0x0d1419/);
+  assert.match(src, /DARK_EMPTY = \/\^\(rail\|tall\|finish\)_\//);
+  assert.doesNotMatch(src.replace(/\/\/.*$/gm, ""), /YOUR LOGO HERE/i, "the placeholder is Sponsor Studio's, not the published view's");
 });

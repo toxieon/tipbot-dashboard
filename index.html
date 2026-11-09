@@ -5635,6 +5635,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function fliveRaceStop(){
     if(FLIVE.raceTimer){ clearTimeout(FLIVE.raceTimer); FLIVE.raceTimer=null; }
     if(FLIVE.race&&FLIVE.race.jumpTimer){ clearTimeout(FLIVE.race.jumpTimer); FLIVE.race.jumpTimer=null; }
+    if(FLIVE.race&&FLIVE.race.phaseTimer){ clearInterval(FLIVE.race.phaseTimer); FLIVE.race.phaseTimer=null; }
     FLIVE.race=null;
     const el=$("flive-race"); if(el){ el.hidden=true; el.innerHTML=""; }
   }
@@ -5674,10 +5675,31 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
         h.setRace(sim.phase==="race"?{distance:sim.distance, order:sim.order, key:sim.key, source:sim.source}:null);
       }
     }
+    if(sim.phase==="race"&&!race.phaseTimer) race.phaseTimer=setInterval(fliveRaceHeader, 400);
+    fliveRaceHeader();
     if(sim.phase!=="race"&&sim.jumpAt&&sim.jumpAt>Date.now()&&sim.jumpAt-Date.now()<2147000000){
       race.jumpTimer=setTimeout(function(){ race.jumpTimer=null; if(FLIVE.race===race){ fliveRaceSim(); fliveRaceRead(race); } }, sim.jumpAt-Date.now()+500);
     }
     fliveRacePaint();
+  }
+  /* Header while the simulated race is on: "Running" from the break to the post, "Result"
+     once it's home and pulled up. Driven by the sim's own state (never the game's live
+     flag); the parade before the jump keeps the game's own header. */
+  function fliveSimPhase(){
+    const race=FLIVE.race;
+    if(!race||!race.sim||race.sim.phase!=="race") return "";
+    const host=$("flive-mcg"), h=host&&host._mcg;
+    const st=h&&!h.fallback&&h.raceState?h.raceState():null;
+    if(!st) return "";
+    return st.phase==="race"?"Running":(st.phase==="finished"?"Result":"");
+  }
+  function fliveSimGame(game){
+    const label=fliveSimPhase();
+    return label&&game?Object.assign({}, game, {phase_label:label}):game;
+  }
+  function fliveRaceHeader(){
+    const label=fliveSimPhase(), b=document.querySelector("#flive-score .fl-clock b");
+    if(label&&b&&b.textContent!==label){ b.textContent=label; const st=b.parentNode.querySelector(".fl-starts"); if(st) st.remove(); }
   }
   function fliveRaceSync(ref){
     if(!ref){ if(FLIVE.race) fliveRaceStop(); return; }
@@ -6054,7 +6076,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     FLIVE.board=data;
     flivePhotoLogos();
     if(won.length) fliveHitsPoll(FLIVE.seq);
-    if(score) score.innerHTML=FollowerLive.scoreHtml(data&&data.game);
+    if(score) score.innerHTML=FollowerLive.scoreHtml(fliveSimGame(data&&data.game));
     if(sum) sum.textContent=FollowerLive.summaryText(data);
     if(pill) pill.hidden=!(data&&data.game&&data.game.live);
     if(note){

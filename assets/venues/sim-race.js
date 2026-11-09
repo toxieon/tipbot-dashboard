@@ -38,13 +38,15 @@ function smooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x)
 
 /**
  * opts: {distance (m), order: [runner index, winner first], stalls: [lateral m per runner
- * index], seed, lanes: {first, step, count}}. Runners not in ``order`` are left out.
+ * index], seed, lanes: {first, step, count}, gateBack (m behind the start line where each
+ * horse stands in its stall)}. Runners not in ``order`` are left out.
  * Returns {distance, duration, finishAt[i], at(i, t) -> {d, lat, done}, leader(t)}.
  */
 export function racePlan(opts) {
   var D = Math.max(100, +opts.distance || 1200), order = (opts.order || []).slice(), rnd = seeded(opts.seed || 1);
+  var gb = Math.max(0, +opts.gateBack || 0), run0 = D + gb;   // metres actually run, stall to post
   var lanes = opts.lanes || {first: 1.2, step: 1.6, count: 4};
-  var pace = LEAD_MPS * SIM_RATE, t0 = D / pace;
+  var pace = LEAD_MPS * SIM_RATE, t0 = run0 / pace;
   // warp(T) = D / pace for the winner: solve T by Newton steps (warp is near t - ACCEL_S).
   function finishTime(target) {
     var T = target + ACCEL_S;
@@ -67,10 +69,10 @@ export function racePlan(opts) {
     var stall = (opts.stalls || [])[i];
     if (stall == null) stall = lane[i];
     var wT = warp(T), u = Math.min(1, warp(Math.max(0, t)) / wT);
-    var d = D * (u + wobble[i] * Math.sin(Math.PI * u));
+    var d = -gb + run0 * (u + wobble[i] * Math.sin(Math.PI * u));
     var lat = stall + (lane[i] - stall) * smooth(u / 0.2);
     if (t > T) {
-      var v = D / wT;                                   // average pace; easing off past the post
+      var v = run0 / wT;                                // average pace; easing off past the post
       // Each place pulls up a little shorter, so the field stays in finishing order.
       var run = v * PULL_UP_S * (1 - 0.6 * place[i] / (order.length + 1));
       d = D + run * (1 - Math.exp(-(t - T) / PULL_UP_S));
