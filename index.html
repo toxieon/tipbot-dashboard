@@ -7033,7 +7033,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(s.can_admin!==false && window.TBTipTiers && typeof TBTipTiers.mount==="function") TBTipTiers.mount($("tip-tiers-box"),{api:api,gid:gid,canEdit:true,onUnauth:()=>renderLogin("Session expired.")});
       if(window.TBRouting)TBRouting.mountSettings($("sport-routing-box"),{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")}); return; }
     if(tab==="features"){ body.innerHTML=''; return; }
-    if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div>'; loadPerms(gid); return; }
+    if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div><div id="stat-tracker-box"></div>'; loadPerms(gid);
+      // Stat tracker: which Horse Predictor models this server counts (TipBot 0.92.25+).
+      lazyScript("stat-tracker-models").then(function(){ const tb=$("stat-tracker-box"); if(tb&&window.TBStatTracker) TBStatTracker.mount(tb,{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")}); });
+      return; }
     if(tab==="access"){
       if(!(STATE.ops===true&&!STATE.viewAs)){ body.innerHTML=""; return; }
       body.innerHTML='<div id="access-box"><div class="empty">Loading…</div></div>';
