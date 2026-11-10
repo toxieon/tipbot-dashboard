@@ -1,3 +1,10 @@
+## 0.72.2 · 2026-11-10 · `feat` · Stat tracker: choose which predictor models count
+
+- Server settings → Command access gets a "Stat tracker" section (shown only when the server has a Predictor connector). One switch per model: With-price, Without-price, Agree, Pub sheet, Best pick of the day, each with its recent record, or "Not tracked" when off. A totals line covers the tracked models only; a warning shows when none are tracked.
+- The owner or a server admin can change it (Save tracker / All on). Others see it read-only. Backed by TipBot 0.92.25 (`GET /api/server/predictor-tracker`, `POST /api/server/predictor-tracking`). Default is every model on.
+- It is a filter on the tally only. Stored picks and posted cards are never changed.
+- Tests: unit tests for the record/dirty/render helpers; e2e for the owner save flow, the read-only view and the hidden state with no connector.
+
 ## 0.72.1 · 2026-11-10 · `fix` · Empty boards dark, partial gate trim, Flemington infield nudge
 
 - Published (follower) Game view: empty stand-top (`rooftop_A`/`rooftop_B`) and infield boards, plus empty gate panels, use the dark `#0D1419` backing like the empty LEDs, rail, tall and finish panels already did. "YOUR LOGO HERE" stays in the Sponsor Studio editor only.
