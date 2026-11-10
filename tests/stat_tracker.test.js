@@ -52,7 +52,7 @@ test("hasTally: shown with a saved choice or a recap in the window, hidden other
 
 test("Command access mounts the stat tracker (lazy) under the permissions", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  assert.match(html, /<div id="perms-box"><\/div><div id="stat-tracker-box"><\/div>/);
+  assert.match(html, /<div id="perms-box"><\/div><div id="stat-tracker-box"><\/div><div id="source-agree-box"><\/div>/);
   assert.match(html, /lazyScript\("stat-tracker-models"\)/);
   const src = fs.readFileSync(path.join(__dirname, "..", "assets", "stat-tracker-models.js"), "utf8");
   assert.match(src, /\/api\/server\/predictor-tracker\?guild_id=/);

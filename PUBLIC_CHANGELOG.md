@@ -1,3 +1,7 @@
+## 0.73.2
+
+- Maintenance / Internal updates
+
 ## 0.72.1
 
 - Maintenance / Internal updates

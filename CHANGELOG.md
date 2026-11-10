@@ -1,3 +1,9 @@
+## 0.73.2 · 2026-11-10 · `feat` · Predictor Call settings
+
+- Server settings → Command access gets a Predictor Call section when the server has a Horse Predictor. The owner or a server admin can enable it, multi-select automatic horse sources, and pick the dest channel (not the Agree channel). Backed by TipBot 0.92.33 (`GET`/`POST /api/server/predictor-agree`).
+- The live Discord post and 1080 archive graphic wait on Cinna’s Discord-push preview; this change is settings + wiring only on the tipdash side.
+- Tests: unit tests for the settings helpers; e2e for the owner save flow and the hidden state with no Horse Predictor. The settings script is denied from the public site.
+
 ## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
 
 - Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.

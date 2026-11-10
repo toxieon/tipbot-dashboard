@@ -63,6 +63,7 @@ test("public build copies the allowlist and refuses secret terms", async () => {
       "assets/connector-push.js",
       "assets/connector-post.js",
       "assets/connector-library.js",
+      "assets/source-agree-mod.js",
       "tests/public_build.test.js",
       "GPT/index.html",
       "labs/fx/index.html",
