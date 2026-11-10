@@ -115,12 +115,19 @@ async function markerInfo(page) {
 
 async function shot(page, name) {
   if (!SHOTS) return;
-  await page.waitForTimeout(800);
+  // Wait for tipster chip sprites (async icon load) then frame the parade from grandstand.
+  await page.waitForFunction(() => {
+    const m = document.getElementById("flive-mcg") && document.getElementById("flive-mcg")._mcg;
+    if (!m || !m.markerInfo) return false;
+    const info = m.markerInfo();
+    return info.some((x) => (x.tipsters && x.tipsters.length) || x.tipped);
+  }, null, { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1200);
   await page.evaluate(() => {
     const h = document.getElementById("flive-mcg");
-    if (h && h._mcg && h._mcg.setCamera) h._mcg.setCamera("blimp", { animate: false });
+    if (h && h._mcg && h._mcg.setCamera) h._mcg.setCamera("broadcast", { animate: false });
   });
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(500);
   fs.mkdirSync(SHOTS, { recursive: true });
   await page.locator("#flive-mcg").screenshot({ path: path.join(SHOTS, "tipster-markers-" + name + ".png") });
 }
