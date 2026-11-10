@@ -51,6 +51,7 @@ export const ASSET_DENY = new Set([
   "assets/connector-push.js",
   "assets/connector-post.js",
   "assets/connector-library.js",
+  "assets/source-agree-mod.js",
 ]);
 
 // Phrases that must not appear in the public copy. The secret-word scan above
