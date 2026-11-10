@@ -233,11 +233,10 @@ export async function ledRibbons(scene, paths, night, cfgUrl) {
 }
 
 // ── Sponsor floor logos ────────────────────────────────────────────────────────
-// Studio logos are laid out on the AFL oval (boundary 84 x 71.5 m). A logo the owner
-// placed on this ground in the studio arrives with ``pose: true``: it is already in
-// this ground's metres and is drawn as is. Any other logo keeps the old behaviour:
-// the AFL layout scaled down evenly into the playing area, so it keeps its shape and
-// stays on the field.
+// Studio logos belong to one ground. A logo placed on this ground arrives with
+// ``pose: true`` (or is already in this field's metres) and is drawn as is. An
+// unposed logo is the older AFL layout, scaled into this field only as a fallback
+// for a bot that has not split placements yet. The racecourse never paints floor logos.
 var OVAL = {x: 84, z: 71.5};
 export function logoScale(field) {
   return Math.min((field.w / 2) / OVAL.x, (field.d / 2) / OVAL.z);
@@ -427,16 +426,37 @@ export async function mountVenue(host, opts, def) {
     var led = built.led || null;
     var logoGroup = new T.Group();
     scene.add(logoGroup);
+    var logoTexCache = Object.create(null);
+    var logoSig = null;
     function clearLogos() {
       while (logoGroup.children.length) {
         var m = logoGroup.children.pop();
-        try { if (m.material.map) m.material.map.dispose(); m.material.dispose(); m.geometry.dispose(); } catch (eD) {}
+        try {
+          if (m.userData && m.userData.ownTex && m.material.map) m.material.map.dispose();
+          m.material.dispose(); m.geometry.dispose();
+        } catch (eD) {}
       }
     }
-    // Sponsor logos painted on the field (the studio's Grounds tab picks which tipsters show here).
+    function dropLogoTextures() {
+      Object.keys(logoTexCache).forEach(function (key) {
+        try { logoTexCache[key].dispose(); } catch (eT) {}
+      });
+      logoTexCache = Object.create(null);
+    }
+    // Sponsor logos painted on this ground only. The racecourse uses billboards, not turf logos.
     function setLogos(logos) {
+      if (def.venue === "racecourse") { logoSig = "racecourse"; clearLogos(); return; }
+      if (!def.field) { clearLogos(); return; }
+      var list = logos || [];
+      var sig = list.map(function (logo) {
+        return [logo && (logo.id || ""), logo && (logo.url || logo.src || logo.image) || "",
+          logo && logo.x, logo && logo.z, logo && (logo.w || logo.width_m), logo && (logo.d || logo.depth_m || logo.h),
+          logo && (logo.rot || logo.rotation), logo && logo.angle, logo && logo.pose,
+          logo && logo.zoom, logo && logo.pan_x, logo && logo.pan_y, logo && logo.shape].join(":");
+      }).join("|");
+      if (sig === logoSig) return;
+      logoSig = sig;
       clearLogos();
-      if (!def.field) return;
       (logos || []).forEach(function (logo) {
         var url = logo && (logo.url || logo.src || logo.image);
         if (!url) return;
@@ -445,7 +465,13 @@ export async function mountVenue(host, opts, def) {
         var view = {zoom: logo.zoom, pan_x: logo.pan_x, pan_y: logo.pan_y, shape: logo.shape};
         var tex;
         if (!LF || (at.w === at.d && LF.plain(view))) {
-          tex = new T.TextureLoader().load(url, function () { if (alive && still && renderer) renderer.render(scene, camera); });
+          tex = logoTexCache[url];
+          if (!tex) {
+            tex = new T.TextureLoader().load(url, function () { if (alive && still && renderer) renderer.render(scene, camera); });
+            if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+            tex.anisotropy = 8;
+            logoTexCache[url] = tex;
+          }
         } else {
           var cv = document.createElement("canvas");
           var cw = 512, ch = Math.max(1, Math.round(512 * at.d / at.w));
@@ -461,10 +487,14 @@ export async function mountVenue(host, opts, def) {
           };
           im.src = url;
         }
-        if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
-        tex.anisotropy = 8;
+        var ownTex = !logoTexCache[url] || logoTexCache[url] !== tex;
+        if (ownTex) {
+          if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+          tex.anisotropy = 8;
+        }
         var mesh = new T.Mesh(new T.PlaneGeometry(at.w, at.d),
           new T.MeshBasicMaterial({map: tex, transparent: true, opacity: 0.9, depthWrite: false}));
+        mesh.userData.ownTex = ownTex;
         mesh.rotation.set(-Math.PI / 2, 0, -at.rot * Math.PI / 180);
         mesh.position.set(at.x, 0.03, at.z);   // just above the field plane (y 0.01)
         if (at.angle) {
@@ -591,6 +621,7 @@ export async function mountVenue(host, opts, def) {
         if (raf) cancelAnimationFrame(raf);
         if (watch) watch.disconnect();
         clearLogos();
+        dropLogoTextures();
         if (built.dispose) { try { built.dispose(); } catch (eX) {} }
         if (renderer) { try { renderer.dispose(); } catch (e8) {} }
         renderer = null;

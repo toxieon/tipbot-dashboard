@@ -2323,10 +2323,11 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     return {};
   }
   function cachedGroundScene(venue){ return cachedScenes()[venue||"mcg"]||null; }
-  /** Logos for this ground only. A bot without per-ground scenes (no ``venue``) keeps them on the AFL field. */
+  /** Logos for this ground only. A bot without per-ground scenes (no ``venue``) keeps them on the AFL field. The racecourse has billboards, never floor logos. */
   function sceneLogosFor(d, venue){
     venue=venue||"mcg";
     if(!d||!Array.isArray(d.ground)) return [];
+    if(venue==="racecourse") return [];
     if(d.venue) return d.venue===venue?d.ground:[];
     return venue==="mcg"?d.ground:[];
   }
