@@ -58,3 +58,13 @@ test("Command access mounts the stat tracker (lazy) under the permissions", () =
   assert.match(src, /\/api\/server\/predictor-tracker\?guild_id=/);
   assert.match(src, /"\/api\/server\/predictor-tracking", \{ method: "POST"/);
 });
+
+
+test("Settings has Studio tab for tipster admins and clears Apex bottom nav", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  assert.match(html, /id="stab-studio">Studio</);
+  assert.match(html, /studio-marker-cb/);
+  assert.match(html, /#settings-panel \.panel-body\{padding-bottom:calc\(88px/);
+  const src = fs.readFileSync(path.join(__dirname, "..", "assets", "stat-tracker-models.js"), "utf8");
+  assert.match(src, /stm-act.*padding-bottom:calc\(72px/);
+});
