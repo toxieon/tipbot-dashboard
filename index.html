@@ -1498,6 +1498,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/tip-tiers.js?v=__TD_VERSION__"></script>
 <script src="./assets/scheduled-tips.js?v=__TD_VERSION__"></script>
 <script src="./assets/auto-recaps.js?v=__TD_VERSION__"></script>
+<script src="./assets/results-post.js?v=__TD_VERSION__"></script>
 <script src="./assets/emoji-picker.js?v=__TD_VERSION__"></script>
 <script src="./assets/upcoming-split.js?v=__TD_VERSION__"></script>
 <script src="./assets/espn-props.js?v=__TD_VERSION__"></script>
@@ -2243,6 +2244,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   const SERVER_STAT_KEYS=["queued","won","lost","profit_units","roi"];
   // Server owners and admins: TipBot DMs them this server's bets list (open bets, live 🔴,
   // results ✅ ❌, then units staked and profit/loss), the same list as the Results DM.
+  
+  function toggleResultsPost(btn){
+    const box=$("results-post-box");
+    if(!box||!window.TBResultsPost) return;
+    if(!box.hidden && box.dataset.open==="1"){ box.hidden=true; box.dataset.open=""; if(box._rpStop){ try{box._rpStop();}catch(e){} box._rpStop=null; } box.innerHTML=""; return; }
+    box.hidden=false; box.dataset.open="1";
+    if(box._rpStop){ try{box._rpStop();}catch(e){} }
+    box._rpStop=TBResultsPost.mount(box,{api:api,gid:btn.getAttribute("data-gid"),onUnauth:()=>renderLogin("Session expired.")});
+  }
   async function dmBetsList(btn){
     if(btn.disabled) return;
     const label=btn.textContent;
@@ -7932,7 +7942,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     $("detail").innerHTML='<div id="live-now" class="live-now-wrap" hidden></div>'
       +(showBack?'<div class="back" id="backbtn">← All servers</div>':'')
       +schedNote
-      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button>'+((s.can_admin&&!STATE.viewAs)?'<button type="button" class="ghost" id="betslistbtn" data-gid="'+esc(String(s.guild_id))+'" title="TipBot DMs you only the bets logged today (Sydney time) in this server, ready to copy">✉ DM me today\'s bets</button>':'')+'<button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div>'
+      +'<div class="dhead">'+serverTitle+'<div class="dhead-actions">'+(showBack?'':'<button class="ghost" id="statsbtn">Stats</button>')+'<button class="ghost" id="upcomingbtn" hidden>Upcoming</button><a class="ghost live-open-btn" id="livebtn" href="./live/?guild='+encodeURIComponent(s.guild_id)+'" title="Live bets: every live game, player by player" style="display:none">🔴 Live</a><button type="button" class="ghost" id="gameviewbtn">Game view</button><button type="button" class="ghost" id="livedemobtn" hidden title="Walk through a sample live game">Live demo</button><button class="ghost" id="scoresbtn" title="AFL/AFLW final scores">📊 Scores</button><button class="ghost" id="asfollowerbtn" title="Preview the follower view (your own tracked bets)">👁 As follower</button><button class="ghost" id="refreshbtn" title="Refresh stats">↻ Refresh</button>'+((s.can_admin&&!STATE.viewAs)?'<button type="button" class="ghost" id="betslistbtn" data-gid="'+esc(String(s.guild_id))+'" title="TipBot DMs you only the bets logged today (Sydney time) in this server, ready to copy">✉ DM me today\'s bets</button><button type="button" class="ghost" id="resultspostbtn" data-gid="'+esc(String(s.guild_id))+'" title="Post a results card of this server\'s graded bets to a channel">Results post</button>':'')+'<button class="ghost" id="custombtn" data-gid="'+esc(String(s.guild_id))+'" title="Add a tip TipBot can\'t auto-grade (Manual bets)">＋ Custom</button><button class="btn sm" id="buildbtn" data-gid="'+esc(String(s.guild_id))+'">＋ Build a tip</button></div></div><div id="results-post-box" hidden></div>'
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
@@ -7952,6 +7962,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     { const ldb=$("livedemobtn"); if(ldb){ ldb.hidden=!ownerSettingsAllowed(); if(!ldb.hidden) ldb.onclick=()=>openFollowerDemo(); } }
     $("upcomingbtn").onclick=()=>openUpcoming(s.guild_id,s.display_name);
     { const bl=$("betslistbtn"); if(bl) bl.onclick=()=>dmBetsList(bl); }
+    { const rp=$("resultspostbtn"); if(rp) rp.onclick=()=>toggleResultsPost(rp); }
     $("buildbtn").onclick=()=>openBuilder(s.guild_id,s.display_name);
     if(!guildFeature(s.guild_id,"livestats")){ const lp=$("live-tips-panel"); if(lp) lp.remove(); }   // Live stats off
     { const cb=$("custombtn"); if(cb)cb.onclick=()=>openCustom(s.guild_id,s.display_name); }
