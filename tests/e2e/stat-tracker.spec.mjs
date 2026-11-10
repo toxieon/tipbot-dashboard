@@ -43,6 +43,7 @@ async function open(page, first, onPost) {
     return r.fulfill({ status: 200, contentType: "application/json", headers: cors(r), body: JSON.stringify({ ...view(body.tracked), message: "Stat tracker saved." }) });
   });
   await page.addInitScript(authInitScript());
+  await page.addInitScript(() => { try { localStorage.setItem("tipbot_theme", "apex"); } catch (e) {} });
   await page.goto(baseUrl + "#/s/1", { waitUntil: "domcontentloaded" });
   const hd = page.locator("#settings-panel .panel-hd");
   await hd.waitFor({ timeout: 30000 });
@@ -102,4 +103,31 @@ test("operator: read-only; no Horse Predictor tally: no section", async ({ page,
   await p2.waitForTimeout(500);
   await expect(p2.locator("#stm")).toHaveCount(0);
   await p2.close();
+});
+
+
+test("Apex bottom nav does not cover Save tracker / All on", async ({ page }) => {
+  const errors = await open(page, view(ALL));
+  const box = page.locator("#stm");
+  await expect(box).toBeVisible();
+  const save = box.locator("#stm-save");
+  const all = box.locator("#stm-all");
+  await save.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+  // Buttons must sit above the fixed Apex tab bar (roughly bottom 72–90 px).
+  const geom = await page.evaluate(() => {
+    const s = document.getElementById("stm-save");
+    const a = document.getElementById("stm-all");
+    const nav = document.querySelector(".apex-tabs");
+    const sr = s.getBoundingClientRect(), ar = a.getBoundingClientRect();
+    const nr = nav && getComputedStyle(nav).display !== "none" ? nav.getBoundingClientRect() : null;
+    const navTop = nr ? nr.top : (window.innerHeight - 72);
+    return { saveBottom: sr.bottom, allBottom: ar.bottom, navTop: navTop, vh: window.innerHeight, hasNav: !!nr };
+  });
+  expect(geom.saveBottom).toBeLessThanOrEqual(geom.navTop + 2);
+  expect(geom.allBottom).toBeLessThanOrEqual(geom.navTop + 2);
+  if (SHOTS) {
+    await page.screenshot({ path: path.join(SHOTS, "stat-tracker-nav-fix.png"), fullPage: false });
+  }
+  expect(errors).toEqual([]);
 });

@@ -1,3 +1,11 @@
+## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
+
+- Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.
+- Consumes TipBot 0.92.26+ `tipster_markers` on the 60 s `/api/racing/event/<id>` poll. Icons are Discord CDN only (`cdn.discordapp.com` / `media.discordapp.net`).
+- Marker toggle is Sponsor Studio, not Features: Settings → Studio (server owner/mod) and TipBot Sponsor Studio → Track (brand owner, per tipster). Same `feat.racetrack_marker` flag (default on); unlisted from Features so there is one place to set it. Tipsters who are not the brand owner use Settings → Studio — minimal per-server Studio access without opening the brand-owner studio.
+- Server settings (Command access / Studio / …): extra bottom padding + safe-area so Apex bottom nav no longer covers controls (stat-tracker Save / All on). Screenshot `/workspace/samples/stat-tracker-nav-fix.png`.
+- Tests: `racing_track.test.js` tipster grouping/sameField; e2e `tipster-markers.spec.mjs` at 390 px; `tipster-marker-toggle.spec.mjs` opens Settings → Studio. Screenshots under `/workspace/samples/tipster-markers-*.png` and `studio-marker-toggle.png`.
+
 ## 0.72.2 · 2026-11-10 · `feat` · Stat tracker: choose which predictor models count
 
 - Server settings → Command access gets a "Stat tracker" section (shown only when the server has a Predictor connector). One switch per model: With-price, Without-price, Agree, Pub sheet, Best pick of the day, each with its recent record, or "Not tracked" when off. A totals line covers the tracked models only; a warning shows when none are tracked.

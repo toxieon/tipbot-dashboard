@@ -415,3 +415,44 @@ test("partial gate banners: Moonee Valley gate_4 is 4.5 m and generic gate_5 is 
   assert.equal(full.getObjectByName("Backing"), undefined);
   assert.equal(full.getObjectByName("SponsorPatch").geometry.parameters.width, G.w);
 });
+
+
+test("tipstersByRunner groups by runner, sorts by name, and safeIcon allows Discord CDN only", () => {
+  assert.equal(RT.MAX_MARKER_ICONS, 3);
+  assert.equal(RT.safeIcon("https://cdn.discordapp.com/icons/1/a.png?size=64"), "https://cdn.discordapp.com/icons/1/a.png?size=64");
+  assert.equal(RT.safeIcon("https://evil.example/a.png"), "");
+  assert.equal(RT.safeIcon("http://cdn.discordapp.com/icons/1/a.png"), "");
+  const by = RT.tipstersByRunner([
+    {guild_id: "22", name: "South", icon_url: "https://cdn.discordapp.com/icons/22/b.png?size=64", runner_number: 4, won: true},
+    {guild_id: "11", name: "North", icon_url: "https://evil.example/x.png", runner_number: 4, won: false},
+    {guild_id: "33", name: "East", icon_url: "https://media.discordapp.net/icons/33/c.png", runner_number: 7, won: false},
+    {guild_id: "44", name: "Gone", icon_url: "https://cdn.discordapp.com/icons/44/d.png", runner_number: 5, won: false},
+  ]);
+  assert.deepEqual(by[4].map((t) => t.guild_id), ["11", "22"]);
+  assert.equal(by[4][0].icon_url, "");
+  assert.equal(by[4][1].won, true);
+  assert.equal(by[7][0].icon_url, "https://media.discordapp.net/icons/33/c.png");
+});
+
+test("fieldFromEvent attaches tipsters; scratched runners drop their markers; sameField watches tipsters", () => {
+  const runners = [
+    {number: 1, name: "A", barrier: 1},
+    {number: 4, name: "Alpha", barrier: 2},
+    {number: 7, name: "Beta", barrier: 3, scratched: true},
+  ];
+  const markers = [
+    {guild_id: "11", name: "North", icon_url: "https://cdn.discordapp.com/icons/11/a.png?size=64", runner_number: 4, won: false},
+    {guild_id: "22", name: "South", icon_url: "https://cdn.discordapp.com/icons/22/b.png?size=64", runner_number: 4, won: true},
+    {guild_id: "33", name: "East", icon_url: "https://cdn.discordapp.com/icons/33/c.png?size=64", runner_number: 7, won: false},
+  ];
+  const field = RT.fieldFromEvent({runners}, [4], markers);
+  assert.equal(field.length, 2);
+  const alpha = field.find((r) => r.number === 4);
+  assert.equal(alpha.tipped, true);
+  assert.deepEqual(alpha.tipsters.map((t) => t.guild_id), ["11", "22"]);
+  assert.equal(alpha.tipsters[1].won, true);
+  assert.ok(!field.some((r) => r.number === 7));
+  const field2 = RT.fieldFromEvent({runners}, [4], markers.slice(0, 1));
+  assert.equal(RT.sameField(field, field2), false);
+  assert.equal(RT.sameField(field, RT.fieldFromEvent({runners}, [4], markers)), true);
+});

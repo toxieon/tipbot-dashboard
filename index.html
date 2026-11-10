@@ -1322,6 +1322,14 @@ img.dc-av{object-fit:cover;padding:0;border:1px solid var(--line);display:block}
 #dropdown #dd-odds-quota,#dropdown #dd-odds-markets,#dropdown #dd-signup-gate{display:none!important} /* live in the settings view */
 #settings .os-lead{color:var(--muted);margin:-8px 0 18px;font-size:var(--t-callout)}
 #settings .os-body{display:grid;gap:16px;max-width:560px}
+  /* Keep Settings tab content clear of the Apex bottom nav (Command access / Studio / etc.). */
+  #settings-panel .panel-body{padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px))}
+  #settings-body{padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
+  .studio-marker-card{margin-top:4px;padding:12px 12px 14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card2)}
+  .studio-marker-card h4{margin:0 0 6px;font-size:var(--t-sub)}
+  .studio-marker-card .smc-help{color:var(--faint);font-size:var(--t-foot);line-height:1.45;margin:0 0 12px}
+  .studio-marker-card label{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+
 #settings .os-card{margin:0}
 #settings .dd-quota,#settings .dd-mk,#settings .dd-gate{padding-left:0;padding-right:0;border-top:0}
 
@@ -5180,7 +5188,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   }
   // Owner-only detail (server switch per sport) lives in ext.js; customers see nothing extra.
   // One line of help under a Features toggle, for every admin (owner tools add their own notes).
-  const FEATURE_HELP={
+    const FEATURE_HELP={
     "feat.sportsbet_link":"Sportsbet tips get a Bet on Sportsbet button that opens the bet in Sportsbet. Paste the betslip's share link on the tip (🔗 Sportsbet link or /sportsbet-link).",
     "feat.results_dm":"When all of a tipster's open bets have settled, TipBot DMs them a copy-paste results list with the total units."
   };
@@ -5758,7 +5766,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
             const c=TBVenues.courseFor(ev.meeting_name);
             if(c){ race.course=c; fliveRaceCourse(); }
           }
-          const field=TBRacingTrack.fieldFromEvent(ev, race.ref.tipped);
+          const field=TBRacingTrack.fieldFromEvent(ev, race.ref.tipped, d&&d.tipster_markers);
           if(!TBRacingTrack.sameField(race.field, field)){
             race.field=field;
             const host=$("flive-mcg"), h=host&&host._mcg;
@@ -7033,6 +7041,38 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(s.can_admin!==false && window.TBTipTiers && typeof TBTipTiers.mount==="function") TBTipTiers.mount($("tip-tiers-box"),{api:api,gid:gid,canEdit:true,onUnauth:()=>renderLogin("Session expired.")});
       if(window.TBRouting)TBRouting.mountSettings($("sport-routing-box"),{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")}); return; }
     if(tab==="features"){ body.innerHTML=''; return; }
+    if(tab==="studio"){
+      if(s.can_admin===false||STATE.viewAs){ body.innerHTML=""; return; }
+      body.innerHTML='<div class="studio-marker-card" id="studio-marker-card">'
+        +'<h4>Sponsor Studio · Track</h4>'
+        +'<p class="smc-help">Show this tipster\'s server icon on followers\' Game view racetracks (parade and sim). Display only — no change to stats, units or bankroll. Default on. Same setting the brand-owner Studio Track tab edits for each tipster.</p>'
+        +'<label><input type="checkbox" id="studio-marker-cb" style="width:16px;height:16px"> <span style="font-weight:600;font-size:var(--t-sub)">Show my marker on followers\' racetracks</span></label>'
+        +'<div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<button type="button" class="btn sm" id="studio-marker-save">Save</button>'
+        +'<span id="studio-marker-msg" style="font-size:var(--t-foot)"></span></div></div>';
+      const cb=$("studio-marker-cb"), save=$("studio-marker-save"), msg=$("studio-marker-msg");
+      const FLAG="feat.racetrack_marker";
+      (async()=>{
+        try{
+          const r=await api("/api/feature-flags?guild_id="+encodeURIComponent(gid),{retries:1,timeoutMs:10000});
+          const j=await r.json();
+          const on=!(j&&j.flags&&(j.flags[FLAG]===false||j.flags[FLAG]===0));
+          if(cb) cb.checked=on;
+        }catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); if(msg){ msg.textContent="Couldn't load."; msg.style.color="var(--loss)"; } }
+      })();
+      if(save) save.onclick=async()=>{
+        if(!cb) return;
+        save.disabled=true; if(msg){ msg.textContent="Saving…"; msg.style.color="var(--faint)"; }
+        try{
+          const r=await api("/api/feature-flags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guild_id:gid,flags:{[FLAG]:!!cb.checked}})});
+          const j=await r.json();
+          if(!(j&&j.ok)){ if(msg){ msg.textContent=(j&&j.message)||"error"; msg.style.color="var(--loss)"; } return; }
+          if(msg){ msg.textContent="✓ saved"; msg.style.color="var(--win)"; }
+        }catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); if(msg){ msg.textContent="couldn't save"; msg.style.color="var(--loss)"; } }
+        finally{ save.disabled=false; }
+      };
+      return;
+    }
     if(tab==="perms"){ body.innerHTML='<div id="perms-box"></div><div id="stat-tracker-box"></div>'; loadPerms(gid);
       // Stat tracker: which Horse Predictor models this server counts (TipBot 0.92.25+).
       lazyScript("stat-tracker-models").then(function(){ const tb=$("stat-tracker-box"); if(tb&&window.TBStatTracker) TBStatTracker.mount(tb,{api:api,gid:gid,onUnauth:()=>renderLogin("Session expired.")}); });
@@ -7883,7 +7923,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const settingsPanel='<div class="panel" id="settings-panel" data-sec="settings">'
       +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="false"><h3 style="margin:0">Settings</h3><span class="panel-caret">▸</span></div>'
       +'<div class="panel-body"><div class="tabs" style="margin-bottom:14px">'
-      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button>'+accessTab+'</div>'
+      +'<button class="tab" id="stab-general">General</button><button class="tab" id="stab-channels">Channels</button><button class="tab" id="stab-perms">Command access</button>'+((s.can_admin!==false&&!STATE.viewAs)?'<button class="tab" id="stab-studio">Studio</button>':'')+accessTab+'</div>'
       +'<div id="settings-body"></div></div></div>';
     const schedNote=(typeof scheduleNoteHtml==="function")?scheduleNoteHtml(s.guild_id):"";
     // A new server page: stop the old page's owner panels first, so nothing carries over.
@@ -7947,8 +7987,9 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     wireTipRows($("recent-box"),s.guild_id);
     // Lazy: Recent Results (previous tips) hydrate legs/odds/live over the network only once opened.
     TDSec.onFirstOpen($("recent-panel"), ()=>hydrateTipCards($("recent-box"),s.guild_id,tips.settled));
-    function setTab(t){ if(t==="access" && !(STATE.ops===true&&!STATE.viewAs)) t="general"; ["general","channels","perms","access"].forEach(function(name){ const b=$("stab-"+name); if(b) b.classList.toggle("active", t===name); }); renderSettingsTab(s.guild_id,t,s); }
+    function setTab(t){ if(t==="access" && !(STATE.ops===true&&!STATE.viewAs)) t="general"; if(t==="studio" && (s.can_admin===false||STATE.viewAs)) t="general"; ["general","channels","perms","studio","access"].forEach(function(name){ const b=$("stab-"+name); if(b) b.classList.toggle("active", t===name); }); renderSettingsTab(s.guild_id,t,s); }
     $("stab-general").onclick=()=>setTab("general"); $("stab-channels").onclick=()=>setTab("channels"); $("stab-perms").onclick=()=>setTab("perms");
+    { const st=$("stab-studio"); if(st) st.onclick=()=>setTab("studio"); }
     { const ab=$("stab-access"); if(ab) ab.onclick=()=>setTab("access"); }
     if(isAdmin) loadOwnerServer().then(function(){
       // A server switch while the owner tools loaded: this page is gone, so never attach its server here.
