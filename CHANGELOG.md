@@ -1,3 +1,9 @@
+## 0.73.3 · 2026-11-10 · `feat` · Results post button (admin)
+
+- Server page: owners and admins get a "Results post" button beside "DM me today's bets" (hidden when viewing as a follower). It opens a panel to preview a day's graded bets as a card image and copy text, then post them to a channel in that server.
+- Talks to TipBot 0.92.34 `GET /api/results-post`, `GET /api/results-post/image` and `POST /api/results-post/send`. Copy text matches the Results DM. The panel is not mounted in Features (that tab is empty).
+- New `assets/results-post.js` (`TBResultsPost.mount`). Tests in `tests/results_post.test.js`. Apex screenshots under `/workspace/samples/results-post-*.png`.
+
 ## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
 
 - Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.
