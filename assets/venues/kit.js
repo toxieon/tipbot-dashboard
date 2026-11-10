@@ -576,6 +576,7 @@ export async function mountVenue(host, opts, def) {
         return true;
       },
       riderKinds: function () { return built.riderKinds ? built.riderKinds() : []; },
+      markerInfo: function () { return built.markerInfo ? built.markerInfo() : []; },
       billboardSlots: function () { return built.billboardSlots ? built.billboardSlots() : []; },
       setBillboards: function (map) {
         if (!alive || !built.setBillboards) return Promise.resolve();

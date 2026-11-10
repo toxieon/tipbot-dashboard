@@ -18,7 +18,7 @@
    on the SponsorPatch* meshes by slot id; an empty slot keeps the plain backing.
 
    The field (opts.field, from assets/racing-track.js fieldFromEvent) parades at a
-   canter before the jump, in barrier order; the tipped runner carries a marker.
+   canter before the jump, in barrier order; the tipped runner and followed tipsters' picks carry markers.
    handle.setField(field) swaps the field in place (a scratching removes its horse).
    Horses are code-built boxes on shared, instanced geometry. Each horse's rider comes
    from makeRider(runner): Cinna's jockey GLB (./riders/jockey.glb, LOD1 on phones or
@@ -329,7 +329,7 @@ export function paradeStart(path) {
 /* ---------- the field ---------- */
 function demoField() {
   return DEMO_SILKS.map(function (c, i) {
-    return {number: i + 1, name: "", barrier: i + 1, colour: "#" + new T.Color(c).getHexString(), silk_url: "", tipped: false};
+    return {number: i + 1, name: "", barrier: i + 1, colour: "#" + new T.Color(c).getHexString(), silk_url: "", tipped: false, tipsters: []};
   });
 }
 
@@ -443,6 +443,147 @@ export function followCamera(track, pose) {
 
 function grow(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
 
+
+/** Cap on tipster icons above one horse (390 px Apex); overflow is a +N chip. */
+var MAX_TIPSTER_ICONS = 3;
+var WIN_RING = 0xf5c542;
+
+function tipsterIconCap() {
+  try {
+    if (typeof TBRacingTrack !== "undefined" && TBRacingTrack && TBRacingTrack.MAX_MARKER_ICONS) {
+      return TBRacingTrack.MAX_MARKER_ICONS | 0 || MAX_TIPSTER_ICONS;
+    }
+  } catch (e) {}
+  return MAX_TIPSTER_ICONS;
+}
+
+/** Canvas chip: circular icon (or initial) with an optional gold win ring; +N overflow. */
+function tipsterChipTexture(tipster, plusN) {
+  var size = 64;
+  var c = document.createElement("canvas");
+  c.width = size; c.height = size;
+  var x = c.getContext("2d");
+  function paintFallback(letter, won) {
+    x.clearRect(0, 0, size, size);
+    if (won) {
+      x.beginPath(); x.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+      x.fillStyle = "#F5C542"; x.fill();
+    }
+    x.beginPath(); x.arc(size / 2, size / 2, size / 2 - (won ? 5 : 2), 0, Math.PI * 2);
+    x.fillStyle = "#1B2A4A"; x.fill();
+    x.fillStyle = "#F5F7FA";
+    x.font = "bold 28px system-ui,sans-serif";
+    x.textAlign = "center"; x.textBaseline = "middle";
+    x.fillText(letter || "?", size / 2, size / 2 + 1);
+  }
+  if (plusN != null && plusN > 0) {
+    paintFallback("+" + Math.min(99, plusN | 0), false);
+    var t0 = new T.CanvasTexture(c);
+    t0.colorSpace = T.SRGBColorSpace;
+    t0.needsUpdate = true;
+    return Promise.resolve(t0);
+  }
+  var name = (tipster && tipster.name) || "?";
+  var letter = name.trim().charAt(0).toUpperCase() || "?";
+  var won = !!(tipster && tipster.won);
+  var url = tipster && tipster.icon_url;
+  paintFallback(letter, won);
+  var tex = new T.CanvasTexture(c);
+  tex.colorSpace = T.SRGBColorSpace;
+  tex.needsUpdate = true;
+  if (!url || typeof Image === "undefined") return Promise.resolve(tex);
+  return new Promise(function (resolve) {
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      resolve(tex);
+    }
+    img.onload = function () {
+      try {
+        x.clearRect(0, 0, size, size);
+        if (won) {
+          x.beginPath(); x.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+          x.fillStyle = "#F5C542"; x.fill();
+        }
+        x.save();
+        x.beginPath(); x.arc(size / 2, size / 2, size / 2 - (won ? 5 : 2), 0, Math.PI * 2);
+        x.closePath(); x.clip();
+        x.drawImage(img, 0, 0, size, size);
+        x.restore();
+        // Soft rim so icons read at 390 px.
+        x.beginPath(); x.arc(size / 2, size / 2, size / 2 - (won ? 5 : 2), 0, Math.PI * 2);
+        x.strokeStyle = won ? "#F5C542" : "rgba(255,255,255,0.55)";
+        x.lineWidth = won ? 4 : 2; x.stroke();
+        tex.needsUpdate = true;
+      } catch (e) { paintFallback(letter, won); tex.needsUpdate = true; }
+      finish();
+    };
+    img.onerror = function () { paintFallback(letter, won); tex.needsUpdate = true; finish(); };
+    img.src = url;
+    setTimeout(finish, 2500);
+  });
+}
+
+function disposeMarker(m) {
+  if (!m) return;
+  m.traverse(function (o) {
+    if (o.material) {
+      var mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(function (mat) {
+        if (mat.map) mat.map.dispose();
+        mat.dispose();
+      });
+    }
+  });
+}
+
+/** Cone + optional tipster icon row floating over a backed horse. */
+function makeTipsterMarker(rn, markerGeo, markerMat) {
+  var tipsters = (rn && Array.isArray(rn.tipsters)) ? rn.tipsters : [];
+  var tipped = !!(rn && rn.tipped);
+  if (!tipped && !tipsters.length) return null;
+  var g = new T.Group();
+  g.userData.kind = "tipster-marker";
+  g.userData.disposers = [];
+  var cone = new T.Mesh(markerGeo, markerMat);
+  // Own tip keeps the blue cone; tipster-only picks get the same cone so the stack reads the same.
+  g.add(cone);
+  if (!tipsters.length) return g;
+  var cap = tipsterIconCap();
+  var visible = tipsters.slice(0, cap);
+  var more = tipsters.length - visible.length;
+  var slots = visible.length + (more > 0 ? 1 : 0);
+  var spacing = 1.55;
+  var start = -((slots - 1) * spacing) / 2;
+  var row = new T.Group();
+  row.position.y = 2.35;
+  g.add(row);
+  function addSprite(tex, i) {
+    var mat = new T.SpriteMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false });
+    var spr = new T.Sprite(mat);
+    spr.scale.set(1.7, 1.7, 1);
+    spr.position.x = start + i * spacing;
+    row.add(spr);
+    g.userData.disposers.push(function () { mat.map && mat.map.dispose(); mat.dispose(); });
+  }
+  visible.forEach(function (t, i) {
+    tipsterChipTexture(t, null).then(function (tex) {
+      if (!g.parent && g.userData.dead) { tex.dispose(); return; }
+      addSprite(tex, i);
+    });
+  });
+  if (more > 0) {
+    tipsterChipTexture(null, more).then(function (tex) {
+      if (!g.parent && g.userData.dead) { tex.dispose(); return; }
+      addSprite(tex, visible.length);
+    });
+  }
+  return g;
+}
+
 function Field(scene, path, opts) {
   var horses = null, riders = [], markers = [], runners = [], lead = paradeStart(path), t = 0, gen = 0;
   var scale = opts.horseScale || 1.6;
@@ -453,7 +594,12 @@ function Field(scene, path, opts) {
     if (horses) horses.dispose();
     horses = null;
     riders.forEach(function (r) { if (r) { scene.remove(r.obj); r.dispose(); } });
-    markers.forEach(function (m) { scene.remove(m); });
+    markers.forEach(function (m) {
+      m.userData.dead = true;
+      scene.remove(m);
+      if (m.userData && m.userData.disposers) m.userData.disposers.forEach(function (fn) { try { fn(); } catch (e) {} });
+      disposeMarker(m);
+    });
     riders = []; markers = [];
   }
   function set(list) {
@@ -464,8 +610,8 @@ function Field(scene, path, opts) {
     horses = herd(scene, runners.length, scale);
     runners.forEach(function (rn, i) {
       riders.push(null);
-      if (rn.tipped) {
-        var mk = new T.Mesh(markerGeo, markerMat);
+      var mk = makeTipsterMarker(rn, markerGeo, markerMat);
+      if (mk) {
         mk.userData.i = i;
         scene.add(mk); markers.push(mk);
       }
@@ -601,6 +747,18 @@ function Field(scene, path, opts) {
       return true;
     },
     riderKinds: function () { return riders.map(function (r) { return r ? r.kind : ""; }); },
+    markerInfo: function () {
+      return markers.map(function (m) {
+        var rn = runners[m.userData.i] || {};
+        return {
+          number: rn.number == null ? null : rn.number,
+          tipped: !!rn.tipped,
+          tipsters: (rn.tipsters || []).map(function (t) {
+            return {guild_id: String(t.guild_id || ""), name: String(t.name || ""), won: !!t.won};
+          })
+        };
+      });
+    },
     dispose: function () { clear(); markerGeo.dispose(); markerMat.dispose(); }};
 }
 
@@ -956,6 +1114,7 @@ export async function buildRacecourse(scene, opts) {
   field.set(opts.field || null);
   return {led: led, update: field.update, course: course, path: path,
     setField: function (list) { field.set(list || null); }, fieldCount: field.count, riderKinds: field.riderKinds,
+    markerInfo: field.markerInfo,
     // Simulated race after the jump: spec {distance, order, key, source}; null = parade.
     setRace: field.setRace, raceState: field.raceState, replayRace: field.replay, seekRace: field.seek,
     follow: function () { return followCamera(rtrack, field.leaderPose()); },

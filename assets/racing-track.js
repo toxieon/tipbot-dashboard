@@ -10,6 +10,8 @@
   "use strict";
 
   var MAX_FIELD = 24;
+  /** Icons shown above a horse before a +N overflow (390 px Apex). */
+  var MAX_MARKER_ICONS = 3;
   var POLL_MS = 60000;
   var PALETTE = ["#E5484D", "#5B8CFF", "#F5C542", "#2EAF62", "#FF8A3D", "#8E6CF0", "#F5F7FA", "#111318",
     "#19B5A5", "#F472B6", "#1B2A4A", "#8B93A7"];
@@ -88,8 +90,39 @@
   }
 
   /** Active runners (scratchings removed), sorted by barrier then number, capped at 24. */
-  function fieldFromEvent(event, tipped) {
+  function safeIcon(u) {
+    var s = text(u);
+    if (!/^https:\/\//i.test(s)) return "";
+    try {
+      var host = new URL(s).hostname.toLowerCase();
+      if (host === "cdn.discordapp.com" || host === "media.discordapp.net") return s;
+    } catch (e) {}
+    return "";
+  }
+
+  /** Group tipster_markers from /api/racing/event by runner number (scratchings dropped with the field). */
+  function tipstersByRunner(markers) {
+    var by = {};
+    (Array.isArray(markers) ? markers : []).forEach(function (m) {
+      if (!m) return;
+      var n = int(m.runner_number);
+      if (!n) return;
+      (by[n] = by[n] || []).push({
+        guild_id: text(m.guild_id),
+        name: text(m.name) || "Tipster",
+        icon_url: safeIcon(m.icon_url),
+        won: !!m.won
+      });
+    });
+    Object.keys(by).forEach(function (k) {
+      by[k].sort(function (a, b) { return a.name.localeCompare(b.name) || a.guild_id.localeCompare(b.guild_id); });
+    });
+    return by;
+  }
+
+  function fieldFromEvent(event, tipped, tipsterMarkers) {
     var tip = (tipped || []).map(int).filter(Boolean);
+    var byTipster = tipstersByRunner(tipsterMarkers);
     var runners = event && Array.isArray(event.runners) ? event.runners : [];
     var out = [];
     runners.forEach(function (r) {
@@ -102,7 +135,8 @@
         jockey: text(r.jockey_or_driver || r.jockey),
         silk_url: safeSilk(r.silk_url),
         colour: colourFor({colours: r.colours, number: num}),
-        tipped: num != null && tip.indexOf(num) >= 0
+        tipped: num != null && tip.indexOf(num) >= 0,
+        tipsters: (num != null && byTipster[num]) ? byTipster[num].slice() : []
       });
     });
     out.sort(function (a, b) {
@@ -114,10 +148,17 @@
   }
 
   /** Same race, same runners in the same order and the same silks: nothing to redraw. */
+  function tipsterKey(list) {
+    return (list || []).map(function (t) {
+      return [t.guild_id || "", t.icon_url || "", t.won ? "1" : "0"].join(":");
+    }).join("|");
+  }
+
   function sameField(a, b) {
     if (!a || !b || a.length !== b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (a[i].number !== b[i].number || a[i].silk_url !== b[i].silk_url || a[i].tipped !== b[i].tipped) return false;
+      if (tipsterKey(a[i].tipsters) !== tipsterKey(b[i].tipsters)) return false;
     }
     return true;
   }
@@ -247,6 +288,7 @@
 
   return {MAX_FIELD: MAX_FIELD, POLL_MS: POLL_MS, parseGameName: parseGameName, raceRef: raceRef,
     fieldFromEvent: fieldFromEvent, sameField: sameField, colourFor: colourFor, silkPath: silkPath,
+    tipstersByRunner: tipstersByRunner, safeIcon: safeIcon, MAX_MARKER_ICONS: MAX_MARKER_ICONS,
     legendHtml: legendHtml, paradeSlots: paradeSlots, isRacingSport: isRacingSport,
     positionsFrom: positionsFrom, raceOrder: raceOrder, jumped: jumped, simFromEvent: simFromEvent, raceBarHtml: raceBarHtml};
 });
