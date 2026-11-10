@@ -1402,6 +1402,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 }
 </style>
 <link rel="stylesheet" href="./assets/terms-gate.css?v=__TD_VERSION__">
+<link rel="stylesheet" href="./assets/meme-pike.css?v=__TD_VERSION__">
 </head>
 <body>
 <a class="skip" href="#app">Skip to dashboard</a>
@@ -1506,6 +1507,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/tb-charts.js?v=__TD_VERSION__"></script>
 <script src="./assets/guild-profile.js?v=__TD_VERSION__"></script>
 <script src="./assets/server-view.js?v=__TD_VERSION__"></script>
+<script src="./assets/meme-pike.js?v=__TD_VERSION__"></script>
 <script src="./assets/follower-live.js?v=__TD_VERSION__"></script>
 <script src="./assets/venues/select.js?v=__TD_VERSION__"></script>
 <script src="./assets/follower-units.js?v=__TD_VERSION__"></script>
@@ -7936,6 +7938,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +adminPanel
       +'<div class="sv-period">'+monthSel+filterChip+'<span class="sv-period-s">'+esc(period)+' stats</span></div>'
       +statsBlock
+      +(window.MemePike?MemePike.render(d.meme_pike):"")
       +(sv?sv.charts:"")
       +(sv?sv.splits:"")
       +(formOn?'<div id="tipster-form-slot"></div>':'')

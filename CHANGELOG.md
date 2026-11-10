@@ -1,3 +1,8 @@
+## 0.74.0 · 2026-11-10 · `feature` · Meme Pike card
+
+- Backend-authorized Meme Pike card on the server page, deliberately hot pink within Apex, labelled MEME PICK and “For laughs only. Not a tip.”
+- Shows the current horse, meeting and race without wagering performance fields. No generic secret or post editor for this builtin.
+
 ## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
 
 - Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.
