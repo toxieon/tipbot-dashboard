@@ -1,0 +1,294 @@
+/* Game view racetrack data (tipdash): which race a followed racing tip is on, its field
+   without scratchings, runner colours and the runner legend. Pure, no DOM; a plain
+   script (global TBRacingTrack) and CommonJS for node --test. The 3D scene lives in
+   assets/venues/racecourse.js. */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.TBRacingTrack = api;
+})(typeof window !== "undefined" ? window : globalThis, function () {
+  "use strict";
+
+  var MAX_FIELD = 24;
+  /** Icons shown above a horse before a +N overflow (390 px Apex). */
+  var MAX_MARKER_ICONS = 3;
+  var POLL_MS = 60000;
+  var PALETTE = ["#E5484D", "#5B8CFF", "#F5C542", "#2EAF62", "#FF8A3D", "#8E6CF0", "#F5F7FA", "#111318",
+    "#19B5A5", "#F472B6", "#1B2A4A", "#8B93A7"];
+  var NAMED = {
+    red: "#D7263D", scarlet: "#D7263D", maroon: "#7A1F2B", cerise: "#DE3163", pink: "#F472B6",
+    orange: "#FF8A3D", yellow: "#F5C542", gold: "#E2B13C", lime: "#9BD13B", green: "#2EAF62",
+    emerald: "#1E9E5A", teal: "#19B5A5", aqua: "#2EC4D6", turquoise: "#2EC4D6", blue: "#2F5FD0",
+    royal: "#2F5FD0", navy: "#1B2A4A", purple: "#8E6CF0", violet: "#8E6CF0", mauve: "#B784C9",
+    lilac: "#C8A2C8", white: "#F5F7FA", silver: "#C0C6CF", grey: "#8B93A7", gray: "#8B93A7",
+    black: "#111318", brown: "#6B3E1F", tan: "#C79A64", beige: "#E1C699", cream: "#F3E9D2"
+  };
+
+  function text(v) { return v == null ? "" : String(v).trim(); }
+  function int(v) { var n = parseInt(v, 10); return isFinite(n) && n > 0 ? n : null; }
+  function isRacingLeg(leg) {
+    if (!leg || typeof leg !== "object") return false;
+    return text(leg.kind).toLowerCase() === "racing" || text(leg.leg_type).toLowerCase() === "racing";
+  }
+  function isRacingSport(s) {
+    return /^(racing|horse ?racing|horseracing|horses?|gallops|thoroughbreds?|harness)$/i.test(text(s));
+  }
+
+  /** "Flemington · R7" / "Flemington R7" / "Flemington multi" -> {meeting, race}. */
+  function parseGameName(name) {
+    var s = text(name);
+    if (!s) return {meeting: "", race: null};
+    var m = s.match(/^(.*?)\s*(?:·|-|–|—)?\s*R(?:ace)?\s*(\d{1,2})\b/i);
+    if (m && m[1]) return {meeting: m[1].replace(/[·\-–—\s]+$/, "").trim(), race: int(m[2])};
+    var multi = s.match(/^(.*?)\s+multi$/i);
+    if (multi) return {meeting: multi[1].trim(), race: null};
+    return {meeting: "", race: null};
+  }
+
+  /** The race a group of followed tips is on: the first racing leg with an event id,
+      every tipped runner on that race, or (no racing fields yet) the meeting from the
+      game name so the course still matches. Null when nothing says it is racing. */
+  function raceRef(tips, gameName) {
+    var list = Array.isArray(tips) ? tips : (tips ? [tips] : []);
+    var ref = null, racing = false;
+    list.forEach(function (t) {
+      if (!t) return;
+      if (isRacingSport(t.sport)) racing = true;
+      (Array.isArray(t.legs) ? t.legs : []).forEach(function (leg) {
+        if (!isRacingLeg(leg)) return;
+        racing = true;
+        var eid = text(leg.event_id);
+        if (!ref && eid) ref = {event_id: eid, meeting_name: text(leg.meeting_name), race_number: int(leg.race_number), tipped: []};
+        if (ref && eid === ref.event_id) {
+          var n = int(leg.runner_number);
+          if (n && ref.tipped.indexOf(n) < 0) ref.tipped.push(n);
+          if (!ref.meeting_name && leg.meeting_name) ref.meeting_name = text(leg.meeting_name);
+        }
+      });
+    });
+    if (ref) return ref;
+    if (!racing) return null;
+    var first = list[0] || {};
+    var parsed = parseGameName(gameName || first.game_name);
+    var leg0 = (Array.isArray(first.legs) ? first.legs : []).find(isRacingLeg) || {};
+    return {event_id: "", meeting_name: text(leg0.meeting_name) || parsed.meeting, race_number: int(leg0.race_number) || parsed.race, tipped: []};
+  }
+
+  function colourFor(runner) {
+    var c = runner && runner.colours;
+    var s = Array.isArray(c) ? c.join(" ") : (c && typeof c === "object" ? text(c.primary || c.body || "") : text(c));
+    if (/^#[0-9a-f]{6}$/i.test(s)) return s.toUpperCase();
+    var words = s.toLowerCase().split(/[^a-z]+/);
+    for (var i = 0; i < words.length; i++) if (NAMED[words[i]]) return NAMED[words[i]];
+    var n = int(runner && runner.number) || 1;
+    return PALETTE[(n - 1) % PALETTE.length];
+  }
+
+  function safeSilk(u) {
+    var s = text(u);
+    return /^https:\/\//i.test(s) ? s : "";
+  }
+
+  /** Active runners (scratchings removed), sorted by barrier then number, capped at 24. */
+  function safeIcon(u) {
+    var s = text(u);
+    if (!/^https:\/\//i.test(s)) return "";
+    try {
+      var host = new URL(s).hostname.toLowerCase();
+      if (host === "cdn.discordapp.com" || host === "media.discordapp.net") return s;
+    } catch (e) {}
+    return "";
+  }
+
+  /** Group tipster_markers from /api/racing/event by runner number (scratchings dropped with the field). */
+  function tipstersByRunner(markers) {
+    var by = {};
+    (Array.isArray(markers) ? markers : []).forEach(function (m) {
+      if (!m) return;
+      var n = int(m.runner_number);
+      if (!n) return;
+      (by[n] = by[n] || []).push({
+        guild_id: text(m.guild_id),
+        name: text(m.name) || "Tipster",
+        icon_url: safeIcon(m.icon_url),
+        won: !!m.won
+      });
+    });
+    Object.keys(by).forEach(function (k) {
+      by[k].sort(function (a, b) { return a.name.localeCompare(b.name) || a.guild_id.localeCompare(b.guild_id); });
+    });
+    return by;
+  }
+
+  function fieldFromEvent(event, tipped, tipsterMarkers) {
+    var tip = (tipped || []).map(int).filter(Boolean);
+    var byTipster = tipstersByRunner(tipsterMarkers);
+    var runners = event && Array.isArray(event.runners) ? event.runners : [];
+    var out = [];
+    runners.forEach(function (r) {
+      if (!r || r.scratched === true || /scratch/i.test(text(r.status))) return;
+      var num = int(r.number != null ? r.number : r.runner_number);
+      out.push({
+        number: num,
+        name: text(r.name),
+        barrier: int(r.barrier),
+        jockey: text(r.jockey_or_driver || r.jockey),
+        silk_url: safeSilk(r.silk_url),
+        colour: colourFor({colours: r.colours, number: num}),
+        tipped: num != null && tip.indexOf(num) >= 0,
+        tipsters: (num != null && byTipster[num]) ? byTipster[num].slice() : []
+      });
+    });
+    out.sort(function (a, b) {
+      var ab = a.barrier == null ? 99 : a.barrier, bb = b.barrier == null ? 99 : b.barrier;
+      if (ab !== bb) return ab - bb;
+      return (a.number || 99) - (b.number || 99);
+    });
+    return out.slice(0, MAX_FIELD);
+  }
+
+  /** Same race, same runners in the same order and the same silks: nothing to redraw. */
+  function tipsterKey(list) {
+    return (list || []).map(function (t) {
+      return [t.guild_id || "", t.icon_url || "", t.won ? "1" : "0"].join(":");
+    }).join("|");
+  }
+
+  function sameField(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].number !== b[i].number || a[i].silk_url !== b[i].silk_url || a[i].tipped !== b[i].tipped) return false;
+      if (tipsterKey(a[i].tipsters) !== tipsterKey(b[i].tipsters)) return false;
+    }
+    return true;
+  }
+
+  function silkPath(url) {
+    var s = safeSilk(url);
+    return s ? "/api/racing/silk?url=" + encodeURIComponent(s) : "";
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c];
+    });
+  }
+
+  function title(ref, event) {
+    var meet = text(event && event.meeting_name) || text(ref && ref.meeting_name);
+    var rn = int(event && event.race_number) || int(ref && ref.race_number);
+    return (meet || "Race") + (rn ? " R" + rn : "");
+  }
+
+  /** The runner legend under the track, in barrier order; tipped runners in bold with a Tip badge. */
+  function legendHtml(ref, event, field) {
+    var list = field || [];
+    var dist = int(event && event.distance);
+    var sub = [dist ? dist + "m" : "", list.length ? list.length + " runners" : ""].filter(Boolean).join(" · ");
+    var rows = list.map(function (r) {
+      var silk = r.silk_url
+        ? '<img src="' + esc(r.silk_url) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+        : '<i style="background:' + esc(r.colour) + '"></i>';
+      return '<li class="fl-rr' + (r.tipped ? " is-tip" : "") + '"><span class="fl-rr-silk">' + silk + "</span>"
+        + '<b class="fl-rr-no">' + esc(r.number == null ? "–" : r.number) + "</b>"
+        + '<span class="fl-rr-name">' + esc(r.name || "Runner") + (r.tipped ? '<em class="fl-rr-tip">Tip</em>' : "") + "</span>"
+        + '<span class="fl-rr-bar">' + (r.barrier ? "Bar " + esc(r.barrier) : "") + "</span></li>";
+    }).join("");
+    var empty = list.length ? "" : '<p class="fl-rr-empty">' + (ref && ref.event_id ? "Loading the field…" : "Field not available for this race yet.") + "</p>";
+    return '<div class="fl-race-head"><h2>' + esc(title(ref, event)) + "</h2><span>" + esc(sub) + "</span></div>"
+      + (rows ? '<ul class="fl-race-list">' + rows + "</ul>" : "") + empty;
+  }
+
+  /** Parade slots before the jump: runner i trails the leader by ``gap`` metres, in
+      three lanes from the inside rail. Returns [{back, lane}] in metres. */
+  function paradeSlots(n, width, gap) {
+    var w = Math.max(6, Number(width) || 24), g = Number(gap) || 9, out = [];
+    var lanes = [0.22, 0.48, 0.74];
+    for (var i = 0; i < n; i++) out.push({back: i * g * 0.8, lane: lanes[i % 3] * w});
+    return out;
+  }
+
+  /* ---------- the simulated race after the jump (0.72.0) ---------- */
+  var JUMPED = /^(closed|interim|final|resulted|official|paying|running|jumped|race ?off|off)$/i;
+  var NO_RACE = /^(abandoned|postponed|cancel+ed)$/i;
+
+  /** Saddle number -> finishing position from event.results ({runner_number | runner_id,
+      position}) or each runner's own result ({position | finish}). */
+  function positionsFrom(event) {
+    var out = {}, byId = {};
+    var runners = event && Array.isArray(event.runners) ? event.runners : [];
+    runners.forEach(function (r) {
+      if (!r) return;
+      var num = int(r.number != null ? r.number : r.runner_number);
+      if (num == null) return;
+      if (r.id != null) byId[String(r.id)] = num;
+      var res = r.result && typeof r.result === "object" ? r.result : null;
+      var pos = res ? int(res.position != null ? res.position : res.finish) : null;
+      if (pos) out[num] = pos;
+    });
+    (event && Array.isArray(event.results) ? event.results : []).forEach(function (row) {
+      if (!row) return;
+      var pos = int(row.position != null ? row.position : row.finish_position);
+      var num = int(row.runner_number != null ? row.runner_number : row.number);
+      if (num == null && row.runner_id != null) num = byId[String(row.runner_id)];
+      if (pos && num != null) out[num] = pos;
+    });
+    return out;
+  }
+
+  /** Finish order for the simulated run: results/positions once any are in, else the
+      With-price model rank (TipBot 0.92.24+), else barrier order. ``field`` is
+      fieldFromEvent's list (scratchings already out). Returns {order: [numbers], source}. */
+  function raceOrder(event, field) {
+    var list = (field || []).filter(function (r) { return r && r.number != null; });
+    var pos = positionsFrom(event), rank = {};
+    (event && Array.isArray(event.runners) ? event.runners : []).forEach(function (r) {
+      var num = r && int(r.number != null ? r.number : r.runner_number);
+      var mr = r && int(r.model_rank);
+      if (num != null && mr) rank[num] = mr;
+    });
+    var has = function (map) { return list.some(function (r) { return map[r.number] != null; }); };
+    var source = has(pos) ? "results" : has(rank) ? "model" : "barrier";
+    var key = source === "results" ? pos : source === "model" ? rank : {};
+    var sorted = list.slice().sort(function (a, b) {
+      var ka = key[a.number], kb = key[b.number];
+      if (ka != null || kb != null) { if (ka == null) return 1; if (kb == null) return -1; if (ka !== kb) return ka - kb; }
+      var ab = a.barrier == null ? 99 : a.barrier, bb = b.barrier == null ? 99 : b.barrier;
+      if (ab !== bb) return ab - bb;
+      return (a.number || 99) - (b.number || 99);
+    });
+    return {order: sorted.map(function (r) { return r.number; }), source: source};
+  }
+
+  /** Has the race jumped? A post-jump status, or the start time has passed. */
+  function jumped(event, now) {
+    var st = text(event && event.status);
+    if (NO_RACE.test(st)) return false;
+    if (JUMPED.test(st)) return true;
+    var t = Date.parse(text(event && event.start_time));
+    return isFinite(t) && (now == null ? Date.now() : now) >= t;
+  }
+
+  /** Before the jump (or abandoned / no field): {phase: "parade", jumpAt}. After it:
+      {phase: "race", distance, order, source, key}; ``key`` changes only when the run would. */
+  function simFromEvent(event, field, now) {
+    var jumpAt = Date.parse(text(event && event.start_time));
+    if (!event || !(field && field.length) || !jumped(event, now)) return {phase: "parade", jumpAt: isFinite(jumpAt) ? jumpAt : null};
+    var o = raceOrder(event, field), dist = int(event.distance) || 1200;
+    return {phase: "race", distance: dist, order: o.order, source: o.source,
+      key: [text(event.id), dist, o.source, o.order.join(".")].join("|")};
+  }
+
+  /** Small caption + replay button over the track once the race has run. */
+  function raceBarHtml(sim) {
+    if (!sim || sim.phase !== "race") return "";
+    var label = sim.source === "results" ? "Result order" : sim.source === "model" ? "Model order (no result yet)" : "Barrier order (no result yet)";
+    return '<span class="fl-sim-src">' + esc(label) + '</span><button type="button" class="fl-sim-replay" data-act="replay">Replay</button>';
+  }
+
+  return {MAX_FIELD: MAX_FIELD, POLL_MS: POLL_MS, parseGameName: parseGameName, raceRef: raceRef,
+    fieldFromEvent: fieldFromEvent, sameField: sameField, colourFor: colourFor, silkPath: silkPath,
+    tipstersByRunner: tipstersByRunner, safeIcon: safeIcon, MAX_MARKER_ICONS: MAX_MARKER_ICONS,
+    legendHtml: legendHtml, paradeSlots: paradeSlots, isRacingSport: isRacingSport,
+    positionsFrom: positionsFrom, raceOrder: raceOrder, jumped: jumped, simFromEvent: simFromEvent, raceBarHtml: raceBarHtml};
+});

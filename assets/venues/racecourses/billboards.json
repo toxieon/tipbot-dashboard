@@ -1,0 +1,31 @@
+{
+ "schema": "racetrack-billboards/1",
+ "_note": "Per-course placement rules for billboards-lib placeBillboards (from Cinna's racetrack-billboards billboards.json; computed placements and sponsor keys dropped).",
+ "courses": {
+  "flemington": {
+   "start_m": 1200,
+   "rules": {
+    "types": {
+     "rail": {
+      "pitch_m": 48
+     },
+     "tall": {
+      "count": 2
+     }
+    }
+   }
+  },
+  "caulfield": {
+   "start_m": 1400,
+   "rules": {}
+  },
+  "moonee-valley": {
+   "start_m": 1600,
+   "rules": {}
+  },
+  "sandown-hillside": {
+   "start_m": 1400,
+   "rules": {}
+  }
+ }
+}

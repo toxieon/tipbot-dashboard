@@ -92,7 +92,9 @@ for (const [venue, spec] of Object.entries(NEW)) {
     const src = fs.readFileSync(path.join(root, "assets/venues/" + venue + ".js"), "utf8");
     assert.match(src, /from "\.\/kit\.js"/);
     assert.match(src, /mountVenue\(host, opts, DEF\)/);
-    assert.doesNotMatch(src, /OrbitControls|kits\.js|players\(|player-base|\.glb/);
+    // The racecourse loads its course models and billboards (./racecourses/, ./billboards/);
+    // no ground loads player models.
+    assert.doesNotMatch(src, venue === "racecourse" ? /OrbitControls|kits\.js|players\(|player-base/ : /OrbitControls|kits\.js|players\(|player-base|\.glb/);
     assert.doesNotMatch(src, /console\.|window\.open|target="_blank"|https?:\/\//);
     assert.deepEqual(src.match(/["'][^"']+\.(?:png|svg|jpg|webp)["']/g) || [], ['"./' + venue + '-fallback.png"']);
   });

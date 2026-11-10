@@ -697,6 +697,16 @@
     };
   }
 
+  // Racing tips keep their legs (event_id, meeting_name, runner_number from TipBot) so
+  // Game view can find the race and its course (assets/racing-track.js raceRef).
+  function racingTips(tips) {
+    return (tips || []).filter(function (t) {
+      if (!t) return false;
+      if (/^(racing|horse ?racing|horseracing|gallops|harness|thoroughbreds?)$/i.test(String(t.sport || "").trim())) return true;
+      return (t.legs || []).some(function (l) { return l && (l.kind === "racing" || l.leg_type === "racing"); });
+    });
+  }
+
   function gamesFromFeeds(packs) {
     var byGame = {};
     var order = [];
@@ -732,7 +742,7 @@
       return String(a.game_name).localeCompare(String(b.game_name));
     });
     return games.map(function (g) {
-      return {
+      var out = {
         key: g.key,
         game_name: g.game_name,
         guild_ids: g.guild_ids,
@@ -740,6 +750,9 @@
         start: g.start,
         payload: payloadFromTips(g)
       };
+      var racing = racingTips(g.tips);
+      if (racing.length) out.race_tips = racing;
+      return out;
     });
   }
 
@@ -1231,6 +1244,7 @@
     setAnimations: setAnimations,
     shouldAnimate: shouldAnimate,
     upcomingNames: upcomingNames,
+    racingTips: racingTips,
     demoPayload: demoPayload,
     createDemo: createDemo
   };

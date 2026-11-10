@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "units": "metres, three.js right-handed, Y up. Same frame as assets/venues/racecourse.js (ground 700x400, track A=260 x, B=110 z).",
+  "repo": {"name": "toxieon/tipbot-dashboard", "commit": "aa65675e96ba6c19e3ff26d295338ceaf2ea0ab6", "version": "0.66.26", "note": "read-only copy fetched 27 Oct 2026 19:40 AEDT; no git remote on the box so could not pull newer"},
+  "conventions": {"face": "model local +Z is the sponsor face; yaw (rotation.y) = atan2(fx, fz) for world facing (fx, fz)", "origin": "model origin is the centre of the base on the surface it stands on (roof top y=14.0 or grass y=0)", "sponsor_node": "SponsorPatch", "sponsor_material": "Sponsor", "texture_flipY": false},
+  "placements": [
+    {"name": "rooftop_A", "glb": "glb/billboard-rooftop.glb", "position": [10.3, 14.0, 138.7], "rotationY": 2.96, "scale": 1.0,
+     "size_m": {"panel_w": 20.0, "panel_h": 15.0, "panel_bottom_above_base": 5.0, "overall_top_above_base": 21.7, "rear_footprint_depth": 5.6},
+     "sponsor_plane_m": [20.0, 15.0], "texture_px_suggested": [2048, 1536], "aspect": "4:3", "mount": "stand roof (top at y=14.0, z 129 to 155)"},
+    {"name": "rooftop_B", "glb": "glb/billboard-rooftop.glb", "position": [-42.0, 14.0, 135.0], "rotationY": 2.85, "scale": 1.7,
+     "size_m": {"panel_w": 34.0, "panel_h": 25.5, "panel_bottom_above_base": 8.5, "overall_top_above_base": 36.9, "rear_footprint_depth": 9.5},
+     "sponsor_plane_m": [34.0, 25.5], "texture_px_suggested": [2048, 1536], "aspect": "4:3", "mount": "stand roof"},
+    {"name": "infield_C", "glb": "glb/billboard-infield.glb", "position": [43.7, 0.0, 75.1], "rotationY": 2.17, "scale": 1.0,
+     "size_m": {"panel_w": 12.0, "panel_h": 6.0, "panel_bottom_above_base": 2.5, "overall_top_above_base": 9.7, "rear_footprint_depth": 3.4},
+     "sponsor_plane_m": [12.0, 6.0], "texture_px_suggested": [2048, 1024], "aspect": "2:1", "mount": "infield grass"}
+  ]
+}

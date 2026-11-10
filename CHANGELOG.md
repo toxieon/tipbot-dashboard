@@ -1,7 +1,57 @@
-## 0.93.0 · 2026-11-07 · `feature` · Meme Pike card
+## 0.74.0 · 2026-11-10 · `feature` · Meme Pike card
 
 - Backend-authorized Meme Pike card on the server page, deliberately hot pink within Apex, labelled MEME PICK and “For laughs only. Not a tip.”
 - Shows the current horse, meeting and race without wagering performance fields. No generic secret or post editor for this builtin.
+
+## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
+
+- Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.
+- Consumes TipBot 0.92.26+ `tipster_markers` on the 60 s `/api/racing/event/<id>` poll. Icons are Discord CDN only (`cdn.discordapp.com` / `media.discordapp.net`).
+- Marker toggle is Sponsor Studio, not Features: Settings → Studio (server owner/mod) and TipBot Sponsor Studio → Track (brand owner, per tipster). Same `feat.racetrack_marker` flag (default on); unlisted from Features so there is one place to set it. Tipsters who are not the brand owner use Settings → Studio — minimal per-server Studio access without opening the brand-owner studio.
+- Server settings (Command access / Studio / …): extra bottom padding + safe-area so Apex bottom nav no longer covers controls (stat-tracker Save / All on). Screenshot `/workspace/samples/stat-tracker-nav-fix.png`.
+- Tests: `racing_track.test.js` tipster grouping/sameField; e2e `tipster-markers.spec.mjs` at 390 px; `tipster-marker-toggle.spec.mjs` opens Settings → Studio. Screenshots under `/workspace/samples/tipster-markers-*.png` and `studio-marker-toggle.png`.
+
+## 0.72.2 · 2026-11-10 · `feat` · Stat tracker: choose which predictor models count
+
+- Server settings → Command access gets a "Stat tracker" section (shown only when the server has a Predictor connector). One switch per model: With-price, Without-price, Agree, Pub sheet, Best pick of the day, each with its recent record, or "Not tracked" when off. A totals line covers the tracked models only; a warning shows when none are tracked.
+- The owner or a server admin can change it (Save tracker / All on). Others see it read-only. Backed by TipBot 0.92.25 (`GET /api/server/predictor-tracker`, `POST /api/server/predictor-tracking`). Default is every model on.
+- It is a filter on the tally only. Stored picks and posted cards are never changed.
+- Tests: unit tests for the record/dirty/render helpers; e2e for the owner save flow, the read-only view and the hidden state with no connector.
+
+## 0.72.1 · 2026-11-10 · `fix` · Empty boards dark, partial gate trim, Flemington infield nudge
+
+- Published (follower) Game view: empty stand-top (`rooftop_A`/`rooftop_B`) and infield boards, plus empty gate panels, use the dark `#0D1419` backing like the empty LEDs, rail, tall and finish panels already did. "YOUR LOGO HERE" stays in the Sponsor Studio editor only.
+- Partial barrier-stall gate banners: panel width = `6.0 m × stalls_covered / stalls_per_banner`, centred on those stalls, same texture px; the image is fitted (not stretched) onto the backing. Moonee Valley `gate_4` is 4.5 m; a 17-stall generic start's `gate_5` is 1.5 m. Removes the leftover 0.75 m overlap.
+- Flemington (and every named course) infield board moves ~4 m further into the infield (`(18, 71)`), so at 390 px its bottom edge clears the R7 label while staying in frame and clear of the race leader and tipped horse.
+- Tests: empty-slot dark backing covers every slot type; partial gate widths and letterboxing; gate pairs no longer overlap on the four named courses.
+
+## 0.72.0 · 2026-11-10 · `feat` · Simulated race after the jump
+
+- Before the jump the field still parades. Once the race has jumped (a post-jump status, or the start time passing; a timer fires at the start time), the horses break from their barrier stalls and run the race distance: on a named course along the matching start's own route (chute included) via `racecourse-lib.js` `distanceToWorld` / `barrierStalls`, the nearest start when the distance has none; on the generic ellipse the race starts that many metres before the post. Past the post they pull up in finishing order. Abandoned races don't run.
+- Finish order: results/positions once any are in (`results` rows by runner number or id, or a runner's own `result`), else the Predictor's With-price `model_rank` (TipBot 0.92.24+), else barrier order. Scratched runners never run. When results land on a later read the race re-runs in result order.
+- The run (`assets/venues/sim-race.js`, pure): race pace 16.5 m/s at 2x playback (1200 m in ~37 s), a standing start, a bounded seeded mid-race reshuffle (same race on every replay), each runner passing the post at its place's time.
+- The Grandstand view follows the leader with a side-on tracking shot (eased); other camera presets stay put. During the race horses are drawn at a size where neighbouring stalls don't overlap.
+- A bar above the runner list says which order is running (Result / Model / Barrier order) with a Replay button. Reduced motion shows the finish straight away.
+- The shared ground is larger so chute starts (Flemington's straight) sit on grass.
+- In the gates the horses stand inside their barrier stalls: stall-sized (85% of the stall width, 90% of its depth) and set back so each body is centred in its stall behind the start line, then they grow to race size over the first 60 m. All four named courses and the generic loop.
+- Header: "Running" from the break to the post and "Result" once the field is home and pulled up, from the sim's own state (never the game's live flag, so never "Upcoming" after the jump). A board refresh keeps it; the parade before the jump keeps the game's own header.
+- Named-course boards: sizes per type (`NAMED_BOARD_SCALES`): rail, LED and tall 1.6 x (floor 1.35), finish 1.6 x (as 0.71.0), gate banners 1:1; texture px unchanged. LED strips turned towards the stand step back into the infield until no corner crosses the inside rail (at 1.6 x a turned strip poked ~3 m onto the track).
+- Stand-top boards fit the 390 px hero: both 2 m lower, rooftop_A 4 m along the roof (clear of the back button), and the Grandstand look-at raised from y 2 to 10, so both sit fully in frame with at least 12 px clear at the top.
+- Published view: empty rail, tall and finish panels show the LED's dark backing (#0D1419) instead of a white slab; "YOUR LOGO HERE" stays in the Sponsor Studio editor.
+- Generic loop: the infield board moves to (5, 75) so it never hides a horse (leader, followed or tipped) during the sim race on any camera preset or the follow shot, nor a parading horse, and stays whole in the 390 px hero.
+- Tests: `tests/sim_race.test.js` (order, jump, run maths, start routes and stalls on all four courses, horses inside their stalls, the generic mapping, the infield board never hiding a sim-race horse), `tests/racing_track.test.js` (board sizes, nothing crossing a rail or overlapping on the four courses, stand-top boards in the 390 px hero, dark empty panels) and `tests/e2e/simrace.spec.mjs` (390 px, mocked API: model order with a scratching, results replacing the model, parade before the jump, the generic loop, Running/Result on all four courses).
+
+## 0.71.0 · 2026-11-10 · `feat` · Game view racetrack for followed races
+
+- A followed racing tip opens its race on the Game view track. The race comes from the leg's `event_id` / `meeting_name` / `race_number` / `runner_number` (TipBot 0.92.20+); an older bot falls back to the meeting in the game name. The meeting picks the course model: Flemington, Caulfield, Moonee Valley or Sandown Hillside (`TBVenues.courseFor`, with aliases such as "The Valley"). Any other meeting, or a course that fails to load, gets the generic ellipse.
+- Course models and definitions ship in `assets/venues/racecourses/` (meshopt GLB + JSON), loaded with the existing glTF + meshopt loader and fitted into the shared frame, so the stand, cameras and still are shared.
+- The whole field parades at a canter before the jump in barrier order, starting in front of the stand; the tipped runner has a marker. `/api/racing/event/<id>` is read every 60 s while the page is shown (paused when the tab is hidden). Scratched runners drop off the track and the legend. A runner legend under the track lists number, name, barrier and silk.
+- Jockeys are Cinna's rider model (`assets/venues/riders/jockey.glb`, `jockey-lod1.glb` on phones or fields over 8), seated in horse-group space at (0, 2.05, −0.05) × 1.3 with the body bob, gallop clip locked to each horse's own stride. Each jockey wears the runner's real silk through TipBot's `/api/racing/silk` proxy (`flipY` off for the model's UVs); no silk means the runner's colour, then grey. The box jockey is only the fallback when the model fails to load.
+- Billboards on every track, from Cinna's racetrack-billboards library (`assets/venues/billboards-lib.js`): named courses use her per-course rules (`racecourses/billboards.json`); the generic ellipse uses her ellipse mapping (`makeEllipseLoop({a: 248, b: 98, direction: 'clockwise', postAngleRad: π/2})` on the inside rail, `track_width_m` 24, `cameraPoint` {0, 142} at the stand) plus the follower rooftop and infield boards. The ellipse's ~50 LED segments sell as 6 slots (`led_1`…`led_6`): each run of consecutive segments shares one slot id and repeats its 1920×120 image, so the geometry is unchanged. Board frames merge into a few meshes. Sponsor Studio slot art arrives in `/api/ground/scene` `billboards` (TipBot 0.92.21) and is matched to `SponsorPatch*` meshes by slot id; lit boards keep their own glow and an empty LED slot stays a dark plain board.
+- Cinna's follower rooftop and infield boards (`rooftop_A`, `rooftop_B`, `infield_C`) now go on every track: the rooftop pair on the shared stand roof, the infield board deep in the infield on the right of the Grandstand shot, facing the camera: (18, 75) on the named courses, which run anticlockwise, so it stays clear of the field for the whole lap, and (-20, 72) on the clockwise generic loop, which keeps the parade clear on load. The spot is checked against each course's rail outline. A unit test projects the board and the parade field through the Grandstand camera and fails if they overlap. Named-course rail, LED, tall and finish boards are built at 1.6× in the course frame (~0.63–0.9× real size after fitting) so they read from the Grandstand camera; gate banners stay 1:1.
+- `assets/venues/racecourses/billboard-slots.json` lists every track's Sponsor Studio slot ids. TipBot keeps an identical copy; a test checks it against what each track builds.
+- Horses are instanced boxes on shared geometry; the renderer pauses with the tab.
+- Tests: `tests/racing_track.test.js` (course pick, field and scratchings, legend, jockey LOD and seat, ellipse and course billboard slots against the Studio slot list, frame merge) and `tests/e2e/racetrack.spec.mjs` (390 px: Flemington, unknown course on the generic track, a scratching, billboards).
 
 ## 0.70.0 · 2026-11-03 · `feat` · Race predictor gets its own menu section
 

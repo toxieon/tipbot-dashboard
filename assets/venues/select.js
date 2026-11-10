@@ -16,7 +16,9 @@
     soccer: "soccer", epl: "soccer", "a-league": "soccer", "a-league men": "soccer", "a-league women": "soccer", mls: "soccer",
     nrl: "nrl", nrlw: "nrl", "rugby league": "nrl", "state of origin": "nrl",
     racing: "racecourse", horse: "racecourse", "horse racing": "racecourse", horses: "racecourse",
-    thoroughbred: "racecourse", harness: "racecourse", greyhound: "racecourse", greyhounds: "racecourse",
+    horseracing: "racecourse", "horse-racing": "racecourse", horse_racing: "racecourse", "gallops": "racecourse",
+    thoroughbred: "racecourse", thoroughbreds: "racecourse", harness: "racecourse",
+    greyhound: "racecourse", greyhounds: "racecourse",
     tennis: "tennis", atp: "tennis", wta: "tennis",
     cricket: "mcg", bbl: "mcg", wbbl: "mcg", afl: "mcg", aflw: "mcg"
   };
@@ -73,6 +75,40 @@
     return Object.prototype.hasOwnProperty.call(MODULES, key(venue));
   }
 
+  // Racecourse models (Cinna's course GLBs). A racing tip's meeting name picks one; any
+  // other meeting (or none) keeps the generic ellipse track with its stand and billboards.
+  var COURSES = {
+    flemington: {id: "flemington", label: "Flemington"},
+    caulfield: {id: "caulfield", label: "Caulfield"},
+    "moonee-valley": {id: "moonee-valley", label: "Moonee Valley"},
+    "sandown-hillside": {id: "sandown-hillside", label: "Sandown Hillside"}
+  };
+  var COURSE_NAMES = {
+    flemington: "flemington",
+    caulfield: "caulfield", "caulfield heath": "caulfield",
+    "moonee valley": "moonee-valley", "the valley": "moonee-valley", valley: "moonee-valley",
+    "ladbrokes park moonee valley": "moonee-valley", "ladbrokes park": "moonee-valley", "mv": "moonee-valley",
+    sandown: "sandown-hillside", "sandown hillside": "sandown-hillside"
+  };
+  function courseKey(v) {
+    return key(v).replace(/[^a-z0-9]+/g, " ")
+      .replace(/\b(racecourse|race course|racing club|park racecourse|vic|victoria|au|aus)\b/g, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+  /** The course model for a meeting name ("Flemington", "The Valley", "Sandown-Hillside"),
+      or "" for the generic track (unknown, Sandown Lakeside, any other meeting, empty). */
+  function courseFor(meeting) {
+    var k = courseKey(meeting);
+    if (!k) return "";
+    if (Object.prototype.hasOwnProperty.call(COURSE_NAMES, k)) return COURSE_NAMES[k];
+    return "";
+  }
+  /** Where a course's model and definition live (relative to the page). */
+  function courseFiles(id) {
+    if (!Object.prototype.hasOwnProperty.call(COURSES, id)) return null;
+    return {glb: "./assets/venues/racecourses/" + id + ".glb", json: "./assets/venues/racecourses/courses/" + id + ".json"};
+  }
+
   return {venueFor: venueFor, moduleFor: moduleFor, fallbackFor: fallbackFor, isVenue: isVenue,
-    VENUES: Object.keys(MODULES)};
+    VENUES: Object.keys(MODULES), courseFor: courseFor, courseFiles: courseFiles, COURSES: Object.keys(COURSES)};
 });
