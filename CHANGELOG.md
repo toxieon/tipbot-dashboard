@@ -1,3 +1,10 @@
+## 0.73.1 · 2026-11-10 · `fix` · Racecourse boards and one ground per logo
+
+- Game view never paints floor logos on the racecourse, even from an older bot scene. The track keeps its billboards only.
+- Ground logos: the same scene no longer rebuilds every logo mesh, and plain logo textures are reused for the session and freed when the ground stops. Canvas (zoom/pan/shape) textures are freed with their mesh.
+- Pairs with TipBot 0.92.31 (one placement per ground; Racecourse in Sponsor Studio shows the three board slots).
+- Tests: `tests/ground_logos.test.js`.
+
 ## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
 
 - Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.

@@ -171,6 +171,9 @@ test("each ground draws only its own logos; an older bot keeps logos on the AFL 
   assert.deepEqual(L({ground: [a, b]}, "mcg"), [a, b]);      // no venue: an older TipBot
   assert.deepEqual(L({ground: [a, b]}, "arena"), []);         // never on the court
   assert.deepEqual(L(null, "mcg"), []);
+  // 0.73.1: the racecourse never paints floor logos, even from a stale bot scene.
+  assert.deepEqual(L({venue: "racecourse", ground: [a]}, "racecourse"), []);
+  assert.deepEqual(L({ground: [a]}, "racecourse"), []);
   assert.match(html, /const ground=await Promise\.all\(sceneLogosFor\(d, FLIVE\.venue\)\.map/);
   assert.match(html, /const GROUND_SCENE_KEY="tipdash_ground_scene_v2";/);
 });
@@ -185,4 +188,12 @@ test("the court paints studio logos scaled from the oval layout", async () => {
   assert.equal(centre.w / centre.d, 2, "shape kept");
   const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "assets", "venues", "kit.js"), "utf8");
   assert.match(src, /setLogos: setLogos,/);
+});
+
+test("Game view logos: texture cache, no rebuild on the same scene, none on the racecourse", () => {
+  const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "assets", "venues", "kit.js"), "utf8");
+  assert.match(src, /if \(def\.venue === "racecourse"\) \{ logoSig = "racecourse"; clearLogos\(\); return; \}/);
+  assert.match(src, /if \(sig === logoSig\) return;/);
+  assert.match(src, /logoTexCache\[url\] = tex;/);
+  assert.match(src, /dropLogoTextures\(\);/);
 });
