@@ -1,3 +1,7 @@
+## 0.73.1 · 2026-11-13 · `update` · Update dashboard
+
+- Maintenance / Internal updates.
+
 ## 0.73.0 · 2026-11-10 · `feat` · Tipster markers on the follower racetrack
 
 - Followed tipsters who have a pick in the same race show on the follower's Game view track (parade and sim): server icon above a triangle marker on that horse. Several tipsters on one horse stack side by side (capped with +N at 390 px); scratched horses get none. A win shows a gold ring on that tipster's icon. Display only — no stats, units or bankroll change.
