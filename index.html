@@ -2226,6 +2226,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(!raw) return null;
       const j=JSON.parse(raw);
       if(!j || typeof j!=="object") return null;
+      // Session role is checked live. A saved screen must not keep or restore it.
+      delete j.ops;
       return j;
     }catch(e){ return null; }
   }
@@ -2277,7 +2279,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(data.theme_prefs) hydrateTheme(data.theme_prefs);
     else if(opts.armTheme) hydrateTheme(null);
     $("rolebadge").textContent=STATE.role==="owner"?"Owner":(STATE.role==="follower"?"Follower":"Moderator");
-    $("dd-viewas").style.display=STATE.ops?"":"none";
+    paintViewAsEntry();
     paintOpsTab();
     paintOddsQuotaRow();
     buildViewAsMenu();
@@ -2377,13 +2379,16 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(document.hidden || !getToken()) return;
       warmTipBot();
       refreshGuildIdentity();
+      if(STATE.ops!==true) loadSessionOps();
     });
     window.addEventListener("focus", function(){
       if(document.hidden || !getToken()) return;
       refreshGuildIdentity();
     });
     window.addEventListener("pageshow", function(){
-      if(getToken()) warmTipBot();
+      if(!getToken()) return;
+      warmTipBot();
+      if(STATE.ops!==true) loadSessionOps();
     });
   })();
 
@@ -2581,6 +2586,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     }catch(e){}
   }
   function refreshGuildIdentity(){
+    if(STATE.ops!==true && getToken()) loadSessionOps();
     if(document.hidden||!getToken()||!window.GuildProfile) return;
     if(IDENTITY_LIST_FETCH) return;
     if(!GuildProfile.stale(identityAttemptAt(), Date.now(), IDENTITY_STALE_MS)) return;
@@ -2811,10 +2817,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const a=$("nav-ops");
     if(a) a.hidden=!STATE.ops;
   }
+  function paintViewAsEntry(){
+    const el=$("dd-viewas");
+    if(el) el.style.display=STATE.ops?"":"none";
+  }
   function noteOps(data){
     if(!(data && data.ops===true)) return;
     const was=STATE.ops===true;
     STATE.ops=true;
+    paintViewAsEntry();
     paintOpsTab();
     paintOwnerSettingsEntry();
     paintLiveDemoButtons();
@@ -2829,17 +2840,24 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       if(STATE.ops===true && $("detail") && !$("detail").hidden && String(window.__tbDetailGid)===String(gid)) renderDetail(shown);
     });
   }
+  let OPS_LOAD=null;
   async function loadSessionOps(){
-    if(STATE.ops===true){ paintOpsTab(); syncGlobalSession(); return; }
-    try{
-      const r=await api("/api/me",{timeoutMs:8000,retries:1});
-      if(!r||!r.ok) return;
-      const me=await r.json();
-      if(window.TBGlobalFlags) TBGlobalFlags.ingest(me);
-      if(me && me.ops===true){ const flag={}; flag.ops=true; noteOps(flag); }
-    }catch(e){}
-    syncGlobalSession();
-    paintOpsTab();
+    if(STATE.ops===true){ paintOpsTab(); paintViewAsEntry(); syncGlobalSession(); return; }
+    if(OPS_LOAD) return OPS_LOAD;
+    OPS_LOAD=(async function(){
+      try{
+        const r=await api("/api/me",{timeoutMs:8000,retries:1});
+        if(!r||!r.ok) return;
+        const me=await r.json();
+        if(window.TBGlobalFlags) TBGlobalFlags.ingest(me);
+        if(me && me.ops===true){ const flag={}; flag.ops=true; noteOps(flag); }
+      }catch(e){}
+      syncGlobalSession();
+      paintOpsTab();
+      paintViewAsEntry();
+    })();
+    try{ return await OPS_LOAD; }
+    finally{ OPS_LOAD=null; }
   }
   // The program-owner panel (TBOwner) is not shipped in this repo — this repo is
   // public on GitHub. The bot itself serves that script, only to the program
@@ -8958,6 +8976,8 @@ async function loadPerms(gid){
         if(!rc||!rc.ok) return null;
         try{ return await rc.json(); }catch(e){ return null; }
       }).catch(function(){ return null; });
+      // Same moment as /api/config: a busy /api/servers must not skip the session check.
+      loadSessionOps();
       // lite=1 skips N× server_stats — paint fast; hydrate full stats after.
       const r=await api("/api/servers?lite=1",{
         onAttempt:function(attempt, maxAttempts, info){
@@ -8970,7 +8990,7 @@ async function loadPerms(gid){
       else TopBar.set(70, "Updating servers…");
       if(!r.ok){
         TopBar.done(true);
-        if(paintedFromCache) return; // keep stale UI
+        if(paintedFromCache){ loadSessionOps(); return; } // keep stale UI
         // api() has already used its retries. A 503 mid-retry never gets here.
         const line=reachErrorLine(r.status, {attempt:3, maxAttempts:3});
         if(line) return renderLogin(line+" — try again in a moment.");
@@ -9027,7 +9047,7 @@ async function loadPerms(gid){
       }).catch(function(){});
     }catch(e){
       TopBar.done(true);
-      if(paintedFromCache) return; // offline/cold — keep cached UI
+      if(paintedFromCache){ loadSessionOps(); return; } // offline/cold — keep cached UI
       if(e.unauth)return renderLogin();
       renderLogin("Couldn't reach the bot — try again in a moment.");
     }
