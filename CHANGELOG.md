@@ -1,3 +1,9 @@
+## 0.73.2 · 2026-11-18 · `feat` · Open Models in the owner menu
+
+- The account menu shows Open Models for the platform owner, with a small chart icon. It opens https://www.neilldata.com/models/ in a new tab. The session value is URI-encoded in the URL fragment only.
+- The row is left out of the page when the owner check fails, and it stays out when there is no session value. Apex styles the icon with the rail stroke; Navy, Day and Ochre use the same row.
+- Tests: `tests/open_models.test.js`.
+
 ## 0.73.1 · 2026-11-13 · `update` · Update dashboard
 
 - Maintenance / Internal updates.

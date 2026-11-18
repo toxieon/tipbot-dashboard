@@ -1,3 +1,7 @@
+## 0.73.2
+
+- The owner account menu includes Open Models.
+
 ## 0.73.1
 
 - Maintenance / Internal updates.
