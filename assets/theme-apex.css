@@ -128,6 +128,21 @@ html[data-theme="apex"] #app > .top.is-scrolled .brand .logo{
     font-size:15px;
   }
 }
+/* Account menu chart mark. Same stroke as the rail icons. Other themes use the base sheet. */
+html[data-theme="apex"] a.dd-item{color:inherit;text-decoration:none}
+html[data-theme="apex"] .dd-item-main{display:inline-flex;align-items:center;gap:8px;min-width:0}
+html[data-theme="apex"] .dd-ico{
+  width:16px;
+  height:16px;
+  flex:none;
+  display:block;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+html[data-theme="apex"] .dd-chev{color:var(--faint);flex:none}
 html[data-theme="apex"] #upcoming-panel,
 html[data-theme="apex"] .panel,
 html[data-theme="apex"] .game-group,
