@@ -1,3 +1,9 @@
+## 0.73.2 · 2026-11-19 · `feat` · Open Black Book in the owner menu
+
+- The account menu shows Open Black Book for the platform owner, with a small book icon. It opens https://www.neilldata.com/blackbook/ in a new tab. The session value is URI-encoded in the URL fragment only.
+- The row is left out when the owner check fails, in view-as, and when there is no session value. It does not touch any other menu row.
+- Tests: `tests/open_blackbook.test.js`.
+
 ## 0.73.1 · 2026-11-13 · `update` · Update dashboard
 
 - Maintenance / Internal updates.
