@@ -216,3 +216,65 @@ test("reading the session value does not throw when storage is missing", () => {
   assert.equal(M.readToken({ getItem: () => "abc" }), "abc");
   assert.equal(M.readToken({ getItem: () => { throw new Error("blocked"); } }), "");
 });
+
+// ── Open Black Book: owner row next to Open Models ─────────────────────────
+test("the Black Book address is the fixed page with the session value in the fragment only", () => {
+  assert.equal(M.BLACKBOOK_PATH, "/blackbook/");
+  assert.equal(M.blackbookUrl(""), "");
+  assert.equal(M.blackbookUrl(null), "");
+  for (const token of ["abc", "a b/?#&=+", "https://evil.example/steal?x=1", "100%", "t.abc.def"]) {
+    const href = M.blackbookUrl(token);
+    assert.equal(href.split("#")[0], ORIGIN + "/blackbook/");
+    assert.equal(href.slice(href.indexOf("#")), "#t=" + encodeURIComponent(token));
+    assert.equal(new URL(href).search, "");
+  }
+});
+
+test("the Black Book row is owner only, sits right after Open Models, and leaves with the owner", () => {
+  const box = menu();
+  const doc = { createElement: node, createElementNS: (_ns, tag) => node(tag) };
+  assert.equal(M.paintBlackBook(box, { owner: false, token: "abc", doc: doc }), null);
+  assert.equal(M.paintBlackBook(box, { owner: true, token: "", doc: doc }), null);
+  assert.equal(itemText(box).indexOf("Open Black Book"), -1);
+
+  const models = M.paint(box, { owner: true, token: "tok", doc: doc });
+  const book = M.paintBlackBook(box, { owner: true, token: "tok", doc: doc });
+  assert.ok(models && book);
+  assert.deepEqual(box.children.map((c) => c.id || c.className), ["dd-label", M.ITEM_ID, M.BLACKBOOK_ITEM_ID, "dd-logout"]);
+  assert.equal(book.getAttribute("target"), "_blank");
+  assert.equal(book.getAttribute("rel"), "noopener noreferrer");
+  assert.equal(book.getAttribute("referrerpolicy"), "no-referrer");
+  assert.match(itemText(book), /Open Black Book/);
+  assert.equal(book.getAttribute("href"), ORIGIN + "/blackbook/#t=tok");
+  assert.equal(book.search, "");
+  assert.equal(models.getAttribute("href"), ORIGIN + "/models/#t=tok");
+
+  // Painting again does not add a second row.
+  M.paintBlackBook(box, { owner: true, token: "next", doc: doc });
+  assert.equal(box.children.filter((c) => c.id === M.BLACKBOOK_ITEM_ID).length, 1);
+  assert.equal(book.getAttribute("href"), ORIGIN + "/blackbook/#t=next");
+
+  // Black Book painted first, then Models: the order is still Models, Black Book.
+  const flipped = menu();
+  M.paintBlackBook(flipped, { owner: true, token: "tok", doc: doc });
+  M.paint(flipped, { owner: true, token: "tok", doc: doc });
+  assert.deepEqual(flipped.children.map((c) => c.id || c.className), ["dd-label", M.ITEM_ID, M.BLACKBOOK_ITEM_ID, "dd-logout"]);
+
+  // Not the owner (or view-as, or no session value): the row is removed, Models too.
+  assert.equal(M.paintBlackBook(box, { owner: false, token: "next", doc: doc }), null);
+  assert.equal(findId(box, M.BLACKBOOK_ITEM_ID), null);
+  assert.ok(findId(box, M.ITEM_ID));
+});
+
+test("the page paints the Black Book row from the same owner check", () => {
+  assert.doesNotMatch(HTML, /id="dd-open-blackbook"/);
+  assert.match(HTML, /TBOpenModels\.paintBlackBook\(\$\("dropdown"\), \{ owner: ownerSettingsAllowed\(\), token: getToken\(\) \}\)/);
+  assert.doesNotMatch(SRC, /https:\/\/neilldata\.com\/blackbook/);
+  assert.match(SRC, /https:\/\/www\.neilldata\.com\/blackbook\//);
+  assert.equal(bannedHit(SRC), "");
+});
+
+test("child lookups work on a live DOM collection, which has no indexOf", () => {
+  assert.doesNotMatch(SRC, /kids\.indexOf\(/);
+  assert.match(SRC, /Array\.prototype\.indexOf\.call\(kids, models\)/);
+});

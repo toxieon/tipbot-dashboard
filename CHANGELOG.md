@@ -1,3 +1,9 @@
+## 0.73.3 · 2026-11-19 · `feat` · Open Black Book in the owner menu
+
+- The account menu shows Open Black Book for the platform owner, right after Open Models, with a small book icon. It opens https://www.neilldata.com/blackbook/ in a new tab. The session value is URI-encoded in the URL fragment only, the same way as Open Models.
+- The row is left out when the owner check fails, in view-as, and when there is no session value. Both rows share one builder in `assets/open-models.js`.
+- Tests: `tests/open_models.test.js`.
+
 ## 0.73.2 · 2026-11-18 · `feat` · Open Models in the owner menu
 
 - The account menu shows Open Models for the platform owner, with a small chart icon. It opens https://www.neilldata.com/models/ in a new tab. The session value is URI-encoded in the URL fragment only.

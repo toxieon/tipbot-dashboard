@@ -2635,6 +2635,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
   function paintOpenModels(){
     if(!(window.TBOpenModels && typeof TBOpenModels.paint==="function")) return;
     TBOpenModels.paint($("dropdown"), { owner: ownerSettingsAllowed(), token: getToken() });
+    if(typeof TBOpenModels.paintBlackBook==="function") TBOpenModels.paintBlackBook($("dropdown"), { owner: ownerSettingsAllowed(), token: getToken() });
   }
   function paintOwnerSettingsEntry(){ const ok=ownerSettingsAllowed(); for(const id of ["dd-extra-settings","dd-predictor"]){ const e=$(id); if(e) e.hidden=!ok; } paintOpenModels(); }
   function buildTipsShown(){
