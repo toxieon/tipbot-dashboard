@@ -1,3 +1,9 @@
+## 0.73.3 · 2026-11-24 · `feat` · Change units on a posted tip until the start
+
+- Bet cards on a server page and in Upcoming Bets show ✎ Units on your own posted, pending tip until its first game, race or leg starts. It asks for the new units and saves through TipBot `POST /api/tip-units` (TipBot 0.102.1+). The Discord post redraws with the new units.
+- TipBot decides who may edit (`can_edit_units`) and when it locks (`units_lock_at`, shown on hover). After the start TipBot answers 409 and the button goes away.
+- Tests: `tests/tip_units.test.js`.
+
 ## 0.73.2 · 2026-11-19 · `feat` · Open Black Book in the owner menu
 
 - The account menu shows Open Black Book for the platform owner, with a small book icon. It opens https://www.neilldata.com/blackbook/ in a new tab. The session value is URI-encoded in the URL fragment only.

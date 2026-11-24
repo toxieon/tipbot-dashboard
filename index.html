@@ -1501,6 +1501,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
 <script src="./assets/routing.js?v=__TD_VERSION__"></script>
 <script src="./assets/tip-tiers.js?v=__TD_VERSION__"></script>
 <script src="./assets/scheduled-tips.js?v=__TD_VERSION__"></script>
+<script src="./assets/tip-units.js?v=__TD_VERSION__"></script>
 <script src="./assets/auto-recaps.js?v=__TD_VERSION__"></script>
 <script src="./assets/emoji-picker.js?v=__TD_VERSION__"></script>
 <script src="./assets/upcoming-split.js?v=__TD_VERSION__"></script>
@@ -1921,6 +1922,28 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       else toast((j&&j.error)||"Couldn't save the link.","err");
     }catch(_e){ toast("Couldn't save the link.","err"); }
     finally{ if(btn) btn.disabled=false; }
+  }
+  // ✎ Units (TipBot 0.102.1): your own posted tip, until its first start. TipBot enforces the lock.
+  async function editTipUnits(gid,tipId,btn){
+    if(!window.TBTipUnits) return;
+    if(btn) btn.disabled=true;
+    try{
+      await TBTipUnits.edit(gid||tipGuildId(tipId),tipId,btn?btn.dataset.units:null,{
+        api:api, toast:toast,
+        ask:(msg,def)=>Promise.resolve(window.prompt(msg,def)),
+        onSaved:(tip)=>{
+          sharedInvalidate(); if(STATE._detailCache)STATE._detailCache={};
+          document.querySelectorAll('.betrow[data-tip="'+tipId+'"]').forEach(row=>{
+            row.querySelectorAll(".unitsedit").forEach(x=>{ x.dataset.units=String(tip.units); });
+            const ty=row.querySelector(".betcard-type"); if(ty) ty.textContent=ty.textContent.replace(/ · [0-9.]+u$/," · "+tip.units+"u");
+            const q=row.querySelector(".tb-quote"); if(q) q.textContent=q.textContent.replace(/^[0-9.]+u/,tip.units+"u");
+            const sv=row.querySelector(".sv-muted"); if(sv) sv.textContent=sv.textContent.replace(/[0-9.]+u$/,tip.units+"u");
+          });
+        },
+        onLocked:()=>{ document.querySelectorAll('.betrow[data-tip="'+tipId+'"] .unitsedit').forEach(x=>x.remove()); }
+      });
+    }catch(e){ if(e&&e.unauth) return renderLogin("Session expired."); toast("Couldn't change the units.","error"); }
+    finally{ if(btn&&btn.isConnected) btn.disabled=false; }
   }
   function tipGuildId(tipId){ return String(tipId||"").split(":")[0]; }
   function guildUnitSize(guildId){
@@ -3867,6 +3890,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const del=canDel?'<button type="button" class="delbet" data-tip="'+tid+'" data-name="'+esc(t.display_id||"")+'" data-settled="'+(isSettled?"1":"0")+'" title="'+esc(delTitle)+'" style="border:1px solid rgba(229,72,77,.4);background:rgba(229,72,77,.12);color:#f0857f;border-radius:var(--r-sm);padding:5px 9px;cursor:pointer;font:inherit;font-size:var(--t-foot);flex:none" aria-label="'+esc(delTitle)+'">✕</button>':'';
     // Sportsbet link (TipBot 0.72.1): paste the betslip's share link; the Discord post gets "Bet on Sportsbet".
     const sbOn=!isSettled&&tid&&/^sportsbet$/i.test(String(t.bookmaker||"").trim())&&sportsbetLinkOn(tipGuildId(t.tip_id));
+    // TipBot 0.102.1: change units on your own posted tip until the start (✎ Units).
+    const unitsBtn=(!isSettled&&tid&&window.TBTipUnits)?TBTipUnits.buttonHtml(t,esc,fmtDate):'';
     const sbBtn=sbOn?'<button type="button" class="sblink ghost" data-tip="'+tid+'" title="Paste a Sportsbet share link for this tip" style="padding:5px 9px;font-size:var(--t-foot);flex:none">🔗 Sportsbet link</button>':'';
     const bookie=t.bookmaker
       ?('<span class="betcard-bookie">'+TB.bookie.render(t.bookmaker,20)+'<span class="bk-name">'+esc(String(t.bookmaker).trim())+'</span></span>')
@@ -3901,13 +3926,13 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       return '<div class="'+cls+'"'+attrs+'>'
         +'<div class="sv-tip-row"><div class="sv-tip-copy"><div class="sv-t1">'+esc(sel)+(bits.length?' <span class="sv-muted">'+esc(bits.join(" · "))+'</span>':'')+'</div>'
         +(sub.length?'<div class="sv-t2">'+esc(sub.filter(Boolean).join(" · "))+'</div>':'')
-        +'</div><div class="sv-tip-r betcard-meta">'+right+fix+del+'</div></div>'
+        +'</div><div class="sv-tip-r betcard-meta">'+right+unitsBtn+fix+del+'</div></div>'
         +tags+body+'</div>';
     }
     return '<div class="'+cls+'"'+attrs+'>'
       +title
       +gameCta
-      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+sbBtn+fix+del+'</div></div>'
+      +'<div class="betcard-top">'+bookie+'<div class="betcard-meta">'+right+unitsBtn+sbBtn+fix+del+'</div></div>'
       +(t.display_id?'<div class="betcard-id">'+esc(t.display_id)+'</div>':'')
       +'<div class="betcard-type">'+esc(t.bet_type||"Bet")+(t.odds?(" · @ "+t.odds):"")+(t.units!=null?(" · "+t.units+"u"):"")+'</div>'
       +tags+body+'</div>';
@@ -3919,6 +3944,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     if(!box)return;
     box.querySelectorAll(".delbet").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); deleteBet(gid,b.dataset.tip,b.dataset.name,b); });
     box.querySelectorAll(".sblink").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); pasteSportsbetLink(b.dataset.tip,b); });
+    box.querySelectorAll(".unitsedit").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); editTipUnits(gid,b.dataset.tip,b); });
     box.querySelectorAll(".fixlegs").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); if(window.TBOwner&&TBOwner.fixLegs) TBOwner.fixLegs(gid,b.dataset.tip,FIX_LEGS[b.dataset.tip]||[]); });
     wireFliveOpens(box, gid);
     box.querySelectorAll(".gradebtn").forEach(b=>b.onclick=(e)=>{
