@@ -7040,6 +7040,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     const rgb=net>0?"46,175,98":"229,89,95";
     return {bg:"rgba("+rgb+","+a.toFixed(3)+")", fg:net>0?"#8ff0b6":"#ffb3b3"};
   }
+  function calPlText(net){
+    const n=Math.round((Number(net)||0)*10)/10;
+    return (n>0?"+":"")+n.toFixed(1);
+  }
   function renderCalendar(month,daily,extraHtml,secId){
     daily=daily||{};
     const parts=(month||"").split("-"), y=+parts[0], mo=+parts[1];
@@ -7058,7 +7062,7 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const key=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
       const e=daily[key];
       if(!e){
-        cells+='<div class="cal-day-empty" style="aspect-ratio:1;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card2);display:flex;align-items:flex-start;padding:6px"><span style="color:var(--faint);font-size:var(--t-cap)">'+d+'</span></div>';
+        cells+='<div class="cal-day-empty" style="aspect-ratio:1;border:1px solid var(--line);border-radius:var(--r-md);background:var(--card2);display:flex;align-items:flex-start;padding:6px"><span class="cal-num" style="color:var(--faint);font-size:var(--t-cap)">'+d+'</span></div>';
         continue;
       }
       const t=calCellTint(e.net,maxAbs);
@@ -7066,8 +7070,8 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       const wd=new Date(y,mo-1,d).toLocaleDateString(undefined,{weekday:"short"});
       const tip=wd+" "+d+" "+fmtMonth(month).split(" ")[0]+" — "+u(e.net)+" · "+e.n+" tip"+(e.n>1?"s":"")+(parts2.length?" ("+parts2.join(" ")+")":"")+" — tap for list";
       cells+='<button type="button" class="cal-day" data-day="'+esc(key)+'" title="'+esc(tip)+'" style="aspect-ratio:1;border:1px solid var(--line);border-radius:var(--r-md);background:'+t.bg+';display:flex;flex-direction:column;justify-content:space-between;padding:6px;overflow:hidden;font:inherit;color:inherit;text-align:left">'
-        +'<span style="color:var(--muted);font-size:var(--t-cap)">'+d+'</span>'
-        +'<span style="color:'+t.fg+';font-size:var(--t-foot);font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+(e.net>0?"+":"")+(Math.round(e.net*100)/100)+'</span></button>';
+        +'<span class="cal-num" style="color:var(--muted);font-size:var(--t-cap)">'+d+'</span>'
+        +'<span class="cal-pl" style="color:'+t.fg+';font-size:var(--t-foot);font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+calPlText(e.net)+'</span></button>';
     }
     const netCls=net>=0?"pos":"neg";
     const legend='<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;color:var(--faint);font-size:var(--t-foot)">'
@@ -7079,10 +7083,10 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
       +'<div class="panel-hd" role="button" tabindex="0" aria-expanded="false">'
       +'<div class="panel-hd-main"><h3 style="margin:0">Units calendar</h3>'+(extraHtml||'')
       +'<span class="panel-hd-sum">net <b class="'+netCls+'">'+u(Math.round(net*100)/100)+'</b></span></div>'
-      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+      +'<div class="cal-hd-tools" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
       +'<div class="cal-nav-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;max-width:100%">'
       +'<button class="calnav ghost" data-cal="prev" title="Previous month" style="padding:4px 10px;flex:none" aria-label="Previous month">‹</button>'
-      +'<span style="min-width:112px;text-align:center;font-size:var(--t-sub);font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
+      +'<span class="cal-month-label" style="min-width:112px;text-align:center;font-size:var(--t-sub);font-weight:600;flex:none">'+esc(fmtMonth(month))+'</span>'
       +'<button class="calnav ghost" data-cal="next" title="Next month" style="padding:4px 10px;flex:none" aria-label="Next month">›</button>'
       +'</div><span class="panel-caret">▸</span></div></div>'
       // calgrid (opened in `head`) closes first, then panel-body, then the panel itself
