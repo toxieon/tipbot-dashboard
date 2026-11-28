@@ -52,8 +52,19 @@
       $("oh-race").innerHTML='<option value="">'+(list.length?"Choose a race ("+list.length+")":"No upcoming races match")+'</option>'
         +list.map(r=>'<option value="'+esc(r.id)+'">'+esc(when(r.start_time)+" · "+r.label+" · "+(r.distance||"")+"m · "+(r.track_condition||""))+'</option>').join("");
     }
+    let warmTries=0;
     async function loadRaces(){
-      try{ races=(await getJson(call,"/api/owner/horse/races")).races||[]; fill(); }
+      try{
+        const j=await getJson(call,"/api/owner/horse/races");
+        races=j.races||[];
+        if(j.warming&&warmTries++<60){
+          // TipBot is still building its first race list: say so and ask again shortly.
+          $("oh-race").innerHTML='<option value="">Refreshing races\u2026</option>';
+          setTimeout(()=>{ if(sec.isConnected) loadRaces(); },3000);
+          return;
+        }
+        fill();
+      }
       catch(e){ $("oh-msg").textContent=e.message; if(e.unauth&&opt.onUnauth) opt.onUnauth(); }
     }
     const SORT={position:r=>[r.predicted_position],price:r=>[r.price||1e9],score:r=>[-r.overall_score,r.predicted_position],

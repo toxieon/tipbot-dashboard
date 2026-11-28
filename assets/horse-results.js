@@ -5,6 +5,8 @@
   "use strict";
 
   var REFRESH_MS = 180000;
+  var WARM_RETRY_MS = 3000;
+  var WARM_MAX_TRIES = 100;
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -527,17 +529,21 @@
       + '<div class="dhead"><h1 style="margin:0">Horses</h1></div>'
       + '<div class="hr-empty"><p>' + esc(msg || "Couldn't load horse results.") + '</p><button type="button" class="btn sm" id="hr-retry">Try again</button></div></div>';
   }
-  function skeletonHtml(reduced) {
-    return pageOpen({ reduced: reduced })
+  function skeletonHtml(arg) {
+    var state = arg && typeof arg === "object" ? arg : { reduced: arg };
+    return pageOpen(state, state.extraOn ? " hr-extra-on" : "")
       + backBtn()
       + '<div class="dhead"><h1 style="margin:0">Horses</h1></div>'
+      + extraHtml(state)
+      + (state.extra ? '<div id="hr-extra-box" class="hr-extra-box"' + (state.extraOn ? "" : " hidden") + "></div>" : "")
+      + (state.warming ? '<p class="hr-status" role="status">Refreshing results\u2026</p>' : "")
       + '<div class="hr-sk" aria-busy="true"></div><div class="hr-sk"></div><div class="hr-sk hr-sk-lg"></div></div>';
   }
   function render(state) {
     state = state || {};
     if (state.view === "soon") return comingSoonHtml(state.reduced);
     if (state.view === "error") return errorHtml(state.error, state.reduced);
-    if (state.view === "loading") return skeletonHtml(state.reduced);
+    if (state.view === "loading") return skeletonHtml(state);
     return renderReady(state);
   }
 
@@ -550,7 +556,7 @@
       "#hr-app .hr-search input{display:block;width:100%;min-height:44px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--txt);font:inherit;padding:10px 12px}" +
       "#hr-app .hr-extra{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 12px;color:var(--muted);font-weight:650;cursor:pointer}" +
       "#hr-app .hr-extra input{width:22px;height:22px;flex:none;accent-color:var(--accent)}" +
-      "#hr-app.hr-extra-on .hr-search,#hr-app.hr-extra-on .hr-filters,#hr-app.hr-extra-on #hr-list,#hr-app.hr-extra-on .hr-lead{display:none}" +
+      "#hr-app.hr-extra-on .hr-search,#hr-app.hr-extra-on .hr-filters,#hr-app.hr-extra-on #hr-list,#hr-app.hr-extra-on .hr-lead,#hr-app.hr-extra-on .hr-sk{display:none}" +
       "#hr-app .hr-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}" +
       "#hr-app .hr-filter{appearance:none;-webkit-appearance:none;min-height:44px;min-width:44px;padding:8px 14px;border-radius:var(--r-pill,999px);border:1px solid var(--line);background:var(--card);color:var(--muted);font:inherit;font-weight:650;cursor:pointer}" +
       "#hr-app .hr-filter[aria-pressed=\"true\"]{background:var(--txt);color:var(--bg);border-color:var(--txt)}" +
@@ -785,6 +791,7 @@
         return load(true);
       }, ms);
     }
+    var warmTries = 0;
     function load(incremental) {
       var path = resultsPath(incremental ? sinceIso : null);
       var stamp = new Date(nowMs()).toISOString();
@@ -813,6 +820,22 @@
           }
           return Promise.resolve(r.json()).then(function (body) {
             if (!alive()) return;
+            if (body && body.warming) {
+              // TipBot is still building its first copy: not an error, ask again shortly.
+              if (incremental || state.view === "ready") return;
+              warmTries += 1;
+              if (warmTries > WARM_MAX_TRIES) {
+                state.view = "error";
+                state.error = "Racing data is still warming up. Please try again shortly.";
+                paintFull();
+                return;
+              }
+              if (!state.warming) { state.warming = true; paintFull(); }
+              var wait = opts.setTimeout || root.setTimeout || setTimeout;
+              wait(function () { if (alive() && state.view === "loading") return load(false); }, WARM_RETRY_MS);
+              return;
+            }
+            state.warming = false;
             var incoming = parseMeetings(body);
             var prevSig = dayOptions(state.all).join(",") + "|" + trackOptions(state.all).map(function (t) { return t.key; }).join(",");
             state.raw = incremental ? mergeMeetings(state.raw, incoming) : incoming;

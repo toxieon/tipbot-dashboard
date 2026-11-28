@@ -1,3 +1,9 @@
+## 0.74.2 · 2026-11-28 · `fix` · Horses and the race list say "Refreshing" instead of loading forever
+
+- **Stats → Horses** now shows its checkbox and a "Refreshing results…" line straight away, and asks again every 3 seconds, when TipBot says its results copy is still warming up after a restart. Before, only grey cards showed until the results arrived.
+- **The race picker** shows "Refreshing races…" in the same case and fills in on its own.
+- Nothing else changes: with results loaded the page is exactly as before.
+- Tests: `tests/horse_results.test.js` (warming shows the checkbox and refreshing line, then retries into the list).
 ## 0.74.1 · 2026-11-28 · `feat` · Wet track shortlist on the Horses page
 
 - A "Wet track shortlist" checkbox shows on Horses for the signed-in owner. Ticked, it swaps the results list for every Australian race today, run or not, in three columns (With, Without, Agree) from TipBot `GET /api/owner/horse/wet-shortlist` (TipBot 0.107.1+). Run races show a tick for a winner and a cross for the rest, with the winner's name, and each column has a day tally (W-L and units, 1u win on its first pick at the closing price).
