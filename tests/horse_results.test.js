@@ -291,3 +291,41 @@ serialMount("while the page is open, refresh uses ?since", async () => {
   H.stop();
   assert.equal(tick, null);
 });
+
+serialMount("a warming body shows the checkbox and a refreshing line, then retries into the list", async () => {
+  const calls = [];
+  const timers = [];
+  const el = fakeEl();
+  let n = 0;
+  await H.mount(el, {
+    now: () => NOW,
+    intervalMs: H.REFRESH_MS,
+    setInterval() { return 1; },
+    clearInterval() {},
+    setTimeout(fn, ms) { timers.push([fn, ms]); },
+    extra: { label: "Wet track shortlist", mount() {}, unmount() {} },
+    api: async (path) => {
+      calls.push(path);
+      n += 1;
+      return { status: 200, ok: true, json: async () => (n === 1 ? { ok: true, meetings: [], warming: true } : payload()) };
+    }
+  });
+  assert.match(el.innerHTML, /Refreshing results/);
+  assert.match(el.innerHTML, /hr-extra-cb/);
+  assert.match(el.innerHTML, /hr-sk/);
+  assert.doesNotMatch(el.innerHTML, /Couldn.t load|unavailable/);
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0][1], 3000);
+  await timers[0][0]();
+  assert.equal(calls.length, 2);
+  assert.match(el.innerHTML, /Flemington/);
+  assert.doesNotMatch(el.innerHTML, /Refreshing results/);
+  H.stop();
+});
+
+test("the loading view carries the checkbox when an extra is given", () => {
+  const html = H.skeletonHtml({ extra: { label: "Wet track shortlist" }, reduced: false });
+  assert.match(html, /hr-extra-cb/);
+  assert.match(html, /hr-extra-box/);
+  assert.doesNotMatch(H.skeletonHtml(false), /hr-extra-cb/);
+});
