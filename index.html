@@ -3487,7 +3487,15 @@ html .ndcc-b{text-transform:none;letter-spacing:0;font-size:var(--t-body);font-w
     TBHorseResults.mount($("stats"), {
       api: api,
       onBack: function(){ openStats(); },
-      onUnauth: function(){ renderLogin("Session expired."); }
+      onUnauth: function(){ renderLogin("Session expired."); },
+      extra: ownerSettingsAllowed() ? {
+        label: "Wet track shortlist",
+        mount: function(box){
+          box.innerHTML='<div class="empty">Loading…</div>';
+          TD.load("wet-shortlist").then(function(){ if(window.TBWetShortlist&&!box.hidden) TBWetShortlist.mount(box,{call:api,onUnauth:function(){ renderLogin("Session expired."); }}); }).catch(function(){ box.innerHTML='<div class="empty">Not available here.</div>'; });
+        },
+        unmount: function(){ if(window.TBWetShortlist) TBWetShortlist.stop(); }
+      } : null
     });
   }
 

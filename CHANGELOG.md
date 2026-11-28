@@ -1,3 +1,10 @@
+## 0.74.1 · 2026-11-28 · `feat` · Wet track shortlist on the Horses page
+
+- A "Wet track shortlist" checkbox shows on Horses for the signed-in owner. Ticked, it swaps the results list for every Australian race today, run or not, in three columns (With, Without, Agree) from TipBot `GET /api/owner/horse/wet-shortlist` (TipBot 0.107.1+). Run races show a tick for a winner and a cross for the rest, with the winner's name, and each column has a day tally (W-L and units, 1u win on its first pick at the closing price).
+- Read-only. Nothing is posted and no tip is created. Unticking brings the normal list back. It refreshes every two minutes while ticked, or with the Refresh button.
+- `assets/wet-shortlist.js` is a private asset (kept out of the public build). The Horses page only gets a generic optional extra view, so the public script holds no owner routes.
+- Tests: `tests/wet_shortlist.test.js`, e2e `wet-shortlist.spec.mjs` at 390 and 1280 with a mocked API. Screenshots `/workspace/samples/wet-shortlist/`.
+
 ## 0.73.4 · 2026-11-28 · `fix` · Units calendar readable on phones
 
 - On phones, Units calendar day cells are tall enough for the day's units (for example +1.2 / -0.8) to show in full, and the month header keeps the previous/next controls on one row at a normal size. Desktop layout is unchanged.

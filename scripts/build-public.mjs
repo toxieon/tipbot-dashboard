@@ -48,6 +48,7 @@ export const ASSET_DENY = new Set([
   "assets/owner-presence.js",
   "assets/owner-server.js",
   "assets/owner-horse.js",
+  "assets/wet-shortlist.js",
   "assets/connector-push.js",
   "assets/connector-post.js",
   "assets/connector-library.js",
