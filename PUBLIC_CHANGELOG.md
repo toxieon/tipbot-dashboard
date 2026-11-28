@@ -1,3 +1,7 @@
+## 0.73.4
+
+- The Units calendar on phones shows each day's units in full, with the month controls on one row.
+
 ## 0.73.3
 
 - Maintenance / Internal updates.
