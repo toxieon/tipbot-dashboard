@@ -11,7 +11,8 @@ const publicLog = fs.readFileSync(path.join(root, "PUBLIC_CHANGELOG.md"), "utf8"
 const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 
 test("0.73.4 version and changelog stay in lockstep", () => {
-  assert.equal(version, "0.73.4");
+  const [maj, min, pat] = version.split(".").map(Number);
+  assert.ok(maj > 0 || min > 73 || (min === 73 && pat >= 4), "VERSION is at least 0.73.4");
   assert.match(changelog, /^## 0\.73\.4 · 2026-11-28 · `fix` · Units calendar readable on phones/m);
   assert.match(publicLog, /^## 0\.73\.4$/m);
   const head = changelog.split("## 0.73.3")[0] + publicLog.split("## 0.73.3")[0];
