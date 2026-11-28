@@ -2,7 +2,7 @@
 
 - **Stats → Horses** now shows its checkbox and a "Refreshing results…" line straight away, and asks again every 3 seconds, when TipBot says its results copy is still warming up after a restart. Before, only grey cards showed until the results arrived.
 - **The race picker** shows "Refreshing races…" in the same case and fills in on its own.
-- Nothing else changes: with results loaded the page is exactly as before.
+- Pairs with TipBot 0.107.2, which serves these pages from a warm copy so they stop waiting on the database. Nothing else changes: with results loaded the page is exactly as before.
 - Tests: `tests/horse_results.test.js` (warming shows the checkbox and refreshing line, then retries into the list).
 ## 0.74.1 · 2026-11-28 · `feat` · Wet track shortlist on the Horses page
 
