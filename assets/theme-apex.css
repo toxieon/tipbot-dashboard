@@ -1286,3 +1286,70 @@ html[data-theme="apex"]:not([data-apex-motion="on"]) .apex-rail{-webkit-backdrop
 html[data-theme="apex"]:not([data-apex-motion="on"]) .panel.collapsible > .panel-body{animation:none!important}
 html[data-theme="apex"]:not([data-apex-motion="on"])::view-transition-old(root),
 html[data-theme="apex"]:not([data-apex-motion="on"])::view-transition-new(root){animation:none}
+
+/* 0.73.4: Units calendar on phones. Scoped to the calendar panel so desktop
+   and the rest of Home stay as they are. Approach follows the Models page
+   calendar: taller cells, smaller type, month controls on one row. */
+@media (max-width: 640px) {
+  html[data-theme="apex"] .panel[data-sec$="calendar"] > .panel-hd {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] > .panel-hd > .panel-hd-main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] > .panel-hd > .cal-hd-tools {
+    display: contents;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .panel-caret {
+    order: 2;
+    margin-left: auto;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .cal-nav-row {
+    flex: 1 1 100%;
+    order: 3;
+    flex-wrap: nowrap !important;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+    gap: 8px;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .calnav {
+    flex: none;
+    padding: 4px 10px;
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .cal-month-label {
+    min-width: 0 !important;
+    flex: 0 1 auto;
+    white-space: nowrap;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .calgrid {
+    gap: 2px !important;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .cal-day,
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .cal-day-empty {
+    aspect-ratio: auto !important;
+    min-height: 56px;
+    height: auto;
+    padding: 2px !important;
+    overflow: hidden;
+    justify-content: flex-start !important;
+    gap: 2px;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .cal-num {
+    font-size: 0.65rem !important;
+    line-height: 1.15;
+    margin: 0;
+  }
+  html[data-theme="apex"] .panel[data-sec$="calendar"] .cal-pl {
+    font-size: 0.7rem !important;
+    line-height: 1.15;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+}

@@ -1,3 +1,9 @@
+## 0.73.4 · 2026-11-28 · `fix` · Units calendar readable on phones
+
+- On phones, Units calendar day cells are tall enough for the day's units (for example +1.2 / -0.8) to show in full, and the month header keeps the previous/next controls on one row at a normal size. Desktop layout is unchanged.
+- Apex only: styles are scoped to the calendar component under a mobile media query in `theme-apex.css`.
+- Tests: e2e `units-cal-mobile.spec.mjs` at 390×844, 375×667 and 1280×800. Screenshots `/workspace/samples/units-cal-mobile-*.png`.
+
 ## 0.73.3 · 2026-11-24 · `feat` · Change units on a posted tip until the start
 
 - Bet cards on a server page and in Upcoming Bets show ✎ Units on your own posted, pending tip until its first game, race or leg starts. It asks for the new units and saves through TipBot `POST /api/tip-units` (TipBot 0.102.1+). The Discord post redraws with the new units.
