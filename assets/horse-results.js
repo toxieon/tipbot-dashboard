@@ -487,18 +487,24 @@
     if (!shown.length) return '<div class="hr-empty" role="status">No races match that filter.</div>';
     return shown.map(function (m, i) { return meetingHtml(m, i, state); }).join("");
   }
-  function pageOpen(extra) {
+  function pageOpen(extra, more) {
     var reduce = extra && extra.reduced;
-    return '<div class="hr-page' + (reduce ? " hr-reduce" : "") + '" id="hr-app"' + (reduce ? ' data-reduced="1"' : "") + ">";
+    return '<div class="hr-page' + (reduce ? " hr-reduce" : "") + (more || "") + '" id="hr-app"' + (reduce ? ' data-reduced="1"' : "") + ">";
+  }
+  function extraHtml(state) {
+    if (!state.extra || !state.extra.label) return "";
+    return '<label class="hr-extra"><input type="checkbox" id="hr-extra-cb"' + (state.extraOn ? " checked" : "") + '><span>' + esc(state.extra.label) + "</span></label>";
   }
   function backBtn() {
     return '<div class="back" id="hr-back" role="button" tabindex="0">← Back</div>';
   }
   function shell(state, listHtml) {
-    return pageOpen(state)
+    return pageOpen(state, state.extraOn ? " hr-extra-on" : "")
       + backBtn()
       + '<div class="dhead"><h1 style="margin:0">Horses</h1></div>'
       + '<p class="hr-lead">How every horse finished over the last two days.</p>'
+      + extraHtml(state)
+      + '<div id="hr-extra-box" class="hr-extra-box"' + (state.extraOn ? "" : " hidden") + "></div>"
       + '<label class="hr-search"><span>Search</span><input id="hr-q" type="search" placeholder="Search by horse name" autocomplete="off" enterkeyhint="search" value="' + esc(state.q || "") + '"></label>'
       + filtersHtml(state.all || [], state)
       + '<div id="hr-list">' + listHtml + "</div>"
@@ -542,6 +548,9 @@
       "#hr-app .hr-search{display:block;margin:0 0 12px}" +
       "#hr-app .hr-search span{display:block;margin:0 0 6px;color:var(--muted);font-size:var(--t-cap);letter-spacing:.06em;text-transform:uppercase}" +
       "#hr-app .hr-search input{display:block;width:100%;min-height:44px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--txt);font:inherit;padding:10px 12px}" +
+      "#hr-app .hr-extra{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 12px;color:var(--muted);font-weight:650;cursor:pointer}" +
+      "#hr-app .hr-extra input{width:22px;height:22px;flex:none;accent-color:var(--accent)}" +
+      "#hr-app.hr-extra-on .hr-search,#hr-app.hr-extra-on .hr-filters,#hr-app.hr-extra-on #hr-list,#hr-app.hr-extra-on .hr-lead{display:none}" +
       "#hr-app .hr-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}" +
       "#hr-app .hr-filter{appearance:none;-webkit-appearance:none;min-height:44px;min-width:44px;padding:8px 14px;border-radius:var(--r-pill,999px);border:1px solid var(--line);background:var(--card);color:var(--muted);font:inherit;font-weight:650;cursor:pointer}" +
       "#hr-app .hr-filter[aria-pressed=\"true\"]{background:var(--txt);color:var(--bg);border-color:var(--txt)}" +
@@ -605,8 +614,10 @@
   var timer = null;
   var clearFn = null;
 
+  var stopExtra = null;
   function stop() {
     session++;
+    if (stopExtra) { try { stopExtra(); } catch (e) {} stopExtra = null; }
     if (timer != null) {
       try { (clearFn || root.clearInterval || clearInterval)(timer); } catch (e) {}
       timer = null;
@@ -631,9 +642,12 @@
       now: typeof opts.now === "function" ? opts.now() : Date.now(),
       reduced: reducedMotion(),
       status: "",
-      error: ""
+      error: "",
+      extra: opts.extra && opts.extra.label && typeof opts.extra.mount === "function" ? opts.extra : null,
+      extraOn: false
     };
     injectCss();
+    if (state.extra && state.extra.unmount) stopExtra = function () { state.extra.unmount(el); };
     function alive() { return mine === session && el && !el.hidden; }
     function pagePresent() {
       if (!painted) return true;
@@ -663,6 +677,19 @@
           state.q = q.value;
           paintList();
         };
+      }
+      var cb = rootEl.querySelector("#hr-extra-cb");
+      var xbox = rootEl.querySelector("#hr-extra-box");
+      if (cb && xbox) {
+        cb.onchange = function () {
+          state.extraOn = !!cb.checked;
+          var app = rootEl.querySelector("#hr-app");
+          if (app && app.classList) app.classList.toggle("hr-extra-on", state.extraOn);
+          xbox.hidden = !state.extraOn;
+          if (state.extraOn) state.extra.mount(xbox);
+          else if (state.extra.unmount) state.extra.unmount(xbox);
+        };
+        if (state.extraOn && !xbox.firstChild) state.extra.mount(xbox);
       }
       var retry = rootEl.querySelector("#hr-retry");
       if (retry) retry.onclick = function () { state.view = "loading"; paintFull(); load(false); };
